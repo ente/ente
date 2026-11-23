@@ -70,6 +70,7 @@ class DetailPageConfiguration {
   final bool isLocalOnlyContext;
   final bool showEditAction;
   final bool showGalleryFilmstrip;
+  final int? selectionLimit;
   final GalleryType? galleryType;
   final FutureOr<void> Function(BuildContext context)? onBackPressed;
   final ValueChanged<EnteFile>? onDismissed;
@@ -85,6 +86,7 @@ class DetailPageConfiguration {
     this.isLocalOnlyContext = false,
     this.showEditAction = true,
     this.showGalleryFilmstrip = false,
+    this.selectionLimit = maxPickAssetLimit,
     this.galleryType,
     this.onBackPressed,
     this.onDismissed,
@@ -101,6 +103,7 @@ class DetailPageConfiguration {
     bool? isLocalOnlyContext,
     bool? showEditAction,
     bool? showGalleryFilmstrip,
+    int? selectionLimit,
     GalleryType? galleryType,
     FutureOr<void> Function(BuildContext context)? onBackPressed,
     ValueChanged<EnteFile>? onDismissed,
@@ -115,6 +118,7 @@ class DetailPageConfiguration {
       isLocalOnlyContext: isLocalOnlyContext ?? this.isLocalOnlyContext,
       showEditAction: showEditAction ?? this.showEditAction,
       showGalleryFilmstrip: showGalleryFilmstrip ?? this.showGalleryFilmstrip,
+      selectionLimit: selectionLimit ?? this.selectionLimit,
       galleryType: galleryType ?? this.galleryType,
       onBackPressed: onBackPressed ?? this.onBackPressed,
       onDismissed: onDismissed ?? this.onDismissed,
@@ -383,10 +387,12 @@ class _BodyState extends State<_Body> {
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                     title: Text(
-                      context.strings.selectedCountWithLimit(
-                        count: _files!.length,
-                        limit: maxPickAssetLimit,
-                      ),
+                      widget.config.selectionLimit == null
+                          ? context.strings.selectedCount(count: _files!.length)
+                          : context.strings.selectedCountWithLimit(
+                              count: _files!.length,
+                              limit: widget.config.selectionLimit!,
+                            ),
                       style: TextStyles.body.copyWith(
                         color: context.componentColors.textBase,
                       ),

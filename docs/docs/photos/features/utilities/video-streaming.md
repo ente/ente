@@ -92,6 +92,7 @@ These controls are available whether Ente plays the original video or a streamab
 
 - Desktop and web automatically play streaming versions if available
 - The quality selector shows "Auto" when playing a stream
+- To play the original file, click the gear icon, choose **Quality**, then **Original**
 
 ## Storage implications
 

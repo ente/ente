@@ -14,10 +14,10 @@ typedef RewindBytes =
     Future<Uint8List?> Function(EnteFile file, {bool cachedOnly});
 
 typedef RewindPhotoBuilder =
-    Widget Function(EnteFile file, {ui.Image? decoded});
+    Widget Function(EnteFile file, {ui.Image? decoded, Key? key});
 
-Widget rewindPhoto(EnteFile file, {ui.Image? decoded}) =>
-    RewindPhoto(file, decoded: decoded);
+Widget rewindPhoto(EnteFile file, {ui.Image? decoded, Key? key}) =>
+    RewindPhoto(file, decoded: decoded, key: key);
 
 typedef RewindTilePainter =
     void Function(Canvas canvas, ui.Image image, Rect cell, int index);

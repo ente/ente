@@ -104,6 +104,14 @@ ente account token --app photos
 
 Prints the saved API token for that app login. It is a secret. With `--json` the result is `{"token": "..."}`.
 
+## Review logins
+
+```sh
+ente account session list --app photos
+```
+
+Lists each device logged in to that app, with its ID; `*` marks the CLI's own session. `ente account session revoke <ID>` logs one out after confirmation (`--yes` skips the prompt). The CLI's own session is ended with `ente account logout` instead.
+
 ## Log out
 
 ```sh

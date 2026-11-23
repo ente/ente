@@ -32,9 +32,9 @@ final class NotificationService: UNNotificationServiceExtension {
       case "album_shared":
         content.body = "An album was shared with you"
       case "file_liked":
-        content.body = "Someone liked a memory you shared"
+        content.body = "Someone liked a shared memory"
       case "file_commented":
-        content.body = "Someone commented on a memory you shared"
+        content.body = "Someone commented on a shared memory"
       case "comment_replied":
         content.body = "Someone replied to your comment"
       default:

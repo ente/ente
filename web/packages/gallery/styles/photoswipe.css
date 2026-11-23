@@ -5,6 +5,11 @@
     z-index: calc(var(--mui-zIndex-drawer) - 1);
 }
 
+.pswp-ente,
+.pswp-ente .pswp__scroll-wrap {
+    overflow: clip;
+}
+
 .pswp-ente .pswp__top-bar {
     top: calc(env(titlebar-area-height, 0px) * 0.4);
 }

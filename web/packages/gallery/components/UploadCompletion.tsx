@@ -9,6 +9,7 @@ import {
     type DialogProps,
     type Theme,
 } from "@mui/material";
+import { RiveIllustration } from "ente-base/components/RiveIllustration";
 import type { PreUploadSkippedFile } from "ente-base/types/ipc";
 import { SlideUpTransition } from "ente-new/photos/components/mui/SlideUpTransition";
 import { t } from "i18next";
@@ -76,23 +77,32 @@ export function UploadCompletion({
                     </IconButton>
                 </Stack>
                 <Stack sx={completionBodySx}>
-                    <Box
-                        component="img"
-                        alt=""
-                        src={
-                            hasFailedUploads
-                                ? "/images/warning-red.png"
-                                : "/images/upload-complete-duck.svg"
-                        }
-                        sx={[
-                            completionIllustrationSx,
-                            hasFailedUploads && {
-                                width: 68,
-                                height: 68,
-                                objectFit: "contain",
-                            },
-                        ]}
-                    />
+                    {hasFailedUploads ? (
+                        <Box
+                            component="img"
+                            alt=""
+                            src="/images/warning-red.png"
+                            sx={{ width: 68, height: 68, objectFit: "contain" }}
+                        />
+                    ) : (
+                        <Box
+                            component={RiveIllustration}
+                            src={
+                                new URL(
+                                    "../assets/ente-done-ducky.riv",
+                                    import.meta.url,
+                                )
+                            }
+                            stateMachine="Done"
+                            fallback={
+                                <img
+                                    src="/images/upload-complete-duck.svg"
+                                    alt=""
+                                />
+                            }
+                            sx={completionIllustrationSx}
+                        />
+                    )}
                     <Stack sx={{ gap: "6px", alignItems: "center" }}>
                         <Typography
                             id="upload-completion-title"
@@ -220,7 +230,12 @@ const completionCloseButtonSx = (theme: Theme) => ({
 
 const completionBodySx = { alignItems: "center", gap: 3, textAlign: "center" };
 
-const completionIllustrationSx = { width: 138, height: 154, maxWidth: "100%" };
+const completionIllustrationSx = {
+    width: 138,
+    height: 154,
+    maxWidth: "100%",
+    "& img": { display: "block", width: "100%" },
+};
 
 const completionTitleSx = { fontSize: 24, lineHeight: "32px", fontWeight: 600 };
 

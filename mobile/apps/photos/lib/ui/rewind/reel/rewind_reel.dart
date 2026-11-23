@@ -11,19 +11,29 @@ import "package:photos/ui/rewind/theme/rewind_motion.dart";
 import "package:photos/ui/rewind/widgets/rewind_wordmark.dart";
 
 class RewindReel {
-  RewindReel._(this.pages, this._holds)
+  RewindReel._(this.pages, this._holds, {required this.clip})
     : starts = RewindPageStack.startsOf(pages);
 
-  factory RewindReel.of(List<RewindPage> story) {
+  factory RewindReel.of(List<RewindPage> story) =>
+      RewindReel._holding(story, (page) => page.reelHold, clip: false);
+
+  factory RewindReel.clipOf(List<RewindPage> pages) =>
+      RewindReel._holding(pages, (page) => page.clipHold, clip: true);
+
+  factory RewindReel._holding(
+    List<RewindPage> story,
+    Duration? Function(RewindPage page) holdOf, {
+    required bool clip,
+  }) {
     final pages = <RewindPage>[];
     final holds = <Duration>[];
     for (final page in story) {
-      final hold = page.reelHold;
+      final hold = holdOf(page);
       if (hold == null) continue;
       pages.add(page);
       holds.addAll(List.filled(page.stops, hold));
     }
-    return RewindReel._(pages, holds);
+    return RewindReel._(pages, holds, clip: clip);
   }
 
   static const frameRate = 24;
@@ -32,11 +42,14 @@ class RewindReel {
 
   final List<RewindPage> pages;
   final List<int> starts;
+  final bool clip;
   final List<Duration> _holds;
 
   Duration get duration =>
       _holds.fold(Duration.zero, (total, hold) => total + hold) +
       _turn * (_holds.length - 1);
+
+  Duration get videoDuration => duration + timeOf(1);
 
   int get frameCount =>
       (duration.inMicroseconds * frameRate / Duration.microsecondsPerSecond)
@@ -105,7 +118,9 @@ class RewindReelView extends StatelessWidget {
               valueListenable: time,
               builder: (context, time, _) {
                 final scroll = reel.scrollAt(time);
-                final wordmark = reel.pageAt(scroll).chrome.wordmark;
+                final wordmark =
+                    reel.pageAt(scroll).chrome.wordmark ??
+                    (reel.clip ? RewindColors.white : null);
                 return Stack(
                   fit: StackFit.expand,
                   children: [
@@ -115,6 +130,7 @@ class RewindReelView extends StatelessWidget {
                       scroll: scroll,
                       navigator: _navigator,
                       reel: true,
+                      clip: reel.clip,
                     ),
                     if (wordmark != null)
                       Positioned.fromRect(
@@ -156,4 +172,10 @@ class _ReelNavigator implements RewindNavigator {
 
   @override
   void shareVideo(Rect? origin) {}
+
+  @override
+  ValueListenable<bool> get videoSaved => const AlwaysStoppedAnimation(false);
+
+  @override
+  void saveVideo() {}
 }

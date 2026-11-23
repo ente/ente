@@ -6,7 +6,9 @@ const galleryKey = "collectionsSortBy";
 const selectorKey = "collectionSelectorSortBy";
 
 test.beforeEach(async ({ signedInPage: page }) => {
-    await page.getByText("Continue with free plan", { exact: true }).click();
+    await page
+        .getByRole("button", { name: "Continue with 10 GB plan" })
+        .click();
     const navigation = page.getByRole("navigation", {
         name: "Albums",
         exact: true,

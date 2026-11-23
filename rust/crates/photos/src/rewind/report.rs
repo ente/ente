@@ -28,7 +28,6 @@ pub struct RewindReport {
     pub tour: Option<Tour>,
     pub globe: Option<Globe>,
     pub mosaic: Option<Mosaic>,
-    pub timelapse: Option<Timelapse>,
     pub warp: Option<Warp>,
 }
 
@@ -239,27 +238,8 @@ pub struct Mosaic {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Timelapse {
-    pub person_id: String,
-    pub is_me: bool,
-    pub photo_count: u32,
-    pub frames: Vec<TimelapseFrame>,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Warp {
     pub file_ids: Vec<i64>,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TimelapseFrame {
-    pub file_id: i64,
-    pub month: u32,
-    pub day: u32,
-    pub left_eye_x: u32,
-    pub left_eye_y: u32,
-    pub right_eye_x: u32,
-    pub right_eye_y: u32,
 }
 
 impl RewindReport {
@@ -317,8 +297,6 @@ impl RewindReport {
                 .zip(cities)
                 .and_then(|(located, lookup)| chapters::globe(located, lookup, &ranking)),
             mosaic: chapters::mosaic(request, library, ml_people, &ranking, &year_photos),
-            timelapse: ml_people
-                .and_then(|people| chapters::timelapse(request, library, people, &ranking)),
             warp: chapters::warp(library, &ranking, &year_photos),
         })
     }
@@ -334,7 +312,6 @@ impl RewindReport {
             || self
                 .badge
                 .is_some_and(|badge| chapters::badge_uses_ml(badge.id))
-            || self.timelapse.is_some()
             || self.mosaic.as_ref().is_some_and(|mosaic| {
                 mosaic.me_person_id.is_some()
                     || mosaic.top_person_id.is_some()

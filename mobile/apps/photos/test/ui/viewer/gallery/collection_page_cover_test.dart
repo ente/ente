@@ -58,6 +58,7 @@ import "package:photos/ui/collections/album/row_item.dart";
 import "package:photos/ui/collections/collection_list_page.dart";
 import "package:photos/ui/components/bottom_action_bar/action_bar_widget.dart";
 import "package:photos/ui/components/bottom_action_bar/selection_action_sheet.dart";
+import "package:photos/ui/picker/external_media_picker_page.dart";
 import "package:photos/ui/viewer/actions/album_selection_overlay_bar.dart";
 import "package:photos/ui/viewer/actions/file_selection_overlay_bar.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
@@ -136,6 +137,114 @@ void main() {
   tearDownAll(() async {
     PathProviderPlatform.instance = previousPathProvider;
     await tempDir.delete(recursive: true);
+  });
+
+  Future<void> mountPicker(WidgetTester tester) => tester.pumpWidget(
+    MaterialApp(
+      theme: lightThemeData,
+      localizationsDelegates: StringsLocalizations.localizationsDelegates,
+      supportedLocales: StringsLocalizations.supportedLocales,
+      home: const ExternalMediaPickerPage(allowMultiple: true),
+    ),
+  );
+
+  testWidgets("picker search preserves its query on Back and animates tabs", (
+    tester,
+  ) async {
+    final album = _collection()..setName("Cat photos");
+    final albums = CollectionsService.instance.collectionIDToCollections;
+    albums[album.id] = album;
+    addTearDown(() => albums.remove(album.id));
+    await mountPicker(tester);
+    final field = find.byType(TextField);
+    final row = find.byType(AnimatedCrossFade);
+    final tabs = find.byType(FilterChipComponent).hitTestable();
+    final height = tester.getSize(row).height;
+    addTearDown(tester.view.resetViewInsets);
+    tester.view.systemGestureInsets = const FakeViewPadding(left: 30);
+    addTearDown(tester.view.resetSystemGestureInsets);
+    await tester.tap(field);
+    tester.view.viewInsets = const FakeViewPadding(bottom: 200);
+    await tester.pump();
+    await tester.pump(Motion.quick);
+    expect(tester.getSize(row).height, inExclusiveRange(0, height));
+    await tester.enterText(field, "cat");
+    final input = tester.widget<EditableText>(find.byType(EditableText));
+    final edgeSwipe = await tester.startGesture(const Offset(1, 240));
+    await edgeSwipe.moveBy(const Offset(100, 0));
+    await edgeSwipe.up();
+    await tester.pump();
+    expect(input.focusNode.hasFocus, isTrue);
+    final back = SystemChannels.backGesture;
+    Future<void> gesture(String method, [Object? args]) =>
+        tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+          back.name,
+          back.codec.encodeMethodCall(MethodCall(method, args)),
+          (_) {},
+        );
+    tester.view.resetViewInsets();
+    await tester.pump();
+    await gesture("startBackGesture", {
+      "touchOffset": [1.0, 240.0],
+      "progress": 0.0,
+      "swipeEdge": 0,
+    });
+    await gesture("commitBackGesture");
+    await tester.pump();
+    expect(input.controller.text, "cat");
+    expect(input.focusNode.hasFocus, isFalse);
+    await tester.pump(const Duration(seconds: 1));
+    final result = find.text(album.displayName).hitTestable();
+    for (var i = 0; i < 100 && result.evaluate().isEmpty; i++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 10)),
+      );
+      await tester.pump();
+    }
+    await tester.tap(result);
+    await tester.pump(const Duration(seconds: 3));
+    expect(find.widgetWithText(AppBar, album.displayName), findsOneWidget);
+    await tester.tap(find.byTooltip("Back"));
+    await tester.pump();
+    tester.platformDispatcher.accessibilityFeaturesTestValue =
+        const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+    await tester.enterText(field, "");
+    await tester.pump();
+    expect(tabs, findsNWidgets(2));
+    await _disposeAlbum(tester);
+  });
+
+  testWidgets("picker keeps the photo selected through its surviving album", (
+    tester,
+  ) async {
+    await tester.runAsync(() async {
+      final original = _file(1);
+      final surviving = EnteFile.from(original)
+        ..generatedID = 2
+        ..collectionID = 2;
+      final db = FilesDB.instance;
+      await db.insertMultiple([original, surviving]);
+      await mountPicker(tester);
+      final selection = tester
+          .widget<Gallery>(find.byType(Gallery))
+          .selectedFiles!;
+      selection.selectAll({original});
+      await db.deleteFilesFromCollection(1, [original.uploadedFileID!]);
+      final refreshed = Completer<void>();
+      selection.addListener(() => refreshed.complete());
+      Bus.instance.fire(
+        CollectionUpdatedEvent(
+          1,
+          [original],
+          "syncDeleteFromRemote",
+          type: EventType.deletedFromRemote,
+        ),
+      );
+      await refreshed.future.timeout(const Duration(seconds: 5));
+      expect(selection.files, orderedEquals([surviving]));
+    });
+    await _disposeAlbum(tester);
   });
 
   testWidgets("sorts Discover photos using the shared sheet", (tester) async {

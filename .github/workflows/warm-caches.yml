@@ -6,6 +6,20 @@ name: "Warm caches"
 on:
     schedule:
         - cron: "17 18 * * *"
+    # Runs rust-flutter only: mobile-lint.yml restores FRB outputs by exact key.
+    push:
+        branches: [main]
+        paths:
+            - ".github/actions/restore-frb-outputs/**"
+            - ".github/actions/setup-flutter/**"
+            - ".github/scripts/ci/paths.json"
+            - ".github/workflows/mobile-lint.yml"
+            - ".github/workflows/warm-caches.yml"
+            - "mobile/apps/*/flutter_rust_bridge.yaml"
+            - "mobile/apps/*/pubspec.yaml"
+            - "mobile/packages/frb/pubspec.yaml"
+            - "mobile/pubspec.lock"
+            - "rust/**"
     # Dispatch only on main or caches will be saved against the wrong ref.
     workflow_dispatch:
 
@@ -15,6 +29,7 @@ permissions:
 jobs:
     rust-workspace:
         # For rust-lint.yml and rust-test.yml.
+        if: github.event_name != 'push'
         runs-on: ubuntu-latest
         defaults:
             run:
@@ -56,6 +71,20 @@ jobs:
 
             - run: ./scripts/lint.sh
 
+            - run: cargo test --locked --workspace --exclude ente-cli --features museum,ente-ml/ml-assets --no-run
+
+            - run: cargo test --locked -p ente-cli --features museum --no-run
+
+            - run: node .github/actions/restore-rust-target/mtimes.mjs save
+              working-directory: ${{ github.workspace }}
+
+            - name: Save Rust target
+              if: steps.rust-target.outputs.cache-hit != 'true'
+              uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  key: ${{ steps.rust-target.outputs.cache-key }}
+                  path: rust/target
+
             - name: Cache Museum
               uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
               with:
@@ -70,20 +99,9 @@ jobs:
               env:
                   GITHUB_TOKEN: ${{ github.token }}
 
-            - run: cargo test --locked -p ente-cli --features museum --no-run
-
-            - run: node .github/actions/restore-rust-target/mtimes.mjs save
-              working-directory: ${{ github.workspace }}
-
-            - name: Save Rust target
-              if: steps.rust-target.outputs.cache-hit != 'true'
-              uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-              with:
-                  key: ${{ steps.rust-target.outputs.cache-key }}
-                  path: rust/target
-
     rust-cli:
         # For rust-cli-test.yml.
+        if: github.event_name != 'push'
         strategy:
             matrix:
                 os: [macos-latest, windows-latest]
@@ -140,6 +158,12 @@ jobs:
             - name: Install Flutter
               uses: $/.github/actions/setup-flutter
 
+            - name: Cache pub packages
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  key: mobile-pub-${{ hashFiles('mobile/pubspec.lock') }}
+                  path: ~/.pub-cache
+
             - name: Setup Rust cache
               uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
               with:
@@ -151,8 +175,14 @@ jobs:
               id: rust-target
               uses: $/.github/actions/restore-rust-target
               with:
-                  lookup-only: true
+                  lookup-only: ${{ github.event_name != 'push' }}
                   shared-key: rust-flutter
+
+            - name: Check FRB outputs cache
+              id: frb
+              uses: $/.github/actions/restore-frb-outputs
+              with:
+                  lookup-only: true
 
             - run: cargo codegen frb
 
@@ -162,11 +192,27 @@ jobs:
 
             - run: cargo clippy -p ente-locker-frb --features flutter --all-targets --locked
 
+            - name: Build Rust libraries for tests
+              run: cargo build -p ente-auth-frb -p ente-photos-frb --features flutter --locked
+
+            - name: Save FRB outputs
+              if: steps.frb.outputs.cache-hit != 'true'
+              uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+              with:
+                  key: ${{ steps.frb.outputs.cache-key }}
+                  path: |
+                      mobile/apps/auth/lib/src/rust
+                      mobile/apps/locker/lib/src/rust
+                      mobile/apps/photos/lib/src/rust
+                      mobile/packages/frb/lib
+                      rust/target/debug/libente_auth_frb.so
+                      rust/target/debug/libente_photos_frb.so
+
             - run: node .github/actions/restore-rust-target/mtimes.mjs save
               working-directory: ${{ github.workspace }}
 
             - name: Save Rust target
-              if: steps.rust-target.outputs.cache-hit != 'true'
+              if: github.event_name != 'push' && steps.rust-target.outputs.cache-hit != 'true'
               uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
               with:
                   key: ${{ steps.rust-target.outputs.cache-key }}
@@ -186,6 +232,7 @@ jobs:
 
     web:
         # For web-lint.yml.
+        if: github.event_name != 'push'
         runs-on: ubuntu-latest
         defaults:
             run:
@@ -253,6 +300,7 @@ jobs:
 
     photos-desktop-ensu-android:
         # For desktop-lint.yml and android-lint.yml.
+        if: github.event_name != 'push'
         runs-on: ubuntu-latest
         steps:
             - name: Checkout
@@ -327,6 +375,7 @@ jobs:
 
     ensu-ios:
         # For apple-lint.yml.
+        if: github.event_name != 'push'
         runs-on: macos-latest
         steps:
             - name: Checkout
@@ -365,6 +414,7 @@ jobs:
 
     go-server:
         # For server-lint.yml.
+        if: github.event_name != 'push'
         runs-on: ubuntu-latest
         defaults:
             run:

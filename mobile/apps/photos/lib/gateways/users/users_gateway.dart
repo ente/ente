@@ -102,11 +102,6 @@ class UsersGateway {
     await _enteDio.put("/users/recovery-key", data: request.toMap());
   }
 
-  Future<bool> getTwoFactorStatus() async {
-    final response = await _enteDio.get("/users/two-factor/status");
-    return response.data["status"] as bool;
-  }
-
   Future<void> disableTwoFactor() async {
     await _enteDio.post("/users/two-factor/disable");
   }

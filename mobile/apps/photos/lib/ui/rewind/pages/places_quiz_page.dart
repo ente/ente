@@ -137,8 +137,8 @@ class _PlacesQuiz extends StatefulWidget {
 }
 
 class _PlacesQuizState extends State<_PlacesQuiz> {
-  static const _background = Color(0xFF3F78F0);
-  static const _stripes = Color(0xFF4A82F5);
+  static const _background = Color(0xFF123E97);
+  static const _stripes = Color(0xFF0C3B9B);
   static const _revealMs = 1250;
   static const _rankMs = 600;
   static const _rankGapMs = 330;
@@ -573,11 +573,7 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
         child: RewindStamp(
           photo: photo == null
               ? const ColoredBox(color: Color(0xFFD9D9D9))
-              : RewindPhoto(
-                  photo,
-                  placeholder: const Color(0xFFD9D9D9),
-                  zoomable: false,
-                ),
+              : RewindPhoto(photo, placeholder: const Color(0xFFD9D9D9)),
           label: stamp.city.country.isEmpty
               ? stamp.city.name
               : stamp.city.country,
@@ -767,8 +763,8 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
           110,
           swap(
             RewindVoice(
-              you: travelled ? "YOUR PHOTOS TRAVELLED" : "YOUR TOP PLACE",
-              me: travelled ? "MY PHOTOS TRAVELLED" : "MY TOP PLACE",
+              you: travelled ? "YOUR PHOTOS TRAVELED" : "YOUR TOP PLACE",
+              me: travelled ? "MY PHOTOS TRAVELED" : "MY TOP PLACE",
               builder: (text) => Text(
                 text,
                 style: RewindTextStyles.display(17, letterSpacing: 0.3),

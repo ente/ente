@@ -4,8 +4,8 @@ pub use ente_photos::rewind::{
     Badge, BusiestDay, ColourOfTheYear, CrowdFavourite, Favourites, Finale, Globe, GlobePlace,
     LikedPhoto, Mosaic, NewFace, NewFaces, PeopleRace, Places, RacePerson, RewindBadge, RewindCity,
     RewindColour, RewindFile, RewindFileType, RewindLocation, RewindPerson, RewindReport,
-    RewindRequest, RewindState, RewindStatus, RewindVisibility, Scrapbook, Spots, Timelapse,
-    TimelapseFrame, Totals, Tour, TourStop, Warp, WeeklyHabit,
+    RewindRequest, RewindState, RewindStatus, RewindVisibility, Scrapbook, Spots, Totals, Tour,
+    TourStop, Warp, WeeklyHabit,
 };
 use flutter_rust_bridge::frb;
 
@@ -119,7 +119,6 @@ pub struct _RewindReport {
     pub tour: Option<Tour>,
     pub globe: Option<Globe>,
     pub mosaic: Option<Mosaic>,
-    pub timelapse: Option<Timelapse>,
     pub warp: Option<Warp>,
 }
 
@@ -328,28 +327,9 @@ pub struct _Mosaic {
     pub cluster_face_ids: Vec<String>,
 }
 
-#[frb(mirror(Timelapse))]
-pub struct _Timelapse {
-    pub person_id: String,
-    pub is_me: bool,
-    pub photo_count: u32,
-    pub frames: Vec<TimelapseFrame>,
-}
-
 #[frb(mirror(Warp))]
 pub struct _Warp {
     pub file_ids: Vec<i64>,
-}
-
-#[frb(mirror(TimelapseFrame))]
-pub struct _TimelapseFrame {
-    pub file_id: i64,
-    pub month: u32,
-    pub day: u32,
-    pub left_eye_x: u32,
-    pub left_eye_y: u32,
-    pub right_eye_x: u32,
-    pub right_eye_y: u32,
 }
 
 pub fn compute_rewind(
@@ -382,4 +362,15 @@ pub fn decode_rewind_state(
 
 pub fn encode_rewind_request(request: RewindRequest) -> Result<Vec<u8>, RewindError> {
     Ok(rewind::encode_rewind_request(&request)?)
+}
+
+pub fn rewind_badge_signals(
+    request: RewindRequest,
+    store: Option<RustAutoOpaque<MlStore>>,
+) -> Result<String, RewindError> {
+    let store = store.as_ref().map(RustAutoOpaque::blocking_read);
+    Ok(rewind::rewind_badge_signals(
+        &request,
+        store.as_deref().map(|store| &store.inner),
+    )?)
 }

@@ -102,7 +102,7 @@ func (c *ObjectController) removeComplianceHold(qItem repo.QueueItem) {
 		}
 	}
 
-	err = c.QueueRepo.DeleteItem(repo.RemoveComplianceHoldQueue, qItem.Item)
+	err = c.QueueRepo.DeleteItem(repo.RemoveComplianceHoldQueue, qItem.Id)
 	if err != nil {
 		logger.WithError(err).Error("Failed to remove item from the queue")
 		return

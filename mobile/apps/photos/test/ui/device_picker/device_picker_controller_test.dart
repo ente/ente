@@ -16,11 +16,39 @@ void main() {
   });
   tearDown(() => model.dispose());
 
-  test(
-    'selection stops at 50 and confirmation resolves in bounded batches',
-    () async {
-      library.items = List.generate(80, (i) => media('$i'));
-      await model.refresh();
+  test('an initial album opens once and missing albums fall back', () async {
+    for (final initialID in ['camera', 'unavailable']) {
+      final source = FakeDeviceLibrary();
+      final controller = DevicePickerController(
+        library: source,
+        initialAlbumID: initialID,
+        initialSelection: source.items.take(1),
+      );
+      addTearDown(controller.dispose);
+      await controller.refresh();
+      expect(controller.album!.id, initialID == 'camera' ? 'camera' : 'recent');
+      final other = source.folders.firstWhere(
+        (folder) => folder.id != controller.album!.id,
+      );
+      await controller.openAlbum(other);
+      await controller.refresh();
+      expect(controller.album!.id, other.id);
+      expect(controller.selection, [source.items.first]);
+      source.folders.remove(other);
+      await controller.refresh();
+      expect(controller.album!.id, source.folders.single.id);
+    }
+  });
+
+  test('bounded and uncapped selection confirm in bounded batches', () async {
+    for (final limit in <int?>[50, null]) {
+      final controller = DevicePickerController(
+        library: library,
+        selectionLimit: limit,
+      );
+      addTearDown(controller.dispose);
+      library.items = List.generate(81, (i) => media('$i'));
+      await controller.refresh();
       var running = 0;
       var peak = 0;
       library.resolveOverride = (id) async {
@@ -30,19 +58,19 @@ void main() {
         running--;
         return library.items[int.parse(id)];
       };
-      model.replaceSelection(library.items);
-      expect(model.selectionCount, 50);
-      model.replaceSelection([
-        ...model.selection.where((item) => item.id != '10'),
-        library.items[50],
+      controller.replaceSelection(library.items.take(80));
+      expect(controller.selectionCount, limit ?? 80);
+      controller.replaceSelection([
+        ...controller.selection.where((item) => item.id != '10'),
+        library.items.last,
       ]);
-      expect(model.selectionCount, 50);
-      final confirmed = await model.confirm();
-      expect(confirmed, model.selection);
+      expect(controller.selectionCount, limit ?? 80);
+      final confirmed = await controller.confirm();
+      expect(confirmed, controller.selection);
       expect(identical(confirmed!.first, library.items.first), isTrue);
       expect(peak, lessThanOrEqualTo(8));
-    },
-  );
+    }
+  });
 
   test(
     'leaving during a large confirmation cancels the remaining batches',

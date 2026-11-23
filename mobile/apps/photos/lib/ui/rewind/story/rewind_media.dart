@@ -17,17 +17,33 @@ import "package:photos/services/memories/memory_sources.dart";
 import "package:photos/ui/rewind/story/rewind_face.dart";
 import "package:photos/utils/face/face_thumbnail_cache.dart";
 
+typedef RewindBlurryFace = ({
+  FaceWithoutEmbedding face,
+  List<RewindFace> shownIn,
+});
+typedef RewindBlurryFaces = ({EnteFile file, List<RewindBlurryFace> faces});
+typedef _FaceCrop = ({String faceId, Uint8List crop});
+
 class RewindMedia {
-  RewindMedia._(this._files, this._people, {_Samples? samples})
-    : _samples = samples;
+  RewindMedia._(
+    this._files,
+    this._people, {
+    required bool waitsForOriginals,
+    _Samples? samples,
+  }) : _waitsForOriginals = waitsForOriginals,
+       _samples = samples;
 
   static final _logger = Logger("RewindMedia");
   static const _sampleFaceCount = 5;
   static const _eyeLine = 0.4;
 
-  static Future<RewindMedia> load() async {
+  static Future<RewindMedia> load({bool waitsForOriginals = false}) async {
     final people = await _namedPeople();
-    return RewindMedia._(await _showableFiles(people.values), people);
+    return RewindMedia._(
+      await _showableFiles(people.values),
+      people,
+      waitsForOriginals: waitsForOriginals,
+    );
   }
 
   static Future<RewindMedia> sampled() async {
@@ -42,6 +58,7 @@ class RewindMedia {
     return RewindMedia._(
       files,
       people,
+      waitsForOriginals: true,
       samples: _Samples(photos, [
         for (final person in people.values)
           if (_isShown(person)) person.remoteID,
@@ -83,13 +100,58 @@ class RewindMedia {
 
   final Map<int, EnteFile> _files;
   final Map<String, PersonEntity> _people;
+  final bool _waitsForOriginals;
   final _Samples? _samples;
   final _used = <int>{};
   final _handedOut = <EnteFile>[];
   final _faces = <String, Future<RewindFace?>>{};
+  final _blurryFaces = <int, Map<String, FaceWithoutEmbedding>>{};
+  final _shownFaces = <String, List<RewindFace>>{};
 
   IMLDataDB<int> get _ml =>
       isLocalGalleryMode ? MLDataDB.localGalleryInstance : MLDataDB.instance;
+
+  List<RewindBlurryFaces> get blurryFaces => [
+    for (final MapEntry(key: fileId, value: faces) in _blurryFaces.entries)
+      (
+        file: _files[fileId]!,
+        faces: [
+          for (final face in faces.values)
+            (face: face, shownIn: _shownFaces[face.faceID] ?? const []),
+        ],
+      ),
+  ];
+
+  static Future<bool> sharpen(RewindBlurryFaces blurry) async {
+    var sharpened = false;
+    for (final (:face, :shownIn) in blurry.faces) {
+      final crop = await _sharpen(blurry.file, face);
+      if (crop == null) continue;
+      sharpened = true;
+      for (final shown in shownIn) {
+        shown.sharpen(crop);
+      }
+    }
+    return sharpened;
+  }
+
+  static Future<Uint8List?> _sharpen(
+    EnteFile file,
+    FaceWithoutEmbedding face,
+  ) async {
+    try {
+      await _cropFrom(file, face, useFullFile: true);
+      if (!await areFullFaceCropsCached([face.faceID])) return null;
+      return await _cropFrom(file, face, useFullFile: false);
+    } catch (error, stackTrace) {
+      _logger.warning(
+        "Could not sharpen face ${face.faceID}",
+        error,
+        stackTrace,
+      );
+      return null;
+    }
+  }
 
   List<EnteFile> photos(Int64List ids, int slots) => _pick(ids.inner, slots);
 
@@ -203,8 +265,10 @@ class RewindMedia {
     final name = named ? _nameOf(id) : null;
     if (named && name == null) return null;
     if (!named && !await _isShownCluster(id)) return null;
-    final crop = await _cover(id) ?? await _crop(faceIds);
-    return RewindFace(name: name, crop: crop);
+    final found = await _cover(id) ?? await _crop(faceIds);
+    final face = RewindFace(name: name, crop: found?.crop);
+    if (found != null) (_shownFaces[found.faceId] ??= []).add(face);
+    return face;
   }
 
   Future<bool> _isShownCluster(String clusterId) async {
@@ -233,13 +297,14 @@ class RewindMedia {
       personId,
       limit: _sampleFaceCount,
     );
+    final found = await _crop(faceIds) ?? await _cover(personId);
     return RewindFace(
       name: named ? _nameOf(personId) : null,
-      crop: await _crop(faceIds) ?? await _cover(personId),
+      crop: found?.crop,
     );
   }
 
-  Future<Uint8List?> _cover(String personOrClusterId) async {
+  Future<_FaceCrop?> _cover(String personOrClusterId) async {
     try {
       final faceId = await checkUsedFaceIDForPersonOrClusterId(
         personOrClusterId,
@@ -251,7 +316,7 @@ class RewindMedia {
     }
   }
 
-  Future<Uint8List?> _crop(List<String> faceIds) async {
+  Future<_FaceCrop?> _crop(List<String> faceIds) async {
     for (final faceId in faceIds) {
       try {
         final fileId = getFileIdFromFaceId<int>(faceId);
@@ -260,15 +325,28 @@ class RewindMedia {
         final faces = await _ml.getFacesForGivenFileID(fileId);
         final face = faces?.firstWhereOrNull((face) => face.faceID == faceId);
         if (face == null) continue;
-        final crop =
-            await _cropFrom(file, face, useFullFile: true) ??
-            await _cropFrom(file, face, useFullFile: false);
-        if (crop != null) return crop;
+        final crop = await _cropOf(fileId, file, face);
+        if (crop != null) return (faceId: faceId, crop: crop);
       } catch (error, stackTrace) {
         _logger.warning("No crop for face $faceId", error, stackTrace);
       }
     }
     return null;
+  }
+
+  Future<Uint8List?> _cropOf(
+    int fileId,
+    EnteFile file,
+    FaceWithoutEmbedding face,
+  ) async {
+    if (_waitsForOriginals) {
+      return await _cropFrom(file, face, useFullFile: true) ??
+          await _cropFrom(file, face, useFullFile: false);
+    }
+    if (!await areFullFaceCropsCached([face.faceID])) {
+      (_blurryFaces[fileId] ??= {})[face.faceID] = face;
+    }
+    return _cropFrom(file, face, useFullFile: false);
   }
 
   static Future<Uint8List?> _cropFrom(

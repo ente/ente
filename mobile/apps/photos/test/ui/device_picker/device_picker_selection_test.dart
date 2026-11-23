@@ -22,31 +22,35 @@ void main() {
     expect(selection.files, isEmpty);
   });
 
-  test('shared swipe selection respects the cap and can deselect', () {
-    final selection = DevicePickerSelectedFiles();
-    final files = List.generate(70, (i) => EnteFile()..localID = '$i');
-    final swipe = SwipeToSelectHelper(
-      allFiles: files,
-      selectedFiles: selection,
-    );
-    addTearDown(() {
-      swipe.dispose();
-      selection.dispose();
+  for (final limit in <int?>[50, null]) {
+    test('shared swipe selection with limit $limit can deselect', () {
+      final selection = DevicePickerSelectedFiles(selectionLimit: limit);
+      final files = List.generate(70, (i) => EnteFile()..localID = '$i');
+      final swipe = SwipeToSelectHelper(
+        allFiles: files,
+        selectedFiles: selection,
+      );
+      addTearDown(() {
+        swipe.dispose();
+        selection.dispose();
+      });
+      swipe.startSelection(files.first);
+      swipe.updateSelection(files.last);
+      expect(selection.files.length, limit ?? files.length);
+      swipe.updateSelection(files[24]);
+      expect(selection.files.length, 25);
+      swipe.endSelection();
+      swipe.startSelection(files.first);
+      swipe.updateSelection(files[24]);
+      swipe.endSelection();
+      expect(selection.files, isEmpty);
+      selection.selectAll({DummyFile(groupID: 'day', index: 0), ...files});
+      expect(selection.files.length, limit ?? files.length);
+      expect(selection.files.any((file) => file is DummyFile), isFalse);
+      selection.toggleGroupSelection(files.toSet());
+      expect(selection.files, isEmpty);
     });
-    swipe.startSelection(files.first);
-    swipe.updateSelection(files.last);
-    expect(selection.files.length, 50);
-    swipe.updateSelection(files[24]);
-    expect(selection.files.length, 25);
-    swipe.endSelection();
-    swipe.startSelection(files.first);
-    swipe.updateSelection(files[24]);
-    swipe.endSelection();
-    expect(selection.files, isEmpty);
-    selection.selectAll({DummyFile(groupID: 'day', index: 0), ...files});
-    expect(selection.files.length, 50);
-    expect(selection.files.any((file) => file is DummyFile), isFalse);
-  });
+  }
 
   test('uploaded files stay selected when their local ID is cleared', () {
     final selection = DevicePickerSelectedFiles();

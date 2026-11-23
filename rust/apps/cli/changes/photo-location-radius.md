@@ -1,0 +1,1 @@
+- Fixed distance filtering with `photos file list --near` and `--radius` at high latitudes.

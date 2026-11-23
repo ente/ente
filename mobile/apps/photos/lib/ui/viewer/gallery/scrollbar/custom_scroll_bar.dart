@@ -215,7 +215,9 @@ class _CustomScrollBarState extends State<CustomScrollBar> {
           ),
           child: widget.child,
         ),
-        positionToTitleMap == null || heightOfScrollbarDivider == null
+        !_showScrollbarDivisions ||
+                positionToTitleMap == null ||
+                heightOfScrollbarDivider == null
             ? const SizedBox.shrink()
             : Padding(
                 padding: EdgeInsets.only(

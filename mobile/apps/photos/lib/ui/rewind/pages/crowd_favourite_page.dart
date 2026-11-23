@@ -4,6 +4,7 @@ import "dart:ui" show lerpDouble;
 import "package:flutter/material.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
+import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
 import "package:photos/ui/rewind/theme/rewind_motion.dart";
@@ -71,7 +72,7 @@ class CrowdFavouritePage extends RewindPage {
             ),
           ),
           Semantics(
-            label: "Crowd favourite. $line",
+            label: "The crowd favorite. $line",
             child: ExcludeSemantics(
               child: RewindStage(
                 children: [
@@ -80,7 +81,7 @@ class CrowdFavouritePage extends RewindPage {
                       position: position,
                       centerY: _photoRect.center.dy,
                       child: RewindElapsed(
-                        active: isActive,
+                        active: isActive && !RewindPageScope.coveredOf(context),
                         stillMs: 6000,
                         builder: (context, ms) => Stack(
                           clipBehavior: Clip.none,
@@ -92,8 +93,10 @@ class CrowdFavouritePage extends RewindPage {
                             ),
                             _photo(ms),
                             Positioned.fill(
-                              child: CustomPaint(
-                                painter: _HeartsPainter(ms, front: true),
+                              child: IgnorePointer(
+                                child: CustomPaint(
+                                  painter: _HeartsPainter(ms, front: true),
+                                ),
                               ),
                             ),
                           ],
@@ -112,7 +115,7 @@ class CrowdFavouritePage extends RewindPage {
                     preset: RewindPreset.slap,
                     delayMs: 1500,
                     child: RewindOutlinedText(
-                      "CROWD FAVOURITE",
+                      "THE CROWD FAVORITE",
                       style: RewindTextStyles.display(32, height: 1.15),
                       outline: 1.6,
                       shadow: const Offset(2, 3),

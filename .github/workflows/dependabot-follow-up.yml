@@ -108,13 +108,14 @@ jobs:
                   persist-credentials: false
 
             - name: Prepare dependency update
-              uses: openai/codex-action@bdf19a4a223ec2549a3e2274a0cf61556bc07675 # v1.13
+              uses: openai/codex-action@306c6a196a99dcc6582530c396a19d2672d5e9ec # v1.14
               env:
                   GH_TOKEN: ${{ github.token }}
                   CARGO_HOME: /tmp/cargo
                   XDG_CACHE_HOME: /tmp/cache
               with:
                   codex-home: ${{ runner.temp }}/codex
+                  codex-version: "0.169.0"
                   prompt-file: ${{ runner.temp }}/prompt.md
                   output-file: ${{ runner.temp }}/result/report.md
                   openai-api-key: ${{ secrets.OPENAI_API_KEY }}

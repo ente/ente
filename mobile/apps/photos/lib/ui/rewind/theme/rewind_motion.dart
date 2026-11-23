@@ -25,14 +25,15 @@ class RewindSpring extends Curve {
 
 abstract final class RewindMotion {
   static const expo = Cubic(0.16, 1, 0.3, 1);
+  static const textRise = Cubic(0.3, 0.0, 0.12, 1);
   static const wave = Cubic(0.65, 0, 0.25, 1);
   static const hop = Cubic(0.25, 0.8, 0.3, 1);
   static const squash = Cubic(0.22, 0.9, 0.3, 1);
-  static const sway = Cubic(0.33, 0, 0.67, 1);
   static const bloom = Cubic(0.3, 0, 0.2, 1);
   static const railBounce = Cubic(0.3, 1.5, 0.5, 1);
 
   static const pop = RewindSpring(330, 15, Duration(milliseconds: 879));
+  static const softPop = RewindSpring(240, 23, Duration(milliseconds: 800));
   static const soft = RewindSpring(170, 17, Duration(milliseconds: 792));
   static const slap = RewindSpring(420, 21, Duration(milliseconds: 642));
   static const drop = RewindSpring(230, 16, Duration(milliseconds: 833));

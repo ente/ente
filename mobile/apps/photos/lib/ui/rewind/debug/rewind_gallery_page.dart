@@ -3,7 +3,6 @@ import "package:flutter_rust_bridge/flutter_rust_bridge.dart" show Int64List;
 import "package:photos/service_locator.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
 import "package:photos/ui/rewind/debug/sample_reports.dart";
-import "package:photos/ui/rewind/pages/art_twin_page.dart";
 import "package:photos/ui/rewind/pages/badge_reveal_page.dart";
 import "package:photos/ui/rewind/pages/colour_page.dart";
 import "package:photos/ui/rewind/pages/cover_page.dart";
@@ -23,17 +22,7 @@ import "package:photos/ui/rewind/widgets/rewind_rive.dart";
 final rewindDesignPages = <RewindPage>[
   const CoverPage(),
   ...setupPages,
-  ritualStreakSetupPage(
-    const RewindRituals(
-      longestStreak: 12,
-      checkIns: 40,
-      busiestMonth: 3,
-      continued: 1,
-      built: 1,
-      started: 1,
-      icons: ["📸"],
-    ),
-  ),
+  ritualStreakSetupPage,
 ];
 
 const rewindSampleRituals = RewindRituals(
@@ -41,8 +30,6 @@ const rewindSampleRituals = RewindRituals(
   checkIns: 148,
   busiestMonth: 8,
   continued: 3,
-  built: 3,
-  started: 2,
   icons: ["🏃", "📚"],
 );
 
@@ -73,11 +60,8 @@ Future<RewindStory> _sampleStory(rust.RewindReport report) async =>
     );
 
 RewindChapter _colourChapter(rust.ColourOfTheYear colour) =>
-    RewindChapter([ColourPage.pageKey, ArtTwinPage.pageKey], (media) async {
-      return [
-        ColourPage(colour, media.photos(colour.fileIds, 9)),
-        ArtTwinPage(colour.colour),
-      ];
+    RewindChapter([ColourPage.pageKey], (media) async {
+      return [ColourPage(colour, media.photos(colour.fileIds, 9))];
     });
 
 class RewindGalleryPage extends StatefulWidget {
@@ -147,7 +131,7 @@ class _RewindGalleryPageState extends State<RewindGalleryPage> {
         ),
         ListTile(
           title: const Text("Colours of the year"),
-          subtitle: const Text("All ten paint chips and art twins"),
+          subtitle: const Text("All ten paint chips"),
           trailing: const Icon(Icons.chevron_right_outlined),
           onTap: () => openStory(
             RewindMedia.sampled().then(
@@ -160,10 +144,10 @@ class _RewindGalleryPageState extends State<RewindGalleryPage> {
         ))
           ListTile(
             title: const Text("Photo cards: your library"),
-            subtitle: const Text("Tunnel, globe, timelapse, mosaic"),
+            subtitle: const Text("Tunnel, globe, mosaic"),
             trailing: const Icon(Icons.chevron_right_outlined),
             onTap: () => openStory(
-              RewindMedia.load().then(
+              RewindMedia.load(waitsForOriginals: true).then(
                 (media) =>
                     RewindStory.compose(rewindPhotoCardChapters(report), media),
               ),
@@ -174,7 +158,7 @@ class _RewindGalleryPageState extends State<RewindGalleryPage> {
           subtitle: const Text("64 days, 148 check-ins, 3 rituals"),
           trailing: const Icon(Icons.chevron_right_outlined),
           onTap: () => open([
-            ritualStreakSetupPage(rewindSampleRituals),
+            ritualStreakSetupPage,
             const RitualStreakPage(rewindSampleRituals),
           ]),
         ),

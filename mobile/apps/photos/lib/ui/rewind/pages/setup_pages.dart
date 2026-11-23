@@ -1,7 +1,6 @@
 import "package:flutter/painting.dart";
 import "package:photos/ui/rewind/pages/setup_page.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
-import "package:photos/ui/rewind/story/rewind_rituals.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
@@ -39,8 +38,8 @@ const paletteSetupPage = SetupPage(
 
 const placesSetupPage = SetupPage(
   key: "places_setup",
-  color: Color(0xFF3F78F0),
-  pattern: Color(0xFF4A82F5),
+  color: Color(0xFF123E97),
+  pattern: Color(0xFF0C3B9B),
   ink: RewindColors.cream,
   headlines: [
     SetupHeadline("YOU WENT\nPLACES.", at: Offset(24, 140), size: 66),
@@ -180,36 +179,47 @@ const ritualSetupPage = SetupPage(
   ),
 );
 
-SetupPage ritualStreakSetupPage(RewindRituals rituals) => SetupPage(
-  key: ritualStreakSetupKey,
-  color: const Color(0xFFE86436),
-  pattern: const Color(0xFFF0713F),
+const ritualStreakSetupPage = SetupPage(
+  key: "ritual_streak_setup",
+  color: Color(0xFFE86436),
+  pattern: Color(0xFFF0713F),
   ink: RewindColors.cream,
   headlines: [
-    SetupHeadline(
-      switch ((rituals.built, rituals.started)) {
-        (1, 1) => "YOU BUILT\nA NEW\nRITUAL.",
-        (1, _) => "YOU BUILT\nA HABIT.",
-        _ => "YOU BUILT\nRITUALS.",
-      },
-      at: const Offset(24, 140),
-      size: 66,
-    ),
+    SetupHeadline("YOU BUILT\nRITUALS.", at: Offset(24, 140), size: 66),
   ],
-  callout: const SetupCallout(
+  callout: SetupCallout(
     "ONE PHOTO A DAY.",
-    center: Offset(195, 398.5),
+    center: Offset(196.6, 391.9),
     delayMs: 600,
   ),
-  art: const SetupArt.ducky(
-    RewindAssets.cameraDucky,
-    Rect.fromLTWH(46.5, 441, 265.3, 334),
-    pivot: Offset(179, 775),
+  art: SetupArt.ducky(
+    RewindAssets.artistDucky,
+    Rect.fromLTWH(-17.2, 422.3, 427.6, 375.7),
+    ticks: [(RewindTick.forwardFlipped, Rect.fromLTWH(190, 429, 10.5, 18))],
+    pivot: Offset(175, 765),
     delayMs: 780,
   ),
 );
 
-const ritualStreakSetupKey = "ritual_streak_setup";
+const mosaicSetupPage = SetupPage(
+  key: "mosaic_setup",
+  color: Color(0xFFF9692C),
+  pattern: Color(0xFFF9763B),
+  ink: RewindColors.cream,
+  headlines: [SetupHeadline("IT ALL\nADDS UP.", at: Offset(24, 140), size: 66)],
+  callout: SetupCallout(
+    "PHOTO BY PHOTO.",
+    center: Offset(188.6, 380.6),
+    delayMs: 600,
+  ),
+  art: SetupArt.ducky(
+    RewindAssets.puzzleDucky,
+    Rect.fromLTWH(-20, 432, 484, 484),
+    ticks: [(RewindTick.slant, Rect.fromLTWH(239, 436.3, 13.9, 19.3))],
+    pivot: Offset(195, 844),
+    delayMs: 780,
+  ),
+);
 
 const likesSetupPage = SetupPage(
   key: "likes_setup",
@@ -220,9 +230,10 @@ const likesSetupPage = SetupPage(
     SetupHeadline("YOUR FEED\nWAS LIT!", at: Offset(24, 140), size: 48),
   ],
   callout: SetupCallout("’SPECIALLY THIS ONE.", center: Offset(188.2, 383.5)),
-  art: SetupArt.image(
-    RewindAssets.polaroidHugDucky,
-    Rect.fromLTWH(46, 434, 296, 328),
+  art: SetupArt.ducky(
+    RewindAssets.likesDucky,
+    Rect.fromLTWH(21.5, 410, 344, 376),
+    pivot: Offset(194, 762),
   ),
 );
 
@@ -239,9 +250,9 @@ const badgeSetupPage = SetupPage(
     center: Offset(196.5, 395),
     size: 23.87,
   ),
-  art: SetupArt.image(
+  art: SetupArt.ducky(
     RewindAssets.detectiveDucky,
-    Rect.fromLTWH(39, 445, 286, 331),
+    Rect.fromLTWH(14.5, 420, 334, 378.4),
     ticks: [(RewindTick.bold, Rect.fromLTWH(209, 424, 16, 23))],
     pivot: Offset(182, 777),
   ),
@@ -256,5 +267,6 @@ const setupPages = [
   favouritesSetupPage,
   ritualSetupPage,
   likesSetupPage,
+  mosaicSetupPage,
   badgeSetupPage,
 ];

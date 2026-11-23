@@ -1,11 +1,11 @@
+import "dart:math";
+
 import "package:flutter/material.dart";
 import "package:flutter/semantics.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/rewind/rewind_edition.dart";
 import "package:photos/ui/rewind/entry/rewind_entry.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
-import "package:photos/ui/rewind/theme/rewind_colors.dart";
-import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
 import "package:photos/ui/rewind/widgets/rewind_buttons.dart";
 import "package:photos/ui/viewer/search_tab/search_tab_horizontal_scroll.dart";
@@ -43,43 +43,12 @@ class RewindSearchTicket extends StatelessWidget {
               child: RewindPressable(
                 onTap: () => entry.open(context),
                 pressedScale: 0.97,
-                child: ExcludeSemantics(
+                child: const ExcludeSemantics(
                   child: ClipPath(
-                    clipper: const _TicketClipper(),
+                    clipper: _TicketClipper(),
                     child: SizedBox(
-                      height: 76,
-                      child: Stack(
-                        children: [
-                          const Positioned.fill(child: RewindDoodleTile()),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(18, 8, 16, 8),
-                            child: Row(
-                              children: [
-                                Image.file(
-                                  RewindAssets.file(RewindAssets.tileLockup),
-                                  height: 60,
-                                  fit: BoxFit.contain,
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    "YOUR YEAR\nIN PHOTOS",
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: RewindTextStyles.display(
-                                      17,
-                                      color: RewindColors.cream,
-                                      height: 0.95,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                _ActionPill(action),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                      height: _TicketArt.height,
+                      child: _TicketArt(),
                     ),
                   ),
                 ),
@@ -92,27 +61,53 @@ class RewindSearchTicket extends StatelessWidget {
   }
 }
 
-class _ActionPill extends StatelessWidget {
-  const _ActionPill(this.label);
+class _TicketArt extends StatelessWidget {
+  const _TicketArt();
 
-  final String label;
+  static const height = 76.0;
+  static const _width = 345.0;
+  static const _wordmark = Rect.fromLTWH(25.98, 17.64, 158, 44);
+  static const _ducky = Rect.fromLTWH(200, 6.82, 116, 70);
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      decoration: BoxDecoration(
-        color: RewindColors.cream,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: RewindColors.ink, width: 1.5),
-        boxShadow: const [
-          BoxShadow(color: RewindColors.ink, offset: Offset(2, 2.5)),
-        ],
-      ),
-      child: Text(
-        label,
-        style: RewindTextStyles.body(13, color: RewindColors.ink, height: 1.1),
-      ),
+    return Stack(
+      children: [
+        const Positioned.fill(child: RewindDoodleTile()),
+        Positioned.fill(
+          child: LayoutBuilder(
+            builder: (context, constraints) => FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.bottomCenter,
+              child: SizedBox(
+                width: max(constraints.maxWidth, _width),
+                height: height,
+                child: Stack(
+                  children: [
+                    Positioned.fromRect(
+                      rect: _wordmark,
+                      child: Image.file(
+                        RewindAssets.file(RewindAssets.ticketWordmark),
+                        fit: BoxFit.fill,
+                      ),
+                    ),
+                    Positioned(
+                      top: _ducky.top,
+                      right: _width - _ducky.right,
+                      width: _ducky.width,
+                      height: _ducky.height,
+                      child: Image.file(
+                        RewindAssets.file(RewindAssets.ticketDucky),
+                        fit: BoxFit.fill,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

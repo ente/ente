@@ -58,7 +58,7 @@ func (repo *BillingRepository) GetSubscriptionForTransaction(transactionID strin
 // Prefix the transaction ID so provider updates cannot reach the deleted
 // account. The original ID can then be linked to another account.
 func (repo *BillingRepository) UpdateTransactionIDOnDeletion(userID int64) error {
-	_, err := repo.DB.Query(`update subscriptions SET original_transaction_id = user_id || ':'  || original_transaction_id where original_transaction_id is not NULL and user_id= $1`, userID)
+	_, err := repo.DB.Exec(`update subscriptions SET original_transaction_id = user_id || ':'  || original_transaction_id where original_transaction_id is not NULL and user_id= $1`, userID)
 	return stacktrace.Propagate(err, "")
 }
 

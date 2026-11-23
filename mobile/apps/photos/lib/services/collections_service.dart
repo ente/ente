@@ -457,7 +457,7 @@ class CollectionsService {
 
     return (Collection first, Collection second) {
       final comparison = switch (effectiveSortKey) {
-        AlbumSortKey.albumName => compareAsciiLowerCaseNatural(
+        AlbumSortKey.albumName => compareNames(
           first.displayName,
           second.displayName,
         ),

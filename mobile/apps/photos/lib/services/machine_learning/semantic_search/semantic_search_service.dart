@@ -48,13 +48,13 @@ class SemanticSearchService {
   Future<void> init() async {
     if (!hasGrantedMLConsent) return;
 
-    _scheduleWarmup(delayTextModelLoad: true);
+    unawaited(_scheduleWarmup(delayTextModelLoad: true));
   }
 
   Future<void> prepareForInteractiveSearch() async {
     if (!hasGrantedMLConsent) return;
 
-    _scheduleWarmup(delayTextModelLoad: false);
+    await _scheduleWarmup(delayTextModelLoad: false);
   }
 
   bool isMagicSearchEnabledAndReady() {
@@ -66,7 +66,7 @@ class SemanticSearchService {
     return _prepareVectorDbFuture!;
   }
 
-  void _scheduleWarmup({required bool delayTextModelLoad}) {
+  Future<void> _scheduleWarmup({required bool delayTextModelLoad}) async {
     if (flagService.usearchForSearch) {
       unawaited(_prepareVectorDbForSearch());
     }
@@ -75,7 +75,7 @@ class SemanticSearchService {
       return;
     }
 
-    unawaited(_loadTextModel(delay: delayTextModelLoad));
+    await _loadTextModel(delay: delayTextModelLoad);
   }
 
   Future<void> _prepareVectorDbForSearchInternal() async {

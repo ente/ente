@@ -34,6 +34,8 @@ import { GallerySectionLayout } from "../../navigation/GallerySectionLayout";
 import { usePhotosNavigation } from "../../navigation/PhotosNavigationContext";
 import type { GallerySectionProps } from "../types";
 import { AlbumsNavigation } from "./AlbumsNavigation";
+import { GalleryLoadingSkeleton } from "./GalleryLoadingSkeleton";
+
 export const AlbumsSection = ({
     library,
     operations,
@@ -95,6 +97,9 @@ export const AlbumsSection = ({
         view.type == "archive-albums"
             ? view.activeCollectionSummaryID
             : undefined;
+    const isEmptyGallery =
+        activeCollectionID === PseudoCollectionID.all &&
+        !library.collectionFiles.length;
     const activeCollection =
         view.type == "albums" ||
         view.type == "hidden-albums" ||
@@ -320,13 +325,15 @@ export const AlbumsSection = ({
         >
             {isMapView ? (
                 collectionMap
-            ) : !library.isFirstLoad &&
-              !library.collectionFiles.length &&
-              activeCollectionID === PseudoCollectionID.all ? (
-                <GalleryEmptyState
-                    isUploadInProgress={uploadManager.isUploadInProgress()}
-                    onUpload={operations.onUpload}
-                />
+            ) : isEmptyGallery ? (
+                library.isFirstLoad ? (
+                    <GalleryLoadingSkeleton />
+                ) : (
+                    <GalleryEmptyState
+                        isUploadInProgress={uploadManager.isUploadInProgress()}
+                        onUpload={operations.onUpload}
+                    />
+                )
             ) : !library.isFirstLoad && isAlbumOverview ? (
                 <AlbumsOverview
                     onRemotePull={remotePull}
@@ -348,6 +355,11 @@ export const AlbumsSection = ({
                 <GalleryMedia
                     {...{ library, operations, navigation }}
                     header={fileListHeader}
+                    suppressEmptyState={
+                        (collectionSummary?.type == "hiddenItems" ||
+                            collectionSummary?.type == "archiveItems") &&
+                        sidebarCollectionSummaries.length > 0
+                    }
                     enableDateScrubber={
                         !library.isFirstLoad &&
                         barMode === "albums" &&
