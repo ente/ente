@@ -36,8 +36,8 @@ class GlobePage extends RewindPage {
   static const earthKm = 40075;
   static const _reelJourneyMs = 2800.0;
 
-  static const _space = Color(0xFF1C1B66);
-  static const _spaceRay = Color(0xFF222174);
+  static const _space = Color(0xFF07389D);
+  static const _spaceRay = Color(0xFF0D3EAB);
 
   final rust.Globe globe;
   final List<EnteFile?> photos;
