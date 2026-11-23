@@ -209,7 +209,7 @@ export const AppLockSettings: React.FC<
             {state.enabled && (
                 <Stack sx={{ pl: 2 }}>
                     <RowCard
-                        title="App lock options"
+                        title={t("app_lock_options")}
                         onClick={() =>
                             void authenticateAndRun(() => setOpen(true))
                         }
