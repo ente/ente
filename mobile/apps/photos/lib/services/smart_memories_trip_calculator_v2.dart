@@ -2,14 +2,16 @@ part of "memories/dart_memories_computer.dart";
 
 class _LocationSum {
   double _latitude;
+  double _longitude;
   double _longitudeSin = 0;
   double _longitudeCos = 0;
 
-  _LocationSum() : _latitude = 0;
+  _LocationSum() : _latitude = 0, _longitude = 0;
 
   _LocationSum.fromLocation(Location location)
-    : _latitude = location.latitude! {
-    final longitude = location.longitude! * (pi / 180);
+    : _latitude = location.latitude!,
+      _longitude = location.longitude! {
+    final longitude = _longitude * (pi / 180);
     _longitudeSin = sin(longitude);
     _longitudeCos = cos(longitude);
   }
@@ -17,12 +19,14 @@ class _LocationSum {
   void add(Location location) {
     final longitude = location.longitude! * (pi / 180);
     _latitude += location.latitude!;
+    _longitude += location.longitude!;
     _longitudeSin += sin(longitude);
     _longitudeCos += cos(longitude);
   }
 
   void merge(_LocationSum other) {
     _latitude += other._latitude;
+    _longitude += other._longitude;
     _longitudeSin += other._longitudeSin;
     _longitudeCos += other._longitudeCos;
   }
@@ -33,6 +37,10 @@ class _LocationSum {
       longitude: atan2(_longitudeSin, _longitudeCos) * (180 / pi),
     );
   }
+
+  // Preserve the arithmetic longitude in persisted trip keys.
+  Location tripKeyLocation(int count) =>
+      Location(latitude: _latitude / count, longitude: _longitude / count);
 }
 
 class _LocationCluster {
@@ -56,6 +64,8 @@ class _LocationCluster {
   }
 
   Location get center => _center;
+
+  Location get tripKeyLocation => _locationSum.tripKeyLocation(files.length);
 
   int get firstCreationTime => files
       .map((file) => file.creationTime!)
@@ -261,7 +271,7 @@ class TripMemoriesCalculatorV2 {
             0,
             location,
             tripKey: _buildTripKey(
-              location,
+              cluster.tripKeyLocation,
               files.first.creationTime!,
               files.last.creationTime!,
             ),
@@ -657,7 +667,7 @@ class TripMemoriesCalculatorV2 {
         final mergedSpanDays = mergedLast.difference(mergedFirst).inDays;
         if (timeClose && spaceClose && mergedSpanDays <= _maxTripDays) {
           final combinedMemories = other.memories + trip.memories;
-          final mergedLocation = _representativeLocationFromMemories(
+          final (mergedLocation, tripKeyLocation) = _tripLocationsFromMemories(
             combinedMemories,
           );
           final mergedFirstCreationTime = min(
@@ -674,7 +684,7 @@ class TripMemoriesCalculatorV2 {
             0,
             mergedLocation,
             tripKey: _buildTripKey(
-              mergedLocation,
+              tripKeyLocation,
               mergedFirstCreationTime,
               mergedLastCreationTime,
             ),
@@ -706,11 +716,10 @@ class TripMemoriesCalculatorV2 {
     return false;
   }
 
-  static Location _representativeLocationFromMemories(List<Memory> memories) {
-    return _representativeLocationFromFiles(Memory.filesFromMemories(memories));
-  }
-
-  static Location _representativeLocationFromFiles(Iterable<EnteFile> files) {
+  static (Location, Location) _tripLocationsFromMemories(
+    List<Memory> memories,
+  ) {
+    final files = Memory.filesFromMemories(memories);
     final locationSum = _LocationSum();
     int count = 0;
     for (final file in files.where((file) => file.hasLocation)) {
@@ -718,7 +727,7 @@ class TripMemoriesCalculatorV2 {
       count++;
     }
     assert(count > 0);
-    return locationSum.mean(count);
+    return (locationSum.mean(count), locationSum.tripKeyLocation(count));
   }
 
   static TripMemory _ensureTripKey(TripMemory trip) {

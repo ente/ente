@@ -146,6 +146,7 @@ void main() {
       final trip = analysis.tripCandidates.single;
       expect(trip.memories, hasLength(20));
       expect(trip.location.longitude!.abs(), closeTo(180, 0.001));
+      expect(trip.tripKey, startsWith("trip_-16.50_0.00_"));
     });
 
     test(
