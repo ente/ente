@@ -203,9 +203,7 @@ PlaceStamp _placeStamp(RewindMedia media, rust.RewindCity city, bool podium) {
     city: city,
     photo: picked.firstOrNull,
     extras: picked.skip(1).toList(),
-    gallery: podium
-        ? media.extraPhotos(city.fileIds, _galleryPhotos)
-        : const [],
+    gallery: podium ? media.gallery(city.fileIds, _galleryPhotos) : const [],
   );
 }
 
@@ -287,10 +285,7 @@ Future<NewFaceBubble?> _newFace(RewindMedia media, rust.NewFace newFace) async {
     _ => null,
   };
   if (face?.crop == null) return null;
-  return (
-    face: face!,
-    photos: media.extraPhotos(newFace.fileIds, _newFacePhotos),
-  );
+  return (face: face!, photos: media.gallery(newFace.fileIds, _newFacePhotos));
 }
 
 RewindChapter _favourites(rust.Favourites? favourites) {

@@ -361,8 +361,6 @@ class RewindWarmBuilder<T extends Object> extends StatefulWidget {
 
 class _RewindWarmBuilderState<T extends Object>
     extends State<RewindWarmBuilder<T>> {
-  static const _retryAfterSeconds = [3, 6, 12, 24, 48];
-
   late T? _value = widget.warm.loaded;
 
   @override
@@ -386,8 +384,7 @@ class _RewindWarmBuilderState<T extends Object>
         setState(() => _value = value);
         return;
       }
-      final wait = min(attempt, _retryAfterSeconds.length - 1);
-      await Future<void>.delayed(Duration(seconds: _retryAfterSeconds[wait]));
+      await Future<void>.delayed(rewindRetryAfter(attempt));
     }
   }
 

@@ -15,6 +15,7 @@ import "package:photos/events/files_updated_event.dart";
 import "package:photos/events/people_changed_event.dart";
 import "package:photos/main.dart" show isIOSBackgroundRefresh, isProcessBg;
 import "package:photos/service_locator.dart";
+import "package:photos/services/app_lifecycle_service.dart";
 import "package:photos/services/notification_service.dart";
 import "package:photos/services/rewind/rewind_asset_store.dart";
 import "package:photos/services/rewind/rewind_edition.dart";
@@ -276,15 +277,30 @@ class RewindService {
         "${story.blurryFaceFiles} files to sharpen faces from",
       );
       _setStory(story, state.computedAt);
-      story.preloadFrom(
-        story.resumeIndex(_progress.completed ? null : _progress.resumePage),
+      final resumeIndex = story.resumeIndex(
+        _progress.completed ? null : _progress.resumePage,
       );
+      story.preloadFrom(resumeIndex);
+      if (AppLifecycleService.instance.isForeground) {
+        unawaited(_cachePhotos(story, resumeIndex));
+      }
       if (sharpenFaces) unawaited(_sharpenFaces(story));
     } catch (e, s) {
       _logger.warning("Failed to build the Rewind story", e, s);
       _setStory(null, null);
       _storyError = "$e";
     }
+  }
+
+  Future<void> _cachePhotos(RewindStory story, int from) async {
+    final timer = Stopwatch()..start();
+    bool isCurrent() => identical(_story.value, story);
+    final (:cached, :total) = await story.cachePhotos(from, isCurrent);
+    if (!isCurrent()) return;
+    _logger.info(
+      "Cached $cached of $total Rewind photos in "
+      "${timer.elapsedMilliseconds} ms",
+    );
   }
 
   Future<void> _sharpenFaces(RewindStory story) async {
