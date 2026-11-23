@@ -12,6 +12,7 @@ import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/story/rewind_face.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
+import "package:photos/ui/rewind/theme/rewind_motion.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
@@ -57,8 +58,11 @@ class PhotoBoothPage extends RewindPage {
   String get key => _billings[place].key;
 
   @override
-  Duration? get reelHold =>
-      place == 0 ? const Duration(milliseconds: 3300) : null;
+  Duration? get reelHold => place == 0
+      ? const Duration(
+          milliseconds: _Booth.printedMs + RewindMotion.reelReadingMs,
+        )
+      : null;
 
   @override
   Duration get clipHold => _Booth.clipHold(photos);
@@ -358,7 +362,9 @@ class _BoothState extends State<_Booth> with TickerProviderStateMixin {
       _controller.value * _controller.duration!.inMilliseconds;
 
   bool get _autoDrops =>
-      _strips.length > 1 && !_still && (!_clip || _prints < _strips.length - 1);
+      _strips.length > 1 &&
+      !_still &&
+      (_clip ? _prints < _strips.length - 1 : !_reel);
 
   double get _tug =>
       _tugDistance * Curves.easeInOutCubic.transform(_tugging.value);
