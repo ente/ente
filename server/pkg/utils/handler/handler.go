@@ -97,8 +97,6 @@ func requestFailureLogLevel(err error, apiErr *ente.ApiError) *log.Level {
 		return nil
 	}
 	if errors.Is(err, ente.ErrInvalidPassword) ||
-		errors.Is(err, ente.ErrIncorrectOTT) ||
-		errors.Is(err, ente.ErrIncorrectTOTP) ||
 		errors.Is(err, ente.ErrAuthenticationRequired) ||
 		errors.Is(err, ente.ErrUserDeleted) ||
 		errors.Is(err, sql.ErrNoRows) ||
@@ -142,9 +140,7 @@ func httpStatusCode(err error) int {
 		return http.StatusTooManyRequests
 	case errors.Is(err, ente.ErrPermissionDenied):
 		return http.StatusForbidden
-	case errors.Is(err, ente.ErrIncorrectOTT) ||
-		errors.Is(err, ente.ErrIncorrectTOTP) ||
-		errors.Is(err, ente.ErrInvalidPassword) ||
+	case errors.Is(err, ente.ErrInvalidPassword) ||
 		errors.Is(err, ente.ErrAuthenticationRequired):
 		return http.StatusUnauthorized
 	case errors.Is(err, ente.ErrExpiredOTT) ||
