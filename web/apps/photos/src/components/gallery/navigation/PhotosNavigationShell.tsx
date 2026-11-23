@@ -81,7 +81,7 @@ export const PhotosNavigationShell: React.FC<
     const sectionID = activeSectionID(navigation);
     const hasNavigation = sectionDefinition(sectionID).hasNavigation;
     const isHome =
-        navigation.overlay?.section !== "search" &&
+        !navigation.overlay &&
         navigation.destination.section === "albums" &&
         navigation.destination.collectionID === PseudoCollectionID.all;
 
@@ -123,10 +123,9 @@ export const PhotosNavigationShell: React.FC<
     };
     const panelMode =
         navigation.destination.albumMode ?? navigation.destination.section;
-    const isInSearchMode = navigation.overlay?.section === "search";
     useEffect(() => {
         setNavigationCollapsed(isHome);
-    }, [panelMode, isHome, isInSearchMode, navigation.destination.section]);
+    }, [panelMode, isHome, sectionID, navigation.destination.section]);
     useEffect(() => {
         if (!mobile) closeMobileNavigation();
     }, [mobile, closeMobileNavigation]);
