@@ -207,6 +207,7 @@ export const CollectionSelector: React.FC<CollectionSelectorProps> = (
         <Dialog
             open={open}
             onClose={handleClose}
+            onKeyDown={(event) => event.stopPropagation()}
             fullScreen={isFullScreen}
             maxWidth={false}
             slotProps={{

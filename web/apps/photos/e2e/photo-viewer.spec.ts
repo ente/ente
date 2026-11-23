@@ -156,6 +156,52 @@ testWithPhotos(
 );
 
 testWithPhotos(
+    "keeps viewer shortcuts inactive while Add to album is open",
+    async ({ photoAlbum: { page, thumbnails } }) => {
+        const albums = page.getByRole("navigation", { name: "Albums" });
+        await albums.getByRole("button", { name: "New album" }).click();
+        const newAlbum = page.getByRole("dialog", { name: "New album" });
+        await newAlbum
+            .getByRole("textbox", { name: "Album name" })
+            .fill("Destination album");
+        await newAlbum
+            .getByRole("button", { name: "Create", exact: true })
+            .click();
+        await expect(newAlbum).toBeHidden();
+        await albums
+            .getByRole("button", { name: albumName, exact: true })
+            .click();
+
+        await thumbnails.first().click();
+        const viewer = page.locator(".pswp");
+        const counter = viewer.locator(".pswp__counter");
+        await expect(counter).toHaveText("1 / 4");
+        await viewer.getByRole("button", { name: "More", exact: true }).click();
+        await page
+            .getByRole("menuitem", { name: "Add to album", exact: true })
+            .click();
+
+        const tabs = page.getByRole("tablist", { name: "Filter albums" });
+        await tabs.getByRole("tab", { name: "All", exact: true }).click();
+        await page.keyboard.press("ArrowRight");
+        await expect(tabs.getByRole("tab", { name: "Ente" })).toBeFocused();
+        await expect(counter).toHaveText("1 / 4");
+
+        const confirm = page.getByRole("dialog", { name: "Delete file?" });
+        await page.keyboard.press("Delete");
+        await expect(confirm).toBeHidden();
+        await expect(tabs.getByRole("tab", { name: "Ente" })).toBeFocused();
+
+        await page.keyboard.press("Escape");
+        await expect(tabs).toBeHidden();
+        await page.keyboard.press("ArrowRight");
+        await expect(counter).toHaveText("2 / 4");
+        await page.keyboard.press("Delete");
+        await expect(confirm).toBeVisible();
+    },
+);
+
+testWithPhotos(
     "keeps an edited description with its photo after navigation",
     async ({ photoAlbum: { page, thumbnails } }) => {
         await thumbnails.first().click();
