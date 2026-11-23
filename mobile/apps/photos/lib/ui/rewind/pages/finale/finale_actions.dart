@@ -105,7 +105,7 @@ class _FinaleActionsState extends State<FinaleActions> {
                       videoSaved ?? const AlwaysStoppedAnimation(false),
                   builder: (context, saved, _) => _ArtworkButton(
                     artwork: _saveArtwork,
-                    label: saved ? "Saved to Ente" : "Save to Ente",
+                    label: saved ? "Saved" : "Save video",
                     icon: saved
                         ? HugeIcons.strokeRoundedTick02
                         : HugeIcons.strokeRoundedDownload04,

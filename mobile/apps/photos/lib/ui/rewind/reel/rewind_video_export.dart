@@ -8,7 +8,12 @@ import "package:flutter/material.dart";
 import "package:flutter/rendering.dart";
 import "package:flutter/services.dart";
 import "package:logging/logging.dart";
+import "package:photo_manager/photo_manager.dart";
 import "package:photos/core/configuration.dart";
+import "package:photos/core/event_bus.dart";
+import "package:photos/db/files_db.dart";
+import "package:photos/events/force_reload_home_gallery_event.dart";
+import "package:photos/models/file/file_type.dart";
 import "package:photos/models/memories/memory_music_track.dart";
 import "package:photos/models/user_details.dart";
 import "package:photos/module/upload/service/file_uploader.dart";
@@ -22,6 +27,7 @@ import "package:photos/services/video_preview_service.dart";
 import "package:photos/services/wake_lock_service.dart";
 import "package:photos/ui/actions/collection/collection_file_actions.dart";
 import "package:photos/ui/actions/collection/collection_sharing_actions.dart";
+import "package:photos/ui/notification/toast.dart";
 import "package:photos/ui/rewind/reel/rewind_frame_stepper.dart";
 import "package:photos/ui/rewind/reel/rewind_reel.dart";
 import "package:photos/ui/rewind/reel/rewind_video_format.dart";
@@ -39,10 +45,12 @@ import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_swap_in.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
 import "package:photos/utils/dialog_util.dart";
+import "package:photos/utils/gallery_save_title.dart";
 import "package:receive_sharing_intent/receive_sharing_intent.dart";
 import "package:share_plus/share_plus.dart";
 
 final _videos = Expando<File>();
+final _galleryAssets = Expando<AssetEntity>();
 final _saveLogger = Logger("RewindVideoSave");
 const _saveCheckTimeout = Duration(seconds: 10);
 
@@ -105,6 +113,15 @@ Future<bool> saveRewindVideo(
   Future<bool> Function(List<RewindPage> pages)? loadMedia,
   MemoryMusicTrack? track,
 }) async {
+  final tappedAt = DateTime.now();
+  final uncategorized = await CollectionsService.instance
+      .getUncategorizedCollection()
+      .timeout(_saveCheckTimeout);
+  if (await _hasSavedVideo(uncategorized.id, tappedAt)) {
+    if (context.mounted) showShortToast(context, "Already saved");
+    return true;
+  }
+  if (!context.mounted) return false;
   final video = await _exportRewindVideo(
     context,
     pages: pages,
@@ -118,21 +135,98 @@ Future<bool> saveRewindVideo(
     await showStorageFullSheet(context);
     return false;
   }
-  final uncategorized = await CollectionsService.instance
-      .getUncategorizedCollection()
-      .timeout(_saveCheckTimeout);
+  final appContext = Navigator.of(context, rootNavigator: true).context;
+  final asset = await _saveToGallery(video, tappedAt);
+  if (!appContext.mounted) return false;
+  final saved = asset == null
+      ? await _uploadFromAppStorage(appContext, video, uncategorized.id, pages)
+      : await CollectionActions(CollectionsService.instance)
+            .addToCollection(
+              appContext,
+              uncategorized.id,
+              false,
+              picketAssets: [asset],
+            )
+            .catchError((_) => false);
+  if (!saved) return false;
+  _galleryAssets[video] = null;
+  Bus.instance.fire(ForceReloadHomeGalleryEvent("rewindVideoSaved"));
+  if (appContext.mounted) {
+    showShortToast(
+      appContext,
+      asset == null
+          ? "Backing up to Ente"
+          : "Saved to your gallery, backing up to Ente",
+    );
+  }
+  return true;
+}
+
+String get _savedVideoName => "Ente Rewind ${RewindEdition.year}.mp4";
+
+final _savedVideoTitles = RegExp(
+  "^Ente Rewind ${RewindEdition.year}( \\(\\d+\\))?\\.mp4\$",
+  caseSensitive: false,
+);
+
+Future<bool> _hasSavedVideo(int collectionID, DateTime tappedAt) async {
+  final since = tappedAt.year > RewindEdition.year
+      ? DateTime(RewindEdition.year + 1)
+      : DateTime(tappedAt.year, tappedAt.month, tappedAt.day);
+  final until = DateTime(tappedAt.year, tappedAt.month, tappedAt.day + 1);
+  final result = await FilesDB.instance.getFilesInCollection(
+    collectionID,
+    since.microsecondsSinceEpoch,
+    until.microsecondsSinceEpoch,
+  );
+  return result.files.any(
+    (file) =>
+        file.localID != null &&
+        file.fileType == FileType.video &&
+        _savedVideoTitles.hasMatch(file.title ?? ""),
+  );
+}
+
+Future<AssetEntity?> _saveToGallery(File video, DateTime tappedAt) async {
+  if (!permissionService.hasGrantedPermissions()) return null;
+  try {
+    final previous = _galleryAssets[video];
+    if (previous != null && await previous.exists) return previous;
+    final asset = await PhotoManager.editor.saveVideo(
+      video,
+      title: await getMediaStoreCompatibleTitle(_savedVideoName),
+      creationDate: tappedAt,
+    );
+    return _galleryAssets[video] = asset.copyWith(
+      title: _savedVideoName,
+      createDateSecond: tappedAt.millisecondsSinceEpoch ~/ 1000,
+    );
+  } catch (error, stackTrace) {
+    _saveLogger.warning(
+      "Could not save the Rewind video to the gallery",
+      error,
+      stackTrace,
+    );
+    return null;
+  }
+}
+
+Future<bool> _uploadFromAppStorage(
+  BuildContext context,
+  File video,
+  int collectionID,
+  List<RewindPage> pages,
+) async {
   final staging = await Directory(
     Configuration.instance.getTempDirectory(),
   ).createTemp("rewind-save-");
   try {
-    final staged = await video.copy(
-      "${staging.path}/Ente Rewind ${RewindEdition.year}.mp4",
-    );
+    final staged = await video.copy("${staging.path}/$_savedVideoName");
     if (!context.mounted) return false;
     return await CollectionActions(CollectionsService.instance)
         .addToCollection(
           context,
-          uncategorized.id,
+          collectionID,
           false,
           sharedFiles: [
             SharedMediaFile(
