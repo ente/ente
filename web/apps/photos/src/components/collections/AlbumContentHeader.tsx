@@ -107,9 +107,7 @@ export const AlbumContentHeader: React.FC<AlbumContentHeaderProps> = ({
             ? 0
             : collectionSummary?.type == "archiveItems"
               ? 34
-              : collectionSummary?.type == "hiddenItems"
-                ? 52
-                : 72;
+              : 72;
 
         const albumsSectionHeight = albums.length ? albumsHeaderHeight : 54;
 
