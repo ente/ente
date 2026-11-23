@@ -17,15 +17,16 @@ type SubscriptionSender struct {
 	NotificationHistory *repo.NotificationHistoryRepository
 	Links               *email.UnsubscribeLinks
 	Postmark            postmark.Client
+	From                string
 	Streams             map[ente.EmailType]string
 }
 
 func (s *SubscriptionSender) Configured(emailType ente.EmailType) bool {
 	return s != nil && s.Links != nil && s.Postmark.ServerToken != "" &&
-		s.Streams[emailType] != ""
+		s.From != "" && s.Streams[emailType] != ""
 }
 
-func (s *SubscriptionSender) Send(ctx context.Context, userIDs []int64, emailType ente.EmailType, notificationID, from, subject, templateName string) {
+func (s *SubscriptionSender) Send(ctx context.Context, userIDs []int64, emailType ente.EmailType, notificationID, subject, templateName string) {
 	logger := log.WithField("notification", notificationID)
 	for batch := range slices.Chunk(userIDs, postmark.MaxBatchSize) {
 		messages := make([]postmark.Message, 0, len(batch))
@@ -46,7 +47,7 @@ func (s *SubscriptionSender) Send(ctx context.Context, userIDs []int64, emailTyp
 				return
 			}
 			messages = append(messages, postmark.Message{
-				From:          from,
+				From:          s.From,
 				To:            user.Email,
 				Subject:       subject,
 				HTMLBody:      body,

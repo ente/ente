@@ -251,6 +251,7 @@ func main() {
 		Postmark: postmark.Client{
 			ServerToken: viper.GetString("postmark.server-token"),
 		},
+		From: strings.TrimSpace(viper.GetString("postmark.from")),
 		Streams: map[ente.EmailType]string{
 			ente.ProductMailsEmailType: viper.GetString("postmark.product-mails-stream"),
 		},
