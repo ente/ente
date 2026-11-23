@@ -2630,6 +2630,8 @@ dependencies = [
  "mockito",
  "rand_core 0.6.4",
  "reqwest 0.12.28",
+ "rustls",
+ "rustls-platform-verifier",
  "salsa20 0.10.2",
  "serde",
  "serde_json",

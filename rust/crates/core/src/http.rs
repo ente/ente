@@ -9,6 +9,8 @@ use tokio::time::sleep;
 
 use reqwest::Method;
 use reqwest::header::{HeaderName, HeaderValue};
+#[cfg(target_os = "ios")]
+use rustls_platform_verifier::BuilderVerifierExt;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -29,6 +31,10 @@ const SPACE_SESSION_TOKEN: HeaderName = HeaderName::from_static("x-space-session
 pub enum Error {
     #[error(transparent)]
     Network(NetworkError),
+
+    #[cfg(target_os = "ios")]
+    #[error("could not configure TLS")]
+    TlsConfig(#[from] rustls::Error),
 
     #[error("HTTP {status} at {path}")]
     Http { status: u16, path: String },
@@ -83,6 +89,8 @@ impl Error {
             Error::Http { status, .. } | Error::Api { status, .. } => {
                 *status == 429 || *status >= 500
             }
+            #[cfg(target_os = "ios")]
+            Error::TlsConfig(_) => false,
             Error::Parse(_) => false,
         }
     }
@@ -105,17 +113,28 @@ pub struct Http {
 
 impl Http {
     pub fn new() -> Result<Self, Error> {
-        let builder = || {
+        let builder = || -> Result<reqwest::ClientBuilder, Error> {
             let builder = reqwest::Client::builder();
             #[cfg(not(target_arch = "wasm32"))]
             let builder = builder
                 .connect_timeout(Duration::from_secs(15))
                 .read_timeout(Duration::from_secs(30));
-            builder
+            #[cfg(target_os = "ios")]
+            let builder = {
+                let mut tls = rustls::ClientConfig::builder_with_provider(
+                    rustls::crypto::ring::default_provider().into(),
+                )
+                .with_safe_default_protocol_versions()?
+                .with_platform_verifier()?
+                .with_no_client_auth();
+                tls.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
+                builder.use_preconfigured_tls(tls)
+            };
+            Ok(builder)
         };
-        let client = builder().build()?;
+        let client = builder()?.build()?;
         #[cfg(not(target_arch = "wasm32"))]
-        let api_client = builder()
+        let api_client = builder()?
             .redirect(reqwest::redirect::Policy::none())
             .build()?;
         #[cfg(target_arch = "wasm32")]
