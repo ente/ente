@@ -156,6 +156,39 @@ testWithPhotos(
 );
 
 testWithPhotos(
+    "wraps keyboard focus inside the Home photo viewer",
+    async ({ photoAlbum: { page, thumbnails } }) => {
+        await page.setViewportSize({ width: 1280, height: 800 });
+        await page.getByRole("button", { name: "Home", exact: true }).click();
+        const feed = page.getByRole("button", { name: "Feed", exact: true });
+        await expect(feed).toBeVisible();
+        await thumbnails.first().click();
+
+        const viewer = page.locator(".pswp");
+        const next = viewer.getByRole("button", { name: "Next", exact: true });
+        await expect(next).toBeVisible();
+        await next.focus();
+        await page.keyboard.press("Tab");
+        const first = viewer.locator(":focus");
+        await expect(first).toHaveCount(1);
+        await expect(next).not.toBeFocused();
+
+        await page.keyboard.press("Shift+Tab");
+        await expect(next).toBeFocused();
+
+        // Even if another component moves focus behind the viewer, Enter
+        // must not activate the background navigation.
+        await feed.focus();
+        await expect(feed).toBeFocused();
+        await page.keyboard.press("Enter");
+        await expect(viewer).toBeVisible();
+        await expect(feed).toHaveAttribute("aria-pressed", "false");
+        await page.keyboard.press("Tab");
+        await expect(first).toHaveCount(1);
+    },
+);
+
+testWithPhotos(
     "keeps an edited description with its photo after navigation",
     async ({ photoAlbum: { page, thumbnails } }) => {
         await thumbnails.first().click();
