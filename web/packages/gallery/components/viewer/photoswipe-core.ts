@@ -213,27 +213,34 @@ export class FileViewerPhotoSwipe<
                     return;
                 }
 
+                viewer.classList.add("pswp--ui-visible");
+                areFullscreenUIControlsHiddenByShortcut = false;
+                clearFullscreenUIControlsHideTimer();
+
                 const controls = Array.from(
                     viewer.querySelectorAll<HTMLElement>(
                         "button, a[href], input, select, textarea, [tabindex]",
                     ),
-                ).filter(
-                    (el) =>
-                        el.tabIndex >= 0 &&
-                        !el.matches(":disabled") &&
-                        !el.closest("[inert]") &&
-                        el.getClientRects().length > 0 &&
-                        getComputedStyle(el).visibility == "visible",
                 );
-                const first = controls[0];
-                const last = controls.at(-1);
+                const isTabbable = (el: HTMLElement) =>
+                    el.tabIndex >= 0 &&
+                    !el.matches(":disabled") &&
+                    !el.closest("[inert]") &&
+                    el.getClientRects().length > 0 &&
+                    getComputedStyle(el).visibility == "visible";
                 if (
                     !viewer.contains(active) ||
                     active == viewer ||
-                    active == (event.shiftKey ? first : last)
+                    active ==
+                        (event.shiftKey
+                            ? controls.find(isTabbable)
+                            : controls.findLast(isTabbable))
                 ) {
                     event.preventDefault();
-                    ((event.shiftKey ? last : first) ?? viewer).focus();
+                    const destination = event.shiftKey
+                        ? controls.findLast(isTabbable)
+                        : controls.find(isTabbable);
+                    (destination ?? viewer).focus();
                 }
             };
 

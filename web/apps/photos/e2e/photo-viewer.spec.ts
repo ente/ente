@@ -167,22 +167,45 @@ testWithPhotos(
         const viewer = page.locator(".pswp");
         const next = viewer.getByRole("button", { name: "Next", exact: true });
         await expect(next).toBeVisible();
-        await next.focus();
+        await expect(viewer.locator(".pswp__top-bar")).toHaveCSS(
+            "opacity",
+            "1",
+        );
         await page.keyboard.press("Tab");
-        const first = viewer.locator(":focus");
-        await expect(first).toHaveCount(1);
-        await expect(next).not.toBeFocused();
+        const focused = viewer.locator(":focus");
+        await expect(focused).toHaveCount(1);
+        const first = viewer.getByRole("button", {
+            name: (await focused.getAttribute("aria-label"))!,
+            exact: true,
+        });
+        await expect(first).toBeFocused();
+
+        for (let tab = 0; tab < 12; tab++) {
+            await page.keyboard.press("Tab");
+            await expect(focused).toHaveCount(1);
+            if (await next.evaluate((el) => el === document.activeElement))
+                break;
+        }
+        await expect(next).toBeFocused();
+
+        await page.keyboard.press("h");
+        await expect(viewer).not.toHaveClass(/pswp--ui-visible/);
+        await page.keyboard.press("Tab");
+        await expect(viewer).toHaveClass(/pswp--ui-visible/);
+        await expect(first).toBeFocused();
 
         await page.keyboard.press("Shift+Tab");
         await expect(next).toBeFocused();
 
-        await feed.focus();
-        await expect(feed).toBeFocused();
-        await page.keyboard.press("Enter");
-        await expect(viewer).toBeVisible();
-        await expect(feed).toHaveAttribute("aria-pressed", "false");
-        await page.keyboard.press("Tab");
-        await expect(first).toHaveCount(1);
+        await test.step("blocks Enter when focus is moved to Feed", async () => {
+            await feed.focus();
+            await expect(feed).toBeFocused();
+            await page.keyboard.press("Enter");
+            await expect(viewer).toBeVisible();
+            await expect(feed).toHaveAttribute("aria-pressed", "false");
+            await page.keyboard.press("Tab");
+            await expect(first).toBeFocused();
+        });
     },
 );
 
