@@ -1,20 +1,34 @@
+import ArrowOutwardRoundedIcon from "@mui/icons-material/ArrowOutwardRounded";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import SmartphoneIcon from "@mui/icons-material/Smartphone";
-import { Divider, Link, Stack, TextField, useColorScheme } from "@mui/material";
+import {
+    InputBase,
+    Link,
+    Stack,
+    useColorScheme,
+    type Theme,
+} from "@mui/material";
 import Typography from "@mui/material/Typography";
 import { isDesktop } from "ente-base/app";
 import { EnteSwitch } from "ente-base/components/EnteSwitch";
-import {
-    RowButtonEndActivityIndicator,
-    RowButtonGroupHint,
-} from "ente-base/components/RowButton";
 import { LoadingButton } from "ente-base/components/mui/LoadingButton";
 import {
     TitledNestedSidebarDrawer,
     type NestedSidebarDrawerVisibilityProps,
 } from "ente-base/components/mui/SidebarDrawer";
+import {
+    RowButtonEndActivityIndicator,
+    RowButtonGroupHint,
+} from "ente-base/components/RowButton";
+import {
+    v2HelperSx,
+    v2InputSx,
+    v2LabelSx,
+    v2SubmitButtonSx,
+} from "ente-base/components/SingleInput.styles";
 import { useModalVisibility } from "ente-base/components/utils/modal";
+import { isSxArray } from "ente-base/components/utils/sx";
 import { MenuComponent } from "ente-base/components/v2/MenuComponent";
 import { MenuGroupComponent } from "ente-base/components/v2/MenuGroupComponent";
 import { RowCard } from "ente-base/components/v2/RowCard";
@@ -47,7 +61,7 @@ import {
 } from "ente-new/photos/services/settings";
 import { useFormik } from "formik";
 import { t } from "i18next";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useId, useState } from "react";
 import { Trans } from "react-i18next";
 import { AppLockSettings } from "./AppLockSettings";
 import { MLSettings } from "./MLSettings";
@@ -472,139 +486,198 @@ const DomainSettings: React.FC<NestedSidebarDrawerVisibilityProps> = ({
             {...{ open, onClose }}
             onRootClose={handleRootClose}
             title={t("custom_domains")}
-            caption={t("custom_domains_desc")}
+            titleInline
         >
             <DomainSettingsContents />
         </TitledNestedSidebarDrawer>
     );
 };
 
+const domainSurfaceSx = (theme: Theme) => ({
+    bgcolor: "background.default",
+    ...theme.applyStyles("dark", { bgcolor: "#282828" }),
+});
+
 // This component boundary resets form state on back navigation.
 const DomainSettingsContents: React.FC = () => {
     const { customDomain, customDomainCNAME } = useSettingsSnapshot();
+    const domainInputID = useId();
+    const domainHintID = useId();
 
     const formik = useFormik({
         initialValues: { domain: customDomain ?? "" },
-        onSubmit: async (values, { setFieldError }) => {
-            const domain = values.domain;
-            const setValueFieldError = (message: string) =>
-                setFieldError("domain", message);
-
+        onSubmit: async ({ domain }, { setFieldError }) => {
             try {
                 await updateCustomDomain(domain);
             } catch (e) {
-                log.error(`Failed to submit input ${domain}`, e);
-                if (isHTTPErrorWithStatus(e, 400)) {
-                    setValueFieldError(t("invalid_domain"));
-                } else if (isHTTPErrorWithStatus(e, 402)) {
-                    setValueFieldError(t("sharing_disabled_for_free_accounts"));
-                } else if (isHTTPErrorWithStatus(e, 409)) {
-                    setValueFieldError(t("already_linked_domain"));
-                } else {
-                    setValueFieldError(t("generic_error"));
-                }
+                const message = isHTTPErrorWithStatus(e, 400)
+                    ? t("invalid_domain")
+                    : isHTTPErrorWithStatus(e, 402)
+                      ? t("sharing_disabled_for_free_accounts")
+                      : isHTTPErrorWithStatus(e, 409)
+                        ? t("already_linked_domain")
+                        : t("generic_error");
+                log.error("Failed to update the custom domain", e);
+                setFieldError("domain", message);
             }
         },
     });
+    const submitLabel = t(customDomain ? "update" : "save");
+    const domainError = formik.errors.domain;
 
     return (
-        <Stack sx={{ px: 2, py: "12px" }}>
-            <DomainItem title={t("link_your_domain")} ordinal={t("num_1")}>
-                <form onSubmit={formik.handleSubmit}>
-                    <TextField
-                        name="domain"
-                        value={formik.values.domain}
-                        onChange={formik.handleChange}
-                        type={"text"}
-                        fullWidth
-                        autoFocus={true}
-                        margin="dense"
-                        disabled={formik.isSubmitting}
-                        error={!!formik.errors.domain}
-                        helperText={formik.errors.domain ?? t("domain_help")}
-                        label={t("domain")}
-                        placeholder={ut("photos.example.org")}
-                        sx={{ mb: 2 }}
-                    />
+        <Stack sx={{ maxWidth: 528, px: 2, pt: 1, pb: 2, gap: 2.5 }}>
+            <Typography variant="body" sx={{ color: "text.muted" }}>
+                {t("custom_domains_desc")}
+            </Typography>
+            <Stack
+                component="form"
+                onSubmit={formik.handleSubmit}
+                sx={{ gap: 1 }}
+            >
+                <Typography
+                    component="label"
+                    htmlFor={domainInputID}
+                    sx={v2LabelSx}
+                >
+                    {t("domain")}
+                </Typography>
+                <Stack
+                    direction="row"
+                    sx={{
+                        alignItems: "flex-start",
+                        flexWrap: "wrap",
+                        gap: 1.5,
+                    }}
+                >
+                    <Stack sx={{ flex: "1 1 180px", minWidth: 0, gap: 1 }}>
+                        <InputBase
+                            id={domainInputID}
+                            name="domain"
+                            value={formik.values.domain}
+                            onChange={formik.handleChange}
+                            placeholder={ut("photos.example.org")}
+                            error={!!domainError}
+                            disabled={formik.isSubmitting}
+                            aria-describedby={domainHintID}
+                            inputProps={{
+                                autoCapitalize: "none",
+                                inputMode: "url",
+                                spellCheck: false,
+                            }}
+                            sx={[
+                                ...(isSxArray(v2InputSx)
+                                    ? v2InputSx
+                                    : [v2InputSx]),
+                                { boxSizing: "border-box" },
+                                domainSurfaceSx,
+                            ]}
+                        />
+                        <Typography
+                            id={domainHintID}
+                            aria-live="polite"
+                            sx={[
+                                v2HelperSx(!!domainError),
+                                !domainError && { color: "text.muted" },
+                            ]}
+                        >
+                            {domainError ?? t("domain_help")}
+                        </Typography>
+                    </Stack>
                     <LoadingButton
-                        fullWidth
                         type="submit"
-                        loading={formik.isSubmitting}
                         color="accent"
+                        loading={formik.isSubmitting}
+                        aria-label={submitLabel}
+                        sx={[
+                            v2SubmitButtonSx,
+                            { flex: "0 0 auto", minWidth: 84, ml: "auto" },
+                        ]}
                     >
-                        {customDomain ? t("update") : t("save")}
+                        {submitLabel}
                     </LoadingButton>
-                </form>
-            </DomainItem>
-            <Divider sx={{ mt: 4, mb: 2, opacity: 0.5 }} />
-            <DomainItem title={t("add_dns_entry")} ordinal={t("num_2")}>
-                <Typography sx={{ color: "text.muted" }}>
+                </Stack>
+            </Stack>
+            <Stack
+                sx={[
+                    domainSurfaceSx,
+                    { p: 2, gap: 1, borderRadius: 2, overflowWrap: "anywhere" },
+                ]}
+            >
+                <Stack
+                    direction="row"
+                    sx={{
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        flexWrap: "wrap",
+                        columnGap: 1.5,
+                        rowGap: 0.5,
+                    }}
+                >
+                    <Typography
+                        component="h4"
+                        variant="body"
+                        sx={{ fontWeight: 600 }}
+                    >
+                        {t("custom_domain_dns_setup")}
+                    </Typography>
+                    <Link
+                        href="https://ente.com/help/photos/features/sharing-and-collaboration/custom-domains/"
+                        target="_blank"
+                        rel="noopener"
+                        variant="small"
+                        color="text.muted"
+                        underline="hover"
+                        sx={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            minHeight: 32,
+                            gap: 0.5,
+                            "&:hover": { color: "text.base" },
+                            "&:focus-visible": {
+                                outline: "2px solid",
+                                outlineColor: "stroke.base",
+                                outlineOffset: 2,
+                            },
+                        }}
+                    >
+                        {t("add_dns_entry")}
+                        <ArrowOutwardRoundedIcon
+                            aria-hidden
+                            sx={{ fontSize: 14, flexShrink: 0 }}
+                        />
+                    </Link>
+                </Stack>
+                <Typography
+                    variant="body"
+                    sx={{ color: "text.muted", lineHeight: "24px" }}
+                >
                     <Trans
                         i18nKey="add_dns_entry_hint"
+                        values={{ host: customDomainCNAME }}
                         components={{
                             b: (
                                 <Typography
-                                    component="span"
+                                    component="code"
                                     sx={{
-                                        fontWeight: "bold",
+                                        px: 0.75,
+                                        py: 0.25,
+                                        borderRadius: 0.75,
+                                        bgcolor: "background.paper",
                                         color: "text.base",
+                                        fontFamily: "monospace",
+                                        fontSize: "0.9em",
+                                        boxDecorationBreak: "clone",
                                     }}
                                 />
                             ),
                         }}
-                        values={{ host: customDomainCNAME }}
                     />
                 </Typography>
-                <Typography sx={{ color: "text.muted", mt: 3 }}>
-                    <Trans
-                        i18nKey="custom_domains_help"
-                        components={{
-                            a: (
-                                <Link
-                                    href="https://ente.com/help/photos/features/sharing-and-collaboration/custom-domains/"
-                                    target="_blank"
-                                    rel="noopener"
-                                    color="accent"
-                                />
-                            ),
-                        }}
-                    />
-                </Typography>
-            </DomainItem>
+            </Stack>
         </Stack>
     );
 };
-
-interface DomainSectionProps {
-    title: string;
-    ordinal: string;
-}
-
-const DomainItem: React.FC<React.PropsWithChildren<DomainSectionProps>> = ({
-    title,
-    ordinal,
-    children,
-}) => (
-    <Stack>
-        <Stack
-            direction="row"
-            sx={{ alignItems: "center", justifyContent: "space-between" }}
-        >
-            <Typography variant="h6">{title}</Typography>
-            <Typography
-                variant="h1"
-                sx={{
-                    minWidth: "28px",
-                    textAlign: "center",
-                    color: "stroke.faint",
-                }}
-            >
-                {ordinal}
-            </Typography>
-        </Stack>
-        {children}
-    </Stack>
-);
 
 const AdvancedSettings: React.FC<NestedSidebarDrawerVisibilityProps> = ({
     open,
