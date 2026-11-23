@@ -260,14 +260,10 @@ class _Summary extends StatelessWidget {
           child: CustomPaint(painter: _ScallopPainter()),
         ),
         if (totals != null) ...[
-          const Positioned(
-            left: 35,
-            top: 520,
-            child: _Label("Photos uploaded"),
-          ),
+          const Positioned(left: 35, top: 520, child: _Label("Photos clicked")),
           Positioned(
             left: 35,
-            top: 545,
+            top: 555,
             child: _Uploads(files: totals.files, topPercent: totals.topPercent),
           ),
         ],
