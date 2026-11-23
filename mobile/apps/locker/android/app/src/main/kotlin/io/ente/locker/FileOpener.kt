@@ -7,18 +7,19 @@ import android.content.Intent
 import android.webkit.MimeTypeMap
 import androidx.core.content.FileProvider
 import java.io.File
+import java.util.Locale
 
 object FileOpener {
     fun open(activity: Activity, filePath: String): Map<String, String> {
         val file = File(filePath)
-        if (!file.exists()) {
+        if (!file.isFile) {
             return mapOf(
                 "resultType" to "fileNotFound",
                 "message" to "File does not exist"
             )
         }
 
-        val extension = file.extension.lowercase()
+        val extension = file.extension.lowercase(Locale.ROOT)
         val mimeType = if (extension.isNotEmpty()) {
             MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension) ?: "*/*"
         } else {
@@ -37,7 +38,14 @@ object FileOpener {
         val viewIntent = Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(uri, mimeType)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            clipData = ClipData.newRawUri(file.name, uri)
+            clipData = ClipData.newUri(activity.contentResolver, file.name, uri)
+        }
+
+        if (viewIntent.resolveActivity(activity.packageManager) == null) {
+            return mapOf(
+                "resultType" to "noAppToOpen",
+                "message" to "No application found to open this file"
+            )
         }
 
         val chooser = Intent.createChooser(viewIntent, null)
