@@ -7,6 +7,7 @@ import (
 	"github.com/ente/stacktrace"
 	"github.com/lib/pq"
 
+	"github.com/ente/museum/ente"
 	"github.com/ente/museum/pkg/utils/time"
 )
 
@@ -34,12 +35,16 @@ func (repo *NotificationHistoryRepository) GetLockerIntroCandidates(rolloutTime,
 			AND u.encrypted_email IS NOT NULL
 			AND usage.photos_file_count > 0
 			AND usage.locker_file_count = 0
+			AND EXISTS (
+				SELECT 1 FROM email_subscriptions es
+				WHERE es.user_id = u.user_id AND es.email_type = $4 AND es.subscribed
+			)
 			AND NOT EXISTS (
 				SELECT 1 FROM notification_history nh
 				WHERE nh.user_id = u.user_id AND nh.template_id = $3
 			)
 		ORDER BY u.creation_time, u.user_id
-		LIMIT 1000`, signupAfter, now-72*time.MicroSecondsInOneHour, templateID)
+		LIMIT 1000`, signupAfter, now-72*time.MicroSecondsInOneHour, templateID, ente.ProductMailsEmailType)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "failed to fetch Locker intro candidates")
 	}

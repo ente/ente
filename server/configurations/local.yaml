@@ -333,6 +333,26 @@ listmonk:
     password:
     list-ids:
 
+# Postmark configuration (optional)
+#
+# Use a Broadcast Message Stream for Product Mails.
+postmark:
+    # Server API token for the Postmark server that owns the stream.
+    server-token:
+    # Sender email address verified in Postmark.
+    from:
+    # ID of the Product Mails Broadcast Message Stream.
+    product-mails-stream:
+
+# Product Mails unsubscribe links (optional)
+email-subscriptions:
+    # Public HTTPS URL of Museum used to build unsubscribe links.
+    # For local testing, an HTTP loopback URL can be used.
+    public-url:
+    # Keys used to sign unsubscribe links. Generate a key with openssl rand -hex 32.
+    # List the active key first. Retain older keys to verify links already sent.
+    unsubscribe-signing-keys: []
+
 # Various low-level configuration options
 internal:
     # If false (the default), then museum will notify the external world of

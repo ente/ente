@@ -75,6 +75,7 @@ type EmailNotificationController struct {
 	LockController                     *lock.LockController
 	NotificationHistoryRepo            *repo.NotificationHistoryRepository
 	UserAccessResetter                 UserAccessResetter
+	SubscriptionSender                 *SubscriptionSender
 	isSendingStorageLimitExceededMails bool
 }
 
@@ -314,6 +315,9 @@ func (c *EmailNotificationController) NudgePaidSubscriberForFamily() {
 }
 
 func (c *EmailNotificationController) SendLockerIntroMails(now int64) {
+	if !c.SubscriptionSender.Configured(ente.ProductMailsEmailType) {
+		return
+	}
 	log.Info("Running SendLockerIntroMails")
 	if !c.LockController.TryLock(LockerIntroMailLock, time.MicrosecondsAfterHours(24)) {
 		log.Error("Could not acquire lock to send Locker intro mails")
@@ -326,22 +330,6 @@ func (c *EmailNotificationController) SendLockerIntroMails(now int64) {
 		log.WithError(err).Error("Could not fetch Locker intro candidates")
 		return
 	}
-	for _, userID := range userIDs {
-		logger := log.WithField("user_id", userID)
-		user, err := c.UserRepo.Get(userID)
-		if err != nil {
-			logger.WithError(err).Error("Could not fetch user for Locker intro")
-			continue
-		}
-		err = c.NotificationHistoryRepo.SetLastNotificationTimeToNow(userID, LockerIntroTemplateID)
-		if err != nil {
-			logger.WithError(err).Error("Could not record Locker intro attempt")
-			continue
-		}
-		err = email.SendTemplatedEmailV2([]string{user.Email}, "Ente", "team@ente.com",
-			LockerIntroSubject, "base_v2.html", LockerIntroTemplate, nil, nil)
-		if err != nil {
-			logger.WithError(err).Error("Could not send Locker intro mail")
-		}
-	}
+	c.SubscriptionSender.Send(context.Background(), userIDs, ente.ProductMailsEmailType,
+		LockerIntroTemplateID, LockerIntroSubject, LockerIntroTemplate)
 }

@@ -164,6 +164,9 @@
         Ente Technologies, Inc.
         <br />1111B S Governors Ave 6032 Dover, DE 19904
       </p>
+      {{with .UnsubscribeURL}}
+      <p><a href="{{.}}" style="color: inherit">Unsubscribe</a></p>
+      {{end}}
       <br />
     </div>
   </body>

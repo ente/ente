@@ -5,6 +5,7 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/ente/museum/ente"
 	"github.com/ente/museum/internal/testutil"
 	"github.com/ente/museum/pkg/utils/time"
 )
@@ -42,6 +43,12 @@ func TestGetLockerIntroCandidates(t *testing.T) {
 			if _, err := db.Exec(`INSERT INTO usage(user_id, storage_consumed, photos_file_count, locker_file_count) VALUES(1, 0, $1, $2)`, tt.photos, tt.locker); err != nil {
 				t.Fatal(err)
 			}
+
+			if _, err := db.Exec(`
+				INSERT INTO email_subscriptions (user_id, email_type, subscribed)
+				VALUES (1, $1, TRUE)`, ente.ProductMailsEmailType); err != nil {
+				t.Fatal(err)
+			}
 			if tt.adjustment != "" {
 				if _, err := db.Exec(tt.adjustment); err != nil {
 					t.Fatal(err)
@@ -76,6 +83,12 @@ func TestGetLockerIntroCandidatesOldestFirstLimit(t *testing.T) {
 		}
 		testutil.InsertUser(t, db, testutil.UserFixture{UserID: id, Email: fmt.Sprintf("locker-%d@example.com", id), CreationTime: signup})
 		if _, err := db.Exec(`INSERT INTO usage(user_id, storage_consumed, photos_file_count, locker_file_count) VALUES($1, 0, 1, 0)`, id); err != nil {
+			t.Fatal(err)
+		}
+
+		if _, err := db.Exec(`
+			INSERT INTO email_subscriptions (user_id, email_type, subscribed)
+			VALUES ($1, $2, TRUE)`, id, ente.ProductMailsEmailType); err != nil {
 			t.Fatal(err)
 		}
 	}

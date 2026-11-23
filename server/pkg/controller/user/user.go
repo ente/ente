@@ -438,6 +438,9 @@ func (c *UserController) createUser(ctx context.Context, email string, source *s
 	if err := c.UsageRepo.CreateTx(ctx, transaction, userID); err != nil {
 		return -1, ente.Subscription{}, stacktrace.Propagate(err, "failed to add entry in usage")
 	}
+	if err := repo.EnrollNewUserEmailSubscriptions(ctx, transaction, userID); err != nil {
+		return -1, ente.Subscription{}, stacktrace.Propagate(err, "failed to enroll email subscriptions")
+	}
 	subscription := billing.GetFreeSubscription(userID)
 	subscription.ID, err = c.BillingRepo.AddSubscriptionTx(ctx, transaction, subscription)
 	if err != nil {

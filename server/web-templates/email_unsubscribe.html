@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Unsubscribe | Ente</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 4rem auto; max-width: 34rem; padding: 0 1.25rem; }
+      button { font: inherit; padding: .5rem 1rem; }
+    </style>
+  </head>
+  <body>
+    <main>
+      {{if .Unsubscribed}}
+      <h1>Unsubscribed</h1>
+      <p>You will no longer receive {{.Category}} emails from Ente.</p>
+      {{else}}
+      <h1>Unsubscribe from {{.Category}}?</h1>
+      <form method="post">
+        <button type="submit" name="confirm" value="1">Unsubscribe</button>
+      </form>
+      {{end}}
+    </main>
+  </body>
+</html>

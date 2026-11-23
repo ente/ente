@@ -107,7 +107,14 @@ func (repo *UserRepository) DeleteTx(ctx context.Context, tx *sql.Tx, userID int
 
 func deleteUser(ctx context.Context, executor userMutationExecutor, userID int64) error {
 	deletedEmailHash := fmt.Sprintf(DELETED_EMAIL_HASH_FORMAT, userID)
-	_, err := executor.ExecContext(ctx, `UPDATE users SET encrypted_email = null, email_decryption_nonce = null, email_hash = $1 WHERE user_id = $2`, deletedEmailHash, userID)
+	_, err := executor.ExecContext(ctx, `
+		WITH deleted_user AS (
+			UPDATE users SET encrypted_email = NULL, email_decryption_nonce = NULL, email_hash = $1
+			WHERE user_id = $2
+			RETURNING user_id
+		)
+		DELETE FROM email_subscriptions
+		WHERE user_id IN (SELECT user_id FROM deleted_user)`, deletedEmailHash, userID)
 	return stacktrace.Propagate(err, "")
 }
 
