@@ -270,7 +270,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
 
   bool get _idle => _piloted && !_held && _pace < 0.04;
 
-  bool get _canPick => widget.walls != null && (_piloted || _landed);
+  bool get _canPick => widget.walls != null && _piloted && !_landed;
 
   @override
   void didChangeDependencies() {
@@ -903,15 +903,16 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   ) {
     double window(double ms, double from, double to) =>
         ((ms - from) / 260).clamp(0.0, 1.0) * ((to - ms) / 420).clamp(0.0, 1.0);
-    final texts = [
-      if (!_hasFlown)
-        landed ? "SWIPE DOWN TO FLY BACK" : "SWIPE UP OR DOWN TO FLY",
-      if (canPick && !_hasPicked) "TAP A PHOTO TO PULL IT OUT",
-      if (!_hasRolled) "SWIPE SIDEWAYS TO SPIN IT",
-      if (!canPick && !_hasHeld) "HOLD TO PAUSE",
-    ];
+    final texts = landed
+        ? ["TAP OR SWIPE UP TO GO ON", if (!_hasFlown) "SWIPE DOWN TO FLY BACK"]
+        : [
+            if (!_hasFlown) "SWIPE UP OR DOWN TO FLY",
+            if (canPick && !_hasPicked) "TAP A PHOTO TO PULL IT OUT",
+            if (!_hasRolled) "SWIPE SIDEWAYS TO SPIN IT",
+            if (!canPick && !_hasHeld) "HOLD TO PAUSE",
+          ];
     if (_reel || _picked != null || texts.isEmpty) return (text: "", shown: 0);
-    if (!canPick) {
+    if (!canPick && !landed) {
       final since = _guidedMs - _hintFromMs;
       final turn = (since / _hintMs).floor().clamp(0, texts.length - 1);
       return (
@@ -925,7 +926,8 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
         : window(_ms % _hintMs, 0, _hintMs);
     return (
       text: texts[turn],
-      shown: swapping * (landed ? window(sinceLanding, 900, 7000) : 1),
+      shown:
+          swapping * (landed ? window(sinceLanding, 900, double.infinity) : 1),
     );
   }
 
