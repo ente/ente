@@ -123,7 +123,7 @@
   "authToManageLegacy": "Kerem, hitelesitse magat a megbizotto kapcsolatok kezelesehez",
   "authToSetBackupPassword": "Hitelesíts magad a biztonsági jelszó beállításához",
   "authToUpdateBackupPassword": "Hitelesíts magad a biztonsági jelszó frissítéséhez",
-  "authToViewPasskeyGeneric": "A jelszó megtekintéséhez kérjük, hitelesítsd magad",
+  "authToViewPasskeyGeneric": "A passkey megtekintéséhez kérjük, hitelesítsd magad",
   "authToViewSecrets": "A titkos kulcsok megtekintéséhez hitelesítse magát",
   "@authToViewSecrets": {
     "description": "Message prompting authentication to view secrets"

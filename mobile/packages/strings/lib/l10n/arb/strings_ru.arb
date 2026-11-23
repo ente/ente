@@ -362,7 +362,7 @@
   "authToSetBackupPassword": "Авторизуйтесь для установки пароля резервной копии",
   "authToUpdateBackupPassword": "Авторизуйтесь для обновления пароля резервной копии",
   "authToViewPasskey": "Пожалуйста, авторизуйтесь для просмотра ключа доступа",
-  "authToViewPasskeyGeneric": "Пожалуйста, авторизуйтесь, чтобы просмотреть пароль",
+  "authToViewPasskeyGeneric": "Пожалуйста, авторизуйтесь, чтобы просмотреть ключ доступа",
   "authToViewSecrets": "Пожалуйста, авторизуйтесь для просмотра ваших секретов",
   "@authToViewSecrets": {
     "description": "Message prompting authentication to view secrets"
@@ -3844,7 +3844,7 @@
     }
   },
   "singIn": "Войти",
-  "singleFileDeleteFromDevice": "Резервная копия не сохранена. Удалить с устройства?",
+  "singleFileDeleteFromDevice": "Резервная копия не сохранена. Удалить с устройства навсегда?",
   "@singleFileDeleteFromDevice": {
     "description": "Delete confirmation message for a single item that exists only on the device."
   },
