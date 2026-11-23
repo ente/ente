@@ -722,7 +722,9 @@ The same prorating calculation applies as described above.
 
 Your subscription renews on the date you first subscribed, every month for a monthly plan or every year for a yearly plan. You can't set a different renewal day for an active subscription.
 
-If you want to subscribe on a particular day, cancel your current subscription and contact [support@ente.com](mailto:support@ente.com). We can help you move to the free plan so you can subscribe again on the day you choose. If you are subscribing for the first time, subscribe on that day. Upgrading, or switching from monthly to yearly, starts a new renewal date from the day you make the change. See [What happens when I upgrade my plan?](#upgrade-plan).
+If you want to subscribe on a particular day, cancel your current subscription and contact [support@ente.com](mailto:support@ente.com). For plans billed directly by Ente, we can help you move to the free plan so you can subscribe again on the day you choose. If you are subscribing for the first time, subscribe on that day.
+
+For plans billed directly by Ente, upgrading or switching from monthly to yearly starts a new renewal date when the change takes effect. Changes to a subscription billed through the Apple App Store follow Apple's rules and may start at the next renewal instead. See [What happens when I upgrade my plan?](#upgrade-plan).
 
 ### If I subscribed to a plan with a reference code and a discount, and then need to upgrade/downgrade, what happens to my discount and bonus? {#upgrade-discount-referral}
 
