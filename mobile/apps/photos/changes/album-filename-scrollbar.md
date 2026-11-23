@@ -1,0 +1,1 @@
+- Fixed year labels appearing on the scrollbar in albums sorted by filename.
