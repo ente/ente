@@ -234,8 +234,6 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   var _travelled = 0.0;
   var _previous = 0.0;
   var _velocity = 0.0;
-  var _pace = 0.0;
-  var _heading = 1.0;
   var _flewMs = double.negativeInfinity;
   var _piloted = false;
   var _still = false;
@@ -260,8 +258,6 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
 
   bool get _canHold =>
       _held || (!_piloted && !_landed) || _velocity != 0 || _rollRate != 0;
-
-  bool get _idle => _piloted && !_held && _pace < 0.04;
 
   bool get _canPick => widget.walls != null && _piloted && !_landed;
 
@@ -308,12 +304,8 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
     if (widget.walls != null && _picked == null) _fly(dt);
     _coastRoll(dt);
     final moved = _travelled - _previous;
-    final rate = moved.abs() / dt;
-    if (rate > 0.0004) _heading = moved.sign;
     if (moved != 0) _flewMs = _ms;
     _previous = _travelled;
-    final cruise = 2 * _course.length / _flightMs;
-    _pace += ((rate / cruise).clamp(0.0, 1.0) - _pace) * (1 - exp(-dt / 160));
     if (_landed) {
       if (_landedMs == null) {
         _landedMs = _ms;
@@ -563,7 +555,6 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
     );
     final picked = _picked;
     final pulled = Curves.easeOutCubic.transform(_pull.value);
-    final forward = _piloted && _heading < 0;
     final hint = _hint(landed, sinceLanding);
     return Stack(
       fit: StackFit.expand,
@@ -719,40 +710,6 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                         ),
                       ),
                     ),
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    top: 96,
-                    child: RewindLeave(
-                      position: widget.position,
-                      centerY: 120,
-                      child: Opacity(
-                        opacity: 1 - pulled,
-                        child: Center(
-                          child: RewindVoice(
-                            you: "YOU MADE IT BACK",
-                            me: "I MADE IT BACK",
-                            builder: (madeIt) => _Counter(
-                              landed
-                                  ? madeIt
-                                  : walls == null
-                                  ? "LOADING THE TAPE"
-                                  : null,
-                              icon: passing == null || landed
-                                  ? null
-                                  : _held
-                                  ? Icons.pause_rounded
-                                  : _idle
-                                  ? Icons.swap_vert_rounded
-                                  : forward
-                                  ? Icons.fast_forward_rounded
-                                  : Icons.fast_rewind_rounded,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
                   Positioned(
                     left: 28,
                     top: 606,
@@ -959,43 +916,6 @@ class _Caption extends StatelessWidget {
             builder: (text) => Text(text, style: RewindTextStyles.body(17)),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _Counter extends StatelessWidget {
-  const _Counter(this.label, {required this.icon});
-
-  final String? label;
-  final IconData? icon;
-
-  @override
-  Widget build(BuildContext context) {
-    final icon = this.icon;
-    final label = this.label;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 9, 16, 8),
-      decoration: BoxDecoration(
-        color: RewindColors.ink,
-        border: Border.all(color: RewindColors.cream, width: 3),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
-          BoxShadow(color: Color(0xFF000000), offset: Offset(4, 5)),
-        ],
-      ),
-      child: AnimatedSize(
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOutCubic,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) Icon(icon, color: RewindColors.cream, size: 22),
-            if (icon != null && label != null) const SizedBox(width: 6),
-            if (label != null)
-              Text(label, style: RewindTextStyles.display(15, height: 1.1)),
-          ],
-        ),
       ),
     );
   }
