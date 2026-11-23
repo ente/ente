@@ -5,6 +5,7 @@ import {
     type CollectionShareProps,
 } from "@/components/collections/CollectionShare";
 import type { FileListHeaderOrFooter } from "@/components/FileList";
+import { collectionHeadingHeight } from "@/components/gallery/header-styles";
 import {
     AlbumsHeader,
     albumsHeaderHeight,
@@ -98,28 +99,24 @@ export const AlbumContentHeader: React.FC<AlbumContentHeaderProps> = ({
             (activeCollection ||
                 collectionSummary.id <= PseudoCollectionID.all);
 
-        const hiddenItemsWithoutAlbums =
-            collectionSummary?.type == "hiddenItems" && albums.length == 0;
-        const showAlbums =
-            (collectionSummary?.type == "hiddenItems" &&
-                !hiddenItemsWithoutAlbums) ||
-            collectionSummary?.type == "archiveItems";
-
-        const hideItemCount = showAlbums && collectionSummary.fileCount == 0;
+        const isHidden = collectionSummary?.type == "hiddenItems";
         const isArchive = collectionSummary?.type == "archiveItems";
-        const archiveWithoutAlbums = isArchive && albums.length == 0;
-        const collectionHeaderHeight =
-            hideItemCount || archiveWithoutAlbums ? 0 : 72;
-
-        const albumsSectionHeight =
-            (albums.length ? albumsHeaderHeight : 54) +
-            (archiveWithoutAlbums ? 18 : 0);
+        const hasAlbums = albums.length > 0;
+        const hasFiles = (collectionSummary?.fileCount ?? 0) > 0;
+        const showSectionHeader = isArchive || (isHidden && hasAlbums);
+        const showItemsHeader = isHidden
+            ? !hasAlbums || hasFiles
+            : isArchive
+              ? hasAlbums && hasFiles
+              : true;
+        const sectionHeaderHeight = hasAlbums
+            ? albumsHeaderHeight
+            : collectionHeadingHeight;
 
         setFileListHeader({
-            suppressEmptyState: showAlbums && albums.length > 0,
             component: shouldRenderCollectionHeader ? (
                 <Box sx={{ width: "100%" }}>
-                    {showAlbums && (
+                    {showSectionHeader && (
                         <AlbumsHeader
                             title={t(
                                 collectionSummary.type == "hiddenItems"
@@ -127,15 +124,15 @@ export const AlbumContentHeader: React.FC<AlbumContentHeaderProps> = ({
                                     : "section_archive",
                             )}
                             albums={albums}
-                            height={albumsSectionHeight}
+                            height={sectionHeaderHeight}
                             fileCount={
-                                archiveWithoutAlbums
+                                isArchive && !hasAlbums
                                     ? collectionSummary.fileCount
                                     : undefined
                             }
                         />
                     )}
-                    {!hideItemCount && !archiveWithoutAlbums && (
+                    {showItemsHeader && (
                         <CollectionHeader
                             {...{
                                 activeCollection,
@@ -151,7 +148,7 @@ export const AlbumContentHeader: React.FC<AlbumContentHeaderProps> = ({
                             onCollectionCast={showCollectionCast}
                             onEditAlbumDetails={onEditAlbumDetails}
                             hasActiveFileSelection={hasActiveFileSelection}
-                            showHiddenItemsBack={hiddenItemsWithoutAlbums}
+                            showSectionBack={isHidden && !hasAlbums}
                             onDescriptionHeightChange={setDescriptionHeight}
                         />
                     )}
@@ -167,8 +164,8 @@ export const AlbumContentHeader: React.FC<AlbumContentHeaderProps> = ({
                 <></>
             ),
             height:
-                collectionHeaderHeight +
-                (showAlbums ? albumsSectionHeight : 0) +
+                (showItemsHeader ? collectionHeadingHeight : 0) +
+                (showSectionHeader ? sectionHeaderHeight : 0) +
                 (albumDescription ? descriptionHeight : 0),
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -355,6 +355,11 @@ export const AlbumsSection = ({
                 <GalleryMedia
                     {...{ library, operations, navigation }}
                     header={fileListHeader}
+                    suppressEmptyState={
+                        (collectionSummary?.type == "hiddenItems" ||
+                            collectionSummary?.type == "archiveItems") &&
+                        sidebarCollectionSummaries.length > 0
+                    }
                     enableDateScrubber={
                         !library.isFirstLoad &&
                         barMode === "albums" &&

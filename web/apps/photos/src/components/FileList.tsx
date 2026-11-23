@@ -85,7 +85,6 @@ export interface FileListHeaderOrFooter {
     component: React.ReactNode;
     height: number;
     extendToInlineEdges?: boolean;
-    suppressEmptyState?: boolean;
 }
 
 type FileListItem =
@@ -128,6 +127,7 @@ export interface FileListProps {
     header?: FileListHeaderOrFooter;
     footer?: FileListHeaderOrFooter;
     onAddPhotos?: () => void;
+    suppressEmptyState?: boolean;
     user?: LocalUser;
     disableGrouping?: boolean;
     enableSelect?: boolean;
@@ -185,6 +185,7 @@ export const FileList: React.FC<FileListProps> = ({
     header,
     footer,
     onAddPhotos,
+    suppressEmptyState = false,
     user,
     annotatedFiles,
     disableGrouping,
@@ -369,7 +370,7 @@ export const FileList: React.FC<FileListProps> = ({
             if (pendingSplits.length) pushItemsFromSplits(pendingSplits);
         }
 
-        if (!annotatedFiles.length && !header?.suppressEmptyState) {
+        if (!annotatedFiles.length && !suppressEmptyState) {
             items.push({
                 height: Math.max(
                     onAddPhotos ? 412 : 340,
@@ -406,6 +407,7 @@ export const FileList: React.FC<FileListProps> = ({
         header,
         footer,
         onAddPhotos,
+        suppressEmptyState,
         annotatedFiles,
         disableGrouping,
         layoutParams,

@@ -48,6 +48,7 @@ export type FileListWithViewerProps = {
     | "header"
     | "footer"
     | "onAddPhotos"
+    | "suppressEmptyState"
     | "disableGrouping"
     | "enableSelect"
     | "enableDateScrubber"
@@ -90,6 +91,7 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
     header,
     footer,
     onAddPhotos,
+    suppressEmptyState,
     user,
     files,
     enableDownload,
@@ -224,6 +226,7 @@ export const FileListWithViewer: React.FC<FileListWithViewerProps> = ({
                             header,
                             footer,
                             onAddPhotos,
+                            suppressEmptyState,
                             user,
                             disableGrouping,
                             enableSelect,
