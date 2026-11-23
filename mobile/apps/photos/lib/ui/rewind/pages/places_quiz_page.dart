@@ -313,9 +313,9 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
       Positioned(
         left: 0,
         right: 0,
-        top: 138,
+        top: 160,
         child: _leave(
-          168,
+          190,
           AnimatedOpacity(
             opacity: _phase == _Phase.pick ? 1 : 0,
             duration: const Duration(milliseconds: 250),
@@ -325,7 +325,7 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
               child: Column(
                 children: [
                   Text(
-                    "WHERE DID YOU TAKE\nTHE MOST PHOTOS?",
+                    "WHERE DID YOU SHOOT MOST?",
                     textAlign: TextAlign.center,
                     style: RewindTextStyles.display(
                       20,

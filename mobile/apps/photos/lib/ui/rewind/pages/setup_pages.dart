@@ -42,10 +42,10 @@ const placesSetupPage = SetupPage(
   pattern: Color(0xFF4A82F5),
   ink: RewindColors.cream,
   headlines: [
-    SetupHeadline("YOUR PHOTOS\nGOT AROUND.", at: Offset(24, 140), size: 66),
+    SetupHeadline("YOU WENT\nPLACES.", at: Offset(24, 140), size: 66),
   ],
   callout: SetupCallout(
-    "AND SO\nDID YOU.",
+    "THE CAMERA\nCAME TOO.",
     center: Offset(201.5, 426),
     delayMs: 600,
   ),
@@ -90,9 +90,13 @@ const busiestDaySetupPage = SetupPage(
   pattern: Color(0xFFF02525),
   ink: RewindColors.cream,
   headlines: [
-    SetupHeadline("ONE DAY,\nYOU WENT", at: Offset(24, 140), size: 59),
+    SetupHeadline("ONE DAY,\nTHINGS GOT", at: Offset(24, 140), size: 59),
   ],
-  callout: SetupCallout("ALL IN.", center: Offset(201.2, 350), onTop: true),
+  callout: SetupCallout(
+    "OUT OF HAND.",
+    center: Offset(201.2, 350),
+    onTop: true,
+  ),
   art: SetupArt.image(
     RewindAssets.photoHeapDucky,
     Rect.fromLTWH(-75, 281, 540, 540),
@@ -235,7 +239,7 @@ const badgeSetupPage = SetupPage(
   pattern: Color(0xFF11B72A),
   ink: RewindColors.cream,
   headlines: [
-    SetupHeadline("A YEAR LIKE\nYOURS", at: Offset(24, 140), size: 45),
+    SetupHeadline("A YEAR LIKE\nYOURS…", at: Offset(24, 140), size: 45),
   ],
   callout: SetupCallout(
     "DESERVES A BADGE.",
