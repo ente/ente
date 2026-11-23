@@ -199,8 +199,10 @@ func (repo *ObjectCleanupRepository) RemoveTempObject(tempObject ente.TempObject
 	return stacktrace.Propagate(err, "")
 }
 
-func (repo *ObjectCleanupRepository) SetCleanupState(objectKey string, state ente.TempObjectCleanupState, expirationTime int64) error {
-	_, err := repo.DB.Exec(`UPDATE temp_objects SET cleanup_state = $1, expiration_time = $2 WHERE object_key = $3`,
-		state, expirationTime, objectKey)
+func (repo *ObjectCleanupRepository) CompleteHoldRelease(objectKey string, expirationTime int64) error {
+	_, err := repo.DB.Exec(
+		`UPDATE temp_objects SET cleanup_state = $1, expiration_time = $2, is_multipart = FALSE WHERE object_key = $3`,
+		ente.TempObjectDelete, expirationTime, objectKey,
+	)
 	return stacktrace.Propagate(err, "")
 }

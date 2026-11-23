@@ -65,11 +65,6 @@ func (c *ObjectCleanupController) removeUnreportedObjectsWorker(i int) {
 	}
 }
 
-type claimedTempObject struct {
-	tempObject          ente.TempObject
-	needsMultipartAbort bool
-}
-
 func (c *ObjectCleanupController) removeUnreportedObjects() int {
 	logger := log.WithFields(log.Fields{
 		"task": "remove-unreported-objects",
@@ -103,8 +98,8 @@ func (c *ObjectCleanupController) removeUnreportedObjects() int {
 	}
 
 	count := stagedCount
-	for _, item := range claimed {
-		if err := c.processClaimedTempObject(item); err != nil {
+	for _, t := range claimed {
+		if err := c.processClaimedTempObject(t); err != nil {
 			continue
 		}
 		count++
@@ -114,7 +109,7 @@ func (c *ObjectCleanupController) removeUnreportedObjects() int {
 	return count
 }
 
-func (c *ObjectCleanupController) claimExpiredObjectsTx(tx *sql.Tx, tempObjects []ente.TempObject) ([]claimedTempObject, int, error) {
+func (c *ObjectCleanupController) claimExpiredObjectsTx(tx *sql.Tx, tempObjects []ente.TempObject) ([]ente.TempObject, int, error) {
 	objectKeys := make([]string, 0, len(tempObjects))
 	for _, t := range tempObjects {
 		objectKeys = append(objectKeys, t.ObjectKey)
@@ -131,7 +126,7 @@ func (c *ObjectCleanupController) claimExpiredObjectsTx(tx *sql.Tx, tempObjects 
 	var delayOnlyKeys []string
 	var releaseHoldKeys []string
 	var claimDeleteKeys []string
-	claimed := make([]claimedTempObject, 0, len(tempObjects))
+	claimed := make([]ente.TempObject, 0, len(tempObjects))
 	stagedCount := 0
 
 	for _, t := range tempObjects {
@@ -172,23 +167,11 @@ func (c *ObjectCleanupController) claimExpiredObjectsTx(tx *sql.Tx, tempObjects 
 			} else {
 				claimDeleteKeys = append(claimDeleteKeys, t.ObjectKey)
 				t.CleanupState = ente.TempObjectDelete
-				claimed = append(claimed, claimedTempObject{
-					tempObject:          t,
-					needsMultipartAbort: t.IsMultipart,
-				})
+				claimed = append(claimed, t)
 			}
-		case ente.TempObjectReleaseHold:
+		case ente.TempObjectReleaseHold, ente.TempObjectDelete:
 			delayOnlyKeys = append(delayOnlyKeys, t.ObjectKey)
-			claimed = append(claimed, claimedTempObject{
-				tempObject:          t,
-				needsMultipartAbort: t.IsMultipart,
-			})
-		case ente.TempObjectDelete:
-			delayOnlyKeys = append(delayOnlyKeys, t.ObjectKey)
-			claimed = append(claimed, claimedTempObject{
-				tempObject:          t,
-				needsMultipartAbort: t.IsMultipart && dc != complianceDC,
-			})
+			claimed = append(claimed, t)
 		}
 	}
 
@@ -205,8 +188,7 @@ func (c *ObjectCleanupController) claimExpiredObjectsTx(tx *sql.Tx, tempObjects 
 	return claimed, stagedCount, nil
 }
 
-func (c *ObjectCleanupController) processClaimedTempObject(item claimedTempObject) error {
-	t := item.tempObject
+func (c *ObjectCleanupController) processClaimedTempObject(t ente.TempObject) error {
 	dc := t.BucketId
 	logger := log.WithFields(log.Fields{
 		"task":        "remove-unreported-objects",
@@ -215,7 +197,7 @@ func (c *ObjectCleanupController) processClaimedTempObject(item claimedTempObjec
 		"upload_id":   t.UploadID,
 	})
 
-	if item.needsMultipartAbort {
+	if t.IsMultipart {
 		if err := c.abortMultipartUpload(t.ObjectKey, t.UploadID, dc); err != nil {
 			logger.Errorf("Clearing tempObject failed: %v", err)
 			return err
@@ -226,7 +208,7 @@ func (c *ObjectCleanupController) processClaimedTempObject(item claimedTempObjec
 			logger.Errorf("Clearing tempObject failed: %v", err)
 			return err
 		}
-		if err := c.Repo.SetCleanupState(t.ObjectKey, ente.TempObjectDelete, time.MicrosecondsAfterDays(24)); err != nil {
+		if err := c.Repo.CompleteHoldRelease(t.ObjectKey, time.MicrosecondsAfterDays(24)); err != nil {
 			logger.Errorf("Clearing tempObject failed: %v", err)
 			return err
 		}
