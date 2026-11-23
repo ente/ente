@@ -62,6 +62,7 @@ const (
 	LockerIntroTemplate   = "locker_intro.html"
 	LockerIntroSubject    = "Let Ente take care of your documents"
 	LockerIntroTemplateID = "locker_intro"
+	LockerIntroFrom       = "Ente <team@ente.com>"
 )
 
 var lockerIntroRolloutTime = stdtime.Date(2026, stdtime.November, 1, 0, 0, 0, 0, stdtime.UTC).UnixMicro()
@@ -331,5 +332,5 @@ func (c *EmailNotificationController) SendLockerIntroMails(now int64) {
 		return
 	}
 	c.SubscriptionSender.Send(context.Background(), userIDs, ente.ProductMailsEmailType,
-		LockerIntroTemplateID, LockerIntroSubject, LockerIntroTemplate)
+		LockerIntroTemplateID, LockerIntroFrom, LockerIntroSubject, LockerIntroTemplate)
 }

@@ -339,8 +339,6 @@ listmonk:
 postmark:
     # Server API token for the Postmark server that owns the stream.
     server-token:
-    # Sender email address verified in Postmark.
-    from:
     # ID of the Product Mails Broadcast Message Stream.
     product-mails-stream:
 

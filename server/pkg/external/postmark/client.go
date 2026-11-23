@@ -13,7 +13,6 @@ const MaxBatchSize = 500
 
 type Client struct {
 	ServerToken string
-	From        string
 }
 
 type Header struct {
@@ -39,9 +38,6 @@ var httpClient = &http.Client{
 }
 
 func (c Client) SendBatch(ctx context.Context, messages []Message) ([]int, error) {
-	for i := range messages {
-		messages[i].From = c.From
-	}
 	payload, err := json.Marshal(messages)
 	if err != nil {
 		return nil, err
@@ -60,7 +56,7 @@ func (c Client) SendBatch(ctx context.Context, messages []Message) ([]int, error
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Postmark batch returned HTTP %d", resp.StatusCode)
+		return nil, fmt.Errorf("batch send returned HTTP %d", resp.StatusCode)
 	}
 
 	var results []struct {
@@ -70,7 +66,7 @@ func (c Client) SendBatch(ctx context.Context, messages []Message) ([]int, error
 		return nil, err
 	}
 	if len(results) != len(messages) {
-		return nil, fmt.Errorf("Postmark returned %d results for %d messages", len(results), len(messages))
+		return nil, fmt.Errorf("batch send returned %d results for %d messages", len(results), len(messages))
 	}
 	codes := make([]int, len(results))
 	for i, result := range results {
