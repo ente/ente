@@ -737,13 +737,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                                   ? madeIt
                                   : walls == null
                                   ? "LOADING THE TAPE"
-                                  : _held
-                                  ? "PAUSED"
-                                  : _idle
-                                  ? "TIME TRAVEL"
-                                  : forward
-                                  ? "FAST FORWARD"
-                                  : "REWINDING",
+                                  : null,
                               icon: passing == null || landed
                                   ? null
                                   : _held
@@ -973,12 +967,13 @@ class _Caption extends StatelessWidget {
 class _Counter extends StatelessWidget {
   const _Counter(this.label, {required this.icon});
 
-  final String label;
+  final String? label;
   final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
     final icon = this.icon;
+    final label = this.label;
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 9, 16, 8),
       decoration: BoxDecoration(
@@ -995,11 +990,10 @@ class _Counter extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (icon != null) ...[
-              Icon(icon, color: RewindColors.cream, size: 22),
-              const SizedBox(width: 6),
-            ],
-            Text(label, style: RewindTextStyles.display(15, height: 1.1)),
+            if (icon != null) Icon(icon, color: RewindColors.cream, size: 22),
+            if (icon != null && label != null) const SizedBox(width: 6),
+            if (label != null)
+              Text(label, style: RewindTextStyles.display(15, height: 1.1)),
           ],
         ),
       ),
