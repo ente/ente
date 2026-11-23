@@ -104,6 +104,7 @@ class RewindMedia {
   final _Samples? _samples;
   final _used = <int>{};
   final _handedOut = <EnteFile>[];
+  final _galleries = <EnteFile>[];
   final _faces = <String, Future<RewindFace?>>{};
   final _blurryFaces = <int, Map<String, FaceWithoutEmbedding>>{};
   final _shownFaces = <String, List<RewindFace>>{};
@@ -177,6 +178,12 @@ class RewindMedia {
     return files;
   }
 
+  List<EnteFile> gallery(Int64List ids, int slots) {
+    final files = extraPhotos(ids, slots);
+    _galleries.addAll(files);
+    return files;
+  }
+
   List<EnteFile> _pick(Iterable<int> ids, int slots) {
     final fresh = <int>[];
     final repeats = <int>[];
@@ -191,10 +198,14 @@ class RewindMedia {
     return files;
   }
 
-  List<EnteFile> takeHandedOut() {
-    final files = List.of(_handedOut);
-    _handedOut.clear();
-    return files;
+  List<EnteFile> takeHandedOut() => _take(_handedOut);
+
+  List<EnteFile> takeGalleries() => _take(_galleries);
+
+  static List<EnteFile> _take(List<EnteFile> files) {
+    final taken = List.of(files);
+    files.clear();
+    return taken;
   }
 
   String? personName(String personId) =>
