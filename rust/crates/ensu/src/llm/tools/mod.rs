@@ -152,6 +152,17 @@ pub struct ToolOutcome {
 pub struct ToolExchange {
     request: ToolRequest,
     outcome: std::sync::Mutex<Option<ToolOutcome>>,
+    pub(crate) continuation: Option<std::sync::Arc<dyn ToolContinuation>>,
+}
+
+pub(crate) trait ToolContinuation: std::fmt::Debug + Send + Sync {
+    fn follow_up(
+        &self,
+        request: &super::ChatRequest,
+        outcome: &ToolOutcome,
+    ) -> Option<super::ChatRequest>;
+
+    fn can_finish(&self, outcome: &ToolOutcome, now_ms: i64) -> bool;
 }
 
 impl ToolExchange {
@@ -159,7 +170,16 @@ impl ToolExchange {
         Self {
             request,
             outcome: std::sync::Mutex::new(None),
+            continuation: None,
         }
+    }
+
+    pub(crate) fn with_continuation(
+        mut self,
+        continuation: impl ToolContinuation + 'static,
+    ) -> Self {
+        self.continuation = Some(std::sync::Arc::new(continuation));
+        self
     }
 
     pub fn request(&self) -> &ToolRequest {

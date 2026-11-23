@@ -26,6 +26,7 @@ pub enum Outcome {
     NamesAnother,
     NotFound { task: String },
     Unspecified,
+    UnsupportedChange,
     AlreadyDone { title: String },
     Completed { title: String },
     Ambiguous { tasks: Vec<Todo> },
@@ -97,6 +98,7 @@ pub fn plan(
         unique.push(call);
     }
     let places = refine::places(&unique);
+    let unsupported = matching::unsupported_task_change(user_text, &todos);
     let now = timing::local_time(now_ms, zone);
     let references = refine::references(
         &unique,
@@ -116,11 +118,22 @@ pub fn plan(
     let mut listed: Option<Vec<Uuid>> = None;
     for (call, place) in unique.into_iter().zip(places) {
         let current = listed.as_deref().unwrap_or(shown);
-        let intent = refine::interpret(call, &references, current.len(), now, place)?;
-        plan.unsure |= super::needs_backing(call_probability) || intent.unsure();
-        let step = step(
-            &intent, user_text, &mut todos, current, now_ms, zone, new_id,
-        );
+        let numbered_title = call
+            .integer("number")
+            .and_then(|number| usize::try_from(number).ok()?.checked_sub(1))
+            .and_then(|index| current.get(index))
+            .and_then(|id| todos.iter().find(|todo| todo.id == *id))
+            .map(|todo| todo.title.as_str());
+        let intent =
+            refine::interpret(call, &references, current.len(), numbered_title, now, place)?;
+        let step = if unsupported && !matches!(intent, Intent::List { .. }) {
+            Outcome::UnsupportedChange.into()
+        } else {
+            plan.unsure |= super::needs_backing(call_probability) || intent.unsure();
+            step(
+                &intent, user_text, &mut todos, current, now_ms, zone, new_id,
+            )
+        };
         let shown = step.outcome.shown();
         if let Some(change) = step.change {
             let id = change.before.as_ref().map(|before| before.id);

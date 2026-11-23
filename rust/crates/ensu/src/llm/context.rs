@@ -180,7 +180,11 @@ impl Context {
         if let Some(tools) = tools {
             tools.record(None);
         }
-        let summary = self.generate_chat_stream(request, sink)?;
+        let summary = self.generate_chat_stream_inner(
+            request,
+            tools.and_then(|tools| tools.continuation.clone()),
+            sink,
+        )?;
         if let Some(tools) = tools {
             tools.record(summary.tools.clone());
         }
@@ -190,6 +194,15 @@ impl Context {
     pub fn generate_chat_stream(
         &self,
         request: ChatRequest,
+        sink: &mut dyn EventSink,
+    ) -> Result<GenerationSummary, Error> {
+        self.generate_chat_stream_inner(request, None, sink)
+    }
+
+    fn generate_chat_stream_inner(
+        &self,
+        request: ChatRequest,
+        continuation: Option<Arc<dyn super::tools::ToolContinuation>>,
         sink: &mut dyn EventSink,
     ) -> Result<GenerationSummary, Error> {
         let (job_id, cancel_flag) = register_job();
@@ -205,18 +218,77 @@ impl Context {
         let (acknowledge, acknowledgements) = mpsc::sync_channel(0);
         let completed = self.worker.submit(move |context| {
             let mut callback_failed = false;
-            let result = context.generate_chat_stream(
-                request,
-                &mut |event| {
-                    if events.send(event).is_err() || acknowledgements.recv() != Ok(true) {
-                        callback_failed = true;
-                        cancel(job_id);
+            let mut emit = |event| {
+                if events.send(event).is_err() || acknowledgements.recv() != Ok(true) {
+                    callback_failed = true;
+                    cancel(job_id);
+                }
+            };
+            let result = (|| {
+                let mut summary = context.generate_chat_stream(
+                    request.clone(),
+                    &mut emit,
+                    job_id,
+                    cancel_flag.clone(),
+                    start,
+                )?;
+                if cancel_flag.load(std::sync::atomic::Ordering::Acquire) {
+                    return Err(Error::Cancelled);
+                }
+                if let Some(mut next) = continuation.as_ref().and_then(|continuation| {
+                    summary
+                        .tools
+                        .as_ref()
+                        .and_then(|outcome| continuation.follow_up(&request, outcome))
+                }) {
+                    let output = request
+                        .max_tokens
+                        .unwrap_or(8192)
+                        .saturating_sub(summary.generated_tokens.unwrap_or(i32::MAX))
+                        .max(0);
+                    if output == 0 {
+                        return Ok(summary);
                     }
-                },
-                job_id,
-                cancel_flag,
-                start,
-            );
+                    next.max_tokens = Some(output);
+                    if context.measure_text_chat_prompt(&next)? + output as usize
+                        > context.context_size() as usize
+                    {
+                        return Ok(summary);
+                    }
+                    let mut finished = context.generate_chat_stream(
+                        next,
+                        &mut emit,
+                        job_id,
+                        cancel_flag.clone(),
+                        start,
+                    )?;
+                    if cancel_flag.load(std::sync::atomic::Ordering::Acquire) {
+                        return Err(Error::Cancelled);
+                    }
+                    if let Some(mut prior) = summary.tools.take() {
+                        if let Some(outcome) = finished.tools.take()
+                            && !outcome.calls.is_empty()
+                        {
+                            prior.calls.extend(outcome.calls);
+                            prior.call_probability = prior
+                                .call_probability
+                                .zip(outcome.call_probability)
+                                .map(|(first, second)| first.min(second));
+                        }
+                        finished.tools = Some(prior);
+                    }
+                    finished.prompt_tokens = summary
+                        .prompt_tokens
+                        .zip(finished.prompt_tokens)
+                        .map(|(first, second)| first + second);
+                    finished.generated_tokens = summary
+                        .generated_tokens
+                        .zip(finished.generated_tokens)
+                        .map(|(first, second)| first + second);
+                    summary = finished;
+                }
+                Ok(summary)
+            })();
             if callback_failed {
                 context.invalidate_cache();
                 Err(Error::Panicked)

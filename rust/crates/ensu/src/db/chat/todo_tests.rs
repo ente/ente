@@ -100,7 +100,7 @@ impl<'a> Chat<'a> {
         self.send_as(user, calls, SURE)
     }
 
-    fn send_as(&mut self, user: &str, calls: &[ToolCall], confidence: Option<f32>) -> ToolTurn {
+    fn user(&mut self, user: &str) {
         let message = self
             .db
             .insert_message(
@@ -112,6 +112,18 @@ impl<'a> Chat<'a> {
             )
             .unwrap();
         self.path.push(message.uuid);
+    }
+
+    fn prepare(&mut self, user: &str) -> (ConversationSnapshot, crate::llm::ToolExchange) {
+        self.user(user);
+        let snapshot = self.snapshot();
+        let tools = self.db.turn_tools(&snapshot, user).unwrap().tools.unwrap();
+        let exchange = self.db.tool_exchange(&snapshot, tools);
+        (snapshot, exchange)
+    }
+
+    fn send_as(&mut self, user: &str, calls: &[ToolCall], confidence: Option<f32>) -> ToolTurn {
+        self.user(user);
         let turn = self.answer(calls, confidence).unwrap();
         self.path.push(turn.reply.uuid);
         turn
@@ -298,7 +310,10 @@ fn chat_calls_save_list_and_complete_tasks_with_one_reply_each() {
         "Mark the first one done",
         &[call(COMPLETE_TOOL, &[("number", ToolValue::Integer(1))])],
     );
-    assert_eq!(later.reply.text, "“Zed beta” is already done.");
+    assert_eq!(
+        later.reply.text,
+        "There's no task 1 in the last list. Ask me to list your tasks again."
+    );
 
     db.create_todo("Zed gamma", None).unwrap();
     let last = chat.send(
@@ -347,6 +362,67 @@ fn chat_calls_save_list_and_complete_tasks_with_one_reply_each() {
         finish(&db, &stale, &list, SURE),
         Err(Error::ConversationChanged)
     ));
+
+    let guarded_db = self::db();
+    let mut guarded = Chat::new(&guarded_db);
+    guarded_db.create_todo("Buy milk", None).unwrap();
+    guarded_db.create_todo("Buy bread", None).unwrap();
+    let before = guarded_db.list_todos().unwrap();
+    for user in [
+        "Delete the buy milk task",
+        "Please remove milk from my list",
+        "Reschedule Buy milk to Friday",
+        "Rename the Buy milk task to Buy bread",
+        "Move Buy milk to tomorrow",
+        "Change the Buy milk task to Buy bread",
+        "Edit the Buy milk task",
+        "Delete milk and remove bread",
+        "Delete the Buy milk task and add Buy eggs",
+        "Add Buy eggs and delete Buy milk",
+        "Add Buy eggs; please delete 'Buy milk'",
+        "Add Buy eggs\nremove Buy milk",
+    ] {
+        for confidence in [SURE, UNSURE] {
+            let turn = guarded.send_as(
+                user,
+                &[
+                    call(SAVE_TOOL, &[("title", text("Buy eggs"))]),
+                    call(COMPLETE_TOOL, &[("task", text("Buy milk"))]),
+                ],
+                confidence,
+            );
+            assert_eq!(guarded_db.list_todos().unwrap(), before, "{user}");
+            assert_ne!(turn.state.confirm, Confirm::Offered, "{user}");
+            assert!(
+                turn.reply
+                    .text
+                    .lines()
+                    .all(|line| line == "I can't edit or delete existing tasks in chat yet.")
+            );
+        }
+    }
+    let listed = guarded.send(
+        "Delete Buy milk and list tasks",
+        &[
+            call(COMPLETE_TOOL, &[("task", text("Buy milk"))]),
+            call(LIST_TOOL, &[]),
+        ],
+    );
+    assert!(listed.reply.text.contains("1. Buy milk"));
+    assert_eq!(guarded_db.list_todos().unwrap(), before);
+    for (user, title) in [
+        ("Remind me to delete old files", "Delete old files"),
+        ("I need to move house", "Move house"),
+        ("Add a task to rename the folder", "Rename the folder"),
+        (
+            "Add 'Research and delete old task files'",
+            "Research and delete old task files",
+        ),
+        ("Add \"Draft and mark complete\"", "Draft and mark complete"),
+    ] {
+        let turn = guarded.send(user, &[call(SAVE_TOOL, &[("title", text(title))])]);
+        assert_eq!(turn.reply.text, format!("Saved “{title}”."));
+    }
 }
 
 #[test]
@@ -474,6 +550,119 @@ fn prepared_completions_keep_their_original_targets() {
 
 #[test]
 fn several_calls_in_one_message_each_use_the_list_in_effect() {
+    for changed in [false, true] {
+        let db = db();
+        let mut chat = Chat::new(&db);
+        let bank = db.create_todo("Call bank", None).unwrap();
+        let bread = db.create_todo("Buy bread", None).unwrap();
+        let user = "List bank tasks and mark the first one done";
+        let (snapshot, exchange) = chat.prepare(user);
+        let mut request = crate::llm::ChatRequest {
+            messages: vec![crate::llm::ChatMessage::new("user", user)],
+            tools: Some(exchange.request().clone()),
+            ..Default::default()
+        };
+        let listed = ToolOutcome {
+            calls: vec![call(LIST_TOOL, &[("query", text("bank"))])],
+            call_probability: SURE,
+        };
+        let continuation = exchange.continuation.as_ref().unwrap();
+        let next = continuation.follow_up(&request, &listed).unwrap();
+        assert_eq!(db.list_todos().unwrap(), [bank.clone(), bread.clone()]);
+        assert!(
+            next.messages
+                .last()
+                .unwrap()
+                .content
+                .contains("1. Call bank")
+        );
+        assert!(!next.messages.last().unwrap().content.contains("Buy bread"));
+        assert_eq!(next.tools.as_ref().unwrap().max_calls, 3);
+        assert!(
+            next.tools
+                .as_ref()
+                .unwrap()
+                .tools
+                .iter()
+                .all(|tool| tool.name != LIST_TOOL)
+        );
+        for user in [
+            "List tasks",
+            "List tasks and don't mark any done",
+            "Show tasks about bread and milk",
+            "List tasks and check whether the dentist is there",
+            "List tasks about 'Research and save passwords'",
+            "List tasks about \"draft and mark complete\"",
+        ] {
+            request.tools.as_mut().unwrap().quote_source = user.to_owned();
+            assert!(continuation.follow_up(&request, &listed).is_none());
+        }
+        request.tools.as_mut().unwrap().quote_source = user.to_owned();
+        let complete = call(COMPLETE_TOOL, &[("number", ToolValue::Integer(1))]);
+        assert!(
+            continuation
+                .follow_up(
+                    &request,
+                    &ToolOutcome {
+                        calls: vec![listed.calls[0].clone(), complete.clone()],
+                        call_probability: SURE,
+                    }
+                )
+                .is_none()
+        );
+        request.tools.as_mut().unwrap().max_calls = 1;
+        assert!(continuation.follow_up(&request, &listed).is_none());
+        if changed {
+            db.update_todo(bank.id, bank.version, "Call insurer", None)
+                .unwrap();
+        }
+        exchange.record(Some(ToolOutcome {
+            calls: vec![listed.calls[0].clone(), complete],
+            call_probability: SURE,
+        }));
+        let finished = db.finish_exchange(&snapshot, "", vec![], Some(&exchange));
+        if changed {
+            assert!(matches!(finished, Err(Error::ConversationChanged)));
+            assert!(db.get_todo(bank.id).unwrap().unwrap().is_open());
+        } else {
+            let finished = finished.unwrap();
+            assert!(!db.get_todo(bank.id).unwrap().unwrap().is_open());
+            db.undo_tool_turn(finished.message.uuid).unwrap();
+            let restored = db.get_todo(bank.id).unwrap().unwrap();
+            assert!(restored.is_open());
+            assert_eq!(restored.title, bank.title);
+            assert_eq!(db.get_todo(bread.id).unwrap(), Some(bread));
+        }
+    }
+    {
+        let db = db();
+        let mut chat = Chat::new(&db);
+        db.create_todo("Earlier task", Some(local_ms("2026-11-11 18:00")))
+            .unwrap();
+        db.create_todo("Later task", Some(local_ms("2026-11-12 18:00")))
+            .unwrap();
+        let user = "List today's tasks and mark the first one done";
+        let before = db.list_todos().unwrap();
+        let (snapshot, exchange) = chat.prepare(user);
+        let exchange =
+            exchange.with_continuation(crate::todo::continuation::ListContinuation::new(
+                before.clone(),
+                local_ms("2026-11-11 23:59"),
+                user.to_owned(),
+            ));
+        exchange.record(Some(ToolOutcome {
+            calls: vec![
+                call(LIST_TOOL, &[("filter", text("today"))]),
+                call(COMPLETE_TOOL, &[("number", ToolValue::Integer(1))]),
+            ],
+            call_probability: SURE,
+        }));
+        assert!(matches!(
+            db.finish_exchange(&snapshot, "", vec![], Some(&exchange)),
+            Err(Error::ConversationChanged)
+        ));
+        assert_eq!(db.list_todos().unwrap(), before);
+    }
     for confidence in [SURE, UNSURE] {
         for (title, subject, target, number) in [
             (
@@ -736,7 +925,8 @@ fn messages_can_be_answered_again_until_a_reply_changes_tasks() {
             SURE,
         )
         .unwrap();
-    assert_eq!(done.reply.text, "Marked “Call Vidhi about Aadhar” as done.");
+    assert_eq!(done.reply.text, "Mark “Call Vidhi about Aadhar” as done?");
+    db.confirm_tool_turn(done.reply.uuid).unwrap();
     assert!(state(&db, &offered.reply).unwrap().confirm != Confirm::Offered);
     assert!(db.confirm_tool_turn(offered.reply.uuid).is_err());
     let list = [call(LIST_TOOL, &[])];
@@ -1158,4 +1348,31 @@ fn a_refused_finish_keeps_the_calls_and_a_saved_one_clears_them() {
     assert!(finished.reply.tool_turn.is_some());
     assert!(finished.warnings.is_empty());
     assert_eq!(exchange.outcome(), None);
+    chat.path.push(finished.reply.message.uuid);
+    let (snapshot, exchange) = chat.prepare("List tasks and mark one done");
+    exchange.record(Some(ToolOutcome {
+        calls: vec![call(LIST_TOOL, &[])],
+        call_probability: SURE,
+    }));
+    let finished = finish_turn(
+        &db,
+        &snapshot,
+        Reply {
+            text: "Which task should I finish?",
+            sources: &[],
+            passages: Vec::new(),
+            attachments: Vec::new(),
+            tools: Some(&exchange),
+        },
+    )
+    .unwrap();
+    assert!(finished.reply.message.text.contains("1. Buy tea"));
+    assert!(
+        finished
+            .reply
+            .message
+            .text
+            .ends_with("Which task should I finish?")
+    );
+    assert!(db.list_todos().unwrap().iter().all(Todo::is_open));
 }

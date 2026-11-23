@@ -210,14 +210,15 @@ impl ConversationPreparation {
         let mut prepared = self.grounding.prepare_turn(input, &mut effects)?;
         let result = prepared.preparation.run(&mut effects)?;
         core::Effects::check_current(&mut effects)?;
+        let tools = prepared
+            .tools
+            .map(|tools| Arc::new(LlmToolRequest(self.db.tool_exchange(&snapshot, tools))));
         Ok(PreparedWork {
             snapshot,
             result,
             max_tokens: prepared.budget.output as u32,
             grounded: prepared.grounding.context,
-            tools: prepared
-                .tools
-                .map(|tools| Arc::new(LlmToolRequest(llm::ToolExchange::new(tools)))),
+            tools,
         })
     }
 }

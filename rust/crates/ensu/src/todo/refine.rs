@@ -39,7 +39,11 @@ fn refine_calls(
         .iter()
         .zip(places(&all))
         .map(|(call, place)| {
-            interpret(call, &references, shown, Some(now), place)
+            let numbered_title = call
+                .integer("number")
+                .and_then(|number| usize::try_from(number).ok()?.checked_sub(1))
+                .and_then(|index| open_titles.get(index).copied());
+            interpret(call, &references, shown, numbered_title, Some(now), place)
                 .unwrap()
                 .to_call()
         })
@@ -117,6 +121,7 @@ pub(crate) fn interpret(
     call: &ToolCall,
     references: &References<'_>,
     shown: usize,
+    numbered_title: Option<&str>,
     now: Option<NaiveDateTime>,
     place: Place,
 ) -> Result<Intent, String> {
@@ -154,7 +159,10 @@ pub(crate) fn interpret(
         }
         LIST_TOOL => Ok(Intent::List {
             filter: call.text("filter").and_then(ListFilter::from_name),
-            query: call.text("query").map(str::to_owned),
+            query: call
+                .text("query")
+                .filter(|query| super::matching::has_search_words(query))
+                .map(str::to_owned),
         }),
         COMPLETE_TOOL => {
             let located = references.located;
@@ -166,6 +174,11 @@ pub(crate) fn interpret(
             });
             let positions = shown > 0 && place.completions == 1;
             let named = task.filter(|task| !is_positional(task, user_text, &references.labels));
+            let conflicting = supported
+                && named.is_some_and(|name| {
+                    numbered_title
+                        .is_some_and(|title| choice_label(title).as_deref() != Some(name.trim()))
+                });
             let pointed = match named {
                 None if !located => None,
                 None if positions && (given.is_none() || task.is_some()) => position(text, shown),
@@ -180,7 +193,11 @@ pub(crate) fn interpret(
                         .and_then(|_| in_list(pointed[place.nth], shown))
                 }
                 None => None,
-                Some(task) if !positions || names_task(task, user_text) => None,
+                Some(task) if names_task(task, user_text) => None,
+                Some(_) if supported && !conflicting => {
+                    given.and_then(|number| usize::try_from(number).ok())
+                }
+                Some(_) if !positions => None,
                 Some(_) => item_position(text, shown).or_else(|| {
                     let number = usize::try_from(given?).ok()?;
                     supported.then_some(number)
@@ -193,8 +210,7 @@ pub(crate) fn interpret(
             };
             let text = if number.is_some() { text } else { user_text };
             let mut intent = complete(task, number, text, shown);
-            if !located
-                && number.is_some()
+            if (conflicting || !located && number.is_some())
                 && let Intent::Complete { sure, .. } = &mut intent
             {
                 *sure = false;
@@ -901,6 +917,14 @@ mod tests {
             ("Swing by the pharmacy", "Pharmacy", "the pharmacy", None),
             ("Add milk to my to-do list", "Milk", "to-do", None),
             (
+                "Llamar a Lucía mañana",
+                "Llamar a Lucía",
+                "mañana",
+                Some("mañana"),
+            ),
+            ("明日、本を返す", "本を返す", "明日", Some("明日")),
+            ("कल किताब लौटानी है", "किताब लौटानी है", "कल", Some("कल")),
+            (
                 "Plant bulbs sometime in March",
                 "Plant bulbs",
                 "sometime in March",
@@ -922,6 +946,7 @@ mod tests {
                 &calls[0],
                 &references,
                 0,
+                None,
                 Some(now()),
                 places(&[&calls[0]])[0],
             )
@@ -1183,6 +1208,36 @@ mod tests {
         );
         assert_eq!(refined[0].integer("number"), Some(2));
         assert_eq!(refined[1].integer("number"), Some(3));
+        let named_numbers = [
+            call(
+                COMPLETE_TOOL,
+                &[
+                    ("task", text("Call Lee")),
+                    ("number", ToolValue::Integer(1)),
+                ],
+            ),
+            call(
+                COMPLETE_TOOL,
+                &[
+                    ("task", text("Water plants")),
+                    ("number", ToolValue::Integer(3)),
+                ],
+            ),
+        ];
+        let user = "Tick off the first and third tasks";
+        let refined = refine_calls(&named_numbers, user, 3, &open, now());
+        assert_eq!(refined[0].integer("number"), Some(1));
+        assert_eq!(refined[1].integer("number"), Some(3));
+        let all: Vec<_> = named_numbers.iter().collect();
+        let references = references(&all, user, open.iter().copied());
+        for (call, place) in all.iter().zip(places(&all)) {
+            let title = open[(call.integer("number").unwrap() - 1) as usize];
+            let intent = interpret(call, &references, 3, Some(title), Some(now()), place).unwrap();
+            assert!(!intent.unsure());
+            let intent =
+                interpret(call, &references, 3, Some("Buy apples"), Some(now()), place).unwrap();
+            assert!(intent.unsure());
+        }
     }
 
     #[test]
@@ -1205,5 +1260,20 @@ mod tests {
             filter(&[("filter", text("overdue"))]).as_deref(),
             Some("overdue")
         );
+        for (query, expected) in [
+            ("tasks", None),
+            ("To Dos", None),
+            ("bank", Some("bank")),
+            ("dos", Some("dos")),
+        ] {
+            let refined = refine_calls(
+                &[call(LIST_TOOL, &[("query", text(query))])],
+                "Show my tasks",
+                0,
+                &[],
+                now(),
+            );
+            assert_eq!(refined[0].text("query"), expected);
+        }
     }
 }

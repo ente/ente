@@ -1,7 +1,12 @@
 #![cfg(test)]
+#![cfg(feature = "sqlite")]
 
+use std::sync::Arc;
 use std::time::Instant;
 
+use ente_ensu::conversation::{self, Effects, PrepareError};
+use ente_ensu::db::chat::{Confirm, ConversationSnapshot};
+use ente_ensu::db::{ChatDb, Clock, RandomUuidGen, SqliteBackend};
 use ente_ensu::llm::{self, ChatMessage, ChatRequest, Context, ContextParams, ToolCall};
 use ente_ensu::todo;
 use serde::Deserialize;
@@ -18,6 +23,26 @@ struct Case {
     calls: Vec<ExpectedCall>,
     #[serde(default)]
     todos: Option<Vec<String>>,
+    #[serde(default)]
+    initial: Option<Vec<TaskState>>,
+    #[serde(default)]
+    state: Option<Vec<TaskState>>,
+    #[serde(default)]
+    listed: Option<Vec<Vec<String>>>,
+    #[serde(default)]
+    confirmation: Option<bool>,
+    #[serde(default)]
+    undo: bool,
+    #[serde(default)]
+    probe: Vec<ToolCall>,
+}
+
+impl Case {
+    fn expects_change(&self) -> bool {
+        self.calls
+            .iter()
+            .any(|call| CHANGES.contains(&call.name.as_str()))
+    }
 }
 
 const BACKGROUND_TODOS: [&str; 4] = [
@@ -36,6 +61,8 @@ struct ExpectedCall {
     when: Option<Option<String>>,
     #[serde(default)]
     filter: Option<String>,
+    #[serde(default, deserialize_with = "present")]
+    query: Option<Option<String>>,
     #[serde(default)]
     number: Option<i64>,
     #[serde(default)]
@@ -51,6 +78,80 @@ fn contains_all(value: Option<&str>, words: &[String]) -> bool {
     words
         .iter()
         .all(|word| value.contains(&word.to_lowercase()))
+}
+
+fn normalized(text: &str) -> String {
+    text.split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .to_lowercase()
+}
+
+#[derive(Clone, Default)]
+struct CompletionContext {
+    tasks: Vec<todo::Todo>,
+    shown: Vec<Option<uuid::Uuid>>,
+}
+
+impl CompletionContext {
+    fn capture(tasks: Vec<todo::Todo>, shown: &[String]) -> Self {
+        let mut context = Self {
+            tasks,
+            shown: Vec::new(),
+        };
+        context.set_shown(shown);
+        context
+    }
+
+    fn unique(&self, matches: impl Fn(&todo::Todo) -> bool) -> Option<uuid::Uuid> {
+        let mut tasks = self.tasks.iter().filter(|task| matches(task));
+        let first = tasks.next()?;
+        tasks.next().is_none().then_some(first.id)
+    }
+
+    fn set_shown(&mut self, shown: &[String]) {
+        self.shown = shown
+            .iter()
+            .map(|title| self.unique(|task| normalized(&task.title) == normalized(title)))
+            .collect();
+    }
+
+    fn position(&self, number: i64) -> Option<uuid::Uuid> {
+        let index = usize::try_from(number).ok()?.checked_sub(1)?;
+        self.shown.get(index).copied().flatten()
+    }
+
+    fn named(&self, name: &str) -> Option<uuid::Uuid> {
+        self.unique(|task| task.is_open() && normalized(&task.title) == normalized(name))
+    }
+
+    fn expected(&self, expected: &ExpectedCall) -> Option<uuid::Uuid> {
+        if let Some(number) = expected.number {
+            let id = self.position(number)?;
+            return self
+                .tasks
+                .iter()
+                .find(|task| task.id == id)
+                .filter(|task| contains_all(Some(&task.title), &expected.task))
+                .map(|task| task.id);
+        }
+        if expected.task.is_empty() {
+            return None;
+        }
+        self.unique(|task| task.is_open() && contains_all(Some(&task.title), &expected.task))
+    }
+
+    fn actual(&self, actual: &ToolCall) -> Option<uuid::Uuid> {
+        match (actual.integer("number"), actual.text("task")) {
+            (Some(number), Some(task)) => {
+                let id = self.position(number)?;
+                (self.named(task) == Some(id)).then_some(id)
+            }
+            (Some(number), None) => self.position(number),
+            (None, Some(task)) => self.named(task),
+            (None, None) => None,
+        }
+    }
 }
 
 fn now() -> chrono::NaiveDateTime {
@@ -71,10 +172,29 @@ fn same_deadline(expected: Option<&str>, actual: Option<&str>) -> bool {
     }
 }
 
-fn call_matches(expected: &ExpectedCall, actual: &ToolCall) -> bool {
+fn call_matches(
+    expected: &ExpectedCall,
+    actual: &ToolCall,
+    context: Option<&CompletionContext>,
+) -> bool {
+    let references_match = contains_all(actual.text("task"), &expected.task)
+        && expected
+            .number
+            .is_none_or(|number| Some(number) == actual.integer("number"));
+    let equivalent = expected.name == todo::COMPLETE_TOOL
+        && context.is_some_and(|context| {
+            context
+                .expected(expected)
+                .is_some_and(|id| context.actual(actual) == Some(id))
+        });
+    let consistent = expected.name != todo::COMPLETE_TOOL
+        || actual.integer("number").is_none()
+        || actual.text("task").is_none()
+        || context.is_none_or(|context| context.actual(actual).is_some());
     expected.name == actual.name
         && contains_all(actual.text("title"), &expected.title)
-        && contains_all(actual.text("task"), &expected.task)
+        && (references_match || equivalent)
+        && consistent
         && expected
             .when
             .as_ref()
@@ -83,9 +203,67 @@ fn call_matches(expected: &ExpectedCall, actual: &ToolCall) -> bool {
             .filter
             .as_ref()
             .is_none_or(|filter| filter == actual.text("filter").unwrap_or("open"))
-        && expected
-            .number
-            .is_none_or(|number| Some(number) == actual.integer("number"))
+        && expected.query.as_ref().is_none_or(|query| {
+            query.as_deref().map(str::to_lowercase) == actual.text("query").map(str::to_lowercase)
+        })
+}
+
+fn calls_match(expected: &[ExpectedCall], actual: &[ToolCall]) -> bool {
+    calls_match_with_context(expected, actual, None, &[])
+}
+
+fn calls_match_with_context(
+    expected: &[ExpectedCall],
+    actual: &[ToolCall],
+    mut context: Option<CompletionContext>,
+    listed: &[Vec<String>],
+) -> bool {
+    if expected.len() != actual.len() {
+        return false;
+    }
+    if expected.iter().all(|call| call.name == todo::SAVE_TOOL) {
+        return unordered_matches(expected, actual, |expected, actual| {
+            call_matches(expected, actual, None)
+        });
+    }
+    let mut listed = listed.iter();
+    for (expected, actual) in expected.iter().zip(actual) {
+        if !call_matches(expected, actual, context.as_ref()) {
+            return false;
+        }
+        if expected.name == todo::LIST_TOOL
+            && let Some(context) = context.as_mut()
+        {
+            context.set_shown(listed.next().map(Vec::as_slice).unwrap_or_default());
+        }
+    }
+    true
+}
+
+fn unordered_matches<E, A: Clone>(
+    expected: &[E],
+    actual: &[A],
+    matches: impl Fn(&E, &A) -> bool + Copy,
+) -> bool {
+    if expected.len() != actual.len() {
+        return false;
+    }
+    let Some((first, rest)) = expected.split_first() else {
+        return true;
+    };
+    actual.iter().enumerate().any(|(i, call)| {
+        matches(first, call)
+            && unordered_matches(
+                rest,
+                &actual
+                    .iter()
+                    .enumerate()
+                    .filter(|(j, _)| *j != i)
+                    .map(|(_, call)| call.clone())
+                    .collect::<Vec<_>>(),
+                matches,
+            )
+    })
 }
 
 const CHANGES: [&str; 2] = [todo::SAVE_TOOL, todo::COMPLETE_TOOL];
@@ -93,6 +271,13 @@ const CHANGES: [&str; 2] = [todo::SAVE_TOOL, todo::COMPLETE_TOOL];
 const MIN_ROUTE_ACCURACY: f64 = 0.95;
 const MIN_CALL_ACCURACY: f64 = 0.90;
 const MAX_FALSE_CHANGE_RATE: f64 = 0.02;
+
+fn non_mutating_cases(cases: &[Case]) -> usize {
+    cases
+        .iter()
+        .filter(|case| case.expect != "safe" && !case.expects_change())
+        .count()
+}
 
 fn threshold(name: &str, default: f64) -> f64 {
     let value = std::env::var(name)
@@ -118,7 +303,7 @@ fn accuracy_failures(
     [
         ("route_accuracy", min_route, true),
         ("call_accuracy", min_calls, true),
-        ("false_change_rate", max_false_change, false),
+        ("false_change_call_rate", max_false_change, false),
     ]
     .into_iter()
     .filter_map(|(metric, target, minimum)| {
@@ -138,39 +323,16 @@ fn accuracy_failures(
     .collect()
 }
 
-fn shown(history: &[ChatMessage]) -> Vec<String> {
-    history
-        .last()
-        .filter(|message| message.role == "tool")
-        .map_or_else(Vec::new, |message| {
-            message
-                .content
-                .lines()
-                .filter_map(|line| {
-                    let (number, rest) = line.split_once(". ")?;
-                    number.parse::<usize>().ok()?;
-                    Some(rest.split(" — ").next().unwrap_or(rest).to_owned())
-                })
-                .collect()
+fn shown(response: &str) -> Vec<String> {
+    response
+        .lines()
+        .filter_map(|line| {
+            let (number, rest) = line.split_once(". ")?;
+            number.parse::<usize>().ok()?;
+            Some(rest.split(" — ").next().unwrap_or(rest).to_owned())
         })
+        .collect()
 }
-
-fn open_todos(case: &Case) -> Vec<String> {
-    if let Some(todos) = &case.todos {
-        return todos.clone();
-    }
-    let shown = shown(&case.history);
-    if shown.is_empty() {
-        BACKGROUND_TODOS
-            .iter()
-            .map(|title| (*title).to_owned())
-            .collect()
-    } else {
-        shown
-    }
-}
-
-const NOW_MS: i64 = 1_794_493_800_000;
 
 #[derive(serde::Serialize, Deserialize)]
 struct Recorded {
@@ -180,62 +342,318 @@ struct Recorded {
     calls: Vec<ToolCall>,
     unsure: bool,
     text: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    reply: String,
+    state: StateResult,
 }
 
-fn todos(case: &Case, open: &[&str]) -> (Vec<todo::Todo>, Vec<uuid::Uuid>) {
-    let shown = shown(&case.history);
-    let mut titles: Vec<&str> = open.to_vec();
-    for title in &shown {
-        if !titles.contains(&title.as_str()) {
-            titles.push(title);
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, Deserialize)]
+struct TaskState {
+    title: String,
+    completed: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    due_at: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    aliases: Vec<String>,
+}
+
+impl TaskState {
+    fn matches(&self, actual: &Self) -> bool {
+        self.completed == actual.completed
+            && self.due_at == actual.due_at
+            && std::iter::once(&self.title)
+                .chain(&self.aliases)
+                .any(|title| normalized(title) == normalized(&actual.title))
+    }
+}
+
+#[derive(Debug, PartialEq, serde::Serialize, Deserialize)]
+struct StateResult {
+    tasks: Vec<TaskState>,
+    changed: bool,
+    confirmation: bool,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    listed: Vec<Vec<String>>,
+}
+
+impl StateResult {
+    fn matches(&self, case: &Case) -> bool {
+        case.state
+            .as_ref()
+            .is_none_or(|expected| unordered_matches(expected, &self.tasks, TaskState::matches))
+            && (case.expects_change() || !self.changed)
+            && case
+                .confirmation
+                .is_none_or(|required| self.confirmation == required)
+            && case
+                .listed
+                .as_ref()
+                .is_none_or(|listed| &self.listed == listed)
+    }
+}
+
+struct EvalClock;
+
+impl Clock for EvalClock {
+    fn now_us(&self) -> i64 {
+        todo::timing::local_millis(now(), &chrono::Local).unwrap() * 1000
+    }
+}
+
+struct ConversationCase {
+    db: ChatDb<SqliteBackend>,
+    snapshot: ConversationSnapshot,
+}
+
+impl ConversationCase {
+    fn new(case: &Case) -> Self {
+        let db = ChatDb::new(
+            SqliteBackend::open_in_memory().unwrap(),
+            vec![7; 32],
+            Arc::new(EvalClock),
+            Arc::new(RandomUuidGen),
+        )
+        .unwrap();
+        if let Some(initial) = &case.initial {
+            for task in initial {
+                let due_at = task.due_at.as_ref().map(|at| {
+                    let local =
+                        chrono::NaiveDateTime::parse_from_str(at, "%Y-%m-%d %H:%M").unwrap();
+                    todo::timing::local_millis(local, &chrono::Local).unwrap()
+                });
+                let stored = db.create_todo(&task.title, due_at).unwrap();
+                if task.completed {
+                    db.set_todo_completed(stored.id, stored.version, true)
+                        .unwrap();
+                }
+            }
+        } else {
+            let titles = case.todos.as_ref().map_or_else(
+                || BACKGROUND_TODOS.to_vec(),
+                |todos| todos.iter().map(String::as_str).collect(),
+            );
+            for title in titles {
+                db.create_todo(title, None).unwrap();
+            }
+        }
+        let session = db.create_session(&case.id).unwrap();
+        let mut path = Vec::new();
+        for message in &case.history {
+            let message = match message.role.as_str() {
+                "user" => db
+                    .insert_message(
+                        session.uuid,
+                        "self",
+                        &message.content,
+                        path.last().copied(),
+                        vec![],
+                    )
+                    .unwrap(),
+                "assistant" => {
+                    db.finish_reply(
+                        &db.conversation_snapshot(session.uuid, &path).unwrap(),
+                        &message.content,
+                        vec![],
+                        Some(&llm::ToolOutcome {
+                            calls: message.tool_calls.clone(),
+                            call_probability: Some(1.0),
+                        }),
+                    )
+                    .unwrap()
+                    .message
+                }
+                "tool" => continue,
+                role => panic!("unsupported history role: {role}"),
+            };
+            path.push(message.uuid);
+        }
+        if case.undo {
+            db.undo_tool_turn(*path.last().unwrap()).unwrap();
+        }
+        let user = db
+            .insert_message(
+                session.uuid,
+                "self",
+                &case.user,
+                path.last().copied(),
+                vec![],
+            )
+            .unwrap();
+        path.push(user.uuid);
+        let snapshot = db.conversation_snapshot(session.uuid, &path).unwrap();
+        Self { db, snapshot }
+    }
+
+    fn completion_context(&self) -> CompletionContext {
+        let shown = self
+            .snapshot
+            .messages()
+            .iter()
+            .rev()
+            .nth(1)
+            .and_then(|message| {
+                self.db
+                    .tool_history(std::slice::from_ref(message))
+                    .unwrap()
+                    .remove(&message.uuid)
+            })
+            .and_then(|turn| {
+                turn.calls
+                    .iter()
+                    .zip(&turn.responses)
+                    .rev()
+                    .find(|(call, _)| call.name == todo::LIST_TOOL)
+                    .map(|(_, response)| shown(response))
+            })
+            .unwrap_or_default();
+        CompletionContext::capture(self.db.list_todos().unwrap(), &shown)
+    }
+
+    fn request(&self, case: &Case, system: &str, context: &Context) -> ChatRequest {
+        let mut effects = EvalEffects(context);
+        let mut prepared = conversation::prepare_turn(
+            conversation::TurnInput {
+                session: self.snapshot.session_uuid(),
+                messages: self.snapshot.messages().to_vec(),
+                expected_user_text: case.user.clone(),
+                system: system.to_owned(),
+                current: case.user.clone(),
+                history_query: None,
+                context: 4096,
+                output: Some(160),
+                state: None,
+                candidates: conversation::GroundingCandidates {
+                    referenced: Vec::new(),
+                    searched: Vec::new(),
+                    max_utf8_bytes: 0,
+                },
+                tools: self.db.turn_tools(&self.snapshot, &case.user).unwrap(),
+            },
+            &mut effects,
+        )
+        .unwrap();
+        ChatRequest {
+            messages: prepared.preparation.run(&mut effects).unwrap().messages,
+            tools: prepared.tools,
+            temperature: Some(0.0),
+            max_tokens: Some(160),
+            ..Default::default()
         }
     }
-    let todos: Vec<todo::Todo> = titles
-        .iter()
-        .enumerate()
-        .map(|(i, title)| todo::Todo {
-            id: uuid::Uuid::from_u128(i as u128 + 1),
-            title: (*title).to_owned(),
-            due_at_ms: None,
-            completed_at_ms: None,
-            created_at_ms: i as i64,
-            updated_at_ms: i as i64,
-            version: 1,
-        })
-        .collect();
-    let shown = shown
-        .iter()
-        .filter_map(|title| todos.iter().find(|todo| &todo.title == title))
-        .map(|todo| todo.id)
-        .collect();
-    (todos, shown)
+
+    fn finish(&self, case: &Case, outcome: &llm::ToolOutcome, reply: &str) -> Recorded {
+        self.finish_with_exchange(case, outcome, reply, None)
+    }
+
+    fn finish_with_exchange(
+        &self,
+        case: &Case,
+        outcome: &llm::ToolOutcome,
+        reply: &str,
+        exchange: Option<&llm::ToolExchange>,
+    ) -> Recorded {
+        let before = self.db.list_todos().unwrap();
+        let finished = match exchange {
+            Some(exchange) => {
+                self.db
+                    .finish_exchange(&self.snapshot, reply, vec![], Some(exchange))
+            }
+            None => self
+                .db
+                .finish_reply(&self.snapshot, reply, vec![], Some(outcome)),
+        }
+        .unwrap();
+        let changed = self.db.list_todos().unwrap() != before;
+        let confirmation = finished
+            .tool_turn
+            .is_some_and(|turn| turn.confirm == Confirm::Offered);
+        if confirmation && case.expects_change() {
+            self.db.confirm_tool_turn(finished.message.uuid).unwrap();
+        }
+        let history = self
+            .db
+            .tool_history(std::slice::from_ref(&finished.message))
+            .unwrap();
+        let calls = history
+            .get(&finished.message.uuid)
+            .map(|turn| turn.calls.clone())
+            .unwrap_or_default();
+        let listed = history
+            .get(&finished.message.uuid)
+            .map(|turn| {
+                turn.calls
+                    .iter()
+                    .zip(&turn.responses)
+                    .filter(|(call, _)| call.name == todo::LIST_TOOL)
+                    .map(|(_, response)| shown(response))
+                    .collect()
+            })
+            .unwrap_or_default();
+        Recorded {
+            id: case.id.clone(),
+            raw_calls: outcome.calls.clone(),
+            call_probability: outcome.call_probability,
+            calls,
+            unsure: confirmation,
+            text: finished.message.text,
+            reply: reply.to_owned(),
+            state: StateResult {
+                tasks: self
+                    .db
+                    .list_todos()
+                    .unwrap()
+                    .into_iter()
+                    .map(|task| TaskState {
+                        completed: !task.is_open(),
+                        due_at: task.due_at_ms.map(|at| {
+                            todo::timing::local_time(at, &chrono::Local)
+                                .unwrap()
+                                .format("%Y-%m-%d %H:%M")
+                                .to_string()
+                        }),
+                        title: task.title,
+                        aliases: Vec::new(),
+                    })
+                    .collect(),
+                changed,
+                confirmation,
+                listed,
+            },
+        }
+    }
 }
 
-fn planned(
-    case: &Case,
-    open: &[&str],
-    calls: &[ToolCall],
-    call_probability: Option<f32>,
-) -> (Vec<ToolCall>, bool, String) {
-    let (todos, shown) = todos(case, open);
-    let mut next = 1000_u128;
-    match todo::plan(
-        calls,
-        &case.user,
-        &shown,
-        todos,
-        (NOW_MS, &chrono::Utc),
-        call_probability,
-        &mut || {
-            next += 1;
-            uuid::Uuid::from_u128(next)
-        },
-    ) {
-        Ok(plan) => {
-            let text = plan.text(plan.unsure, &chrono::Utc);
-            (plan.calls, plan.unsure, text)
-        }
-        Err(name) => (calls.to_vec(), true, format!("unknown tool {name}")),
+struct EvalEffects<'a>(&'a Context);
+
+impl Effects for EvalEffects<'_> {
+    fn check_current(&mut self) -> Result<(), PrepareError> {
+        Ok(())
+    }
+
+    fn measure(
+        &mut self,
+        messages: &[ChatMessage],
+        tools: Option<&llm::ToolRequest>,
+    ) -> Result<usize, PrepareError> {
+        self.0
+            .measure_text_chat_prompt(&ChatRequest {
+                messages: messages.to_vec(),
+                tools: tools.cloned(),
+                ..Default::default()
+            })
+            .map_err(|error| PrepareError::Backend(error.to_string()))
+    }
+
+    fn summarize(
+        &mut self,
+        _: Vec<ChatMessage>,
+        _: usize,
+    ) -> Result<(String, llm::FinishReason), PrepareError> {
+        panic!("eval history must fit without summarization")
+    }
+
+    fn checkpoint(&mut self, _: &conversation::ConversationState) -> Result<(), PrepareError> {
+        panic!("eval history must fit without checkpoints")
     }
 }
 
@@ -282,32 +700,31 @@ fn todo_tool_calls_meet_accuracy_targets() {
     let (mut route_ok, mut calls_ok, mut false_changes, mut misses) = (0, 0, 0, 0);
     let mut raw_calls_ok = 0;
     let mut false_by_tool = std::collections::BTreeMap::<&str, usize>::new();
-    let (mut applied_right, mut offered_right, mut applied_wrong, mut offered_wrong) = (0, 0, 0, 0);
     let (mut prompt_tokens, mut elapsed_ms) = (0_i64, 0_u128);
     let mut failures = Vec::new();
     let mut recorded = Vec::new();
     let mut probabilities = Vec::new();
+    let mut state_ok = 0;
+    let mut unsafe_state_changes = 0;
+    let mut state_failures = Vec::new();
+    let mut guard_results = Vec::new();
     for case in &cases {
-        let mut messages = vec![ChatMessage::new("system", system.clone())];
-        messages.extend(case.history.iter().cloned());
-        messages.push(ChatMessage::new("user", case.user.clone()));
-        let open = open_todos(case);
-        let open: Vec<&str> = open.iter().map(String::as_str).collect();
-        let mut tools = todo::chat_tools(&case.user, &open);
-        if let Some(probability) = probability {
+        let conversation = ConversationCase::new(case);
+        let completion_context = conversation.completion_context();
+        let mut request = conversation.request(case, &system, &context);
+        if let Some(probability) = probability
+            && let Some(tools) = request.tools.as_mut()
+        {
             tools.min_call_probability = probability;
         }
-        let request = ChatRequest {
-            messages,
-            temperature: Some(0.0),
-            max_tokens: Some(160),
-            tools: Some(tools),
-            ..Default::default()
-        };
         let started = Instant::now();
         let mut reply = String::new();
+        let exchange = request
+            .tools
+            .clone()
+            .map(|tools| conversation.db.tool_exchange(&conversation.snapshot, tools));
         let summary = context
-            .generate_chat_stream(request, &mut |event| {
+            .generate_with_tools(request, exchange.as_ref(), &mut |event| {
                 if let llm::GenerationEvent::Text { text, .. } = event {
                     reply.push_str(&text);
                 }
@@ -315,22 +732,21 @@ fn todo_tool_calls_meet_accuracy_targets() {
             .unwrap_or_else(|err| panic!("{}: {err}", case.id));
         elapsed_ms += started.elapsed().as_millis();
         prompt_tokens += i64::from(summary.prompt_tokens.unwrap_or_default());
-        let outcome = summary.tools.expect("tool outcome");
+        let outcome = summary.tools.unwrap_or_default();
         probabilities.push((
-            case.expect == "tool",
+            (case.expect != "safe").then_some(case.expect == "tool"),
             outcome.call_probability.unwrap_or_default(),
         ));
         let called = !outcome.calls.is_empty();
-        let routed = called == (case.expect == "tool");
+        let scored = case.expect != "safe";
+        let routed = scored && called == (case.expect == "tool");
         route_ok += usize::from(routed);
-        let expected_changes = case
-            .calls
-            .iter()
-            .any(|call| CHANGES.contains(&call.name.as_str()));
-        if outcome
-            .calls
-            .iter()
-            .any(|call| CHANGES.contains(&call.name.as_str()))
+        let expected_changes = case.expects_change();
+        if scored
+            && outcome
+                .calls
+                .iter()
+                .any(|call| CHANGES.contains(&call.name.as_str()))
             && !expected_changes
         {
             false_changes += 1;
@@ -345,41 +761,43 @@ fn todo_tool_calls_meet_accuracy_targets() {
         if case.expect == "tool" && !called {
             misses += 1;
         }
-        let matches = |calls: &[ToolCall]| {
-            routed
-                && calls.len() == case.calls.len()
-                && case
-                    .calls
-                    .iter()
-                    .zip(calls)
-                    .all(|(e, a)| call_matches(e, a))
-        };
-        let (refined, unsure, text) =
-            planned(case, &open, &outcome.calls, outcome.call_probability);
-        recorded.push(Recorded {
-            id: case.id.clone(),
-            raw_calls: outcome.calls.clone(),
-            call_probability: outcome.call_probability,
-            calls: refined.clone(),
-            unsure,
-            text,
-        });
-        raw_calls_ok += usize::from(matches(&outcome.calls));
-        let matched = matches(&refined);
-        calls_ok += usize::from(matched);
-        let changes = refined
-            .iter()
-            .any(|call| CHANGES.contains(&call.name.as_str()));
-        if changes {
-            let direct = !unsure;
-            match (matched, direct) {
-                (true, true) => applied_right += 1,
-                (true, false) => offered_right += 1,
-                (false, true) => applied_wrong += 1,
-                (false, false) => offered_wrong += 1,
+        let record = conversation.finish_with_exchange(case, &outcome, &reply, exchange.as_ref());
+        unsafe_state_changes += usize::from(!case.expects_change() && record.state.changed);
+        if case.state.is_some() {
+            if record.state.matches(case) {
+                state_ok += 1;
+            } else {
+                state_failures
+                    .push(json!({"id": case.id, "expected": case.state, "listed": case.listed, "confirmation": case.confirmation, "actual": record.state}));
             }
         }
-        if !matched {
+        if !case.probe.is_empty() {
+            let probe = ConversationCase::new(case).finish(
+                case,
+                &llm::ToolOutcome {
+                    calls: case.probe.clone(),
+                    call_probability: Some(1.0),
+                },
+                "",
+            );
+            let state = probe.state;
+            guard_results
+                .push(json!({"id": case.id, "passed": state.matches(case), "actual": state}));
+        }
+        let refined = &record.calls;
+        let matches = |calls: &[ToolCall]| {
+            routed
+                && calls_match_with_context(
+                    &case.calls,
+                    calls,
+                    Some(completion_context.clone()),
+                    &record.state.listed,
+                )
+        };
+        raw_calls_ok += usize::from(matches(&outcome.calls));
+        let matched = matches(refined);
+        calls_ok += usize::from(matched);
+        if scored && !matched {
             failures.push(json!({
                 "id": case.id,
                 "user": case.user,
@@ -390,22 +808,34 @@ fn todo_tool_calls_meet_accuracy_targets() {
                 "call_probability": outcome.call_probability,
             }));
         }
+        recorded.push(record);
     }
     let n = cases.len() as f64;
+    let route_cases = cases.iter().filter(|case| case.expect != "safe").count();
+    let state_cases = cases.iter().filter(|case| case.state.is_some()).count();
+    let guard_ok = guard_results
+        .iter()
+        .filter(|result| result["passed"] == true)
+        .count();
     let reply_cases = cases.iter().filter(|case| case.expect == "reply").count();
-    let tool_cases = (cases.len() - reply_cases).max(1) as f64;
+    let tool_cases = (route_cases - reply_cases).max(1) as f64;
     let reply_cases = reply_cases.max(1) as f64;
     let report = json!({
         "model": std::env::var("ENSU_TEST_MODEL").unwrap(),
         "cases": cases.len(),
-        "route_accuracy": route_ok as f64 / n,
-        "call_accuracy": calls_ok as f64 / n,
-        "raw_call_accuracy": raw_calls_ok as f64 / n,
-        "false_change_rate": false_changes as f64 / reply_cases,
-        "changes_applied_right": applied_right as f64 / n,
-        "changes_offered_right": offered_right as f64 / n,
-        "changes_applied_wrong": applied_wrong as f64 / n,
-        "changes_offered_wrong": offered_wrong as f64 / n,
+        "route_cases": route_cases,
+        "route_accuracy": route_ok as f64 / route_cases.max(1) as f64,
+        "call_accuracy": calls_ok as f64 / route_cases.max(1) as f64,
+        "raw_call_accuracy": raw_calls_ok as f64 / route_cases.max(1) as f64,
+        "state_cases": state_cases,
+        "state_accuracy": state_ok as f64 / state_cases.max(1) as f64,
+        "state_failures": state_failures,
+        "unsafe_state_changes": unsafe_state_changes,
+        "guard_cases": guard_results.len(),
+        "guard_accuracy": guard_ok as f64 / guard_results.len().max(1) as f64,
+        "guard_results": guard_results,
+        "non_mutating_cases": non_mutating_cases(&cases),
+        "false_change_call_rate": false_changes as f64 / non_mutating_cases(&cases).max(1) as f64,
         "false_call_rate_by_tool": false_by_tool
             .iter()
             .map(|(name, count)| ((*name).to_owned(), json!(*count as f64 / reply_cases)))
@@ -430,11 +860,11 @@ fn todo_tool_calls_meet_accuracy_targets() {
         std::fs::write(out, serde_json::to_string_pretty(&report).unwrap()).unwrap();
     }
     println!(
-        "route {:.3}  calls {:.3} (raw {:.3})  false changes {:.3}  missed {:.3}  prompt {:.0} tok  latency {:.0} ms",
+        "route {:.3}  calls {:.3} (raw {:.3})  false change calls {:.3}  missed {:.3}  prompt {:.0} tok  latency {:.0} ms",
         report["route_accuracy"].as_f64().unwrap(),
         report["call_accuracy"].as_f64().unwrap(),
         report["raw_call_accuracy"].as_f64().unwrap(),
-        report["false_change_rate"].as_f64().unwrap(),
+        report["false_change_call_rate"].as_f64().unwrap(),
         report["missed_tool_rate"].as_f64().unwrap(),
         report["mean_prompt_tokens"].as_f64().unwrap(),
         report["mean_latency_ms"].as_f64().unwrap(),
@@ -442,12 +872,28 @@ fn todo_tool_calls_meet_accuracy_targets() {
     for failure in report["failures"].as_array().unwrap() {
         println!("FAIL {failure}");
     }
-    let failures = accuracy_failures(
+    for failure in &state_failures {
+        println!("STATE FAIL {failure}");
+    }
+    println!(
+        "state {state_ok}/{state_cases}  guards {guard_ok}/{}",
+        guard_results.len()
+    );
+    let mut failures = accuracy_failures(
         &report,
         threshold("ENSU_EVAL_MIN_ROUTE", MIN_ROUTE_ACCURACY),
         threshold("ENSU_EVAL_MIN_CALL", MIN_CALL_ACCURACY),
         threshold("ENSU_EVAL_MAX_FALSE_CHANGE", MAX_FALSE_CHANGE_RATE),
     );
+    if state_ok != state_cases {
+        failures.push(format!("persisted state: {state_ok}/{state_cases}"));
+    }
+    if guard_ok != guard_results.len() {
+        failures.push(format!(
+            "execution guards: {guard_ok}/{}",
+            guard_results.len()
+        ));
+    }
     assert!(
         failures.is_empty(),
         "To Do accuracy targets failed:\n{}",
@@ -459,7 +905,7 @@ fn todo_tool_calls_meet_accuracy_targets() {
 fn accuracy_targets_reject_routing_argument_and_false_change_regressions() {
     let check = |route, calls, false_changes| {
         accuracy_failures(
-            &json!({"route_accuracy": route, "call_accuracy": calls, "false_change_rate": false_changes}),
+            &json!({"route_accuracy": route, "call_accuracy": calls, "false_change_call_rate": false_changes}),
             MIN_ROUTE_ACCURACY,
             MIN_CALL_ACCURACY,
             MAX_FALSE_CHANGE_RATE,
@@ -470,29 +916,244 @@ fn accuracy_targets_reject_routing_argument_and_false_change_regressions() {
         assert_eq!(check(route, calls, false_changes).len(), 1);
     }
     assert_eq!(check(0.863, 0.707, 0.205).len(), 3);
+
+    let expected = |value| serde_json::from_value::<Vec<ExpectedCall>>(value).unwrap();
+    let actual = |value| serde_json::from_value::<Vec<ToolCall>>(value).unwrap();
+    let query = expected(json!([{"name":"list_to_dos","query":"bank"}]));
+    assert!(calls_match(
+        &query,
+        &actual(json!([{"name":"list_to_dos","arguments":{"query":"bank"}}]))
+    ));
+    for arguments in [json!({}), json!({"query":"dentist"})] {
+        assert!(!calls_match(
+            &query,
+            &actual(json!([{"name":"list_to_dos","arguments":arguments}]))
+        ));
+    }
+    let saves = expected(json!([
+        {"name":"save_to_do","title":["milk"]},
+        {"name":"save_to_do","title":["bread"]}
+    ]));
+    let reversed = actual(json!([
+        {"name":"save_to_do","arguments":{"title":"Buy bread"}},
+        {"name":"save_to_do","arguments":{"title":"Buy milk"}}
+    ]));
+    assert!(calls_match(&saves, &reversed));
+    assert!(!calls_match(&saves, &reversed[..1]));
+    assert!(!calls_match(
+        &saves,
+        &[reversed[0].clone(), reversed[0].clone()]
+    ));
+    let dependent = expected(json!([{"name":"list_to_dos"},{"name":"complete_to_do","number":1}]));
+    assert!(!calls_match(
+        &dependent,
+        &actual(json!([
+            {"name":"complete_to_do","arguments":{"number":1}}, {"name":"list_to_dos"}
+        ]))
+    ));
+    let completion_case: Case = serde_json::from_value(json!({
+        "id":"completion-scoring", "user":"Finish #2 and #4", "expect":"tool",
+        "calls":[{"name":"complete_to_do","number":2},{"name":"complete_to_do","number":4}],
+        "initial":[
+            {"title":"Feed cat","completed":false},
+            {"title":"Post letter","completed":false},
+            {"title":"Water plants","completed":false},
+            {"title":"Book flights","completed":false}
+        ],
+        "history":[
+            {"role":"user","content":"Show my tasks"},
+            {"role":"assistant","content":"","tool_calls":[{"name":"list_to_dos","arguments":{"filter":"open"}}]}
+        ]
+    }))
+    .unwrap();
+    let context = ConversationCase::new(&completion_case).completion_context();
+    let named = actual(json!([
+        {"name":"complete_to_do","arguments":{"task":"Post letter"}},
+        {"name":"complete_to_do","arguments":{"task":"Book flights"}}
+    ]));
+    assert!(calls_match_with_context(
+        &completion_case.calls,
+        &named,
+        Some(context.clone()),
+        &[]
+    ));
+    assert!(!calls_match(&completion_case.calls, &named));
+    for arguments in [
+        json!({"task":"Feed cat"}),
+        json!({"task":"letter"}),
+        json!({"number":4,"task":"Post letter"}),
+        json!({"number":2,"task":"Book flights"}),
+    ] {
+        assert!(!calls_match_with_context(
+            &completion_case.calls,
+            &[
+                actual(json!([{"name":"complete_to_do","arguments":arguments}]))[0].clone(),
+                named[1].clone()
+            ],
+            Some(context.clone()),
+            &[]
+        ));
+    }
+    let mut ambiguous = context.clone();
+    let mut duplicate = ambiguous
+        .tasks
+        .iter()
+        .find(|task| task.title == "Post letter")
+        .unwrap()
+        .clone();
+    duplicate.id = uuid::Uuid::from_u128(1000);
+    ambiguous.tasks.push(duplicate);
+    assert!(!calls_match_with_context(
+        &completion_case.calls,
+        &named,
+        Some(ambiguous),
+        &[]
+    ));
+    assert!(calls_match_with_context(
+        &expected(json!([{"name":"complete_to_do","task":["letter"]}])),
+        &actual(json!([{"name":"complete_to_do","arguments":{"number":2}}])),
+        Some(context.clone()),
+        &[]
+    ));
+    let listed = vec![vec!["Book flights".to_owned()]];
+    assert!(calls_match_with_context(
+        &dependent,
+        &actual(json!([
+            {"name":"list_to_dos"},
+            {"name":"complete_to_do","arguments":{"task":"Book flights"}}
+        ])),
+        Some(context.clone()),
+        &listed
+    ));
+    assert!(!calls_match_with_context(
+        &dependent,
+        &actual(json!([
+            {"name":"list_to_dos"},
+            {"name":"complete_to_do","arguments":{"task":"Feed cat"}}
+        ])),
+        Some(context),
+        &listed
+    ));
+    let packing = expected(json!([{
+        "name":"save_to_do","title":["pack", "trip"],"when":"the day after tomorrow"
+    }]));
+    assert!(calls_match(
+        &packing,
+        &actual(
+            json!([{"name":"save_to_do","arguments":{"title":"Pack for the trip","when":"the day after tomorrow"}}])
+        )
+    ));
+    for arguments in [
+        json!({"title":"Pack for work","when":"the day after tomorrow"}),
+        json!({"title":"Pack for the trip"}),
+        json!({"title":"Pack for the trip","when":"tomorrow"}),
+    ] {
+        assert!(!calls_match(
+            &packing,
+            &actual(json!([{"name":"save_to_do","arguments":arguments}]))
+        ));
+    }
+
+    let case: Case = serde_json::from_value(json!({
+        "id":"scoring", "user":"List tasks", "expect":"tool", "calls":[{"name":"list_to_dos"}],
+        "state":[{"title":"Call bank","completed":false,"due_at":"2026-11-13 10:00","aliases":["Call the bank"]},{"title":"Buy milk","completed":false}],
+        "listed":[["Call bank","Buy milk"]], "confirmation":false
+    }))
+    .unwrap();
+    let valid = || {
+        serde_json::from_value::<StateResult>(json!({
+            "tasks":[{"title":"Call the bank","completed":false,"due_at":"2026-11-13 10:00"},{"title":"Buy milk","completed":false}],
+            "changed":false,"confirmation":false,"listed":[["Call bank","Buy milk"]]
+        }))
+        .unwrap()
+    };
+    assert!(valid().matches(&case));
+    let a: TaskState =
+        serde_json::from_value(json!({"title":"Read a book","completed":false})).unwrap();
+    let b: TaskState =
+        serde_json::from_value(json!({"title":"Read the book","completed":false})).unwrap();
+    assert!(!a.matches(&b));
+    for due in [None, Some("2026-11-14 10:00".to_owned())] {
+        let mut result = valid();
+        result.tasks[0].due_at = due;
+        assert!(!result.matches(&case));
+    }
+    for listed in [
+        vec!["Buy milk", "Call bank"],
+        vec!["Call bank"],
+        vec!["Call bank", "Buy milk", "Other"],
+    ] {
+        let mut result = valid();
+        result.listed = vec![listed.into_iter().map(str::to_owned).collect()];
+        assert!(!result.matches(&case));
+    }
+    let mut result = valid();
+    result.confirmation = true;
+    assert!(!result.matches(&case));
+    let mut result = valid();
+    result.changed = true;
+    assert!(!result.matches(&case));
+    let reply: Case =
+        serde_json::from_value(json!({"id":"reply","user":"Hello","expect":"reply"})).unwrap();
+    let record = ConversationCase::new(&reply).finish(
+        &reply,
+        &llm::ToolOutcome::default(),
+        "Hello! How can I help?",
+    );
+    assert_eq!(record.reply, "Hello! How can I help?");
+    assert_eq!(record.text, record.reply);
+    let denominator = non_mutating_cases(&[case, reply]) as f64;
+    assert_eq!(1.0 / denominator, 0.5);
+    assert_eq!(2.0 / denominator, 1.0);
 }
 
 #[test]
 fn labelled_cases_parse_and_their_deadlines_resolve() {
-    assert_eq!(now().and_utc().timestamp_millis(), NOW_MS);
     let cases: Vec<Case> = [
         include_str!("data/todo_eval.jsonl"),
         include_str!("data/todo_eval_holdout.jsonl"),
     ]
-    .concat()
-    .lines()
-    .filter(|line| !line.trim().is_empty())
-    .map(|line| serde_json::from_str(line).unwrap())
+    .into_iter()
+    .flat_map(|data| {
+        let cases: Vec<Case> = data
+            .lines()
+            .filter(|line| !line.trim().is_empty())
+            .map(|line| serde_json::from_str(line).unwrap())
+            .collect();
+        assert_eq!(cases.len(), 50);
+        cases
+    })
     .collect();
     let mut ids = std::collections::BTreeSet::new();
     for case in &cases {
         assert!(ids.insert(case.id.as_str()), "duplicate {}", case.id);
         assert!(
-            matches!(case.expect.as_str(), "tool" | "reply"),
+            matches!(case.expect.as_str(), "tool" | "reply" | "safe"),
             "{}",
             case.id
         );
         assert_eq!(case.expect == "tool", !case.calls.is_empty(), "{}", case.id);
+        if case.listed.is_some() || case.confirmation.is_some() {
+            assert!(case.state.is_some(), "{}", case.id);
+        }
+        if case.expect == "safe" {
+            assert!(
+                case.state.is_some() && !case.probe.is_empty(),
+                "{}",
+                case.id
+            );
+        }
+        if !case.probe.is_empty() {
+            let record = ConversationCase::new(case).finish(
+                case,
+                &llm::ToolOutcome {
+                    calls: case.probe.clone(),
+                    call_probability: Some(1.0),
+                },
+                "",
+            );
+            assert!(record.state.matches(case), "{}", case.id);
+        }
         for call in &case.calls {
             assert!(
                 [todo::SAVE_TOOL, todo::LIST_TOOL, todo::COMPLETE_TOOL]
@@ -503,7 +1164,7 @@ fn labelled_cases_parse_and_their_deadlines_resolve() {
             if let Some(Some(when)) = &call.when {
                 assert!(case.user.contains(when.as_str()), "{}: {when}", case.id);
                 assert!(
-                    todo::timing::parse_deadline(when, now()).is_some(),
+                    case.state.is_some() || todo::timing::parse_deadline(when, now()).is_some(),
                     "{}: {when}",
                     case.id
                 );
@@ -520,25 +1181,33 @@ fn recorded_model_calls_plan_the_same() {
         .map(|line| serde_json::from_str::<Case>(line).unwrap())
         .map(|case| (case.id.clone(), case))
         .collect();
-    let mut replayed = 0;
+    let mut replayed = std::collections::BTreeSet::new();
     for line in include_str!("data/todo_replay.jsonl")
         .lines()
         .filter(|line| !line.trim().is_empty())
     {
         let record: Recorded = serde_json::from_str(line).unwrap();
+        assert!(
+            replayed.insert(record.id.clone()),
+            "duplicate replay {}",
+            record.id
+        );
         let case = &cases[&record.id];
-        let open = open_todos(case);
-        let open: Vec<&str> = open.iter().map(String::as_str).collect();
-        let (calls, unsure, text) =
-            planned(case, &open, &record.raw_calls, record.call_probability);
+        let result = ConversationCase::new(case).finish(
+            case,
+            &llm::ToolOutcome {
+                calls: record.raw_calls.clone(),
+                call_probability: record.call_probability,
+            },
+            &record.reply,
+        );
         assert_eq!(
-            (calls, unsure, text),
-            (record.calls, record.unsure, record.text),
+            (result.calls, result.unsure, result.text, result.state),
+            (record.calls, record.unsure, record.text, record.state),
             "{}: {}",
             record.id,
             case.user
         );
-        replayed += 1;
     }
-    assert_eq!(replayed, cases.len());
+    assert_eq!(replayed, cases.keys().cloned().collect());
 }

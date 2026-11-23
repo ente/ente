@@ -145,6 +145,19 @@ fn no_turn(reply: Uuid) -> Error {
 }
 
 impl<B: Backend> ChatDb<B> {
+    pub fn tool_exchange(
+        &self,
+        snapshot: &ConversationSnapshot,
+        request: crate::llm::ToolRequest,
+    ) -> crate::llm::ToolExchange {
+        let continuation = crate::todo::continuation::ListContinuation::new(
+            snapshot.todos.clone(),
+            self.now_ms(),
+            request.quote_source.clone(),
+        );
+        crate::llm::ToolExchange::new(request).with_continuation(continuation)
+    }
+
     pub(super) fn now_ms(&self) -> i64 {
         self.clock.now_us() / 1000
     }
@@ -165,11 +178,11 @@ impl<B: Backend> ChatDb<B> {
         user_text: &str,
     ) -> Result<TurnTools> {
         let messages = snapshot.messages();
-        let request = self.request_text(&self.backend, messages, user_text)?;
+        let (request, applied) = self.request_text(&self.backend, messages, user_text)?;
         Ok(TurnTools {
-            tools: Some(self.todo_tools(&snapshot.todos, request)),
+            tools: (!applied).then(|| self.todo_tools(&snapshot.todos, request)),
             history: self.tool_history(messages)?,
-            current_override: (request != user_text).then(|| request.to_owned()),
+            current_override: (!applied && request != user_text).then(|| request.to_owned()),
         })
     }
 
@@ -178,10 +191,16 @@ impl<B: Backend> ChatDb<B> {
         tx: &T,
         messages: &'a [Message],
         user_text: &'a str,
-    ) -> Result<&'a str> {
-        crate::todo::request_text(messages, user_text, |reply| {
-            Ok(self.read_turn(tx, reply.uuid)?.is_some())
-        })
+    ) -> Result<(&'a str, bool)> {
+        let mut applied = false;
+        let text = crate::todo::request_text(messages, user_text, |reply| {
+            let Some(turn) = self.read_turn(tx, reply.uuid)? else {
+                return Ok::<_, Error>(false);
+            };
+            applied |= turn.live() || turn.undone.is_some_and(|undone| undone.kept_edits);
+            Ok(true)
+        })?;
+        Ok((text, applied))
     }
 
     pub fn finish_reply(
@@ -191,8 +210,47 @@ impl<B: Backend> ChatDb<B> {
         attachments: Vec<AttachmentMeta>,
         tools: Option<&ToolOutcome>,
     ) -> Result<FinishedReply> {
-        if let Some(tools) = tools.filter(|tools| !tools.calls.is_empty()) {
-            let finished = self.apply_tool_calls(snapshot, &tools.calls, tools.call_probability)?;
+        self.finish_reply_inner(snapshot, text, attachments, tools, None)
+    }
+
+    pub fn finish_exchange(
+        &self,
+        snapshot: &ConversationSnapshot,
+        text: &str,
+        attachments: Vec<AttachmentMeta>,
+        tools: Option<&crate::llm::ToolExchange>,
+    ) -> Result<FinishedReply> {
+        let outcome = tools.and_then(crate::llm::ToolExchange::outcome);
+        self.finish_reply_inner(
+            snapshot,
+            text,
+            attachments,
+            outcome.as_ref(),
+            tools.and_then(|tools| tools.continuation.as_deref()),
+        )
+    }
+
+    fn finish_reply_inner(
+        &self,
+        snapshot: &ConversationSnapshot,
+        text: &str,
+        attachments: Vec<AttachmentMeta>,
+        tools: Option<&ToolOutcome>,
+        continuation: Option<&dyn crate::llm::tools::ToolContinuation>,
+    ) -> Result<FinishedReply> {
+        let user_text = snapshot
+            .messages()
+            .last()
+            .map_or("", |message| message.text.as_str());
+        let (_, applied) = self.request_text(&self.backend, snapshot.messages(), user_text)?;
+        if applied || tools.is_some_and(|tools| !tools.calls.is_empty()) {
+            let finished = self.apply_tool_calls(
+                snapshot,
+                tools.map_or(&[], |tools| &tools.calls),
+                tools.and_then(|tools| tools.call_probability),
+                text,
+                continuation,
+            )?;
             self.tools_changed();
             return Ok(finished);
         }
@@ -215,6 +273,8 @@ impl<B: Backend> ChatDb<B> {
         snapshot: &ConversationSnapshot,
         calls: &[ToolCall],
         call_probability: Option<f32>,
+        reply_text: &str,
+        continuation: Option<&dyn crate::llm::tools::ToolContinuation>,
     ) -> Result<FinishedReply> {
         let created_at = self.clock.now_us();
         let request = snapshot
@@ -222,16 +282,29 @@ impl<B: Backend> ChatDb<B> {
             .last()
             .filter(|message| message.sender == Sender::SelfUser)
             .ok_or_else(|| Error::UnsupportedOperation("Tool calls need a user message".into()))?;
-        let replies: Vec<_> = snapshot.messages().iter().map(|m| m.uuid).collect();
-        let mut turns = self.read_turns(&replies)?;
-        let shown = replies
+        let shown = snapshot
+            .messages()
             .iter()
             .rev()
-            .find_map(|reply| turns.remove(reply))
+            .find(|message| message.sender == Sender::Other)
+            .map(|reply| self.read_turn(&self.backend, reply.uuid))
+            .transpose()?
+            .flatten()
             .map(|turn| turn.todo.shown)
             .unwrap_or_default();
         self.backend.transaction(|tx| {
             if !super::conversation::snapshot_matches(tx, snapshot, false)? {
+                return Err(Error::ConversationChanged);
+            }
+            if continuation.is_some_and(|continuation| {
+                !continuation.can_finish(
+                    &ToolOutcome {
+                        calls: calls.to_vec(),
+                        call_probability,
+                    },
+                    created_at / 1000,
+                )
+            }) {
                 return Err(Error::ConversationChanged);
             }
             for (_, earlier) in self.read_turns_from(tx, request.uuid)? {
@@ -240,17 +313,30 @@ impl<B: Backend> ChatDb<B> {
                 }
             }
             self.withdraw_offers(tx, request.uuid)?;
-            let (calls, text, todo) = self.apply_todo_calls(
-                tx,
-                calls,
+            let (user_text, applied) = self.request_text(tx, snapshot.messages(), &request.text)?;
+            let (calls, mut text, todo) = if applied {
                 (
-                    &snapshot.todos,
-                    self.request_text(tx, snapshot.messages(), &request.text)?,
-                ),
-                shown,
-                created_at / 1000,
-                call_probability,
-            )?;
+                    Vec::new(),
+                    "That action already succeeded.".to_owned(),
+                    TodoTurnData::default(),
+                )
+            } else {
+                self.apply_todo_calls(
+                    tx,
+                    calls,
+                    (&snapshot.todos, user_text),
+                    shown,
+                    created_at / 1000,
+                    call_probability,
+                )?
+            };
+            if !calls.is_empty()
+                && calls.iter().all(|call| call.name == crate::todo::LIST_TOOL)
+                && !reply_text.trim().is_empty()
+            {
+                text.push_str("\n\n");
+                text.push_str(reply_text.trim());
+            }
             let record = TurnRecord::new(request.uuid, calls, todo);
             let reply = Message {
                 uuid: self.uuid_gen.new_uuid(),

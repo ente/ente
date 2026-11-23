@@ -201,7 +201,8 @@ const SKIPPED: &[&str] = &[
 
 fn parse_parts(quote: &str) -> Option<Parts> {
     let lower = quote.to_lowercase().replace([',', ';', '!', '?'], " ");
-    let words: Vec<&str> = lower
+    let normalized = future_deadline_day_alias(&lower).unwrap_or(&lower);
+    let words: Vec<&str> = normalized
         .split_whitespace()
         .map(|w| w.trim_end_matches('.'))
         .filter(|w| !w.is_empty())
@@ -472,18 +473,26 @@ const TIME_WORDS: &[&str] = &[
     "oclock",
 ];
 
+fn future_deadline_day_alias(quote: &str) -> Option<&'static str> {
+    match quote.trim().trim_end_matches('.') {
+        "mañana" | "明日" | "कल" => Some("tomorrow"),
+        _ => None,
+    }
+}
+
 pub fn mentions_time(quote: &str) -> bool {
-    quote
-        .to_lowercase()
-        .split(|c: char| c.is_whitespace() || matches!(c, ',' | ';' | '!' | '?'))
-        .map(|word| word.trim_matches(|c: char| c == '.' || c == '"' || c == '\''))
-        .any(|word| {
-            word.chars().any(|c| c.is_ascii_digit())
-                || weekday(word).is_some()
-                || month(word).is_some()
-                || TIME_WORDS.contains(&word)
-                || word.ends_with("am") && word[..word.len() - 2].parse::<u32>().is_ok()
-        })
+    let lower = quote.to_lowercase().replace([',', ';', '!', '?'], " ");
+    future_deadline_day_alias(&lower).is_some()
+        || lower
+            .split(|c: char| c.is_whitespace() || matches!(c, ',' | ';' | '!' | '?'))
+            .map(|word| word.trim_matches(|c: char| c == '.' || c == '"' || c == '\''))
+            .any(|word| {
+                word.chars().any(|c| c.is_ascii_digit())
+                    || weekday(word).is_some()
+                    || month(word).is_some()
+                    || TIME_WORDS.contains(&word)
+                    || word.ends_with("am") && word[..word.len() - 2].parse::<u32>().is_ok()
+            })
 }
 
 pub fn parse_deadline(quote: &str, now: NaiveDateTime) -> Option<Deadline> {
@@ -632,6 +641,10 @@ mod tests {
     fn days_times_and_combinations_resolve_locally() {
         for (quote, expected, default_time) in [
             ("tomorrow", "2026-11-13 09:00", true),
+            ("mañana", "2026-11-13 09:00", true),
+            ("MAÑANA", "2026-11-13 09:00", true),
+            ("明日", "2026-11-13 09:00", true),
+            (" कल ", "2026-11-13 09:00", true),
             ("tomorrow at 4 PM", "2026-11-13 16:00", false),
             ("4pm tomorrow", "2026-11-13 16:00", false),
             ("tomorrow around 615 PM", "2026-11-13 18:15", false),
@@ -711,6 +724,9 @@ mod tests {
                 "{quote}"
             );
         }
+        for quote in ["mañana", "明日", "कल"] {
+            assert!(mentions_time(quote), "{quote}");
+        }
     }
 
     #[test]
@@ -744,12 +760,17 @@ mod tests {
             "tomorrow 🙏",
             "für tomorrow",
             "día 5",
-            "明日",
+            "明日香",
+            "mañana-ish",
+            "कलाकार",
             "é pm",
             "—pm",
             "5pm 🙏",
         ] {
             assert_eq!(parse_deadline(quote, at(NOW)), None, "{quote}");
+        }
+        for quote in ["明日香", "mañana-ish", "कलाकार"] {
+            assert!(!mentions_time(quote), "{quote}");
         }
         assert_eq!(parse_deadline("today at 9am", at(NOW)), None);
     }

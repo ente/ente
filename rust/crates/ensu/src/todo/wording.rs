@@ -54,6 +54,7 @@ fn sentence(outcome: &Outcome, offer: bool, zone: &impl TimeZone) -> String {
         Outcome::NamesAnother => "I couldn't find that in your open tasks.".into(),
         Outcome::NotFound { task } => format!("I couldn't find an open task matching “{task}”."),
         Outcome::Unspecified => "Which task should I mark as done?".into(),
+        Outcome::UnsupportedChange => "I can't edit or delete existing tasks in chat yet.".into(),
         Outcome::AlreadyDone { title } => format!("“{title}” is already done."),
         Outcome::Completed { title } if offer => format!("Mark “{title}” as done?"),
         Outcome::Completed { title } => format!("Marked “{title}” as done."),

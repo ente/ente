@@ -81,9 +81,10 @@ pub(crate) fn mentions_task(title: &str, text: &str, skip: &dyn Fn(&str) -> bool
         .into_iter()
         .filter(|word| !skip(word))
         .collect();
-    distinctive
-        .iter()
-        .any(|word| text.iter().any(|other| same_word(word, other)))
+    !distinctive.is_empty()
+        && distinctive
+            .iter()
+            .all(|word| text.iter().any(|other| same_word(word, other)))
 }
 
 pub(crate) fn spells_out(title: &str, text: &str) -> bool {
@@ -131,7 +132,70 @@ pub(crate) fn is_ignored(word: &str) -> bool {
 }
 
 pub(crate) fn has_search_words(query: &str) -> bool {
-    words(query).iter().any(|word| !is_ignored(word))
+    let words = words(query);
+    words != ["to", "dos"] && words.iter().any(|word| !is_ignored(word))
+}
+
+pub(super) fn command_clauses(text: &str) -> Vec<Vec<String>> {
+    let mut outside = String::new();
+    let mut quote = None;
+    let chars: Vec<_> = text.chars().collect();
+    for (index, &c) in chars.iter().enumerate() {
+        if quote == Some(c) {
+            quote = None;
+        } else if quote.is_some() {
+            continue;
+        } else if matches!(c, '"' | '“' | '‘')
+            || c == '\'' && (index == 0 || !chars[index - 1].is_alphanumeric())
+        {
+            quote = Some(match c {
+                '“' => '”',
+                '‘' => '’',
+                _ => c,
+            });
+            outside.push_str(" quoted ");
+        } else if matches!(c, ';' | '\n') {
+            outside.push_str(" then ");
+        } else {
+            outside.push(c);
+        }
+    }
+    let outside = outside.to_lowercase();
+    let words: Vec<_> = outside
+        .split(|c: char| !c.is_alphanumeric() && c != '\'')
+        .filter(|word| !word.is_empty())
+        .collect();
+    words
+        .split(|word| matches!(*word, "and" | "then" | "but"))
+        .map(|clause| {
+            clause
+                .iter()
+                .copied()
+                .skip_while(|word| {
+                    matches!(*word, "please" | "can" | "could" | "would" | "you" | "also")
+                })
+                .map(str::to_owned)
+                .collect()
+        })
+        .collect()
+}
+
+pub(crate) fn unsupported_task_change(text: &str, todos: &[Todo]) -> bool {
+    command_clauses(text).iter().any(|clause| {
+        clause.first().is_some_and(|command| {
+            matches!(
+                command.as_str(),
+                "edit" | "delete" | "remove" | "reschedule" | "rename" | "move" | "change"
+            )
+        })
+    }) && (words(text).iter().any(|word| {
+        matches!(
+            word.as_str(),
+            "task" | "tasks" | "todo" | "todos" | "list" | "item"
+        )
+    }) || todos
+        .iter()
+        .any(|todo| mentions_task(&todo.title, text, &|_| false)))
 }
 
 pub(crate) fn find_tasks<'a>(todos: &[&'a Todo], query: &str) -> Vec<&'a Todo> {
@@ -229,6 +293,9 @@ mod tests {
             "Fix <div> bug"
         );
         assert_eq!(choice_label(" \n "), None);
+        assert!(!has_search_words("To Dos"));
+        assert!(has_search_words("dos"));
+        assert!(has_search_words("dos libros"));
     }
 
     #[test]

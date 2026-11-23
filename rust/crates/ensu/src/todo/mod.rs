@@ -1,3 +1,4 @@
+pub(crate) mod continuation;
 mod intent;
 mod matching;
 mod phrase;
@@ -196,7 +197,7 @@ pub fn chat_tools(user_text: &str, open_titles: &[&str]) -> ToolRequest {
         tools: vec![
             ToolSpec {
                 name: SAVE_TOOL.into(),
-                description: "Add a task the user themself needs or wants to do: when they ask to be reminded or to add something, or state a plan or need of their own (\"I need to…\", \"I want to…\", \"Book…\"). Not for what other people need to do, what is already done, or questions. Make one call per task: when the user names several tasks, joined by \"and\", commas or separate lines, call once for each.".into(),
+                description: "Add a task the user themself needs or wants to do: when they ask to be reminded or to add something, or state a plan or need of their own (\"I need to…\", \"I want to…\", \"Book…\"). Not for what other people need to do, what is already done, questions, or editing existing tasks. Make one call per task: when the user names several tasks, joined by \"and\", commas or separate lines, call once for each.".into(),
                 parameters: vec![
                     parameter(
                         "title",
@@ -218,7 +219,7 @@ pub fn chat_tools(user_text: &str, open_titles: &[&str]) -> ToolRequest {
                 parameters: vec![
                     parameter(
                         "filter",
-                        "Which tasks to show. Omit to show open tasks.",
+                        "open: unfinished; completed: done; overdue: unfinished and past due; today: unfinished due today; all: unfinished and done. Omit for open.",
                         ParameterKind::Choice {
                             values: ListFilter::NAMED.iter().map(|(name, _)| (*name).to_owned()).collect(),
                         },
@@ -226,7 +227,7 @@ pub fn chat_tools(user_text: &str, open_titles: &[&str]) -> ToolRequest {
                     ),
                     parameter(
                         "query",
-                        "Words from task titles to search for, copied from the user. Omit to show every task in the filter.",
+                        "Title words to search for, copied from the user. Omit generic list words, filters, and positions; omit entirely to show all tasks in the filter.",
                         ParameterKind::Quote,
                         false,
                     ),
@@ -235,7 +236,7 @@ pub fn chat_tools(user_text: &str, open_titles: &[&str]) -> ToolRequest {
             ToolSpec {
                 name: COMPLETE_TOOL.into(),
                 description: format!(
-                    "Mark a task in the user's To Do list as done: when the user asks to mark, tick or check it off, or says they have just done it (\"finished the…\", \"called…\", \"picked up…\"). Name the task, or give its number from the list just shown.{open_text}",
+                    "Mark a task in the user's To Do list as done: when the user asks to mark, tick or check it off, or says they have just done it (\"finished the…\", \"called…\", \"picked up…\"). Name the task, or give its number from the list just shown. Call once per requested completion.{open_text}",
                 ),
                 parameters: vec![
                     parameter("task", task_text, task_kind, false),
@@ -284,10 +285,17 @@ fn examples() -> Vec<ToolExample> {
             )],
         ),
         calls(
-            "I gotta replace the bike chain",
-            vec![call(SAVE_TOOL, &[("title", "Replace the bike chain")])],
+            "I gotta replace the bike chain and wash my helmet",
+            vec![
+                call(SAVE_TOOL, &[("title", "Replace the bike chain")]),
+                call(SAVE_TOOL, &[("title", "Wash my helmet")]),
+            ],
         ),
         calls("Anything left on my list?", vec![call(LIST_TOOL, &[])]),
+        calls(
+            "Which car tasks are overdue?",
+            vec![call(LIST_TOOL, &[("filter", "overdue"), ("query", "car")])],
+        ),
         calls(
             "Renewed the TV licence today",
             vec![call(COMPLETE_TOOL, &[("task", "Renew the TV licence")])],

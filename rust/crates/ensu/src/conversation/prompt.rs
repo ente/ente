@@ -97,7 +97,12 @@ pub fn finish_turn<B: Backend>(
         .tools
         .and_then(crate::llm::ToolExchange::outcome)
         .filter(|outcome| !outcome.calls.is_empty());
-    let text = if outcome.is_some() {
+    let text = if outcome.as_ref().is_some_and(|outcome| {
+        outcome
+            .calls
+            .iter()
+            .any(|call| call.name != crate::todo::LIST_TOOL)
+    }) {
         String::new()
     } else {
         match finalize_grounded_assistant_text(reply.text, reply.sources) {
@@ -110,7 +115,7 @@ pub fn finish_turn<B: Backend>(
             }
         }
     };
-    let finished = db.finish_reply(snapshot, &text, reply.attachments, outcome.as_ref())?;
+    let finished = db.finish_exchange(snapshot, &text, reply.attachments, reply.tools)?;
     if let Some(tools) = reply.tools {
         tools.record(None);
     }
