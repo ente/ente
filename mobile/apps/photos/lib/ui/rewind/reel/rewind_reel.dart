@@ -2,6 +2,7 @@ import "dart:math";
 
 import "package:flutter/foundation.dart";
 import "package:flutter/widgets.dart";
+import "package:photos/ui/rewind/pages/outro_page.dart";
 import "package:photos/ui/rewind/shell/rewind_chrome.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
@@ -27,7 +28,7 @@ class RewindReel {
   }) {
     final pages = <RewindPage>[];
     final holds = <Duration>[];
-    for (final page in story) {
+    for (final page in [...story, const OutroPage()]) {
       final hold = holdOf(page);
       if (hold == null) continue;
       pages.add(page);
@@ -51,13 +52,15 @@ class RewindReel {
 
   Duration get videoDuration => duration + timeOf(1);
 
+  Duration get _storyEnd => duration - _holds.last - _turn;
+
   int get frameCount =>
       (duration.inMicroseconds * frameRate / Duration.microsecondsPerSecond)
           .ceil();
 
   int get coverFrame => min(
     frameCount - 1,
-    (clip ? duration : _holds.first).inMicroseconds *
+    (clip ? _storyEnd : _holds.first).inMicroseconds *
         frameRate ~/
         Duration.microsecondsPerSecond,
   );
