@@ -75,6 +75,8 @@ pub fn start(
             Startup::Ready => return Ok((museum, port)),
             Startup::PortTaken if attempts < PORT_ATTEMPTS => {
                 eprintln!("Museum port {port} is taken, retrying on another port");
+                drop(museum);
+                db.reset_database()?;
             }
             Startup::PortTaken => {
                 return Err(format!(
@@ -116,19 +118,15 @@ fn build_museum(server_dir: &Path, out: &Path) -> TestResult {
 }
 
 fn wait_for_museum(process: &mut ChildProcess, port: u16, instance: &str) -> TestResult<Startup> {
-    let listening = format!("starting server on port {port}");
     let bind_failed = format!(":{port}: bind: address already in use");
     let deadline = Instant::now() + Duration::from_secs(90);
     loop {
         process.ensure_running()?;
-        let log = process.log();
-        if log.contains(&listening) {
-            match ping(port) {
-                Some(response) if response.contains(instance) => return Ok(Startup::Ready),
-                Some(_) => return Ok(Startup::PortTaken),
-                None if log.contains(&bind_failed) => return Ok(Startup::PortTaken),
-                None => {}
-            }
+        match ping(port) {
+            Some(response) if response.contains(instance) => return Ok(Startup::Ready),
+            Some(_) => return Ok(Startup::PortTaken),
+            None if process.log().contains(&bind_failed) => return Ok(Startup::PortTaken),
+            None => {}
         }
         if Instant::now() >= deadline {
             return Err(format!(

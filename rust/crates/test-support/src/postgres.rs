@@ -36,6 +36,19 @@ impl Postgres {
     }
 
     pub fn execute_sql(&self, sql: &str) -> TestResult {
+        self.execute_sql_on(self.database(), sql)
+    }
+
+    pub fn reset_database(&self) -> TestResult {
+        self.execute_sql_on(
+            "postgres",
+            &format!("DROP DATABASE IF EXISTS {DATABASE} WITH (FORCE)"),
+        )?;
+        self.inner.create_database(DATABASE)?;
+        Ok(())
+    }
+
+    fn execute_sql_on(&self, database: &str, sql: &str) -> TestResult {
         let output = Command::new(
             self.inner
                 .settings()
@@ -54,7 +67,7 @@ impl Postgres {
             "-U",
             self.username(),
             "-d",
-            self.database(),
+            database,
             "-c",
             sql,
         ])
