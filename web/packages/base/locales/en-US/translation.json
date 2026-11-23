@@ -1166,6 +1166,7 @@
     "add_dns_entry": "Add DNS entry",
     "add_dns_entry_hint": "On your DNS provider, add a CNAME from your domain to <b>{{host}}</b>",
     "custom_domains_help": "For more information, see <a>help</a>",
+    "custom_domain_dns_setup": "DNS setup",
     "num_1": "1",
     "num_2": "2",
     "masonry": "Masonry",
