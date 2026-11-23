@@ -51,9 +51,6 @@ class RewindPageScope extends InheritedWidget {
 
   static bool clipOf(BuildContext context) => _of(context)?.clip ?? false;
 
-  static bool reelPaceOf(BuildContext context) =>
-      reelOf(context) && !clipOf(context);
-
   static RewindPageScope? _of(BuildContext context) =>
       context.getInheritedWidgetOfExactType<RewindPageScope>();
 
