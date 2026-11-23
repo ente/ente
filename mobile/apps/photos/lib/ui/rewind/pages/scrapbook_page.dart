@@ -69,7 +69,8 @@ class ScrapbookPage extends RewindPage {
       const Duration(milliseconds: 3800 + RewindMotion.reelReadingMs);
 
   @override
-  RewindChrome get chrome => const RewindChrome(foreground: RewindColors.cream);
+  RewindChrome get chrome =>
+      const RewindChrome(foreground: RewindColors.cream, nextArrow: true);
 
   @override
   Widget build(

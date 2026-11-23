@@ -215,6 +215,7 @@ class _RewindViewerState extends State<RewindViewer>
         shareKey: _shareButton,
         videoKey: _videoButton,
         onClose: () => Navigator.of(context).maybePop(),
+        onNext: next,
         onShare: _shareAction(context, page, card, layout),
         onShareVideo: index < widget.pages.length - 1 || page.hasOwnVideoButton
             ? null
