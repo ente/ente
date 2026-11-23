@@ -107,7 +107,7 @@ func TestPendingUploadMetadata(t *testing.T) {
 			tx, err := db.Begin()
 			require.NoError(t, err)
 			defer tx.Rollback()
-			require.NoError(t, cleanup.Repo.SetExpiryForTempObject(tx, ente.TempObject{ObjectKey: objectKey}, 1))
+			require.NoError(t, cleanup.Repo.SetExpiryForTempObjects(tx, []string{objectKey}, 1))
 			var afterRetry int64
 			require.NoError(t, tx.QueryRow(`SELECT created_at FROM temp_objects WHERE object_key = $1`, objectKey).Scan(&afterRetry))
 			require.Equal(t, createdAt, afterRetry)

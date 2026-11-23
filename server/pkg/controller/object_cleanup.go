@@ -65,45 +65,149 @@ func (c *ObjectCleanupController) removeUnreportedObjectsWorker(i int) {
 	}
 }
 
+type claimedTempObject struct {
+	tempObject          ente.TempObject
+	needsMultipartAbort bool
+}
+
 func (c *ObjectCleanupController) removeUnreportedObjects() int {
 	logger := log.WithFields(log.Fields{
 		"task": "remove-unreported-objects",
 	})
 	logger.Info("Removing unreported objects")
 
-	count := 0
-
 	tx, tempObjects, err := c.Repo.GetAndLockExpiredObjects()
 	if err != nil {
 		logger.Error(err)
-		return count
+		return 0
 	}
 	defer tx.Rollback()
 
-	for _, tempObject := range tempObjects {
-		err = c.removeUnreportedObject(tx, tempObject)
-		if err != nil {
-			continue
-		}
-		count += 1
+	if len(tempObjects) == 0 {
+		logger.Infof("Removed %d objects", 0)
+		return 0
 	}
 
-	logger.Infof("Removed %d objects", count)
+	claimed, stagedCount, err := c.claimExpiredObjectsTx(tx, tempObjects)
+	if err != nil {
+		logger.Error(err)
+		return 0
+	}
 
-	// Always commit the batch. skip() delays failed rows to prevent a tight loop.
-	cerr := tx.Commit()
-	if cerr != nil {
+	// Commit the DB claim/lease updates before any S3 I/O so we don't hold
+	// pool connections or pin PostgreSQL's xmin horizon across S3 calls.
+	if cerr := tx.Commit(); cerr != nil {
 		cerr = stacktrace.Propagate(cerr, "Failed to commit transaction")
 		logger.Error(cerr)
 		return 0
 	}
 
+	count := stagedCount
+	for _, item := range claimed {
+		if err := c.processClaimedTempObject(item); err != nil {
+			continue
+		}
+		count++
+	}
+
+	logger.Infof("Removed %d objects", count)
 	return count
 }
 
-func (c *ObjectCleanupController) removeUnreportedObject(tx *sql.Tx, t ente.TempObject) error {
-	dc := t.BucketId
+func (c *ObjectCleanupController) claimExpiredObjectsTx(tx *sql.Tx, tempObjects []ente.TempObject) ([]claimedTempObject, int, error) {
+	objectKeys := make([]string, 0, len(tempObjects))
+	for _, t := range tempObjects {
+		objectKeys = append(objectKeys, t.ObjectKey)
+	}
+	existingKeys, err := c.ObjectRepo.GetExistingObjectKeysTx(tx, objectKeys)
+	if err != nil {
+		return nil, 0, stacktrace.Propagate(err, "")
+	}
 
+	now := time.Microseconds()
+	retryExpiry := time.MicrosecondsAfterDays(1)
+	complianceDC := c.S3Config.WasabiComplianceDC()
+
+	var delayOnlyKeys []string
+	var releaseHoldKeys []string
+	var claimDeleteKeys []string
+	claimed := make([]claimedTempObject, 0, len(tempObjects))
+	stagedCount := 0
+
+	for _, t := range tempObjects {
+		dc := t.BucketId
+		logger := log.WithFields(log.Fields{
+			"task":        "remove-unreported-objects",
+			"object_key":  t.ObjectKey,
+			"data_center": dc,
+			"upload_id":   t.UploadID,
+		})
+		logger.Info("Clearing tempObject")
+
+		if dc == "" || !c.S3Config.IsBucketActive(dc) {
+			logger.Errorf("Clearing tempObject failed: %v", stacktrace.NewError("temporary object bucket %q is not configured", dc))
+			delayOnlyKeys = append(delayOnlyKeys, t.ObjectKey)
+			continue
+		}
+
+		switch t.CleanupState {
+		case ente.TempObjectUploading, ente.TempObjectReleaseHold, ente.TempObjectDelete:
+		default:
+			logger.Errorf("Clearing tempObject failed: %v", stacktrace.NewError("unknown temporary object cleanup state %q", t.CleanupState))
+			delayOnlyKeys = append(delayOnlyKeys, t.ObjectKey)
+			continue
+		}
+
+		if _, exists := existingKeys[t.ObjectKey]; exists {
+			logger.Errorf("Clearing tempObject failed: %v", errors.New("aborting attempt to delete an object which has a DB entry"))
+			delayOnlyKeys = append(delayOnlyKeys, t.ObjectKey)
+			continue
+		}
+
+		switch t.CleanupState {
+		case ente.TempObjectUploading:
+			if dc == complianceDC {
+				releaseHoldKeys = append(releaseHoldKeys, t.ObjectKey)
+				stagedCount++
+			} else {
+				claimDeleteKeys = append(claimDeleteKeys, t.ObjectKey)
+				t.CleanupState = ente.TempObjectDelete
+				claimed = append(claimed, claimedTempObject{
+					tempObject:          t,
+					needsMultipartAbort: t.IsMultipart,
+				})
+			}
+		case ente.TempObjectReleaseHold:
+			delayOnlyKeys = append(delayOnlyKeys, t.ObjectKey)
+			claimed = append(claimed, claimedTempObject{
+				tempObject:          t,
+				needsMultipartAbort: t.IsMultipart,
+			})
+		case ente.TempObjectDelete:
+			delayOnlyKeys = append(delayOnlyKeys, t.ObjectKey)
+			claimed = append(claimed, claimedTempObject{
+				tempObject:          t,
+				needsMultipartAbort: t.IsMultipart && dc != complianceDC,
+			})
+		}
+	}
+
+	if err := c.Repo.SetExpiryForTempObjects(tx, delayOnlyKeys, retryExpiry); err != nil {
+		return nil, 0, err
+	}
+	if err := c.Repo.SetCleanupStateForTempObjects(tx, releaseHoldKeys, ente.TempObjectReleaseHold, now); err != nil {
+		return nil, 0, err
+	}
+	if err := c.Repo.SetCleanupStateForTempObjects(tx, claimDeleteKeys, ente.TempObjectDelete, retryExpiry); err != nil {
+		return nil, 0, err
+	}
+
+	return claimed, stagedCount, nil
+}
+
+func (c *ObjectCleanupController) processClaimedTempObject(item claimedTempObject) error {
+	t := item.tempObject
+	dc := t.BucketId
 	logger := log.WithFields(log.Fields{
 		"task":        "remove-unreported-objects",
 		"object_key":  t.ObjectKey,
@@ -111,67 +215,31 @@ func (c *ObjectCleanupController) removeUnreportedObject(tx *sql.Tx, t ente.Temp
 		"upload_id":   t.UploadID,
 	})
 
-	skip := func(err error) error {
-		logger.Errorf("Clearing tempObject failed: %v", err)
-		newExpiry := time.MicrosecondsAfterDays(1)
-		serr := c.Repo.SetExpiryForTempObject(tx, t, newExpiry)
-		if serr != nil {
-			logger.Errorf("Updating expiry for failed temp object failed: %v", serr)
-		}
-		return err
-	}
-
-	logger.Info("Clearing tempObject")
-	if dc == "" || !c.S3Config.IsBucketActive(dc) {
-		return skip(stacktrace.NewError("temporary object bucket %q is not configured", dc))
-	}
-
-	switch t.CleanupState {
-	case ente.TempObjectUploading, ente.TempObjectReleaseHold, ente.TempObjectDelete:
-	default:
-		return skip(stacktrace.NewError("unknown temporary object cleanup state %q", t.CleanupState))
-	}
-
-	exists, err := c.ObjectRepo.DoesObjectExist(tx, t.ObjectKey)
-	if err != nil {
-		return skip(stacktrace.Propagate(err, ""))
-	}
-
-	if exists {
-		err := errors.New("aborting attempt to delete an object which has a DB entry")
-		return skip(stacktrace.Propagate(err, ""))
-	}
-
-	if t.CleanupState == ente.TempObjectUploading && dc == c.S3Config.WasabiComplianceDC() {
-		if err := c.Repo.SetCleanupState(tx, t.ObjectKey, ente.TempObjectReleaseHold, time.Microseconds()); err != nil {
-			return skip(err)
-		}
-		return nil
-	}
-	if t.IsMultipart && t.CleanupState != ente.TempObjectDelete {
+	if item.needsMultipartAbort {
 		if err := c.abortMultipartUpload(t.ObjectKey, t.UploadID, dc); err != nil {
-			return skip(err)
+			logger.Errorf("Clearing tempObject failed: %v", err)
+			return err
 		}
 	}
 	if t.CleanupState == ente.TempObjectReleaseHold {
 		if err := c.disableConditionalHoldIfPresent(dc, t.ObjectKey); err != nil {
-			return skip(err)
+			logger.Errorf("Clearing tempObject failed: %v", err)
+			return err
 		}
-		if err := c.Repo.SetCleanupState(tx, t.ObjectKey, ente.TempObjectDelete, time.MicrosecondsAfterDays(24)); err != nil {
-			return skip(err)
+		if err := c.Repo.SetCleanupState(t.ObjectKey, ente.TempObjectDelete, time.MicrosecondsAfterDays(24)); err != nil {
+			logger.Errorf("Clearing tempObject failed: %v", err)
+			return err
 		}
 		return nil
 	}
-	err = c.DeleteObjectFromDataCenter(t.ObjectKey, dc)
-	if err != nil {
-		return skip(err)
+	if err := c.DeleteObjectFromDataCenter(t.ObjectKey, dc); err != nil {
+		logger.Errorf("Clearing tempObject failed: %v", err)
+		return err
 	}
-
-	err = c.Repo.RemoveTempObject(tx, t)
-	if err != nil {
-		return skip(err)
+	if err := c.Repo.RemoveTempObject(t); err != nil {
+		logger.Errorf("Clearing tempObject failed: %v", err)
+		return err
 	}
-
 	return nil
 }
 

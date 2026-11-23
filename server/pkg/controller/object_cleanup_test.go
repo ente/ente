@@ -3,9 +3,11 @@ package controller
 import (
 	"database/sql"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -15,6 +17,7 @@ import (
 	"github.com/ente/museum/pkg/utils/config"
 	"github.com/ente/museum/pkg/utils/s3config"
 	"github.com/spf13/viper"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFileRegistrationStoresApp(t *testing.T) {
@@ -96,6 +99,19 @@ func TestFileRegistrationRollsBackWhenCleanupWins(t *testing.T) {
 		t.Fatal("cleanup did not reach object deletion")
 	}
 
+	var idleInTx bool
+	if err := db.QueryRow(`SELECT EXISTS(
+		SELECT 1 FROM pg_stat_activity
+		WHERE datname = current_database()
+		  AND pid <> pg_backend_pid()
+		  AND state = 'idle in transaction'
+	)`).Scan(&idleInTx); err != nil {
+		t.Fatalf("failed to inspect transaction state: %v", err)
+	}
+	if idleInTx {
+		t.Fatal("cleanup held an idle transaction open during S3 deletion")
+	}
+
 	registrationDone := make(chan error, 1)
 	go func() {
 		_, _, err := fileRepo.Create(objectCleanupTestFile(
@@ -103,7 +119,15 @@ func TestFileRegistrationRollsBackWhenCleanupWins(t *testing.T) {
 		), 100, 10, 110, ownerID, ente.Photos, repo.FileObjectBuckets{File: "b2-eu-cen", Thumbnail: "b2-eu-cen"})
 		registrationDone <- err
 	}()
-	waitForTempObjectDeleteLock(t, db)
+	select {
+	case err := <-registrationDone:
+		var apiErr *ente.ApiError
+		if !errors.As(err, &apiErr) || apiErr.Message != "staged upload not found" {
+			t.Fatalf("registration error = %v, want staged upload not found", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("registration blocked while cleanup was deleting from S3")
+	}
 	release()
 
 	select {
@@ -113,15 +137,6 @@ func TestFileRegistrationRollsBackWhenCleanupWins(t *testing.T) {
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatal("cleanup did not finish")
-	}
-	select {
-	case err := <-registrationDone:
-		var apiErr *ente.ApiError
-		if !errors.As(err, &apiErr) || apiErr.Message != "staged upload not found" {
-			t.Fatalf("registration error = %v, want staged upload not found", err)
-		}
-	case <-time.After(2 * time.Second):
-		t.Fatal("registration did not finish")
 	}
 
 	var files, objectKeys, collectionFiles, tempObjects int
@@ -138,6 +153,68 @@ func TestFileRegistrationRollsBackWhenCleanupWins(t *testing.T) {
 		t.Fatalf("unexpected registration state: files=%d object_keys=%d collection_files=%d temp_objects=%d",
 			files, objectKeys, collectionFiles, tempObjects)
 	}
+}
+
+func TestB2TempCleanupMultipartRetry(t *testing.T) {
+	var failAbort atomic.Bool
+	failAbort.Store(true)
+	var aborts, deletes atomic.Int32
+	s3Server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/xml")
+		switch {
+		case r.Method == http.MethodDelete && r.URL.Query().Has("uploadId"):
+			aborts.Add(1)
+			if failAbort.Load() {
+				w.WriteHeader(http.StatusForbidden)
+				_, _ = io.WriteString(w, `<Error><Code>AccessDenied</Code></Error>`)
+				return
+			}
+			w.WriteHeader(http.StatusNoContent)
+		case r.Method == http.MethodGet && r.URL.Query().Has("uploadId"):
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = io.WriteString(w, `<Error><Code>NoSuchUpload</Code></Error>`)
+		case r.Method == http.MethodDelete:
+			deletes.Add(1)
+			w.WriteHeader(http.StatusNoContent)
+		case r.Method == http.MethodHead:
+			w.WriteHeader(http.StatusNotFound)
+		default:
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL)
+			w.WriteHeader(http.StatusBadRequest)
+		}
+	}))
+	t.Cleanup(s3Server.Close)
+
+	c, _, db := setupObjectCleanupRaceTest(t, s3Server.URL)
+	_, err := db.Exec(`INSERT INTO temp_objects(object_key, expiration_time, bucket_id, is_multipart, upload_id)
+		VALUES ('1/b2-multipart', 0, 'b2-eu-cen', TRUE, 'upload-id')`)
+	require.NoError(t, err)
+
+	require.Zero(t, c.removeUnreportedObjects())
+	require.EqualValues(t, 1, aborts.Load())
+	require.Zero(t, deletes.Load())
+
+	var cleanupState string
+	var delayed bool
+	require.NoError(t, db.QueryRow(`SELECT COALESCE(cleanup_state, ''), expiration_time > now_utc_micro_seconds()
+		FROM temp_objects WHERE object_key = '1/b2-multipart'`).Scan(&cleanupState, &delayed))
+	require.Equal(t, string(ente.TempObjectDelete), cleanupState)
+	require.True(t, delayed)
+
+	_, err = c.Repo.GetFileUploadBucket(t.Context(), "1/b2-multipart", 1, ente.Photos)
+	require.ErrorIs(t, err, sql.ErrNoRows)
+
+	failAbort.Store(false)
+	_, err = db.Exec(`UPDATE temp_objects SET expiration_time = 0 WHERE object_key = '1/b2-multipart'`)
+	require.NoError(t, err)
+
+	require.Equal(t, 1, c.removeUnreportedObjects())
+	require.EqualValues(t, 2, aborts.Load())
+	require.EqualValues(t, 1, deletes.Load())
+
+	var remaining int
+	require.NoError(t, db.QueryRow(`SELECT count(*) FROM temp_objects`).Scan(&remaining))
+	require.Zero(t, remaining)
 }
 
 func waitForTempObjectDeleteLock(t *testing.T, db *sql.DB) {

@@ -262,7 +262,9 @@ func TestWasabiTempCleanupRollback(t *testing.T) {
 			require.NoError(t, err)
 			require.Len(t, objects, 1)
 			require.Zero(t, c.removeUnreportedObjects())
-			require.NoError(t, c.removeUnreportedObject(tx, objects[0]))
+			_, _, err = c.claimExpiredObjectsTx(tx, objects)
+			require.NoError(t, err)
+			require.Zero(t, holds.Load())
 			require.NoError(t, tx.Rollback())
 			assertTempCleanupState(t, db, "1/expired", state)
 			require.Equal(t, 1, c.removeUnreportedObjects())
@@ -270,7 +272,7 @@ func TestWasabiTempCleanupRollback(t *testing.T) {
 				require.Zero(t, holds.Load())
 				assertTempCleanupState(t, db, "1/expired", ente.TempObjectReleaseHold)
 			} else {
-				require.EqualValues(t, 2, holds.Load())
+				require.EqualValues(t, 1, holds.Load())
 				assertTempCleanupState(t, db, "1/expired", ente.TempObjectDelete)
 				require.Zero(t, c.removeUnreportedObjects())
 			}
@@ -319,9 +321,8 @@ func TestWasabiTempCleanupWinsRegistrationRace(t *testing.T) {
 	tx, objects, err := c.Repo.GetAndLockExpiredObjects()
 	require.NoError(t, err)
 	defer tx.Rollback()
-	for _, object := range objects {
-		require.NoError(t, c.removeUnreportedObject(tx, object))
-	}
+	_, _, err = c.claimExpiredObjectsTx(tx, objects)
+	require.NoError(t, err)
 	require.Zero(t, c.removeUnreportedObjects())
 	registrationDone := make(chan error, 1)
 	go func() {
