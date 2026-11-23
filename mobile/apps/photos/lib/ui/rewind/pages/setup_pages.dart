@@ -90,16 +90,17 @@ const busiestDaySetupPage = SetupPage(
   pattern: Color(0xFFF02525),
   ink: RewindColors.cream,
   headlines: [
-    SetupHeadline("ONE DAY,\nTHINGS GOT", at: Offset(24, 140), size: 59),
+    SetupHeadline(
+      "ONE DAY,\nYOU KEPT\nCLICKING.",
+      at: Offset(24, 100),
+      size: 59,
+    ),
   ],
-  callout: SetupCallout(
-    "OUT OF HAND.",
-    center: Offset(201.2, 350),
-    onTop: true,
-  ),
+  callout: SetupCallout("HELP!", center: Offset(201.2, 350), onTop: true),
   art: SetupArt.image(
     RewindAssets.photoHeapDucky,
     Rect.fromLTWH(-75, 281, 540, 540),
+    ticks: [(RewindTick.forward, Rect.fromLTWH(194, 373, 11, 18))],
     preset: RewindPreset.crowd,
     delayMs: 250,
   ),
