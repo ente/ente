@@ -172,12 +172,6 @@ class RewindMedia {
     return files;
   }
 
-  List<EnteFile> glimpses(Int64List ids, int slots) {
-    final files = extraPhotos(ids, slots);
-    _handedOut.addAll(files);
-    return files;
-  }
-
   List<EnteFile> gallery(Int64List ids, int slots) {
     final files = extraPhotos(ids, slots);
     _galleries.addAll(files);

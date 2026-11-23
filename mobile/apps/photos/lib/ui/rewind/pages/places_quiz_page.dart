@@ -31,7 +31,6 @@ import "package:photos/ui/rewind/widgets/rewind_wave.dart";
 typedef PlaceStamp = ({
   rust.RewindCity city,
   EnteFile? photo,
-  List<EnteFile> extras,
   List<EnteFile> gallery,
 });
 
@@ -57,7 +56,7 @@ class PlacesQuizPage extends RewindPage {
 
   @override
   List<EnteFile> get reelThumbnails => [
-    for (final stamp in stamps) ...[?stamp.photo, ...stamp.extras],
+    for (final stamp in stamps) ?stamp.photo,
   ];
 
   @override
@@ -446,16 +445,8 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
   bool _opensGallery(int rank) =>
       _phase == _Phase.done && _stamps[rank].gallery.length > 1;
 
-  Widget _stamp(int rank, _Slot slot, Size size, double lift) =>
-      _stampOf(_stamps[rank].photo, rank, slot, size, lift);
-
-  Widget _stampOf(
-    EnteFile? photo,
-    int rank,
-    _Slot slot,
-    Size size,
-    double lift,
-  ) {
+  Widget _stamp(int rank, _Slot slot, Size size, double lift) {
+    final photo = _stamps[rank].photo;
     return SizedBox.fromSize(
       size: size,
       child: RewindStamp(
@@ -498,29 +489,10 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
 
   int _rankDelay(int rank) => _rankMs + (2 - rank) * _rankGapMs;
 
-  static const _fans = [
-    (dx: -16.0, dy: 2.0, turn: -13.0),
-    (dx: 15.0, dy: 0.0, turn: 11.0),
-  ];
-
-  EdgeInsets _fanReach(int rank, Size size) {
-    final unit = size.width / 139.6;
-    var side = 0.0;
-    var rise = 0.0;
-    for (final fan in _fans.take(_stamps[rank].extras.length)) {
-      final turn = fan.turn.abs() * pi / 180;
-      side = max(side, size.height * sin(turn) + fan.dx.abs() * unit);
-      rise = max(rise, size.width / 2 * sin(turn) + fan.dy.abs() * unit);
-    }
-    return EdgeInsets.symmetric(horizontal: side, vertical: rise);
-  }
-
   Widget _podiumStamp(int rank, Rect rect, bool revealed) {
     final slot = _Slot.podium[rank];
-    final reach = _fanReach(rank, rect.size);
-    final stamp = Offset(reach.left, reach.top) & rect.size;
     return Positioned.fromRect(
-      rect: reach.inflateRect(rect),
+      rect: rect,
       child: _leave(
         rect.center.dy,
         RewindKeyframes(
@@ -533,28 +505,7 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
             onTap: _opensGallery(rank) ? () => _showGallery(rank) : null,
             child: Transform.rotate(
               angle: slot.turn * pi / 180,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  for (final (i, photo)
-                      in _stamps[rank].extras.indexed.toList().reversed)
-                    Positioned.fromRect(
-                      rect: stamp,
-                      child: _fannedStamp(
-                        photo,
-                        rank,
-                        i,
-                        slot,
-                        rect.size,
-                        revealed,
-                      ),
-                    ),
-                  Positioned.fromRect(
-                    rect: stamp,
-                    child: _stamp(rank, slot, rect.size, 4),
-                  ),
-                ],
-              ),
+              child: _stamp(rank, slot, rect.size, 4),
             ),
           ),
         ),
@@ -583,36 +534,6 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
       headerSize: const Size(width, width * 93.9 / 139.6),
       title: stamp.city.name,
       photos: stamp.gallery,
-    );
-  }
-
-  Widget _fannedStamp(
-    EnteFile photo,
-    int rank,
-    int index,
-    _Slot slot,
-    Size size,
-    bool revealed,
-  ) {
-    final fan = _fans[index % _fans.length];
-    final reach = size.width / 139.6;
-    return RewindKeyframes(
-      active: revealed,
-      delayMs: _rankDelay(rank) + 140 + 110 * index,
-      durationMs: 620,
-      curve: const Cubic(0.2, 0.9, 0.3, 1.35),
-      origin: Alignment.bottomCenter,
-      poses: [
-        const RewindPose(0, scale: 0.96),
-        RewindPose(
-          1,
-          dx: fan.dx * reach,
-          dy: fan.dy * reach,
-          turn: fan.turn,
-          scale: 0.96,
-        ),
-      ],
-      child: _stampOf(photo, rank, slot, size, 3),
     );
   }
 

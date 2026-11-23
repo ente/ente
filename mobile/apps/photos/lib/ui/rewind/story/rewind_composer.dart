@@ -78,7 +78,6 @@ List<RewindChapter> rewindPhotoCardChapters(rust.RewindReport report) => [
 
 const _quizCities = 6;
 const _podiumPlaces = 3;
-const _stampsPerPlace = 3;
 const _galleryPhotos = 9;
 const _boothStrips = 3;
 const _newFaceBubbles = 6;
@@ -87,15 +86,12 @@ const _minimumNewFaces = 1;
 
 RewindChapter _totals(rust.Totals? totals) {
   return RewindChapter([PhotosCountPage.pageKey, TopPercentPage.pageKey], (
-    media,
+    _,
   ) async {
     if (totals == null) return const [];
     final top = totals.topPercent;
     return [
-      PhotosCountPage(
-        totals.files,
-        media.glimpses(totals.fileIds, PhotosCountPage.maxPhotos),
-      ),
+      PhotosCountPage(totals.files),
       if (top != null) TopPercentPage(percent: top, count: totals.files),
     ];
   });
@@ -198,11 +194,9 @@ PlacesQuizPage? _placesQuiz(
 }
 
 PlaceStamp _placeStamp(RewindMedia media, rust.RewindCity city, bool podium) {
-  final picked = media.photos(city.fileIds, podium ? _stampsPerPlace : 1);
   return (
     city: city,
-    photo: picked.firstOrNull,
-    extras: picked.skip(1).toList(),
+    photo: media.photos(city.fileIds, 1).firstOrNull,
     gallery: podium ? media.gallery(city.fileIds, _galleryPhotos) : const [],
   );
 }
