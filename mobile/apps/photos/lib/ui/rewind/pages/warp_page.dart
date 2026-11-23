@@ -197,7 +197,6 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   static const _holdFor = Duration(milliseconds: 250);
   static const _holdSlop = 12.0;
   static const _brakeMs = 90.0;
-  static const _hintFromMs = 1500.0;
   static const _hintMs = 2200.0;
   static const _landingHintMs = 900.0;
   static const _restMs = 500.0;
@@ -232,7 +231,6 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   var _last = Duration.zero;
   var _ms = 0.0;
   var _flownMs = 0.0;
-  var _guidedMs = 0.0;
   var _travelled = 0.0;
   var _previous = 0.0;
   var _velocity = 0.0;
@@ -247,10 +245,8 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   var _rollSide = 1.0;
   var _rolling = false;
   var _hasFlown = false;
-  var _hasRolled = false;
   var _detents = 0;
   var _held = false;
-  var _hasHeld = false;
   var _heldBy = Offset.zero;
   Axis? _heldAxis;
   var _brake = 0.0;
@@ -258,7 +254,6 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   var _gate = -1;
   int? _picked;
   var _pickedFrom = _Course.vanish;
-  var _hasPicked = false;
 
   bool get _landed =>
       widget.walls != null && _travelled >= _course.length - 0.01;
@@ -338,7 +333,6 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   void _fly(double dt) {
     final length = _course.length;
     if (!_piloted) {
-      _guidedMs += dt;
       _flownMs += dt * (1 - _brake);
       _travelled = _still
           ? length
@@ -422,7 +416,6 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
 
   void _rollBy(double dx) {
     _roll += _rollSide * dx / _rollSpan;
-    _hasRolled = true;
   }
 
   void _endRoll(double pixelsPerSecond) {
@@ -451,7 +444,6 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   void _hold(Offset at) {
     _release();
     _held = true;
-    _hasHeld = true;
     _heldBy = Offset.zero;
     _heldAxis = null;
     _velocity = 0;
@@ -501,7 +493,6 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
     _release();
     _piloted = false;
     _flownMs = 0;
-    _guidedMs = 0;
     _velocity = 0;
     _gate = -1;
   }
@@ -547,7 +538,6 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
     _velocity = 0;
     _rollRate = 0;
     _piloted = true;
-    _hasPicked = true;
     _pickedFrom = at;
     _picked = panel;
     _pull.forward(from: 0);
@@ -573,9 +563,8 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
     );
     final picked = _picked;
     final pulled = Curves.easeOutCubic.transform(_pull.value);
-    final canPick = _canPick;
     final forward = _piloted && _heading < 0;
-    final hint = _hint(landed, sinceLanding, canPick);
+    final hint = _hint(landed, sinceLanding);
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -755,10 +744,9 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                                   : forward
                                   ? "FAST FORWARD"
                                   : "REWINDING",
-                              passing == null || landed
+                              icon: passing == null || landed
                                   ? null
-                                  : "${passing.day} ${_months[passing.month - 1]}",
-                              icon: _held
+                                  : _held
                                   ? Icons.pause_rounded
                                   : _idle
                                   ? Icons.swap_vert_rounded
@@ -894,40 +882,22 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
     );
   }
 
-  ({String text, double shown}) _hint(
-    bool landed,
-    double sinceLanding,
-    bool canPick,
-  ) {
+  ({String text, double shown}) _hint(bool landed, double sinceLanding) {
+    if (!landed || _reel || _picked != null) return (text: "", shown: 0);
     double window(double ms, double from, double to) =>
         ((ms - from) / 260).clamp(0.0, 1.0) * ((to - ms) / 420).clamp(0.0, 1.0);
-    final texts = landed
-        ? ["TAP OR SWIPE UP TO GO ON", if (!_hasFlown) "SWIPE DOWN TO FLY BACK"]
-        : [
-            if (!_hasFlown) "SWIPE UP OR DOWN TO FLY",
-            if (canPick && !_hasPicked) "TAP A PHOTO TO PULL IT OUT",
-            if (!_hasRolled) "SWIPE SIDEWAYS TO SPIN IT",
-            if (!canPick && !_hasHeld) "HOLD TO PAUSE",
-          ];
-    if (_reel || _picked != null || texts.isEmpty) return (text: "", shown: 0);
-    if (!canPick && !landed) {
-      final since = _guidedMs - _hintFromMs;
-      final turn = (since / _hintMs).floor().clamp(0, texts.length - 1);
-      return (
-        text: texts[turn],
-        shown: window(since, turn * _hintMs, (turn + 1) * _hintMs),
-      );
-    }
-    final clock = landed ? sinceLanding - _landingHintMs : _ms;
+    final texts = [
+      "TAP OR SWIPE UP TO GO ON",
+      if (!_hasFlown) "SWIPE DOWN TO FLY BACK",
+    ];
+    final clock = sinceLanding - _landingHintMs;
     final turn = (clock / _hintMs).floor() % texts.length;
     final swapping = texts.length == 1
         ? 1.0
         : window(clock % _hintMs, 0, _hintMs);
     return (
       text: texts[turn],
-      shown:
-          swapping *
-          (landed ? window(sinceLanding, _landingHintMs, double.infinity) : 1),
+      shown: swapping * window(sinceLanding, _landingHintMs, double.infinity),
     );
   }
 
@@ -1001,15 +971,14 @@ class _Caption extends StatelessWidget {
 }
 
 class _Counter extends StatelessWidget {
-  const _Counter(this.label, this.date, {required this.icon});
+  const _Counter(this.label, {required this.icon});
 
   final String label;
-  final String? date;
-  final IconData icon;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
-    final date = this.date;
+    final icon = this.icon;
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 9, 16, 8),
       decoration: BoxDecoration(
@@ -1026,26 +995,11 @@ class _Counter extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (date != null) ...[
+            if (icon != null) ...[
               Icon(icon, color: RewindColors.cream, size: 22),
               const SizedBox(width: 6),
             ],
             Text(label, style: RewindTextStyles.display(15, height: 1.1)),
-            if (date != null) ...[
-              const SizedBox(width: 12),
-              SizedBox(
-                width: 86,
-                child: Text(
-                  date,
-                  textAlign: TextAlign.right,
-                  style: RewindTextStyles.display(
-                    24,
-                    color: RewindColors.yellow,
-                    height: 1.05,
-                  ),
-                ),
-              ),
-            ],
           ],
         ),
       ),
