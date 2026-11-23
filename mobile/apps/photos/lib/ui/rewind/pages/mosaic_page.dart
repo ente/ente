@@ -29,7 +29,7 @@ typedef _Sparkle = ({String asset, Rect rect, int delayMs});
 const List<_Sparkle> _sparkles = [
   (
     asset: RewindAssets.pinkSparkle,
-    rect: Rect.fromLTWH(339.75, 93.75, 42.5, 42.5),
+    rect: Rect.fromLTWH(346.75, 89.75, 42.5, 42.5),
     delayMs: 700,
   ),
   (
