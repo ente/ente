@@ -459,13 +459,11 @@
   },
   "backupModeCheckingForMoreItems": "Söker efter fler objekt",
   "backupModeFinishYourBackup": "Slutför din säkerhetskopia",
-  "backupModeKeepAppOpen": "Håll appen öppen",
   "backupModeNoBackupInProgress": "Ingen säkerhetskopiering pågår",
   "backupModeNoBackupInProgressDescription": "Starta en säkerhetskopiering och återgå sedan till säkerhetskopieringsläget.",
   "backupModePlugInPhone": "Anslut telefonen till ström. Säkerhetskopiering använder batteri.",
   "backupModePreservingYourMemories": "Bevarar dina minnen",
   "backupModeScreenDimmingDescription": "Skärmen dimmas för att spara batteri. Tryck när som helst för att återgå.",
-  "backupModeScreenWillDim": "Skärmen tonar ned automatiskt för att spara batteri",
   "backupModeSettingsDescription": "Låt appen vara öppen för att slutföra säkerhetskopieringen",
   "backupModeStart": "Starta säkerhetskopieringsläge",
   "backupModeStayInEnte": "Stanna i Ente. Säkerhetskopieringen pausas om du byter app.",
@@ -1525,7 +1523,7 @@
       },
       "now": {
         "type": "String",
-        "description": "The localized word for now, rendered in a handwritten style. Keep this placeholder rather than writing the word directly."
+        "description": "The localized word for now, styled like the year numbers. Keep this placeholder rather than writing the word directly."
       }
     }
   },
@@ -1639,7 +1637,6 @@
     "description": "FAQ link label"
   },
   "faqs": "Vanliga frågor",
-  "fasterUploads": "Snabbare uppladdningar",
   "favorite": "Favorit",
   "feastingWithThem": "Måltid med {name}",
   "@feastingWithThem": {
@@ -4553,6 +4550,7 @@
   },
   "totalSize": "Total storlek",
   "trash": "Papperskorg",
+  "trashAutoDeleteNotice": "Objekt i papperskorgen raderas permanent efter 30 dagar",
   "restoreOrPermanentlyDeleteItems": "Återställ eller ta bort objekt permanent",
   "trashClearedSuccessfully": "Papperskorgen tömdes",
   "trashCode": "Ta bort kod?",

@@ -435,13 +435,11 @@
   },
   "backupModeCheckingForMoreItems": "추가 항목 확인 중",
   "backupModeFinishYourBackup": "백업을 완료하세요",
-  "backupModeKeepAppOpen": "화면 열린 상태 유지",
   "backupModeNoBackupInProgress": "백업이 진행 중이지 않습니다",
   "backupModeNoBackupInProgressDescription": "백업을 시작한 다음 백업 모드로 돌아가십시오.",
   "backupModePlugInPhone": "휴대전화를 충전기에 연결하세요. 백업 시 배터리가 소모됩니다.",
   "backupModePreservingYourMemories": "소중한 추억 간직하기",
   "backupModeScreenDimmingDescription": "배터리를 절약하기 위해 화면이 어두워집니다. 언제든지 화면을 누르면 다시 돌아옵니다.",
-  "backupModeScreenWillDim": "배터리를 절약하기 위해 화면이 자동으로 어두워집니다",
   "backupModeSettingsDescription": "백업을 완료하려면 화면을 계속 열어 두세요",
   "backupModeStart": "백업 모드 시작",
   "backupModeStayInEnte": "Ente를 계속 실행해 주세요. 화면을 전환하면 백업이 일시 중지됩니다.",
@@ -681,7 +679,7 @@
     }
   },
   "compactMode": "조밀하게 보기",
-  "comparingImageDetails": "이미지 세부 정보 비교 중...",
+  "comparingImageDetails": "{count, plural, =0{댓글 없음} one{댓글 {count}개} other{댓글 {count}개}}",
   "concertNights": "콘서트의 밤",
   "confirm": "확인",
   "@confirm": {
@@ -1585,7 +1583,6 @@
     "description": "FAQ link label"
   },
   "faqs": "자주 묻는 질문",
-  "fasterUploads": "더 빠른 업로드",
   "favorite": "즐겨 찾기",
   "feastingWithThem": "{name}님과 함께한 식사",
   "@feastingWithThem": {
@@ -4992,7 +4989,7 @@
     }
   },
   "shareAllPersonPhotos": "모든 사진 공유",
-  "shareAllPersonPhotosDescription": "{name}님이 나온 모든 사진(앞으로 추가될 사진 포함)",
+  "shareAllPersonPhotosDescription": "모든 사진 공유",
   "@shareAllPersonPhotosDescription": {
     "placeholders": {
       "name": {

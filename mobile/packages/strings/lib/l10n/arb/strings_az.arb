@@ -1,4 +1,43 @@
 {
+  "allCleanedUp": "Hər yer təmizləndi!",
+  "collectionCount": "{count, plural, one{{count} kolleksiya} other{{count} kolleksiya}}",
+  "@collectionCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bringMemoriesTogether": "Xatirənizi bir araya gətirin",
+  "@bringMemoriesTogether": {
+    "description": "Title on the Local Gallery photo permission screen"
+  },
+  "createMyAccount": "Hesab yarat",
+  "@createMyAccount": {
+    "description": "Create account button on the Photos onboarding screen"
+  },
+  "dragToCompare": "Müqayisə etmək üçün sürüşdür",
+  "@dragToCompare": {
+    "description": "Hint under two photos of the same scene taken years apart, shown behind a draggable divider"
+  },
+  "localGalleryPermissionDesc": "Şəkillərinizə daxil olmaq və onları üz tanıma texnologiyası vasitəsilə təşkil etmək üçün icazə verin; bu proses tamamilə cihazınızda həyata keçirilir.",
+  "@localGalleryPermissionDesc": {
+    "description": "Photo permission explanation shown during Local Gallery onboarding"
+  },
+  "onboardingOrganizeDesc": "Şəkil və videolarınızı təşkil edin. Hər bir xatirə – bir yerdə.",
+  "@onboardingOrganizeDesc": {
+    "description": "Description on the Photos onboarding screen"
+  },
+  "oneDayInMonth": "{month} bir gün",
+  "@oneDayInMonth": {
+    "description": "Title of a memory telling the story of a single day, when the place is unknown",
+    "placeholders": {
+      "month": {
+        "type": "String",
+        "example": "April 2022"
+      }
+    }
+  },
   "about": "Haqqında",
   "acceptTrustInvite": "Dəvəti qəbul et",
   "account": "Hesab",
