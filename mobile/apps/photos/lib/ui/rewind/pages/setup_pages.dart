@@ -96,7 +96,11 @@ const busiestDaySetupPage = SetupPage(
       size: 59,
     ),
   ],
-  callout: SetupCallout("HELP!", center: Offset(201.2, 350), onTop: true),
+  callout: SetupCallout(
+    "AND CLICKING!",
+    center: Offset(201.2, 350),
+    onTop: true,
+  ),
   art: SetupArt.image(
     RewindAssets.photoHeapDucky,
     Rect.fromLTWH(-75, 281, 540, 540),
