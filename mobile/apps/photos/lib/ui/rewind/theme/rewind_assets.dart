@@ -45,6 +45,10 @@ abstract final class RewindAssets {
   static const yellowConfetti = "$_images/finale-confetti-yellow.svg";
   static const topBadgeSparkle = "$_images/badge-sparkle-top.svg";
   static const bottomBadgeSparkle = "$_images/badge-sparkle-bottom.svg";
+  static const outroLockup = "$_images/outro-lockup.svg";
+  static const outroUnderline = "$_images/outro-underline.svg";
+  static const googlePlayBadge = "$_images/outro-google-play.png";
+  static const appStoreBadge = "$_images/outro-app-store.svg";
 
   static String lockupPiece(String name) => "$_images/lockup-$name.svg";
 
