@@ -132,7 +132,7 @@ tsify = { version = "0.5.8", default-features = false, features = ["js"] }
 unicode-normalization = "0.1.25"
 uniffi = { version = "=0.32.2" }
 uniffi_bindgen = { version = "=0.32.2", default-features = false, features = ["cargo-metadata"] }
-url = "2.5.8"
+url = "2.5.9"
 urlencoding = "2.1.3"
 uuid = "1.26.1"
 wasm-bindgen = "0.2.125"
