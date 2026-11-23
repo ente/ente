@@ -446,6 +446,20 @@ Unfortunately, we cannot apply discount codes retroactively. However, you can:
 
 Contact [support@ente.com](mailto:support@ente.com) if you have questions about your specific situation.
 
+### Do Ente subscribers get discounts on other privacy apps? {#friends-perks}
+
+Yes. Through [Ente Friends](https://ente.com/friends), paid Ente subscribers can get discounts or free trials from partner services, such as a three-month trial of Kagi's Professional plan or a discount on Tuta. The page lists the current partners and offers.
+
+To claim an offer:
+
+1. Open [ente.com/friends](https://ente.com/friends)
+2. Under the offer you want, enter the email address of your Ente account
+3. Click **Get coupon**
+
+The code is sent to that email address if the account is on an active paid plan. If you're part of a family plan, the plan admin can claim offers. If you don't receive an email, check your spam folder and make sure you used the email address of your Ente account. Requesting the same offer again resends the same code.
+
+Redeem the code on the partner's website. For help with a partner's service, contact that partner.
+
 ## Referral Program
 
 ### How can I earn free storage? {#earn-storage-referrals}
@@ -707,6 +721,14 @@ Yes! Switching between monthly and yearly billing works the same as upgrading or
 - Renewal date remains the same
 
 The same prorating calculation applies as described above.
+
+### Can I choose the day my subscription renews? {#choose-renewal-date}
+
+Your subscription renews on its current billing date, each month for a monthly plan or each year for a yearly plan. That date starts when you subscribe and can change after a plan change. You can't set a different renewal day for an active subscription.
+
+If you want to subscribe on a particular day, cancel your current subscription and contact [support@ente.com](mailto:support@ente.com). For plans billed directly by Ente, we can help you move to the free plan so you can subscribe again on the day you choose. If you are subscribing for the first time, subscribe on that day.
+
+For plans billed directly by Ente, upgrading or switching from monthly to yearly starts a new renewal date when the change takes effect. Changes to a subscription billed through the Apple App Store follow Apple's rules and may start at the next renewal instead. See [What happens when I upgrade my plan?](#upgrade-plan).
 
 ### If I subscribed to a plan with a reference code and a discount, and then need to upgrade/downgrade, what happens to my discount and bonus? {#upgrade-discount-referral}
 
