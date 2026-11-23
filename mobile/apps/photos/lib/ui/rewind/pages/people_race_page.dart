@@ -133,7 +133,7 @@ class _PeopleRaceState extends State<_PeopleRace>
   late final _replayed = _phase == _Phase.done;
   late var _order = List.of(widget.page._start);
   late var _cue = _question;
-  late var _cueDetail = _reel ? "" : "Make a guess 👀";
+  late var _cueDetail = _reel ? "" : "Tap a face to guess.";
   var _world = 0.0;
   var _speedFactor = 0.0;
   var _lastMs = 0.0;

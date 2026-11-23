@@ -336,7 +336,7 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
                   ),
                   const SizedBox(height: 7),
                   Text(
-                    "Make a guess 👀",
+                    "Tap a stamp to guess.",
                     textAlign: TextAlign.center,
                     style: RewindTextStyles.body(17, height: 1.2),
                   ),

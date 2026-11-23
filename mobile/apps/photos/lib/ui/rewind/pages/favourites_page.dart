@@ -30,7 +30,8 @@ _Pose _lerp(_Pose a, _Pose b, double t) => (
   opacity: lerpDouble(a.opacity, b.opacity, t)!,
 );
 
-const _line = "Memories to be grateful for!";
+const _line = "Memories to cherish.";
+const _sharedLine = "A memory to cherish.";
 const _titleRect = Rect.fromLTWH(28, 664, 334, 40);
 const _lineRect = Rect.fromLTWH(28, 718, 334, 22);
 const _sparkleAt = Offset(38.9, 110.9);
@@ -73,9 +74,6 @@ class FavouritesPage extends RewindPage {
   Duration? get reelHold => const Duration(milliseconds: 7100);
 
   @override
-  Duration? get clipHold => const Duration(milliseconds: 15000);
-
-  @override
   Widget build(
     BuildContext context,
     double position, {
@@ -103,7 +101,6 @@ class _Favourites extends StatefulWidget {
 class _FavouritesState extends State<_Favourites> {
   static const _firstTurnMs = 2200.0;
   static const _beatMs = 2100.0;
-  static const _clipSlowdown = 2.0;
   static const _handsOffMs = 3000.0;
   static const _turn = RewindMotion.soft;
   static const _dragPerTurn = 110.0;
@@ -125,8 +122,6 @@ class _FavouritesState extends State<_Favourites> {
 
   double get _turnMs => _turn.duration.inMilliseconds.toDouble();
 
-  late final _slowdown = RewindPageScope.clipOf(context) ? _clipSlowdown : 1.0;
-
   static int _frontOf(double spun) => (spun + 0.5).floor();
 
   double _spunAt(double ms, {required bool still}) {
@@ -134,9 +129,7 @@ class _FavouritesState extends State<_Favourites> {
     if (dragged != null) return dragged;
     final settle = _settle;
     if (settle == null) {
-      return _wraps
-          ? _autoSpun(ms, from: 0, turnAtMs: _firstTurnMs * _slowdown)
-          : 0;
+      return _wraps ? _autoSpun(ms, from: 0, turnAtMs: _firstTurnMs) : 0;
     }
     final into = ms - settle.atMs;
     if (!still && into >= 0 && into < _turnMs) {
@@ -158,9 +151,8 @@ class _FavouritesState extends State<_Favourites> {
   }) {
     if (ms < turnAtMs) return from;
     final since = ms - turnAtMs;
-    final beatMs = _beatMs * _slowdown;
-    final turns = (since / beatMs).floor();
-    final within = (since - turns * beatMs) / _turnMs;
+    final turns = (since / _beatMs).floor();
+    final within = (since - turns * _beatMs) / _turnMs;
     return from + turns + _turn.transform(min(1.0, within));
   }
 
@@ -348,13 +340,11 @@ class _FavouritesState extends State<_Favourites> {
                     position: position,
                     active: isActive,
                     delayMs: 1600,
-                    child: capturing
-                        ? const SizedBox.shrink()
-                        : Text(
-                            _line,
-                            textAlign: TextAlign.center,
-                            style: RewindTextStyles.body(17),
-                          ),
+                    child: Text(
+                      capturing ? _sharedLine : _line,
+                      textAlign: TextAlign.center,
+                      style: RewindTextStyles.body(17),
+                    ),
                   ),
                 ],
               ),

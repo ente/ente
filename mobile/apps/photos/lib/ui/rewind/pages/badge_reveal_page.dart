@@ -272,27 +272,35 @@ class BadgeRevealPage extends RewindPage {
                 left: 33,
                 top: 109,
                 width: 324,
-                child: RewindLeave(
-                  position: position,
-                  centerY: 141,
-                  child: Semantics(
-                    header: true,
-                    label: "What my photos say about me",
-                    child: ExcludeSemantics(
-                      child: RewindEntrance(
-                        preset: RewindPreset.rise,
-                        active: isActive,
-                        child: RewindFitWidth(
-                          width: 324,
-                          alignment: Alignment.topCenter,
-                          child: Text(
-                            "WHAT MY PHOTOS\nSAY ABOUT ME",
-                            textAlign: TextAlign.center,
-                            style: RewindTextStyles.display(
-                              31.685,
-                              color: RewindColors.white,
-                              height: 1,
-                              letterSpacing: 0.6337,
+                child: Builder(
+                  builder: (context) => Visibility(
+                    visible: RewindShareable.capturing(context),
+                    maintainState: true,
+                    maintainAnimation: true,
+                    maintainSize: true,
+                    child: RewindLeave(
+                      position: position,
+                      centerY: 141,
+                      child: Semantics(
+                        header: true,
+                        label: "What my photos say about me",
+                        child: ExcludeSemantics(
+                          child: RewindEntrance(
+                            preset: RewindPreset.rise,
+                            active: isActive,
+                            child: RewindFitWidth(
+                              width: 324,
+                              alignment: Alignment.topCenter,
+                              child: Text(
+                                "WHAT MY PHOTOS\nSAY ABOUT ME",
+                                textAlign: TextAlign.center,
+                                style: RewindTextStyles.display(
+                                  26,
+                                  color: RewindColors.white,
+                                  height: 1,
+                                  letterSpacing: 0.52,
+                                ),
+                              ),
                             ),
                           ),
                         ),
