@@ -240,10 +240,10 @@ const badgeSetupPage = SetupPage(
   pattern: Color(0xFF11B72A),
   ink: RewindColors.cream,
   headlines: [
-    SetupHeadline("A YEAR LIKE\nYOURS…", at: Offset(24, 140), size: 45),
+    SetupHeadline("AFTER A YEAR\nLIKE THAT…", at: Offset(24, 140), size: 45),
   ],
   callout: SetupCallout(
-    "DESERVES A BADGE.",
+    "YOU DESERVE A BADGE!",
     center: Offset(196.5, 395),
     size: 29.01,
   ),
