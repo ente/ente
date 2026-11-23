@@ -8,12 +8,16 @@ import {
 import { allowWindowClose } from "../main";
 import { forceCheckForAppUpdates } from "./services/app-update";
 import { setShouldHideDockIcon, shouldHideDockIcon } from "./services/store";
+import { isFlatpak } from "./utils/electron";
 
 export const createApplicationMenu = (mainWindow: BrowserWindow) => {
     let hideDockIcon = shouldHideDockIcon();
 
     const macOSOnly = (options: MenuItemConstructorOptions[]) =>
         process.platform == "darwin" ? options : [];
+
+    const nonFlatpakOnly = (options: MenuItemConstructorOptions[]) =>
+        isFlatpak ? [] : options;
 
     const handleCheckForUpdates = () => forceCheckForAppUpdates(mainWindow);
 
@@ -31,8 +35,13 @@ export const createApplicationMenu = (mainWindow: BrowserWindow) => {
             submenu: [
                 ...macOSOnly([{ label: "About Ente", role: "about" }]),
                 { type: "separator" },
-                { label: "Check for Updates...", click: handleCheckForUpdates },
-                { type: "separator" },
+                ...nonFlatpakOnly([
+                    {
+                        label: "Check for Updates...",
+                        click: handleCheckForUpdates,
+                    },
+                    { type: "separator" },
+                ]),
 
                 ...macOSOnly([
                     {
