@@ -376,16 +376,19 @@ class _BodyState extends State<_Body> {
             child: ValueListenableBuilder(
               builder: (BuildContext context, int selectedIndex, _) {
                 if (widget.config.mode == DetailPageMode.selection) {
+                  final onBack = widget.config.onBackPressed;
                   return AppBar(
                     backgroundColor: context.componentColors.backgroundBase,
                     foregroundColor: context.componentColors.textBase,
                     elevation: 0,
                     centerTitle: true,
-                    leading: IconButton(
-                      icon: const Icon(Icons.close),
-                      tooltip: context.strings.close,
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
+                    leading: onBack == null
+                        ? IconButton(
+                            icon: const Icon(Icons.close),
+                            tooltip: context.strings.close,
+                            onPressed: () => Navigator.of(context).pop(),
+                          )
+                        : BackButton(onPressed: () => onBack(context)),
                     title: Text(
                       widget.config.selectionLimit == null
                           ? context.strings.selectedCount(count: _files!.length)

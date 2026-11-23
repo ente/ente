@@ -44,8 +44,10 @@ Future<List<AssetEntity>?> showDevicePicker(
 
 typedef DevicePickerContents = ({
   DevicePickerController model,
-  Widget Function(SelectedFiles) media,
+  Widget Function(SelectedFiles files, {DevicePickerFileLoader? loadFiles})
+  media,
   Widget Function(ValueChanged<AssetPathEntity>) albums,
+  Widget Function(Widget media, Widget preview, Widget addButton) browser,
 });
 
 class DevicePickerPage extends StatefulWidget {
@@ -241,8 +243,18 @@ class _DevicePickerPageState extends State<DevicePickerPage>
   @override
   Widget build(BuildContext context) {
     if (widget.contentBuilder case final builder?) {
-      return builder((model: _model, media: _grid, albums: _albumList));
+      return builder((
+        model: _model,
+        media: _grid,
+        albums: _albumList,
+        browser: _browser,
+      ));
     }
+    return _browser();
+  }
+
+  Widget _browser([Widget? media, Widget? preview, Widget? addButton]) {
+    final external = media != null;
     final colors = context.componentColors;
     return GalleryBoundariesProvider(
       child: AnnotatedRegion<SystemUiOverlayStyle>(
@@ -274,16 +286,22 @@ class _DevicePickerPageState extends State<DevicePickerPage>
                       child: Row(
                         children: [
                           IconButtonComponent(
-                            icon: const HugeIcon(
-                              icon: HugeIcons.strokeRoundedCancel01,
-                              size: IconSizes.medium,
-                            ),
-                            tooltip: context.strings.close,
+                            icon: external
+                                ? const BackButtonIcon()
+                                : const HugeIcon(
+                                    icon: HugeIcons.strokeRoundedCancel01,
+                                    size: IconSizes.medium,
+                                  ),
+                            tooltip: external
+                                ? context.strings.back
+                                : context.strings.close,
                             size: 48,
                             iconSize: IconSizes.medium,
                             onTap: () {
                               if (_albumMenu) {
                                 setState(() => _albumMenu = false);
+                              } else if (external) {
+                                Navigator.maybePop(context);
                               } else {
                                 Navigator.pop(context);
                               }
@@ -321,21 +339,24 @@ class _DevicePickerPageState extends State<DevicePickerPage>
                           ),
                           SizedBox.square(
                             dimension: 48,
-                            child: ListenableBuilder(
-                              listenable: _model.selectionChanges,
-                              builder: (context, _) => _model.selection.isEmpty
-                                  ? const SizedBox.shrink()
-                                  : SelectionPreviewButton(
-                                      file: fileFromAsset(
-                                        '',
-                                        _model.selection.last,
-                                      ),
-                                      count: _model.selectionCount,
-                                      onTap: _model.confirming
-                                          ? null
-                                          : _previewSelection,
-                                    ),
-                            ),
+                            child:
+                                preview ??
+                                ListenableBuilder(
+                                  listenable: _model.selectionChanges,
+                                  builder: (context, _) =>
+                                      _model.selection.isEmpty
+                                      ? const SizedBox.shrink()
+                                      : SelectionPreviewButton(
+                                          file: fileFromAsset(
+                                            '',
+                                            _model.selection.last,
+                                          ),
+                                          count: _model.selectionCount,
+                                          onTap: _model.confirming
+                                              ? null
+                                              : _previewSelection,
+                                        ),
+                                ),
                           ),
                         ],
                       ),
@@ -351,13 +372,18 @@ class _DevicePickerPageState extends State<DevicePickerPage>
                               Expanded(
                                 child: Stack(
                                   children: [
-                                    Positioned.fill(child: _grid()),
+                                    Positioned.fill(
+                                      child: media ?? _grid(null),
+                                    ),
                                     PositionedDirectional(
                                       end: Spacing.lg,
                                       bottom: Spacing.sm,
                                       child: ListenableBuilder(
                                         listenable: _model.selectionChanges,
                                         builder: (context, _) {
+                                          if (external) {
+                                            return const SizedBox.shrink();
+                                          }
                                           final count = _model.selectionCount;
                                           final limit = _model.selectionLimit;
                                           final summary = limit == null
@@ -392,10 +418,11 @@ class _DevicePickerPageState extends State<DevicePickerPage>
                                   ],
                                 ),
                               ),
-                              _DevicePickerBoundary(
-                                position: BoundaryPosition.bottom,
-                                child: _addButton(_addSelected),
-                              ),
+                              addButton ??
+                                  _DevicePickerBoundary(
+                                    position: BoundaryPosition.bottom,
+                                    child: _addButton(_addSelected),
+                                  ),
                             ],
                           ),
                         ),
@@ -479,7 +506,10 @@ class _DevicePickerPageState extends State<DevicePickerPage>
     );
   }
 
-  Widget _grid([SelectedFiles? selectedFiles]) {
+  Widget _grid(
+    SelectedFiles? selectedFiles, {
+    DevicePickerFileLoader? loadFiles,
+  }) {
     if (!_model.hasAccess && !_model.refreshing) {
       return _DevicePickerMessage(
         message: context.strings.devicePickerPermissionHint,
@@ -521,6 +551,7 @@ class _DevicePickerPageState extends State<DevicePickerPage>
     return DevicePickerGallery(
       model: _model,
       selectedFiles: selectedFiles,
+      loadFiles: loadFiles,
       header: limitedAccessNotice,
       footer: Column(
         children: [

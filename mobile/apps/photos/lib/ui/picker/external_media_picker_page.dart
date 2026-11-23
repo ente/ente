@@ -36,7 +36,6 @@ import "package:photos/models/search/search_result.dart";
 import "package:photos/models/search/search_types.dart";
 import "package:photos/models/selected_files.dart";
 import "package:photos/module/download/file.dart";
-import "package:photos/module/metadata/local_file.dart";
 import "package:photos/module/share/picker_result_uri.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
@@ -104,18 +103,22 @@ class _Picker extends StatefulWidget {
     required this.requestType,
     required this.allowMultiple,
     this.local,
+    this.sharedSelection,
   });
 
   final RequestType requestType;
   final bool allowMultiple;
   final DevicePickerContents? local;
+  final _PickerSelection? sharedSelection;
 
   @override
   State<_Picker> createState() => _PickerState();
 }
 
 class _PickerState extends State<_Picker> with WidgetsBindingObserver {
-  final _selectedFiles = SelectedFiles(dedupeByUploadID: true);
+  late final _selectedFiles =
+      widget.sharedSelection ??
+      _PickerSelection(() => _hiddenUploadIDs, _refreshSelectionVisibility);
   final _logger = Logger("ExternalMediaPicker");
   final _searchQueryService = SearchQueryService(SearchService.instance);
   final _subscriptions = <StreamSubscription<Event>>[];
@@ -163,6 +166,7 @@ class _PickerState extends State<_Picker> with WidgetsBindingObserver {
       _refreshingDevice = device.refreshing;
       if (_refreshingDevice) _deviceCheck = Completer<void>();
       device.addListener(_deviceChanged);
+      if (widget.sharedSelection != null) return;
       _subscriptions.add(
         Bus.instance.on<LocalPhotosUpdatedEvent>().listen((_) {
           if (_query.isNotEmpty &&
@@ -238,13 +242,15 @@ class _PickerState extends State<_Picker> with WidgetsBindingObserver {
     } else {
       if (!device.hasAccess || device.error != null) {
         if (!device.hasAccess) {
-          _removeUnavailable(_selectedFiles.files.toSet());
+          _removeUnavailable(
+            _selectedFiles.files.where(_needsDeviceAsset).toSet(),
+          );
           if (_searchResult != null) {
             _searchResult = null;
             _searchController.text = _query = _browseOriginQuery;
           }
         }
-        _closePreview();
+        if (_preview?.files.any(_needsDeviceAsset) ?? false) _closePreview();
         _finishDeviceCheck(failed: device.error != null);
         return;
       }
@@ -274,6 +280,9 @@ class _PickerState extends State<_Picker> with WidgetsBindingObserver {
     }
   }
 
+  bool _needsDeviceAsset(EnteFile file) =>
+      widget.sharedSelection == null || !file.isUploaded;
+
   void _trackPreview(Route<dynamic> route, List<EnteFile> files) {
     if (identical(_preview?.route, route)) return;
     _preview = (route: route, files: files);
@@ -297,11 +306,11 @@ class _PickerState extends State<_Picker> with WidgetsBindingObserver {
     bool isCurrent() => mounted && identical(_deviceCheck, check);
     try {
       final missingIDs =
-          [
-              ...selected,
-              ...?resultFiles,
-              ...?preview?.files,
-            ].map((file) => file.localID).nonNulls.toSet()
+          [...selected, ...?resultFiles, ...?preview?.files]
+              .where(_needsDeviceAsset)
+              .map((file) => file.localID)
+              .nonNulls
+              .toSet()
             ..removeWhere(device.hasLoadedMedia);
       final remaining = await accessiblePickerAssets(
         device,
@@ -311,7 +320,8 @@ class _PickerState extends State<_Picker> with WidgetsBindingObserver {
       if (!isCurrent()) return;
       missingIDs.removeAll(remaining.keys);
       bool missing(EnteFile file) =>
-          file.localID == null || missingIDs.contains(file.localID);
+          _needsDeviceAsset(file) &&
+          (file.localID == null || missingIDs.contains(file.localID));
       _removeUnavailable(selected.where(missing).toSet());
       if (preview != null &&
           preview == _preview &&
@@ -360,7 +370,7 @@ class _PickerState extends State<_Picker> with WidgetsBindingObserver {
     _searchController.dispose();
     _searchFocusNode.dispose();
     _headerScrollController.dispose();
-    _selectedFiles.dispose();
+    if (widget.sharedSelection == null) _selectedFiles.dispose();
     super.dispose();
   }
 
@@ -771,60 +781,21 @@ class _PickerState extends State<_Picker> with WidgetsBindingObserver {
     }
     setState(() => _isBusy = true);
     try {
-      final files = _selectedFiles.files.toList();
-      final initial = <AssetEntity>[];
-      final initialFiles = Set<EnteFile>.identity();
-      for (var offset = 0; offset < files.length; offset += 8) {
-        final assets = await Future.wait(
-          files.skip(offset).take(8).map((file) => file.getAsset),
-        );
-        if (!mounted) return;
-        for (final (index, asset) in assets.indexed) {
-          if (asset == null) continue;
-          initial.add(asset);
-          initialFiles.add(files[offset + index]);
-        }
-      }
-      final initialUploadedIDs = initialFiles
-          .map((file) => file.uploadedFileID)
-          .nonNulls
-          .toSet();
-      final result = await showDevicePicker(
-        context,
-        initialAlbumID: initialAlbumID,
-        requestType: widget.requestType,
-        selectionLimit: widget.allowMultiple ? null : 1,
-        initialSelection: initial,
-        allowEmptySelection: initial.isNotEmpty,
-      );
-      if (result == null || !mounted) return;
-      var knownFiles = <String, EnteFile>{};
-      try {
-        final files = await const PhotoManagerDeviceLibrary().files(
-          result.map((asset) => asset.id).toList(),
-        );
-        if (files.isNotEmpty) {
-          final excluded = await _hiddenUploadIDs;
-          files.removeWhere(
-            (_, file) => excluded.contains(file.uploadedFileID),
-          );
-        }
-        knownFiles = files;
-      } catch (error, stack) {
-        _logger.warning("Could not read device file metadata", error, stack);
-      }
-      if (!mounted) return;
-      _selectedFiles.replaceSelection({
-        if (widget.allowMultiple)
-          ..._selectedFiles.files.where(
-            (file) =>
-                file.isUploaded &&
-                !initialFiles.contains(file) &&
-                !initialUploadedIDs.contains(file.uploadedFileID),
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => DevicePickerPage(
+            requestType: widget.requestType,
+            initialAlbumID: initialAlbumID,
+            selectionLimit: widget.allowMultiple ? null : 1,
+            contentBuilder: (contents) => _Picker(
+              requestType: widget.requestType,
+              allowMultiple: widget.allowMultiple,
+              local: contents,
+              sharedSelection: _selectedFiles,
+            ),
           ),
-        for (final asset in result)
-          knownFiles[asset.id] ?? fileFromAsset('', asset),
-      });
+        ),
+      );
     } catch (error, stack) {
       _logger.warning("Could not pick device media", error, stack);
       if (mounted) showShortToast(context, context.strings.somethingWentWrong);
@@ -868,10 +839,13 @@ class _PickerState extends State<_Picker> with WidgetsBindingObserver {
                           files.length - 1,
                           "external_media_picker_selection",
                           mode: DetailPageMode.selection,
-                          isLocalOnlyContext: widget.local != null,
+                          isLocalOnlyContext:
+                              widget.local != null &&
+                              widget.sharedSelection == null,
                           showEditAction: false,
                           showGalleryFilmstrip: true,
                           selectionLimit: widget.allowMultiple ? null : 1,
+                          onBackPressed: (context) => Navigator.pop(context),
                           onSelectionRemoved: (file) =>
                               _selectedFiles.unSelectAll({file}),
                         ),
@@ -898,16 +872,27 @@ class _PickerState extends State<_Picker> with WidgetsBindingObserver {
     }
   }
 
+  Future<String?> _deviceUri(EnteFile file, AssetEntity? asset) async {
+    final uri = await asset?.getMediaUrl();
+    if (uri != null) return uri;
+    final source = asset != null && file.localID != asset.id
+        ? file.copyWith(localID: asset.id)
+        : file;
+    return (await getFileForEditing(source))?.uri.toString();
+  }
+
   Future<List<String>?> _localPickerUris(
     DevicePickerController device,
     List<EnteFile> selected,
   ) async {
-    bool current() => mounted && identical(_preparingFiles, selected);
     final route = ModalRoute.of(context);
+    bool current() =>
+        mounted &&
+        identical(_preparingFiles, selected) &&
+        route?.isCurrent == true;
     bool canReturn() =>
         !_deviceCheckFailed &&
-        device.hasAccess &&
-        route?.isCurrent == true &&
+        (device.hasAccess || !selected.any(_needsDeviceAsset)) &&
         _selectedFiles.files.containsAll(selected);
     while (current()) {
       if (_deviceCheck case final check?) {
@@ -919,13 +904,17 @@ class _PickerState extends State<_Picker> with WidgetsBindingObserver {
       try {
         final assets = await accessiblePickerAssets(
           device,
-          selected.map((file) => file.localID).nonNulls,
+          selected.map(_selectedFiles.assetID).nonNulls,
           current,
         );
         if (!current()) return null;
         if (_deviceCheck != null || !identical(albums, device.albums)) continue;
         final missing = selected
-            .where((file) => !assets.containsKey(file.localID))
+            .where(
+              (file) =>
+                  _needsDeviceAsset(file) &&
+                  !assets.containsKey(_selectedFiles.assetID(file)),
+            )
             .toSet();
         if (missing.isNotEmpty) {
           _removeUnavailable(missing);
@@ -933,23 +922,43 @@ class _PickerState extends State<_Picker> with WidgetsBindingObserver {
         }
         final uris = <String>[];
         for (final file in selected) {
-          final uri =
-              await assets[file.localID]!.getMediaUrl() ??
-              (await getFile(file))?.uri.toString();
+          final uri = await _deviceUri(
+            file,
+            assets[_selectedFiles.assetID(file)],
+          );
           if (!current()) return null;
           if (uri == null) throw StateError("Could not prepare device item");
           uris.add(uri);
+        }
+        final shared = widget.sharedSelection;
+        if (shared != null && selected.any((file) => file.isUploaded)) {
+          await shared.checkVisibility();
         }
         while (_deviceCheck != null) {
           await _deviceCheck!.future;
           if (!current()) return null;
         }
-        return canReturn() ? uris : null;
+        if (!identical(albums, device.albums)) continue;
+        return current() && canReturn() ? uris : null;
       } catch (_) {
+        if (!current()) return null;
         if (_deviceCheck == null && identical(albums, device.albums)) rethrow;
       }
     }
     return null;
+  }
+
+  Future<String?> _signedInUri(EnteFile file) async {
+    final id = _selectedFiles.pickedDeviceID(file);
+    if (id == null) return getPickerResultUri(file);
+    final preparing = _preparingFiles;
+    final asset = await AssetEntity.fromId(id);
+    if (!mounted || !identical(_preparingFiles, preparing)) return null;
+    if (asset == null && !file.isUploaded) {
+      _removeUnavailable({file});
+      return null;
+    }
+    return _deviceUri(file, asset);
   }
 
   Future<void> _completeSelection() async {
@@ -971,12 +980,19 @@ class _PickerState extends State<_Picker> with WidgetsBindingObserver {
         uris.addAll(localUris);
       } else {
         for (final file in selectedFiles) {
-          final uri = await getPickerResultUri(file).onError((error, stack) {
+          final uri = await _signedInUri(file).onError((error, stack) {
             _logger.warning("Could not prepare picker item", error, stack);
             return null;
           });
           if (!mounted || _preparingFiles != selectedFiles) return;
+          if (uri == null && !_selectedFiles.isFileSelected(file)) return;
           if (uri != null) uris.add(uri);
+        }
+        if (uris.length != selectedFiles.length &&
+            selectedFiles.any(
+              (file) => _selectedFiles.pickedDeviceID(file) != null,
+            )) {
+          throw StateError("Could not prepare the full picker selection");
         }
         if (selectedFiles.any((file) => file.isUploaded)) {
           await _refreshSelectionVisibility();
@@ -1040,7 +1056,7 @@ class _PickerState extends State<_Picker> with WidgetsBindingObserver {
     final dismissInput = _editingSearch || _backStartedInSearch;
     _dismissSearch();
     if (dismissInput) return;
-    if (_isBusy || _refreshingDevice) {
+    if (_isBusy || (_refreshingDevice && _isBrowsingResult)) {
       return;
     }
     if (_query.isNotEmpty) {
@@ -1072,11 +1088,57 @@ class _PickerState extends State<_Picker> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final local = widget.local;
+    final previewButton = ListenableBuilder(
+      listenable: _selectedFiles,
+      builder: (context, _) => _selectedFiles.files.isEmpty || _verifyingAccess
+          ? const SizedBox.shrink()
+          : SizedBox.square(
+              dimension: 48,
+              child: SelectionPreviewButton(
+                file: _selectedFiles.files.last,
+                count: _selectedFiles.files.length,
+                onTap: _isBusy ? null : _previewSelection,
+              ),
+            ),
+    );
+    final addButton = _PickerActionBar(
+      selectedFiles: _selectedFiles,
+      isCompleting: _isBusy || _verifyingAccess,
+      onAdd: _completeSelection,
+    );
+    final deviceStatus = _deviceCheckFailed && _deviceCheck == null
+        ? Center(
+            child: ButtonComponent(
+              label: context.strings.retry,
+              onTap: () => local!.model.refresh(),
+            ),
+          )
+        : _verifyingAccess
+        ? const Center(child: LoadingComponent())
+        : null;
+    if (widget.sharedSelection != null) {
+      return SelectionState(
+        selectedFiles: _selectedFiles,
+        respectSystemGestureInsets: true,
+        onPreview: _trackPreview,
+        child: local!.browser(
+          deviceStatus ??
+              AbsorbPointer(
+                absorbing: _isBusy,
+                child: local.media(
+                  _selectedFiles,
+                  loadFiles: _selectedFiles.loadDeviceFiles,
+                ),
+              ),
+          previewButton,
+          addButton,
+        ),
+      );
+    }
     final localResultFiles = local == null
         ? null
         : _searchResult?.resultFiles();
     final isBrowsingResult = _isBrowsingResult;
-    final showBack = isBrowsingResult && _preparingFiles == null;
     final bottomPadding = Spacing.md + MediaQuery.paddingOf(context).bottom;
     late final deviceButton = ConstrainedBox(
       constraints: BoxConstraints(
@@ -1119,10 +1181,7 @@ class _PickerState extends State<_Picker> with WidgetsBindingObserver {
             vertical: Spacing.sm,
           ),
           child: TapRegion(
-            onTapInside: (_) {
-              _backStartedInSearch = false;
-              _keyboardRequested = !_keyboardVisible;
-            },
+            groupId: _searchController,
             onTapOutside: (event) {
               _backStartedInSearch =
                   _editingSearch &&
@@ -1135,19 +1194,25 @@ class _PickerState extends State<_Picker> with WidgetsBindingObserver {
                 _dismissSearch();
               }
             },
-            child: TextInputComponent(
-              groupId: _searchFocusNode,
-              controller: _searchController,
-              focusNode: _searchFocusNode,
-              hintText: context.strings.searchPhotosPeoplePlaces,
-              isClearable: true,
-              isDisabled: _isBusy,
-              prefix: HugeIcon(
-                icon: HugeIcons.strokeRoundedSearch01,
-                size: 18,
-                color: context.componentColors.textLight,
+            child: TapRegion(
+              onTapInside: (_) {
+                _backStartedInSearch = false;
+                _keyboardRequested = !_keyboardVisible;
+              },
+              child: TextInputComponent(
+                groupId: _searchFocusNode,
+                controller: _searchController,
+                focusNode: _searchFocusNode,
+                hintText: context.strings.searchPhotosPeoplePlaces,
+                isClearable: true,
+                isDisabled: _isBusy,
+                prefix: HugeIcon(
+                  icon: HugeIcons.strokeRoundedSearch01,
+                  size: 18,
+                  color: context.componentColors.textLight,
+                ),
+                onChanged: _search,
               ),
-              onChanged: _search,
             ),
           ),
         ),
@@ -1194,7 +1259,6 @@ class _PickerState extends State<_Picker> with WidgetsBindingObserver {
             ),
           ),
         ),
-        const DividerComponent(),
       ],
     );
     Widget gallery({List<EnteFile>? files, Widget? header}) => Gallery(
@@ -1255,17 +1319,10 @@ class _PickerState extends State<_Picker> with WidgetsBindingObserver {
     );
 
     Widget content;
-    if (_deviceCheckFailed && _deviceCheck == null) {
-      content = Center(
-        child: ButtonComponent(
-          label: context.strings.retry,
-          onTap: () => local!.model.refresh(),
-        ),
-      );
-    } else if (local != null && (_verifyingAccess || !local.model.hasAccess)) {
-      content = _verifyingAccess
-          ? const Center(child: LoadingComponent())
-          : local.media(_selectedFiles);
+    if (deviceStatus != null) {
+      content = deviceStatus;
+    } else if (local != null && !local.model.hasAccess) {
+      content = local.media(_selectedFiles);
     } else if (_query.isNotEmpty) {
       content = StreamBuilder<_PickerSearchResults>(
         key: ValueKey(_query),
@@ -1378,24 +1435,16 @@ class _PickerState extends State<_Picker> with WidgetsBindingObserver {
                 surfaceTintColor: Colors.transparent,
                 elevation: 0,
                 scrolledUnderElevation: 0,
-                leading: Center(
-                  child: IconButtonComponent(
-                    variant: IconButtonComponentVariant.unfilled,
-                    size: 48,
-                    tooltip: showBack
-                        ? context.strings.back
-                        : context.strings.close,
-                    icon: showBack
-                        ? const Icon(Icons.arrow_back, size: IconSizes.medium)
-                        : const HugeIcon(
-                            icon: HugeIcons.strokeRoundedCancel01,
-                            size: IconSizes.medium,
-                          ),
-                    onTap: _isBusy && _preparingFiles == null
+                leading: TapRegion(
+                  groupId: _searchController,
+                  child: IconButton(
+                    tooltip: context.strings.back,
+                    icon: const Icon(Icons.arrow_back, size: IconSizes.medium),
+                    onPressed: _preparingFiles != null
+                        ? () => _finishPicker(MediaExtension().cancelResult)
+                        : _isBusy
                         ? null
-                        : showBack
-                        ? _handleBack
-                        : () => _finishPicker(MediaExtension().cancelResult),
+                        : _handleBack,
                   ),
                 ),
                 title: AnimatedBuilder(
@@ -1418,24 +1467,9 @@ class _PickerState extends State<_Picker> with WidgetsBindingObserver {
                   },
                 ),
                 actions: [
-                  ListenableBuilder(
-                    listenable: _selectedFiles,
-                    builder: (context, _) =>
-                        _selectedFiles.files.isEmpty || _verifyingAccess
-                        ? const SizedBox.shrink()
-                        : Padding(
-                            padding: const EdgeInsetsDirectional.only(
-                              end: Spacing.sm,
-                            ),
-                            child: SizedBox.square(
-                              dimension: 48,
-                              child: SelectionPreviewButton(
-                                file: _selectedFiles.files.last,
-                                count: _selectedFiles.files.length,
-                                onTap: _isBusy ? null : _previewSelection,
-                              ),
-                            ),
-                          ),
+                  Padding(
+                    padding: const EdgeInsetsDirectional.only(end: Spacing.sm),
+                    child: previewButton,
                   ),
                 ],
               ),
@@ -1469,11 +1503,7 @@ class _PickerState extends State<_Picker> with WidgetsBindingObserver {
                       ),
                       child: SingleChildScrollView(
                         primary: false,
-                        child: _PickerActionBar(
-                          selectedFiles: _selectedFiles,
-                          isCompleting: _isBusy || _verifyingAccess,
-                          onAdd: _completeSelection,
-                        ),
+                        child: addButton,
                       ),
                     ),
                   ],
@@ -1486,6 +1516,30 @@ class _PickerState extends State<_Picker> with WidgetsBindingObserver {
     );
     return TextFieldTapRegion(groupId: _searchFocusNode, child: picker);
   }
+}
+
+class _PickerSelection extends SelectedFiles {
+  _PickerSelection(this.hiddenUploadIDs, this.checkVisibility)
+    : super(dedupeByUploadID: true);
+
+  final Future<Set<int>> Function() hiddenUploadIDs;
+  final Future<void> Function() checkVisibility;
+  final _deviceIDs = Expando<String>();
+
+  Future<Map<String, EnteFile>> loadDeviceFiles(List<String> ids) async {
+    final files = await const PhotoManagerDeviceLibrary().files(ids);
+    if (files.isEmpty) return files;
+    final hidden = await hiddenUploadIDs();
+    files.removeWhere((_, file) => hidden.contains(file.uploadedFileID));
+    for (final entry in files.entries) {
+      _deviceIDs[entry.value] = entry.key;
+    }
+    return files;
+  }
+
+  String? assetID(EnteFile file) => _deviceIDs[file] ?? file.localID;
+  String? pickedDeviceID(EnteFile file) =>
+      _deviceIDs[file] ?? (file.isUploaded ? null : file.localID);
 }
 
 class _PickerActionBar extends StatefulWidget {
