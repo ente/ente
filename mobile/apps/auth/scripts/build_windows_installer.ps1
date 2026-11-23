@@ -5,7 +5,9 @@ param(
     [Parameter(Mandatory = $true)]
     [string] $InstallerPath,
 
-    [string] $CompilerPath
+    [string] $CompilerPath,
+
+    [switch] $SignWithArtifactSigning
 )
 
 $ErrorActionPreference = "Stop"
@@ -34,6 +36,16 @@ $sourceGlob = (Join-Path $sourceRoot "*").Replace("/", "\")
 $escapedInstallerDir = $installerDir.Replace("/", "\")
 $issPath = Join-Path ([System.IO.Path]::GetTempPath()) "ente-auth-installer.iss"
 
+$compilerArguments = @()
+$signToolDirective = ""
+if ($SignWithArtifactSigning) {
+    $pwsh = Join-Path $PSHOME "pwsh.exe"
+    $signingScript = Join-Path $PSScriptRoot "sign_windows_installer.ps1"
+    $signingCommand = '$q{0}$q -NoProfile -NonInteractive -File $q{1}$q -Path $f' -f $pwsh, $signingScript
+    $compilerArguments = @("/SartifactSigning=$signingCommand")
+    $signToolDirective = "SignTool=artifactSigning"
+}
+
 $iss = @"
 [Setup]
 AppId=9E5F0C93-96A3-4DA9-AE52-1AA6339851FC
@@ -56,6 +68,7 @@ PrivilegesRequiredOverridesAllowed=dialog
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 UninstallDisplayIcon={app}\auth.exe
+$signToolDirective
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -96,7 +109,7 @@ if ($PSBoundParameters.ContainsKey("CompilerPath")) {
     }
 }
 
-& $iscc $issPath
+& $iscc @compilerArguments $issPath
 if ($LASTEXITCODE -ne 0) {
     throw "Inno Setup failed with exit code $LASTEXITCODE"
 }

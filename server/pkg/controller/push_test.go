@@ -357,12 +357,13 @@ func TestSocialPushEvents(t *testing.T) {
 		}
 	}
 	for _, tc := range []struct {
-		event  string
-		notify func(context.Context, int64)
+		event      string
+		notify     func(context.Context)
+		wantTokens []string
 	}{
-		{"file_liked", controller.NotifyFileLike},
-		{"file_commented", controller.NotifyFileComment},
-		{"comment_replied", controller.NotifyCommentReply},
+		{"file_liked", func(ctx context.Context) { controller.NotifyFileLike(ctx, []int64{1, 2}) }, []string{"1-android", "1-ios", "2-android", "2-ios"}},
+		{"file_commented", func(ctx context.Context) { controller.NotifyFileComment(ctx, []int64{1, 2}) }, []string{"1-android", "1-ios", "2-android", "2-ios"}},
+		{"comment_replied", func(ctx context.Context) { controller.NotifyCommentReply(ctx, 1) }, []string{"1-android", "1-ios"}},
 	} {
 		t.Run(tc.event, func(t *testing.T) {
 			var messages []wireMsg
@@ -375,7 +376,7 @@ func TestSocialPushEvents(t *testing.T) {
 			})}}
 			ctx, cancel := context.WithCancel(t.Context())
 			cancel()
-			tc.notify(ctx, 1)
+			tc.notify(ctx)
 			var recipients []string
 			for _, message := range messages {
 				recipients = append(recipients, message.Message.Token)
@@ -386,7 +387,7 @@ func TestSocialPushEvents(t *testing.T) {
 				require.NoError(t, err)
 				require.JSONEq(t, fmt.Sprintf(`{"eventType":%q}`, tc.event), string(plaintext))
 			}
-			require.ElementsMatch(t, []string{"1-android", "1-ios"}, recipients)
+			require.ElementsMatch(t, tc.wantTokens, recipients)
 		})
 	}
 }

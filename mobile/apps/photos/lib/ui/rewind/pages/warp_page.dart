@@ -11,6 +11,7 @@ import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
+import "package:photos/ui/rewind/theme/rewind_motion.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_hint.dart";
 import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
@@ -108,18 +109,17 @@ class WarpPage extends RewindPage {
   String get key => pageKey;
 
   @override
-  Duration? get reelHold => const Duration(milliseconds: 4000);
+  Duration? get reelHold => _flightThen(RewindMotion.reelReadingMs);
 
   @override
-  Duration? get clipHold => Duration(
-    milliseconds:
-        (_FlightState._countdownMsLive +
-                _FlightState._flightMsLive +
-                _clipLandedMs)
-            .round(),
-  );
+  Duration? get clipHold => _flightThen(_clipLandedMs);
 
-  static const _clipLandedMs = 2500.0;
+  static const _clipLandedMs = 2500;
+
+  static Duration _flightThen(int landedMs) => Duration(
+    milliseconds:
+        (_FlightState._countdownMs + _FlightState._flightMs).round() + landedMs,
+  );
 
   @override
   List<EnteFile> get reelThumbnails => [first];
@@ -202,13 +202,10 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   static const _restMs = 500.0;
   static const _pickedAt = Offset(195, 356);
 
-  static const _flightMsLive = 9500.0;
-  static const _countdownMsLive = 900.0;
+  static const _flightMs = 9500.0;
+  static const _countdownMs = 900.0;
 
   late final _reel = RewindPageScope.reelOf(context);
-  late final _reelPace = RewindPageScope.reelPaceOf(context);
-  late final _flightMs = _reelPace ? 2800.0 : _flightMsLive;
-  late final _countdownMs = _reelPace ? 300.0 : _countdownMsLive;
   late final Ticker _ticker = createTicker(_onTick);
   late final AnimationController _pull = AnimationController(
     vsync: this,

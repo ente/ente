@@ -14,6 +14,10 @@ abstract final class RewindAssets {
   static const tileDoodle = "$_images/doodle-tile.png";
   static const tileLockup = "$_images/tile-lockup.png";
   static const tileDucky = "$_images/tile-ducky.png";
+  static const tileReplayLockup = "$_images/tile-replay-lockup.png";
+  static const tileReplayDucky = "$_images/tile-replay-ducky.png";
+  static const ticketWordmark = "$_images/ticket-wordmark.png";
+  static const ticketDucky = "$_images/ticket-ducky.png";
   static const grain = "$_images/grain.png";
   static const wordmark = "$_images/ente-wordmark.svg";
   static const photoHeapDucky = "$_images/ducky-photo-heap.webp";

@@ -11,6 +11,7 @@ import (
 	socialrepo "github.com/ente/museum/pkg/repo/social"
 	"github.com/ente/stacktrace"
 	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
 )
 
 type Controller struct {
@@ -42,6 +43,18 @@ type AnonProfilesRequest struct {
 	Actor         Actor
 	CollectionID  int64
 	RequireAccess bool
+}
+
+func notifyAlbumMembers(ctx context.Context, collections *repo.CollectionRepository, collectionID, actorID int64, notify func(context.Context, []int64)) {
+	ctx = context.WithoutCancel(ctx)
+	recipients, err := collections.GetPhotoActivityRecipients(ctx, collectionID, actorID)
+	if err != nil {
+		log.WithError(err).WithField("collection_id", collectionID).Warn("album activity push recipient lookup failed; activity remains saved")
+		return
+	}
+	if len(recipients) > 0 {
+		go notify(ctx, recipients)
+	}
 }
 
 func (c *Controller) UnifiedDiff(ctx *gin.Context, req UnifiedDiffRequest) ([]socialentity.Comment, []socialentity.Reaction, bool, bool, error) {

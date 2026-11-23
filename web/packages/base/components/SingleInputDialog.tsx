@@ -14,7 +14,6 @@ import {
     v2CloseButtonSx,
     v2HeaderRowSx,
     v2PaperSx,
-    v2TitleSx,
 } from "./SingleInput.styles";
 import { SingleInputForm, type SingleInputFormProps } from "./SingleInputForm";
 
@@ -65,7 +64,14 @@ export const SingleInputDialog: React.FC<SingleInputDialogProps> = ({
         >
             <Stack sx={{ p: "20px", gap: "20px" }}>
                 <Stack direction="row" sx={v2HeaderRowSx}>
-                    <Typography id={titleID} sx={v2TitleSx}>
+                    <Typography
+                        id={titleID}
+                        sx={{
+                            fontSize: "20px",
+                            lineHeight: "28px",
+                            fontWeight: 600,
+                        }}
+                    >
                         {title}
                     </Typography>
                     <IconButton

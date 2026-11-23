@@ -89,6 +89,9 @@ pub enum Error {
     #[error("Session is invalid")]
     SessionInvalid,
 
+    #[error("Server does not return session IDs")]
+    SessionIdsUnsupported,
+
     #[error("Account key attributes are not available")]
     MissingKeyAttributes,
 

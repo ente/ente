@@ -150,7 +150,7 @@ export const AlbumsNavigation = ({
     );
     const title = t(
         mode == "hidden-albums"
-            ? "hidden_albums"
+            ? "section_hidden"
             : mode == "archive-albums"
               ? "section_archive"
               : "albums",

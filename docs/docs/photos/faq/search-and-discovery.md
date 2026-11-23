@@ -407,6 +407,12 @@ Everything else is still indexed. Face search and magic search keep working for 
 
 You do not need to do anything if search works for you. If you want help identifying the files still pending, please contact [support@ente.com](mailto:support@ente.com) and [share your logs](/photos/faq/troubleshooting#sharing-logs).
 
+### Why does Machine Learning say processing is paused? {#ml-indexing-paused}
+
+On mobile, Ente pauses face recognition and magic search indexing when your phone isn't in an optimum state for heavy work. This happens when the battery is below 20%, when the battery is too hot or reports a health problem, when the phone itself is running hot, or when Ente can't read your battery or temperature status. `Settings > Machine learning` then shows that processing is paused.
+
+Indexing resumes on its own once the phone is ready again. To help it along, charge your phone, let it cool down, and keep Ente open. Files that are already indexed stay searchable while indexing is paused.
+
 ### Why does my desktop app show different unnamed people than my phone? {#unnamed-people-differ}
 
 People you name and people you ignore sync across all your devices. Unnamed groupings don't sync. Each device works them out on its own, so the list of unnamed people can look different on desktop and on your phone, even when both show 100% indexed.
