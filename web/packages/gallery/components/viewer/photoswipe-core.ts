@@ -213,10 +213,9 @@ export class FileViewerPhotoSwipe<
                     return;
                 }
 
-                if (!viewer.classList.contains("pswp--ui-visible")) {
-                    event.preventDefault();
-                    return;
-                }
+                viewer.classList.add("pswp--ui-visible");
+                areFullscreenUIControlsHiddenByShortcut = false;
+                clearFullscreenUIControlsHideTimer();
 
                 const controls = Array.from(
                     viewer.querySelectorAll<HTMLElement>(
@@ -229,19 +228,19 @@ export class FileViewerPhotoSwipe<
                     !el.closest("[inert]") &&
                     el.getClientRects().length > 0 &&
                     getComputedStyle(el).visibility == "visible";
-                if (!viewer.contains(active) || active == viewer) {
+                if (
+                    !viewer.contains(active) ||
+                    active == viewer ||
+                    active ==
+                        (event.shiftKey
+                            ? controls.find(isTabbable)
+                            : controls.findLast(isTabbable))
+                ) {
                     event.preventDefault();
                     const destination = event.shiftKey
                         ? controls.findLast(isTabbable)
                         : controls.find(isTabbable);
                     (destination ?? viewer).focus();
-                } else if (
-                    active ==
-                    (event.shiftKey
-                        ? controls.find(isTabbable)
-                        : controls.findLast(isTabbable))
-                ) {
-                    event.preventDefault();
                 }
             };
 

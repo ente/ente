@@ -156,7 +156,7 @@ testWithPhotos(
 );
 
 testWithPhotos(
-    "keeps keyboard focus inside the Home photo viewer",
+    "wraps keyboard focus inside the Home photo viewer",
     async ({ photoAlbum: { page, thumbnails } }) => {
         await page.setViewportSize({ width: 1280, height: 800 });
         await page.getByRole("button", { name: "Home", exact: true }).click();
@@ -180,20 +180,6 @@ testWithPhotos(
         });
         await expect(first).toBeFocused();
 
-        await page.keyboard.press("Shift+Tab");
-        await expect(first).toBeFocused();
-
-        await page.keyboard.press("h");
-        await expect(viewer).not.toHaveClass(/pswp--ui-visible/);
-        await page.keyboard.press("Tab");
-        await expect(viewer).not.toHaveClass(/pswp--ui-visible/);
-        await expect(first).toBeFocused();
-        await page.keyboard.press("Shift+Tab");
-        await expect(viewer).not.toHaveClass(/pswp--ui-visible/);
-        await expect(first).toBeFocused();
-
-        await page.keyboard.press("h");
-        await expect(viewer).toHaveClass(/pswp--ui-visible/);
         for (let tab = 0; tab < 12; tab++) {
             await page.keyboard.press("Tab");
             await expect(focused).toHaveCount(1);
@@ -201,9 +187,15 @@ testWithPhotos(
                 break;
         }
         await expect(next).toBeFocused();
+
+        await page.keyboard.press("h");
+        await expect(viewer).not.toHaveClass(/pswp--ui-visible/);
         await page.keyboard.press("Tab");
+        await expect(viewer).toHaveClass(/pswp--ui-visible/);
+        await expect(first).toBeFocused();
+
+        await page.keyboard.press("Shift+Tab");
         await expect(next).toBeFocused();
-        await expect(page.getByRole("tooltip", { name: "Feed" })).toBeHidden();
 
         await test.step("blocks Enter when focus is moved to Feed", async () => {
             await feed.focus();
