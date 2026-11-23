@@ -478,28 +478,21 @@ jobs:
               shell: pwsh
               run: ./scripts/verify_windows_authenticode.ps1 -Path "build/windows/x64/runner/Release"
 
-            - name: Build Windows installer
+            - name: Build and sign Windows installer
               shell: pwsh
+              env:
+                  AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+                  AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+                  AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+                  AZURE_ENDPOINT: ${{ secrets.AZURE_ENDPOINT }}
+                  AZURE_CODE_SIGNING_NAME: ${{ secrets.AZURE_CODE_SIGNING_NAME }}
+                  AZURE_CERT_PROFILE_NAME: ${{ secrets.AZURE_CERT_PROFILE_NAME }}
               run: |
                   & ./scripts/build_windows_installer.ps1 `
                     -SourceDir "build/windows/x64/runner/Release" `
                     -InstallerPath "artifacts/${{ env.ARTIFACT_STEM }}-installer.exe" `
-                    -CompilerPath $env:INNO_SETUP_COMPILER
-
-            - name: Sign Windows installer with Trusted Signing
-              uses: Azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2.0.0
-              with:
-                  azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-                  azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
-                  azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-                  endpoint: ${{ secrets.AZURE_ENDPOINT }}
-                  signing-account-name: ${{ secrets.AZURE_CODE_SIGNING_NAME }}
-                  certificate-profile-name: ${{ secrets.AZURE_CERT_PROFILE_NAME }}
-                  files: ${{ github.workspace }}/mobile/apps/auth/artifacts/${{ env.ARTIFACT_STEM }}-installer.exe
-                  file-digest: SHA256
-                  timestamp-rfc3161: http://timestamp.acs.microsoft.com
-                  timestamp-digest: SHA256
-                  cache-dependencies: false
+                    -CompilerPath $env:INNO_SETUP_COMPILER `
+                    -SignWithArtifactSigning
 
             - name: Verify signed Windows installer
               shell: pwsh

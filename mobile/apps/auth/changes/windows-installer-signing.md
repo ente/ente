@@ -1,0 +1,1 @@
+- Fixed a Windows 11 installation error when Smart App Control is enabled.
