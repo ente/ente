@@ -197,8 +197,8 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   static const _holdFor = Duration(milliseconds: 250);
   static const _holdSlop = 12.0;
   static const _brakeMs = 90.0;
-  static const _hintMs = 2200.0;
   static const _landingHintMs = 900.0;
+  static const _landingTipsMs = 5000.0;
   static const _restMs = 500.0;
   static const _pickedAt = Offset(195, 356);
 
@@ -858,14 +858,17 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
       "TAP OR SWIPE UP TO GO ON",
       if (!_hasFlown) "SWIPE DOWN TO FLY BACK",
     ];
+    final turnMs = _landingTipsMs / texts.length;
     final clock = sinceLanding - _landingHintMs;
-    final turn = (clock / _hintMs).floor() % texts.length;
+    final turn = (clock / turnMs).floor().clamp(0, texts.length - 1);
     final swapping = texts.length == 1
         ? 1.0
-        : window(clock % _hintMs, 0, _hintMs);
+        : window(clock % turnMs, 0, turnMs);
     return (
       text: texts[turn],
-      shown: swapping * window(sinceLanding, _landingHintMs, double.infinity),
+      shown:
+          swapping *
+          window(sinceLanding, _landingHintMs, _landingHintMs + _landingTipsMs),
     );
   }
 
