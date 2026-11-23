@@ -2,6 +2,28 @@ import "package:photo_manager/photo_manager.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/models/file/extensions/file_props.dart";
 import "package:photos/models/file/file.dart";
+import "package:photos/module/metadata/local_file.dart";
+
+EnteFile devicePickerFileFromAsset(
+  String folder,
+  AssetEntity asset,
+  EnteFile indexed,
+) {
+  final file = fileFromAsset(folder, asset)..duration = asset.duration;
+  file.creationTime = indexed.creationTime ?? file.creationTime;
+  final metadata = indexed.pubMmdEncodedJson;
+  if (metadata != null && metadata != '{}') {
+    file.pubMmdEncodedJson = metadata;
+    if (!indexed.hasDimensions) {
+      applyDisplayDimensions(
+        file,
+        asset.orientatedWidth,
+        asset.orientatedHeight,
+      );
+    }
+  }
+  return file;
+}
 
 abstract interface class DeviceMediaLibrary {
   Future<PermissionState> permission({required bool request});
@@ -11,6 +33,7 @@ abstract interface class DeviceMediaLibrary {
     required int start,
     required int end,
   });
+  Future<List<AssetEntity>> readFirstPage(AssetPathEntity album, int size);
   Future<AssetEntity?> resolve(String id);
   Future<Map<String, EnteFile>> files(List<String> localIDs);
   Future<int> count(AssetPathEntity album);
@@ -55,6 +78,10 @@ class PhotoManagerDeviceLibrary implements DeviceMediaLibrary {
     required int start,
     required int end,
   }) => album.getAssetListRange(start: start, end: end);
+
+  @override
+  Future<List<AssetEntity>> readFirstPage(AssetPathEntity album, int size) =>
+      album.getAssetListPaged(page: 0, size: size);
 
   @override
   Future<Map<String, EnteFile>> files(List<String> localIDs) async {

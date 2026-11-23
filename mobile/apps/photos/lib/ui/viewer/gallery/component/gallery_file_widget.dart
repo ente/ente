@@ -391,7 +391,12 @@ class _GalleryFileWidgetState extends State<GalleryFileWidget> {
       ),
     );
     if (widget.selectedFiles?.dedupeByUploadID ?? false) {
-      page = SelectionState(selectedFiles: widget.selectedFiles!, child: page);
+      page = SelectionState.preview(
+        selectedFiles: widget.selectedFiles!,
+        files: galleryFiles,
+        onPreview: SelectionState.maybeOf(context)?.onPreview,
+        child: page,
+      );
     }
     final isPhoto =
         file.fileType == FileType.image || file.fileType == FileType.livePhoto;

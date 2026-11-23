@@ -3,7 +3,6 @@ import "dart:async";
 import "package:flutter/foundation.dart";
 import "package:flutter/widgets.dart";
 import "package:flutter_test/flutter_test.dart";
-import "package:photos/models/collection/collection.dart";
 import "package:photos/models/search/album_search_result.dart";
 import "package:photos/models/search/device_album_search_result.dart";
 import "package:photos/models/search/generic_search_result.dart";
@@ -90,7 +89,6 @@ void main() {
         }
       }
     }
-    expect(source.collectionFilter, isNull);
     final batches = <List<SearchResult>>[];
     final done = Completer<void>();
     stream.listen(batches.add, onDone: done.complete);
@@ -150,7 +148,7 @@ void main() {
     expect(batches.last, [magic]);
   });
 
-  test("year gating and picker filtering preserve normal providers", () async {
+  test("year and device album queries use their providers", () async {
     for (final query in ["2024", "1899", "9999", "202", "word"]) {
       final source = _SearchService();
       final stream = SearchQueryService(source).search(context, query);
@@ -161,15 +159,16 @@ void main() {
       source.completeAll();
       expect(await stream.length, query == "2024" ? 13 : 12);
     }
-    bool collectionFilter(Collection collection) => true;
     final source = _SearchService();
+    final folder = _Result("device folder");
     final stream = SearchQueryService(
       source,
-    ).search(context, "trip", collectionFilter: collectionFilter);
-    expect(source.providers, _normalProviders);
-    expect(source.collectionFilter, same(collectionFilter));
+    ).search(context, "trip", deviceAlbumSearch: () async => [folder]);
+    final expected = [..._normalProviders]
+      ..remove(#getDeviceCollectionSearchResults);
+    expect(source.providers, expected);
     source.completeAll();
-    expect(await stream.length, 12);
+    expect(await stream.expand((batch) => batch).toList(), [folder]);
   });
 
   test("buffered results survive late listeners and cancellation", () async {
@@ -218,10 +217,6 @@ class _SearchService implements SearchService {
   final _complete = <VoidCallback>[];
 
   Iterable<Symbol> get providers => calls.map((call) => call.memberName);
-
-  Object? get collectionFilter => calls
-      .singleWhere((call) => call.memberName == #getCollectionSearchResults)
-      .namedArguments[#collectionFilter];
 
   @override
   dynamic noSuchMethod(Invocation invocation) {
