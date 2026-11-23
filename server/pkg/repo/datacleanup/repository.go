@@ -182,6 +182,10 @@ func (r *Repository) DeleteTableData(ctx context.Context, userID int64) error {
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to delete notification history data")
 	}
+	_, err = r.DB.ExecContext(ctx, `DELETE FROM email_subscriptions WHERE user_id = $1`, userID)
+	if err != nil {
+		return stacktrace.Propagate(err, "failed to delete email subscriptions")
+	}
 	_, err = r.DB.ExecContext(ctx, `DELETE FROM families WHERE admin_id = $1`, userID)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to delete family data")

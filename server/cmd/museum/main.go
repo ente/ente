@@ -992,6 +992,7 @@ func main() {
 	adminHandler := &api.AdminHandler{
 		QueueRepo:              queueRepo,
 		UserRepo:               userRepo,
+		EmailSubscriptionRepo:  emailSubscriptions,
 		CollectionRepo:         collectionRepo,
 		AuthenticatorRepo:      authRepo,
 		UserAuthRepo:           userAuthRepo,
@@ -1013,6 +1014,7 @@ func main() {
 	adminAPI.POST("/mail", adminHandler.SendMail)
 	adminAPI.POST("/mail/subscribe", adminHandler.SubscribeMail)
 	adminAPI.POST("/mail/unsubscribe", adminHandler.UnsubscribeMail)
+	adminAPI.POST("/email-subscriptions/backfill-from-listmonk", adminHandler.BackfillEmailSubscriptionsFromListmonk)
 	adminAPI.GET("/listmonk/missing-subscribers/count", adminHandler.GetListmonkMissingSubscribersCount)
 	adminAPI.GET("/users", adminHandler.GetUsers)
 	adminAPI.GET("/user", adminHandler.GetUser)

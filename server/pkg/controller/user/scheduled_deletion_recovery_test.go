@@ -1,6 +1,7 @@
 package user
 
 import (
+	"database/sql"
 	"errors"
 	"net/http/httptest"
 	"testing"
@@ -46,6 +47,7 @@ func TestMarkAccountDeletedAndScheduleCleanupIsAtomic(t *testing.T) {
 	if err := controller.UserAuthRepo.AddToken(userID, ente.Photos, "deleted-token", "", ""); err != nil {
 		t.Fatalf("failed to insert token: %v", err)
 	}
+	insertProductMailPreference(t, db, userID, true)
 	if err := controller.markAccountDeletedAndScheduleCleanup(t.Context(), userID); err != nil {
 		t.Fatalf("markAccountDeletedAndScheduleCleanup() error = %v", err)
 	}
@@ -56,6 +58,7 @@ func TestMarkAccountDeletedAndScheduleCleanupIsAtomic(t *testing.T) {
 	if err := db.QueryRow(`SELECT COUNT(*) FROM tokens WHERE user_id = $1 AND is_deleted = FALSE`, userID).Scan(&activeTokens); err != nil || activeTokens != 0 {
 		t.Fatalf("active token count = %d, err = %v", activeTokens, err)
 	}
+	assertProductMailPreference(t, db, userID, true)
 
 	expectedHash, err := crypto.GetHash("deleted@example.com", testutil.HashingKey())
 	if err != nil {
@@ -85,6 +88,7 @@ func TestMarkAccountDeletedAndScheduleCleanupIsAtomic(t *testing.T) {
 	if err := controller.UserAuthRepo.AddToken(rollbackUserID, ente.Photos, "rollback-token", "", ""); err != nil {
 		t.Fatalf("failed to insert rollback token: %v", err)
 	}
+	insertProductMailPreference(t, db, rollbackUserID, false)
 	if _, err := db.Exec(`INSERT INTO data_cleanup(user_id) VALUES($1)`, rollbackUserID); err != nil {
 		t.Fatalf("failed to create conflicting cleanup row: %v", err)
 	}
@@ -97,6 +101,7 @@ func TestMarkAccountDeletedAndScheduleCleanupIsAtomic(t *testing.T) {
 	if err := db.QueryRow(`SELECT COUNT(*) FROM tokens WHERE user_id = $1 AND is_deleted = FALSE`, rollbackUserID).Scan(&activeTokens); err != nil || activeTokens != 1 {
 		t.Fatalf("active token count after rollback = %d, err = %v", activeTokens, err)
 	}
+	assertProductMailPreference(t, db, rollbackUserID, false)
 }
 
 func TestAccountRecoveryVerifiesScheduledEmailHash(t *testing.T) {
@@ -117,6 +122,7 @@ func TestAccountRecoveryVerifiesScheduledEmailHash(t *testing.T) {
 	})
 	insertKeyAttributes(t, db, userID)
 	insertScheduledDelete(t, db, userID)
+	insertProductMailPreference(t, db, userID, false)
 
 	mismatchedHash, err := crypto.GetHash("different@example.com", testutil.HashingKey())
 	if err != nil {
@@ -163,5 +169,23 @@ func TestAccountRecoveryVerifiesScheduledEmailHash(t *testing.T) {
 	}
 	if _, err := userRepo.Get(userID); err != nil {
 		t.Fatalf("user was not recovered with matching hash: %v", err)
+	}
+	assertProductMailPreference(t, db, userID, false)
+}
+
+func insertProductMailPreference(t *testing.T, db *sql.DB, userID int64, subscribed bool) {
+	t.Helper()
+	if _, err := db.Exec(`INSERT INTO email_subscriptions (user_id, email_type, subscribed) VALUES ($1, $2, $3)`,
+		userID, ente.ProductMailsEmailType, subscribed); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func assertProductMailPreference(t *testing.T, db *sql.DB, userID int64, want bool) {
+	t.Helper()
+	var subscribed bool
+	if err := db.QueryRow(`SELECT subscribed FROM email_subscriptions WHERE user_id = $1 AND email_type = $2`,
+		userID, ente.ProductMailsEmailType).Scan(&subscribed); err != nil || subscribed != want {
+		t.Fatalf("user %d subscription = %t, err = %v, want %t", userID, subscribed, err, want)
 	}
 }
