@@ -389,6 +389,7 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
   var _rendered = Duration.zero;
   RewindFrameStepper? _stepper;
   RewindReel? _reel;
+  ui.Image? _lastCard;
   var _stage = _Stage.preparing;
 
   @override
@@ -410,6 +411,7 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
     WidgetsBinding.instance.removeObserver(this);
     _time.dispose();
     _frameIndex.dispose();
+    _lastCard?.dispose();
     super.dispose();
   }
 
@@ -570,6 +572,8 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
     setState(() {
       _reel = reel;
       _stage = _Stage.preparing;
+      _lastCard?.dispose();
+      _lastCard = null;
     });
     final stepper = _stepper = RewindFrameStepper(RewindReel.frameRate)
       ..install();
@@ -584,7 +588,9 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
         _frameIndex.value = frame;
         await _unlessCancelled(stepper.step());
         await _unlessCancelled(rewindRiveFilesLoaded());
-        final pixels = _read(await _capture())..ignore();
+        final image = await _capture();
+        if (frame == reel.storyEndFrame) _holdLastCard(image.clone());
+        final pixels = _read(image)..ignore();
         final previous = written;
         written = previous.then((_) => pixels).then(sink.add);
         await _unlessCancelled(previous);
@@ -611,6 +617,14 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
     await _unlessCancelled(rewindRiveFilesLoaded());
     await _unlessCancelled(stepper.step());
     return _read(await _capture());
+  }
+
+  void _holdLastCard(ui.Image image) {
+    if (!mounted) {
+      image.dispose();
+      return;
+    }
+    setState(() => _lastCard = image);
   }
 
   Future<ui.Image> _capture() {
@@ -875,6 +889,8 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
                         ),
                       ),
                     ),
+                  if (_lastCard case final image?)
+                    RawImage(image: image, fit: BoxFit.cover),
                   if (_stage == _Stage.preparing)
                     ColoredBox(
                       color: RewindColors.green,
