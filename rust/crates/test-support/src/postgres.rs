@@ -36,7 +36,7 @@ impl Postgres {
     }
 
     pub fn execute_sql(&self, sql: &str) -> TestResult {
-        self.psql(&[], sql).map(drop)
+        self.execute_sql_on(self.database(), sql)
     }
 
     pub fn reset_database(&self) -> TestResult {
@@ -49,18 +49,14 @@ impl Postgres {
     }
 
     pub fn query_sql(&self, sql: &str) -> TestResult<String> {
-        self.psql(&["-t", "-A"], sql)
+        self.psql(self.database(), &["-t", "-A"], sql)
     }
 
     fn execute_sql_on(&self, database: &str, sql: &str) -> TestResult {
-        self.psql_on(database, &[], sql).map(drop)
+        self.psql(database, &[], sql).map(drop)
     }
 
-    fn psql(&self, options: &[&str], sql: &str) -> TestResult<String> {
-        self.psql_on(self.database(), options, sql)
-    }
-
-    fn psql_on(&self, database: &str, options: &[&str], sql: &str) -> TestResult<String> {
+    fn psql(&self, database: &str, options: &[&str], sql: &str) -> TestResult<String> {
         let output = Command::new(
             self.inner
                 .settings()
