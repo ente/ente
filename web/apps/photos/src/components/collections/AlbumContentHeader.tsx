@@ -98,8 +98,11 @@ export const AlbumContentHeader: React.FC<AlbumContentHeaderProps> = ({
             (activeCollection ||
                 collectionSummary.id <= PseudoCollectionID.all);
 
+        const hiddenItemsWithoutAlbums =
+            collectionSummary?.type == "hiddenItems" && albums.length == 0;
         const showAlbums =
-            collectionSummary?.type == "hiddenItems" ||
+            (collectionSummary?.type == "hiddenItems" &&
+                !hiddenItemsWithoutAlbums) ||
             collectionSummary?.type == "archiveItems";
 
         const hideItemCount = showAlbums && collectionSummary.fileCount == 0;
@@ -145,6 +148,7 @@ export const AlbumContentHeader: React.FC<AlbumContentHeaderProps> = ({
                             onCollectionCast={showCollectionCast}
                             onEditAlbumDetails={onEditAlbumDetails}
                             hasActiveFileSelection={hasActiveFileSelection}
+                            showHiddenItemsBack={hiddenItemsWithoutAlbums}
                             onDescriptionHeightChange={setDescriptionHeight}
                         />
                     )}

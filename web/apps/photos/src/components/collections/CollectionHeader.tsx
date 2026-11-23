@@ -103,6 +103,7 @@ export interface CollectionHeaderProps {
     hasActiveFileSelection: boolean;
     onAddSaveGroup: AddSaveGroup;
     showBackToAlbums: boolean;
+    showHiddenItemsBack?: boolean;
     onDescriptionHeightChange?: (height: number) => void;
 }
 
@@ -112,6 +113,7 @@ export const CollectionHeader: React.FC<CollectionHeaderProps> = (props) => {
         activeCollection,
         collectionSummary,
         showBackToAlbums,
+        showHiddenItemsBack,
         onDescriptionHeightChange,
     } = props;
     const showCover = useMediaQuery(useTheme().breakpoints.up("sm"));
@@ -167,14 +169,24 @@ export const CollectionHeader: React.FC<CollectionHeaderProps> = (props) => {
                         ...(isAlbum && { gridArea: "summary" }),
                     }}
                 >
-                    {isAlbum && showBackToAlbums && (
+                    {((isAlbum && showBackToAlbums) || showHiddenItemsBack) && (
                         <Tooltip title={t("go_back")}>
                             <IconButton
                                 aria-label={t("go_back")}
                                 onClick={backToAlbums}
-                                sx={headerIconButtonSx}
+                                sx={
+                                    showHiddenItemsBack
+                                        ? { width: 32, height: 32 }
+                                        : headerIconButtonSx
+                                }
                             >
-                                <ArrowBackIcon />
+                                <ArrowBackIcon
+                                    sx={
+                                        showHiddenItemsBack
+                                            ? { fontSize: 20 }
+                                            : undefined
+                                    }
+                                />
                             </IconButton>
                         </Tooltip>
                     )}
