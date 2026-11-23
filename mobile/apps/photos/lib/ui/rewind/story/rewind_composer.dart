@@ -105,7 +105,7 @@ RewindChapter _warp(rust.RewindReport report) =>
       final panels = media.extraPhotos(
         warp.fileIds,
         warp.fileIds.length,
-        preloadRemote: true,
+        preload: true,
       );
       if (first == null || panels.length < WarpPage.minimumPanels) {
         return const [];

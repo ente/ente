@@ -10,6 +10,7 @@ import "package:photos/ui/rewind/story/rewind_composer.dart";
 import "package:photos/ui/rewind/story/rewind_media.dart";
 import "package:photos/ui/rewind/story/rewind_rituals.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo.dart";
+import "package:photos/ui/rewind/widgets/rewind_pixels.dart";
 
 class RewindStory {
   RewindStory._(

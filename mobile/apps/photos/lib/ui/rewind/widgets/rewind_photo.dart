@@ -123,8 +123,6 @@ Future<bool> loadRewindPhoto(EnteFile file) async {
   return true;
 }
 
-void preloadRewindPhoto(EnteFile file) => loadRewindPhoto(file).ignore();
-
 class RewindThumbnailCache {
   RewindThumbnailCache({this.stopsAfterServerStall = false});
 
@@ -134,6 +132,8 @@ class RewindThumbnailCache {
 
   bool get serverStalled => _serverStalled;
 
+  bool get _stopped => stopsAfterServerStall && _serverStalled;
+
   Future<bool> save(EnteFile file) async {
     if (!file.isUploaded) return false;
     try {
@@ -141,13 +141,11 @@ class RewindThumbnailCache {
     } catch (_) {
       return false;
     }
-    if (!file.isRemoteOnlyFile &&
+    if (!_stopped && await _savesFromServer(file)) return true;
+    return !_stopped &&
+        !file.isRemoteOnlyFile &&
         !_libraryStalled &&
-        await _savesFromLibrary(file)) {
-      return true;
-    }
-    if (stopsAfterServerStall && _serverStalled) return false;
-    return _savesFromServer(file);
+        await _savesFromLibrary(file);
   }
 
   Future<bool> _savesFromLibrary(EnteFile file) async {
