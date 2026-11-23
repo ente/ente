@@ -720,7 +720,7 @@ The same prorating calculation applies as described above.
 
 ### Can I choose the day my subscription renews? {#choose-renewal-date}
 
-Your subscription renews on the date you first subscribed, every month for a monthly plan or every year for a yearly plan. You can't set a different renewal day for an active subscription.
+Your subscription renews on its current billing date, each month for a monthly plan or each year for a yearly plan. That date starts when you subscribe and can change after a plan change. You can't set a different renewal day for an active subscription.
 
 If you want to subscribe on a particular day, cancel your current subscription and contact [support@ente.com](mailto:support@ente.com). For plans billed directly by Ente, we can help you move to the free plan so you can subscribe again on the day you choose. If you are subscribing for the first time, subscribe on that day.
 

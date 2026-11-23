@@ -236,7 +236,7 @@ The same applies to Google Photos or any other gallery or cloud app: deleting th
 
 **If you want to delete a photo everywhere:**
 
-On mobile, select a backed-up photo that is still on your device, tap the trash icon and choose **Delete from both**. If the photo is only in Ente, choose **Delete from Ente**. If you delete it from Ente on web or desktop, delete the device copy separately in your phone's gallery app. Check any other cloud backup service you use and delete its copy separately if it remains there.
+On mobile, select a backed-up photo that is still on your device, tap the trash icon and choose **Delete from both**. If you saved a different deletion choice as your default, tap **More options** first. If the photo is only in Ente, choose **Delete from Ente**. If you delete it from Ente on web or desktop, delete the device copy separately in your phone's gallery app. Check any other cloud backup service you use and delete its copy separately if it remains there.
 
 ### Can I delete photos from my device after backing up to Ente? {#free-up-space-after-backup}
 
