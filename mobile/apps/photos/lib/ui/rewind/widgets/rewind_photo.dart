@@ -169,6 +169,7 @@ class RewindThumbnailCache {
       await getThumbnailFromServer(file).timeout(_serverPatience);
       return true;
     } on TimeoutException {
+      removePendingGetThumbnailRequestIfAny(file);
       _serverStalled = true;
       return false;
     } catch (_) {
