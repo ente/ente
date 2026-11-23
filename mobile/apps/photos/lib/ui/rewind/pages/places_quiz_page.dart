@@ -137,8 +137,8 @@ class _PlacesQuiz extends StatefulWidget {
 }
 
 class _PlacesQuizState extends State<_PlacesQuiz> {
-  static const _background = Color(0xFF3F78F0);
-  static const _stripes = Color(0xFF4A82F5);
+  static const _background = Color(0xFF123E97);
+  static const _stripes = Color(0xFF0C3B9B);
   static const _revealMs = 1250;
   static const _rankMs = 600;
   static const _rankGapMs = 330;

@@ -77,6 +77,11 @@ class _TileArt extends StatelessWidget {
   const _TileArt({required this.entry});
 
   static const _design = Size(148, 215);
+  static const _lockup = Rect.fromLTWH(10.73, 14.83, 127, 96);
+  static const _ducky = Rect.fromLTWH(16.65, 112.86, 122, 103);
+  static const _replayLockup = Rect.fromLTWH(7, 11, 119, 90);
+  static const _replayDucky = Rect.fromLTWH(5, 108, 137, 107);
+  static const _replayDim = Color(0x52000000);
 
   final RewindEntry entry;
 
@@ -84,6 +89,7 @@ class _TileArt extends StatelessWidget {
   Widget build(BuildContext context) {
     final page = entry.resumeIndex + 1;
     final pages = entry.pageCount;
+    final completed = entry.completed;
     return ExcludeSemantics(
       child: MediaQuery.withClampedTextScaling(
         maxScaleFactor: 1.2,
@@ -96,17 +102,27 @@ class _TileArt extends StatelessWidget {
               children: [
                 const Positioned.fill(child: RewindDoodleTile()),
                 Positioned.fromRect(
-                  rect: const Rect.fromLTWH(12.73, 18.83, 120, 91),
+                  rect: completed ? _replayLockup : _lockup,
                   child: Image.file(
-                    RewindAssets.file(RewindAssets.tileLockup),
-                    fit: BoxFit.contain,
+                    RewindAssets.file(
+                      completed
+                          ? RewindAssets.tileReplayLockup
+                          : RewindAssets.tileLockup,
+                    ),
+                    fit: BoxFit.fill,
                   ),
                 ),
+                if (completed)
+                  const Positioned.fill(child: ColoredBox(color: _replayDim)),
                 Positioned.fromRect(
-                  rect: const Rect.fromLTWH(20.47, 118.83, 106.27, 119.4),
+                  rect: completed ? _replayDucky : _ducky,
                   child: Image.file(
-                    RewindAssets.file(RewindAssets.tileDucky),
-                    fit: BoxFit.contain,
+                    RewindAssets.file(
+                      completed
+                          ? RewindAssets.tileReplayDucky
+                          : RewindAssets.tileDucky,
+                    ),
+                    fit: BoxFit.fill,
                   ),
                 ),
                 if (!entry.opened)
@@ -124,7 +140,6 @@ class _TileArt extends StatelessWidget {
                     detail: "$page of $pages",
                     progress: page / pages,
                   ),
-                if (entry.completed) const _TileFooter(label: "Watch again"),
               ],
             ),
           ),
