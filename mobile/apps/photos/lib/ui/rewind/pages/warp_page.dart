@@ -711,6 +711,23 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                       ),
                     ),
                   Positioned(
+                    left: 0,
+                    right: 0,
+                    top: 96,
+                    child: RewindLeave(
+                      position: widget.position,
+                      centerY: 120,
+                      child: IgnorePointer(
+                        child: AnimatedOpacity(
+                          opacity: walls == null ? 1 : 0,
+                          duration: const Duration(milliseconds: 220),
+                          curve: Curves.easeOutCubic,
+                          child: const Center(child: _Loading()),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
                     left: 28,
                     top: 606,
                     width: 334,
@@ -934,6 +951,29 @@ class _Month extends StatelessWidget {
       outline: 2.5,
       shadow: const Offset(0, 4),
       ink: RewindColors.outline,
+    );
+  }
+}
+
+class _Loading extends StatelessWidget {
+  const _Loading();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 9, 16, 8),
+      decoration: BoxDecoration(
+        color: RewindColors.ink,
+        border: Border.all(color: RewindColors.cream, width: 3),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [
+          BoxShadow(color: Color(0xFF000000), offset: Offset(4, 5)),
+        ],
+      ),
+      child: Text(
+        "LOADING THE TAPE",
+        style: RewindTextStyles.display(15, height: 1.1),
+      ),
     );
   }
 }
