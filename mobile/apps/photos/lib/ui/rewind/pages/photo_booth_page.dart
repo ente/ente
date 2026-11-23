@@ -36,13 +36,13 @@ class PhotoBoothPage extends RewindPage {
     (key: "people_booth", you: "YOUR NO. 1", me: "MY NO. 1"),
     (
       key: "people_booth_2",
-      you: "ALWAYS IN THE PICTURE",
-      me: "ALWAYS IN THE PICTURE",
+      you: "ALWAYS BY YOUR SIDE",
+      me: "ALWAYS BY MY SIDE",
     ),
     (
       key: "people_booth_3",
-      you: "NEVER OUT OF FRAME",
-      me: "NEVER OUT OF FRAME",
+      you: "YOUR PARTNER IN CRIME",
+      me: "MY PARTNER IN CRIME",
     ),
   ];
   static final pageKeys = [for (final billing in _billings) billing.key];

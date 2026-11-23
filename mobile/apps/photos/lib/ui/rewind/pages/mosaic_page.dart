@@ -49,7 +49,7 @@ class MosaicPage extends RewindPage {
 
   static const pageKey = "mosaic";
   static const minimumTiles = 120;
-  static const familiarFace = "FAMILIAR FACE";
+  static const familiarFace = "A FAMILIAR FACE";
 
   final List<EnteFile> files;
   final Uint8List? subject;
@@ -122,7 +122,7 @@ class MosaicPage extends RewindPage {
   }
 
   String _subjectLine(String self) =>
-      "ONE ${subject == null ? "YEAR" : subjectName?.toUpperCase() ?? self}.";
+      "${subject == null ? "${RewindEdition.year}" : subjectName?.toUpperCase() ?? self},";
 
   static Widget _titleLine(String text) => RewindFitWidth(
     width: 342,
@@ -140,7 +140,7 @@ class MosaicPage extends RewindPage {
   Widget _card(double position, bool isActive, _Tiling? tiling, _Pace pace) {
     final count = tiling == null
         ? null
-        : "${rewindCount(tiling.photos)} PHOTOS.";
+        : "IN ${rewindCounted(tiling.photos, "MOMENT", "MOMENTS")}.";
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -149,7 +149,7 @@ class MosaicPage extends RewindPage {
           pattern: RewindStripes(Color(0xFFFF7638)),
         ),
         Semantics(
-          label: count == null ? null : "$count ${_subjectLine("YOU")}",
+          label: count == null ? null : "${_subjectLine("YOU")} $count",
           child: ExcludeSemantics(
             child: RewindStage(
               children: [
@@ -204,12 +204,12 @@ class MosaicPage extends RewindPage {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        _titleLine(count),
                         RewindVoice(
                           you: _subjectLine("YOU"),
                           me: _subjectLine("ME"),
                           builder: _titleLine,
                         ),
+                        _titleLine(count),
                       ],
                     ),
                   ),

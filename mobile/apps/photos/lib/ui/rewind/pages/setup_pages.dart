@@ -42,10 +42,10 @@ const placesSetupPage = SetupPage(
   pattern: Color(0xFF4A82F5),
   ink: RewindColors.cream,
   headlines: [
-    SetupHeadline("YOU WENT\nPLACES.", at: Offset(24, 140), size: 66),
+    SetupHeadline("YOUR PHOTOS\nGOT AROUND.", at: Offset(24, 140), size: 66),
   ],
   callout: SetupCallout(
-    "THE CAMERA\nCAME TOO.",
+    "AND SO\nDID YOU.",
     center: Offset(201.5, 426),
     delayMs: 600,
   ),
@@ -90,13 +90,9 @@ const busiestDaySetupPage = SetupPage(
   pattern: Color(0xFFF02525),
   ink: RewindColors.cream,
   headlines: [
-    SetupHeadline("ONE DAY,\nTHINGS GOT", at: Offset(24, 140), size: 59),
+    SetupHeadline("ONE DAY,\nYOU WENT", at: Offset(24, 140), size: 59),
   ],
-  callout: SetupCallout(
-    "OUT OF HAND.",
-    center: Offset(201.2, 350),
-    onTop: true,
-  ),
+  callout: SetupCallout("ALL IN.", center: Offset(201.2, 350), onTop: true),
   art: SetupArt.image(
     RewindAssets.photoHeapDucky,
     Rect.fromLTWH(-75, 281, 540, 540),
@@ -131,11 +127,7 @@ const favouritesSetupPage = SetupPage(
   pattern: Color(0xFFFF4D9F),
   ink: RewindColors.cream,
   headlines: [
-    SetupHeadline(
-      "SOME PHOTOS JUST\nHIT DIFFERENT.",
-      at: Offset(24, 140),
-      size: 48,
-    ),
+    SetupHeadline("THE BEST\nOF THE BEST.", at: Offset(24, 140), size: 48),
   ],
   callout: SetupCallout(
     "THEY DESERVE A STAR!",
@@ -243,12 +235,12 @@ const badgeSetupPage = SetupPage(
   pattern: Color(0xFF11B72A),
   ink: RewindColors.cream,
   headlines: [
-    SetupHeadline("BASED ON\nYOUR GALLERY…", at: Offset(24, 140), size: 45),
+    SetupHeadline("A YEAR LIKE\nYOURS", at: Offset(24, 140), size: 45),
   ],
   callout: SetupCallout(
-    "I HAVE A THEORY ABOUT YOU",
+    "DESERVES A BADGE.",
     center: Offset(196.5, 395),
-    size: 23.87,
+    size: 29.01,
   ),
   art: SetupArt.ducky(
     RewindAssets.detectiveDucky,

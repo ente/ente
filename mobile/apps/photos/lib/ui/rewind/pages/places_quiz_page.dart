@@ -313,9 +313,9 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
       Positioned(
         left: 0,
         right: 0,
-        top: 160,
+        top: 138,
         child: _leave(
-          190,
+          168,
           AnimatedOpacity(
             opacity: _phase == _Phase.pick ? 1 : 0,
             duration: const Duration(milliseconds: 250),
@@ -325,7 +325,7 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
               child: Column(
                 children: [
                   Text(
-                    "WHERE DID YOU SHOOT MOST?",
+                    "WHERE DID YOU TAKE\nTHE MOST PHOTOS?",
                     textAlign: TextAlign.center,
                     style: RewindTextStyles.display(
                       20,
@@ -336,7 +336,7 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
                   ),
                   const SizedBox(height: 7),
                   Text(
-                    "Make a guess 👀",
+                    "Tap a stamp to guess.",
                     textAlign: TextAlign.center,
                     style: RewindTextStyles.body(17, height: 1.2),
                   ),
