@@ -13,6 +13,7 @@ import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/story/rewind_face.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
+import "package:photos/ui/rewind/theme/rewind_motion.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
 import "package:photos/ui/rewind/widgets/rewind_confetti.dart";
@@ -37,16 +38,15 @@ class PeopleRacePage extends RewindPage {
   String get key => pageKey;
 
   @override
-  Duration? get reelHold => const Duration(milliseconds: 4500);
+  Duration? get reelHold =>
+      _raceThen(_PeopleRaceState._settleMs + RewindMotion.reelReadingMs);
 
   @override
-  Duration? get clipHold => Duration(
-    milliseconds:
-        (_PeopleRaceState._clipLeadMs +
-                12 * _PeopleRaceState._monthMsLive +
-                _PeopleRaceState._clipEndMs)
-            .round(),
-  );
+  Duration? get clipHold =>
+      _raceThen(_PeopleRaceState._clipLeadMs + _PeopleRaceState._clipEndMs);
+
+  static Duration _raceThen(double ms) =>
+      Duration(milliseconds: (12 * _PeopleRaceState._monthMs + ms).round());
 
   @override
   List<EnteFile> get reelThumbnails => const [];
@@ -118,15 +118,13 @@ class _PeopleRaceState extends State<_PeopleRace>
   static const _rampMs = 350.0;
   static const _laneMs = 700.0;
   static const _speed = 0.75;
-  static const _monthMsLive = 470.0;
+  static const _monthMs = 470.0;
+  static const _settleMs = 750.0;
   static const _clipLeadMs = 2000.0;
-  static const _clipEndMs = 5750.0;
+  static const _clipEndMs = _settleMs + 5000;
 
   late final _reel = RewindPageScope.reelOf(context);
   late final _clip = RewindPageScope.clipOf(context);
-  late final _monthMs = RewindPageScope.reelPaceOf(context)
-      ? 280.0
-      : _monthMsLive;
   late final _settleFrames = _reel ? 18 : 36;
   late final _leadMs = _clip ? _clipLeadMs : 0.0;
   late final Ticker _ticker = createTicker(_tick);
@@ -214,11 +212,11 @@ class _PeopleRaceState extends State<_PeopleRace>
     if (nowMs < 0) return;
     final dt = _lastMs == 0 ? 16.0 : min(50.0, nowMs - _lastMs);
     _lastMs = nowMs;
-    final raceMs = 12 * _monthMs;
+    const raceMs = 12 * _monthMs;
     if (_settling == 0) {
       _speedFactor = min(1, nowMs / _rampMs);
     } else {
-      _speedFactor *= _clip ? pow(0.86, dt / 16).toDouble() : 0.86;
+      _speedFactor *= _reel ? pow(0.86, dt / 16).toDouble() : 0.86;
     }
     _world += dt * _speedFactor;
     for (final lane in _lanes) {

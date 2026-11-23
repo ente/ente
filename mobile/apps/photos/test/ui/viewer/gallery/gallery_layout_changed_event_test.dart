@@ -30,6 +30,7 @@ import "package:photos/ui/viewer/gallery/gallery.dart";
 import "package:photos/ui/viewer/gallery/gallery_app_bar_config.dart";
 import "package:photos/ui/viewer/gallery/gallery_grid_zoom.dart";
 import "package:photos/ui/viewer/gallery/layout_settings.dart";
+import "package:photos/ui/viewer/gallery/scrollbar/custom_scroll_bar.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_boundaries_provider.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
 import "package:shared_preferences/shared_preferences.dart";
@@ -102,9 +103,10 @@ void main() {
     }
   });
 
-  testWidgets("filename sort loads the full album and restores date headers", (
+  testWidgets("filename sort loads the full album and hides year divisions", (
     tester,
   ) async {
+    await localSettings.setPhotoGridSize(4);
     final key = GlobalKey<GalleryState>();
     Completer<FileLoadResult>? pendingLoad;
     var order = FileSortOrder.filenameAscending;
@@ -112,6 +114,9 @@ void main() {
       201,
       (index) => _justifiedTestFile(index)
         ..title = "IMG${201 - index}.jpg"
+        ..creationTime = DateTime(
+          index < 100 ? 2024 : 2025,
+        ).microsecondsSinceEpoch
         ..uploadedFileID = index + 1,
     );
     await tester.pumpWidget(
@@ -167,6 +172,12 @@ void main() {
     expect(key.currentState!.galleryGroups!.groupType, GroupType.day);
     expect(key.currentState!.galleryGroups!.groupHeaderExtent, greaterThan(2));
     expect(key.currentState!.galleryGroups!.allFiles.first.title, "IMG201.jpg");
+    final scrollbarInUse = key.currentState!.scrollBarInUseNotifier;
+    scrollbarInUse.value = true;
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(ScrollBarDivider, "2025"), findsOneWidget);
+    scrollbarInUse.value = false;
+    await tester.pumpAndSettle();
 
     order = FileSortOrder.filenameDescending;
     Bus.instance.fire(
@@ -176,6 +187,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(key.currentState!.galleryGroups!.groupType, GroupType.none);
     expect(key.currentState!.galleryGroups!.allFiles.first.title, "IMG201.jpg");
+    scrollbarInUse.value = true;
+    await tester.pumpAndSettle();
+    expect(find.byType(ScrollBarDivider), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 100));
   });

@@ -2,7 +2,9 @@ use std::{collections::BTreeMap, io::Write};
 
 use anyhow::{Context, Result, ensure};
 use dialoguer::{Confirm, Password, console::Term};
-use ente_accounts::{DEFAULT_API_ORIGIN, lifecycle::TwoFactorSetup, security, signup::Signup};
+use ente_accounts::{
+    DEFAULT_API_ORIGIN, lifecycle::TwoFactorSetup, security, sessions, signup::Signup,
+};
 use ente_core::{b64, crypto::Key};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -12,7 +14,7 @@ use zeroize::{ZeroizeOnDrop, Zeroizing};
 use crate::{
     api,
     args::{
-        App, ChangeEmailArgs, CreateArgs, EmailMfaCommand, Options, TotpCommand,
+        App, ChangeEmailArgs, CreateArgs, EmailMfaCommand, Options, SessionCommand, TotpCommand,
         VerificationPurpose,
     },
     login::{self, Credentials},
@@ -372,6 +374,82 @@ pub async fn totp(
         &json!({"totpEnabled": true}),
         "Authenticator protection is enabled.",
     )
+}
+
+pub async fn session(
+    command: SessionCommand,
+    selected: Option<&str>,
+    app: Option<App>,
+    options: &Options,
+) -> Result<()> {
+    ensure!(
+        !options.offline,
+        "sessions are not stored locally; this command requires network access"
+    );
+    if let SessionCommand::Revoke { id, yes } = &command {
+        ensure!(
+            id.starts_with("th:"),
+            "session IDs start with th:; see account session list"
+        );
+        ensure!(
+            *yes || options.can_prompt(),
+            "revoking a session requires confirmation; supply --yes when running without interactive prompts"
+        );
+    }
+    let state = State::load()?;
+    let account = &state.accounts[state.resolve(selected)?];
+    let app = account.app(app)?;
+    let session = api::session(account, app)?;
+    let mut active = sessions::list(&session).await.map_err(|error| match error {
+        ente_accounts::Error::SessionIdsUnsupported => anyhow::anyhow!(
+            "this Ente server does not return session IDs; listing sessions requires a current Museum release"
+        ),
+        error => error.into(),
+    })?;
+    match command {
+        SessionCommand::List => {
+            active.sort_by_key(|session| std::cmp::Reverse(session.last_used_at));
+            output::sessions(&active, options.json)
+        }
+        SessionCommand::Revoke { id, yes } => {
+            let target = active
+                .iter()
+                .find(|session| session.id == id)
+                .with_context(|| {
+                    format!(
+                        "no active {} session has ID {id:?}; see account session list --app {}",
+                        app.display_name(),
+                        app.name()
+                    )
+                })?;
+            ensure!(
+                !target.is_current,
+                "this is the CLI's own session; use account logout --app {} instead",
+                app.name()
+            );
+            let target = output::SessionView::new(target)?;
+            if !yes {
+                ensure!(
+                    Confirm::new()
+                        .with_prompt(format!(
+                            "Log out {} from {} for {}?",
+                            target.description(),
+                            app.display_name(),
+                            output::escape_controls(&account.email)
+                        ))
+                        .default(false)
+                        .interact_on(&Term::stderr())?,
+                    "cancelled"
+                );
+            }
+            sessions::revoke(&session, &id).await?;
+            output::action(
+                options.json,
+                &json!({"app": app, "session": target}),
+                &format!("Logged out {}.", target.description()),
+            )
+        }
+    }
 }
 
 pub async fn email_mfa(

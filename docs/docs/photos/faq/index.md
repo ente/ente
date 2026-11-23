@@ -69,6 +69,7 @@ Jump to a category:
 ### Albums
 
 - [How do I change an album's cover or description?](/photos/faq/albums-and-organization#edit-album-details)
+- [Why does an album show a blank cover?](/photos/faq/albums-and-organization#album-cover-missing)
 - [Can I sort my home timeline oldest first?](/photos/faq/albums-and-organization#timeline-sort)
 - [Can Ente albums be nested?](/photos/faq/albums-and-organization#nested-albums)
 - [What happens when I upload a nested folder structure?](/photos/faq/albums-and-organization#nested-folders)
@@ -104,6 +105,7 @@ Jump to a category:
 - [Do archived photos appear in search results?](/photos/faq/albums-and-organization#archive-search)
 - [How do I hide photos in Ente?](/photos/faq/albums-and-organization#how-to-hide)
 - [How do I archive photos in Ente?](/photos/faq/albums-and-organization#how-to-archive)
+- [How do I unarchive photos or albums?](/photos/faq/albums-and-organization#how-to-unarchive)
 - [Can I hide an album's photos from my timeline?](/photos/faq/albums-and-organization#album-off-timeline)
 
 ### Storage Management
@@ -121,6 +123,7 @@ Jump to a category:
 ### Trash and Deletion
 
 - [How do I delete photos in Ente?](/photos/faq/albums-and-organization#delete-photos)
+- [How do I delete a photo from Ente but keep it on my phone?](/photos/faq/albums-and-organization#delete-from-ente-only)
 - [How do I restore deleted photos?](/photos/faq/albums-and-organization#restore-photos)
 - [If I restore several photos from Trash, will they return to their original albums?](/photos/faq/albums-and-organization#bulk-restore-original-albums)
 - [How do I permanently delete photos or empty trash?](/photos/faq/albums-and-organization#empty-trash)
@@ -304,6 +307,7 @@ Jump to a category:
 - [Why is face recognition faster on desktop?](/photos/faq/search-and-discovery#face-recognition-speed)
 - [Can I name the recognized persons?](/photos/faq/search-and-discovery#name-persons)
 - [Why does Machine Learning stay just below 100%?](/photos/faq/search-and-discovery#ml-stuck-below-100)
+- [Why does Machine Learning say processing is paused?](/photos/faq/search-and-discovery#ml-indexing-paused)
 - [Why does my desktop app show different unnamed people than my phone?](/photos/faq/search-and-discovery#unnamed-people-differ)
 
 ### Magic Search
@@ -382,6 +386,7 @@ Jump to a category:
 ### Understanding Storage
 
 - [Why does Ente consume less storage than other providers?](/photos/faq/storage-and-plans#less-storage-usage)
+- [Why does Ente show more storage used than my original files?](/photos/faq/storage-and-plans#storage-includes-thumbnails)
 - [How does Ente deduplicate photos?](/photos/faq/storage-and-plans#deduplication)
 - [Does Ente deduplicate across different albums?](/photos/faq/storage-and-plans#dedup-albums)
 - [How can I optimize my storage usage?](/photos/faq/storage-and-plans#optimize-storage)
@@ -417,6 +422,7 @@ Jump to a category:
 ### Discount Codes and Referrals
 
 - [How do I apply a discount code to my subscription?](/photos/faq/storage-and-plans#apply-discount-code)
+- [Do Ente subscribers get discounts on other privacy apps?](/photos/faq/storage-and-plans#friends-perks)
 
 ### Referral Program
 
@@ -439,6 +445,7 @@ Jump to a category:
 - [What happens when I upgrade my plan?](/photos/faq/storage-and-plans#upgrade-plan)
 - [What happens when I downgrade my plan?](/photos/faq/storage-and-plans#downgrade-plan)
 - [Can I switch between monthly and yearly plans?](/photos/faq/storage-and-plans#switch-billing-cycle)
+- [Can I choose the day my subscription renews?](/photos/faq/storage-and-plans#choose-renewal-date)
 - [How can I update my payment method?](/photos/faq/storage-and-plans#update-payment)
 - [Why did I get an "Ente account on hold" email?](/photos/faq/storage-and-plans#account-on-hold)
 - [How can I cancel my subscription?](/photos/faq/storage-and-plans#cancel-subscription)
@@ -530,6 +537,7 @@ Jump to a category:
 - [Will streams consume space in my storage?](/photos/faq/advanced-features#stream-storage)
 - [Video streaming isn't working correctly, what should I do?](/photos/faq/advanced-features#stream-issues)
 - [Why is Streamable videos stuck just below 100%?](/photos/faq/advanced-features#stream-progress-stuck)
+- [Why does a video look lower quality than the original?](/photos/faq/advanced-features#video-lower-quality)
 - [How does Cast work?](/photos/faq/advanced-features#how-does-cast-work)
 - [Can I use Ente as a photo frame on a tablet or TV?](/photos/faq/advanced-features#photo-frame)
 - [Can I use Cast without Chromecast?](/photos/faq/advanced-features#cast-without-chromecast)

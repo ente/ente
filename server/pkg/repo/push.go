@@ -16,7 +16,7 @@ type PushTokenRepository struct {
 }
 
 const (
-	androidPushRolloutPercentage = 30
+	androidPushRolloutPercentage = 50
 	androidPushRollout           = "android-album-share-v1"
 )
 

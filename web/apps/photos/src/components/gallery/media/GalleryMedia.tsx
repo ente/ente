@@ -36,6 +36,7 @@ type GalleryMediaProps = Pick<
     header?: FileListHeaderOrFooter;
     enableDateScrubber?: boolean;
     onAddPhotos?: () => void;
+    suppressEmptyState?: boolean;
     children?: (hasSelection: boolean) => ReactNode;
 };
 
@@ -61,6 +62,7 @@ const GalleryMediaContent = ({
     header,
     enableDateScrubber,
     onAddPhotos,
+    suppressEmptyState,
     children,
 }: GalleryMediaProps) => {
     const { selected, setSelected, clearSelection } = useGallerySelection(
@@ -229,6 +231,7 @@ const GalleryMediaContent = ({
                 header={header}
                 enableDateScrubber={enableDateScrubber}
                 onAddPhotos={onAddPhotos}
+                suppressEmptyState={suppressEmptyState}
                 footer={footer}
                 enableDownload
                 enableSelect

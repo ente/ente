@@ -28,6 +28,7 @@ export type SingleInputFormProps = Pick<
     inputProps?: InputBaseProps["inputProps"];
     endAdornment?: React.ReactNode;
     selectOnFocus?: boolean;
+    username?: string;
     inputType?: TextFieldProps["type"];
     initialValue?: string;
     submitButtonTitle: string;
@@ -48,6 +49,7 @@ export const SingleInputForm: React.FC<SingleInputFormProps> = ({
     disabled,
     endAdornment,
     selectOnFocus,
+    username,
     submitButtonTitle,
     inputProps,
     onCancel,
@@ -94,6 +96,16 @@ export const SingleInputForm: React.FC<SingleInputFormProps> = ({
             onSubmit={formik.handleSubmit}
             sx={{ gap: "20px" }}
         >
+            {username && (
+                <input
+                    hidden
+                    name="email"
+                    type="email"
+                    autoComplete="username"
+                    value={username}
+                    readOnly
+                />
+            )}
             <Stack sx={{ gap: "8px" }}>
                 {rest.label && (
                     <Typography

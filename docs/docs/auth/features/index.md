@@ -19,6 +19,8 @@ Ente Auth supports the icon pack provided by [simple-icons](https://github.com/s
 
 Quickly find your codes by searching based on issuer or account name. You can also configure the app to focus the search bar automatically on app start by going to **Settings → General → Focus search on app start**.
 
+To find a setting, open **Settings** and tap the search icon at the top, then type what you're looking for, such as "export" or "app lock".
+
 On desktop, you can search without clicking the search icon. With your code list open, start typing and Ente Auth opens search with what you typed. You can also press `/`, or `Cmd + F` on macOS (`Ctrl + F` on Windows and Linux), to open search. Press `Esc` to clear the search and close it.
 
 If you've moved focus to a code with your keyboard, `C` and `N` copy the current and next code instead of starting a search. See [How do I copy the current or next code?](/auth/faq/#copy-current-next-code)
@@ -84,6 +86,7 @@ Customize the order in which your codes are displayed. Ente Auth provides severa
 - Account name
 - Frequently used
 - Recently used
+- Newest first (codes you added most recently appear at the top)
 - Manual (custom drag-and-drop order)
 
 Access the sort menu in the top-right corner (next to the search icon) to change your sorting preference.

@@ -38,8 +38,8 @@ const paletteSetupPage = SetupPage(
 
 const placesSetupPage = SetupPage(
   key: "places_setup",
-  color: Color(0xFF3F78F0),
-  pattern: Color(0xFF4A82F5),
+  color: Color(0xFF123E97),
+  pattern: Color(0xFF0C3B9B),
   ink: RewindColors.cream,
   headlines: [
     SetupHeadline("YOU WENT\nPLACES.", at: Offset(24, 140), size: 66),

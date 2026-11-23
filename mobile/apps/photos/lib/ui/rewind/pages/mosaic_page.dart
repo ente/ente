@@ -72,11 +72,11 @@ class MosaicPage extends RewindPage {
 
   @override
   Duration? get reelHold =>
-      const Duration(milliseconds: 3400 + RewindMotion.reelReadingMs);
+      Duration(milliseconds: _Pace.titledMs + RewindMotion.reelReadingMs);
 
   @override
   Duration? get clipHold =>
-      Duration(milliseconds: _Pace.viewer.revealedMs + _clipEndMs);
+      const Duration(milliseconds: _Pace.revealedMs + _clipEndMs);
 
   static const _clipEndMs = 5700;
 
@@ -93,26 +93,25 @@ class MosaicPage extends RewindPage {
     required bool isActive,
   }) {
     _isOnScreen = _isOnScreen || isActive;
-    final pace = _Pace.of(context);
     return RewindWarmBuilder<_Tiling>(
       warm: _tiling,
       builder: (context, tiling) {
-        final card = _card(position, isActive, tiling, pace);
+        final card = _card(position, isActive, tiling);
         return Stack(
           fit: StackFit.expand,
           children: [
             RewindElapsed(
               active: isActive && tiling != null,
-              stillMs: pace.titledMs.toDouble(),
+              stillMs: _Pace.titledMs.toDouble(),
               builder: (context, ms) => RewindShareable(
-                enabled: tiling != null && ms >= pace.titledMs,
+                enabled: tiling != null && ms >= _Pace.titledMs,
                 child: card,
               ),
             ),
             _ExploreTag(
               active: isActive && tiling != null,
               position: position,
-              delayMs: pace.revealedMs + 300,
+              delayMs: _Pace.revealedMs + 300,
               onTap: () => _tagTaps.value++,
             ),
           ],
@@ -137,7 +136,7 @@ class MosaicPage extends RewindPage {
     ),
   );
 
-  Widget _card(double position, bool isActive, _Tiling? tiling, _Pace pace) {
+  Widget _card(double position, bool isActive, _Tiling? tiling) {
     final count = tiling == null
         ? null
         : "${rewindCount(tiling.photos)} PHOTOS.";
@@ -164,7 +163,6 @@ class MosaicPage extends RewindPage {
                       child: _Wall(
                         key: ValueKey(tiling),
                         tiling: tiling,
-                        pace: pace,
                         active: isActive,
                         tagTaps: _tagTaps,
                       ),
@@ -200,7 +198,7 @@ class MosaicPage extends RewindPage {
                     position: position,
                     active: isActive,
                     preset: RewindPreset.rise,
-                    delayMs: pace.titleMs,
+                    delayMs: _Pace.titleMs,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -614,29 +612,18 @@ class _EagerScaleRecognizer extends ScaleGestureRecognizer {
   }
 }
 
-enum _Pace {
-  viewer(holdMs: 1500, pullMs: 3800),
-  reel(holdMs: 400, pullMs: 2300);
+abstract final class _Pace {
+  static const holdMs = 1500;
+  static const pullMs = 3800;
+  static const revealedMs = holdMs + pullMs;
+  static const titleMs = revealedMs - 500;
 
-  const _Pace({required this.holdMs, required this.pullMs});
-
-  final int holdMs;
-  final int pullMs;
-
-  int get revealedMs => holdMs + pullMs;
-
-  int get titleMs => revealedMs - 500;
-
-  int get titledMs => titleMs + RewindPreset.rise.lengthMs;
-
-  static _Pace of(BuildContext context) =>
-      RewindPageScope.reelPaceOf(context) ? reel : viewer;
+  static int get titledMs => titleMs + RewindPreset.rise.lengthMs;
 }
 
 class _Wall extends StatefulWidget {
   const _Wall({
     required this.tiling,
-    required this.pace,
     required this.active,
     required this.tagTaps,
     super.key,
@@ -655,7 +642,6 @@ class _Wall extends StatefulWidget {
   static const _eye = Offset(0.42, 0.4);
 
   final _Tiling? tiling;
-  final _Pace pace;
   final bool active;
   final Listenable tagTaps;
 
@@ -713,7 +699,7 @@ class _WallState extends State<_Wall> with SingleTickerProviderStateMixin {
 
   ({double zoom, Offset focus}) _reveal(double ms) {
     final pulled = Curves.easeInOutCubic.transform(
-      ((ms - widget.pace.holdMs) / widget.pace.pullMs).clamp(0.0, 1.0),
+      ((ms - _Pace.holdMs) / _Pace.pullMs).clamp(0.0, 1.0),
     );
     final zoom = exp(log(_Wall._opening) * (1 - pulled));
     final drift = Offset(0.012 * sin(ms / 900), 0.008 * cos(ms / 700));
@@ -782,7 +768,7 @@ class _WallState extends State<_Wall> with SingleTickerProviderStateMixin {
       active: widget.active && tiling != null,
       stillMs: 60000,
       builder: (context, ms) {
-        final revealed = ms >= widget.pace.revealedMs;
+        final revealed = ms >= _Pace.revealedMs;
         final view = _handsOn ? (zoom: _zoom, focus: _focus) : _reveal(ms);
         return Stack(
           children: [

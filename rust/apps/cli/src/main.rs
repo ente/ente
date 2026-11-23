@@ -186,6 +186,11 @@ async fn account_command(command: AccountCommand, options: &Options) -> Result<(
             app,
             command,
         } => account::totp(command, selector.account.as_deref(), app, options).await,
+        AccountCommand::Session {
+            selector,
+            app,
+            command,
+        } => account::session(command, selector.account.as_deref(), app, options).await,
         AccountCommand::EmailMfa {
             selector,
             app,
