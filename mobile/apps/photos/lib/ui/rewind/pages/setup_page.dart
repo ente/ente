@@ -1,6 +1,7 @@
 import "dart:math";
 
 import "package:flutter/material.dart";
+import "package:photos/models/file/file.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
@@ -102,6 +103,12 @@ class SetupPage extends RewindPage {
 
   @override
   Duration? get reelHold => null;
+
+  @override
+  Duration? get clipHold => const Duration(milliseconds: 3000);
+
+  @override
+  List<EnteFile> get reelThumbnails => const [];
 
   @override
   Widget build(
