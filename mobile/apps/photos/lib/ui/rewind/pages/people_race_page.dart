@@ -7,6 +7,7 @@ import "package:flutter/services.dart";
 import "package:flutter_svg/flutter_svg.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
+import "package:photos/ui/rewind/pages/setup_pages.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
@@ -47,6 +48,9 @@ class PeopleRacePage extends RewindPage {
 
   static Duration _raceThen(double ms) =>
       Duration(milliseconds: (12 * _PeopleRaceState._monthMs + ms).round());
+
+  @override
+  RewindPage get clipIntro => peopleSetupPage;
 
   @override
   List<EnteFile> get reelThumbnails => const [];
@@ -125,7 +129,6 @@ class _PeopleRaceState extends State<_PeopleRace>
 
   late final _reel = RewindPageScope.reelOf(context);
   late final _clip = RewindPageScope.clipOf(context);
-  late final _settleFrames = _reel ? 18 : 36;
   late final _leadMs = _clip ? _clipLeadMs : 0.0;
   late final Ticker _ticker = createTicker(_tick);
   late final List<_Lane> _lanes;
@@ -137,7 +140,6 @@ class _PeopleRaceState extends State<_PeopleRace>
   var _world = 0.0;
   var _speedFactor = 0.0;
   var _lastMs = 0.0;
-  var _settling = 0;
   final _timers = <Timer>[];
 
   List<RaceRunner> get _runners => widget.page.runners;
@@ -213,10 +215,10 @@ class _PeopleRaceState extends State<_PeopleRace>
     final dt = _lastMs == 0 ? 16.0 : min(50.0, nowMs - _lastMs);
     _lastMs = nowMs;
     const raceMs = 12 * _monthMs;
-    if (_settling == 0) {
+    if (nowMs < raceMs) {
       _speedFactor = min(1, nowMs / _rampMs);
     } else {
-      _speedFactor *= _reel ? pow(0.86, dt / 16).toDouble() : 0.86;
+      _speedFactor *= pow(0.86, dt / 16).toDouble();
     }
     _world += dt * _speedFactor;
     for (final lane in _lanes) {
@@ -255,7 +257,10 @@ class _PeopleRaceState extends State<_PeopleRace>
     for (final (rank, runner) in _order.indexed) {
       _steer(_lanes[runner], _rankLanes[rank], nowMs);
     }
-    if (t >= 1 && ++_settling >= _settleFrames) {
+    if (nowMs >= raceMs + _settleMs) {
+      for (final lane in _lanes) {
+        lane.x = lane.goal;
+      }
       _ticker.stop();
       _finish();
     }

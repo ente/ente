@@ -57,7 +57,9 @@ class RewindReel {
 
   int get coverFrame => min(
     frameCount - 1,
-    _holds.first.inMicroseconds * frameRate ~/ Duration.microsecondsPerSecond,
+    (clip ? duration : _holds.first).inMicroseconds *
+        frameRate ~/
+        Duration.microsecondsPerSecond,
   );
 
   Duration timeOf(int frame) => Duration(

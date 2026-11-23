@@ -73,7 +73,7 @@ Future<void> shareRewindClip(
   final video = await _export(
     context,
     RewindVideoExportPage(
-      pages: [page],
+      pages: [?page.clipIntro, page],
       reelOf: RewindReel.clipOf,
       filePrefix: "ente-rewind-${page.key}-",
       loadMedia: loadMedia,
