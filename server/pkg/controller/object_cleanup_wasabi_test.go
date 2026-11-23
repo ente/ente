@@ -265,8 +265,19 @@ func TestWasabiTempCleanupRollback(t *testing.T) {
 			_, _, err = c.claimExpiredObjectsTx(tx, objects)
 			require.NoError(t, err)
 			require.Zero(t, holds.Load())
+			var stagedState string
+			var stagedDelayed bool
+			require.NoError(t, tx.QueryRow(`SELECT COALESCE(cleanup_state, ''), expiration_time > now_utc_micro_seconds()
+				FROM temp_objects WHERE object_key = '1/expired'`).Scan(&stagedState, &stagedDelayed))
+			require.Equal(t, string(ente.TempObjectReleaseHold), stagedState)
+			if state == ente.TempObjectReleaseHold {
+				require.True(t, stagedDelayed)
+			}
 			require.NoError(t, tx.Rollback())
 			assertTempCleanupState(t, db, "1/expired", state)
+			if state == ente.TempObjectReleaseHold {
+				assertCleanupRowCount(t, db, `SELECT count(*) FROM temp_objects WHERE object_key = '1/expired' AND expiration_time = 0`, 1)
+			}
 			require.Equal(t, 1, c.removeUnreportedObjects())
 			if state == ente.TempObjectUploading {
 				require.Zero(t, holds.Load())

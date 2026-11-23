@@ -76,6 +76,14 @@ func TestFileRegistrationRollsBackWhenCleanupWins(t *testing.T) {
 	release := func() { releaseOnce.Do(func() { close(releaseCleanup) }) }
 
 	cleanupController, fileRepo, db := setupObjectCleanupRaceTest(t, s3Server.URL)
+	cleanupPool, err := sql.Open("postgres", "sslmode=disable")
+	if err != nil {
+		t.Fatalf("failed to open cleanup pool: %v", err)
+	}
+	cleanupPool.SetMaxOpenConns(1)
+	t.Cleanup(func() { _ = cleanupPool.Close() })
+	cleanupController.Repo = &repo.ObjectCleanupRepository{DB: cleanupPool}
+	cleanupController.ObjectRepo = &repo.ObjectRepository{DB: cleanupPool}
 	t.Cleanup(release)
 	ownerID := testutil.InsertUser(t, db, testutil.UserFixture{
 		UserID:       1,
@@ -99,17 +107,8 @@ func TestFileRegistrationRollsBackWhenCleanupWins(t *testing.T) {
 		t.Fatal("cleanup did not reach object deletion")
 	}
 
-	var idleInTx bool
-	if err := db.QueryRow(`SELECT EXISTS(
-		SELECT 1 FROM pg_stat_activity
-		WHERE datname = current_database()
-		  AND pid <> pg_backend_pid()
-		  AND state = 'idle in transaction'
-	)`).Scan(&idleInTx); err != nil {
-		t.Fatalf("failed to inspect transaction state: %v", err)
-	}
-	if idleInTx {
-		t.Fatal("cleanup held an idle transaction open during S3 deletion")
+	if inUse := cleanupPool.Stats().InUse; inUse != 0 {
+		t.Fatalf("cleanup held %d DB connection(s) open during S3 deletion", inUse)
 	}
 
 	registrationDone := make(chan error, 1)
