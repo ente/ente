@@ -41,16 +41,8 @@ object FileOpener {
             clipData = ClipData.newUri(activity.contentResolver, file.name, uri)
         }
 
-        if (viewIntent.resolveActivity(activity.packageManager) == null) {
-            return mapOf(
-                "resultType" to "noAppToOpen",
-                "message" to "No application found to open this file"
-            )
-        }
-
-        val chooser = Intent.createChooser(viewIntent, null)
         return try {
-            activity.startActivity(chooser)
+            activity.startActivity(viewIntent)
             mapOf("resultType" to "done", "message" to "done")
         } catch (_: ActivityNotFoundException) {
             mapOf(
