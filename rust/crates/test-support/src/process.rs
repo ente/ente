@@ -10,6 +10,7 @@ pub struct ChildProcess {
     name: &'static str,
     child: Child,
     log_path: PathBuf,
+    log_offset: usize,
 }
 
 impl ChildProcess {
@@ -20,6 +21,7 @@ impl ChildProcess {
             .create(true)
             .append(true)
             .open(&log_path)?;
+        let log_offset = usize::try_from(log.metadata()?.len())?;
         let child = command
             .stdout(Stdio::from(log.try_clone()?))
             .stderr(Stdio::from(log))
@@ -28,6 +30,7 @@ impl ChildProcess {
             name,
             child,
             log_path,
+            log_offset,
         })
     }
 
@@ -41,6 +44,13 @@ impl ChildProcess {
             .into());
         }
         Ok(())
+    }
+
+    pub fn log(&self) -> String {
+        let Ok(bytes) = fs::read(&self.log_path) else {
+            return String::new();
+        };
+        String::from_utf8_lossy(bytes.get(self.log_offset..).unwrap_or_default()).into_owned()
     }
 
     pub fn log_summary(&self) -> String {
