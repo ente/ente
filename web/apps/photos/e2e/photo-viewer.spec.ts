@@ -176,8 +176,6 @@ testWithPhotos(
         await page.keyboard.press("Shift+Tab");
         await expect(next).toBeFocused();
 
-        // Even if another component moves focus behind the viewer, Enter
-        // must not activate the background navigation.
         await feed.focus();
         await expect(feed).toBeFocused();
         await page.keyboard.press("Enter");

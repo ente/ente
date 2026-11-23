@@ -1261,7 +1261,6 @@ export const FileViewer: React.FC<FileViewerProps> = ({
                 return true;
             }
 
-            // Tab can leave an input inside the viewer, but must wrap at its boundary.
             if (event.key == "Tab") return false;
 
             const activeElement = document.activeElement as HTMLElement | null;

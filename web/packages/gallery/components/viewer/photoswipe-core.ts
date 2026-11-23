@@ -194,8 +194,6 @@ export class FileViewerPhotoSwipe<
 
         if (useIslandLayout) {
             const opener = document.activeElement;
-            // Keep native tab order between controls and wrap at the viewer edges.
-            // Viewer menus and drawers manage their own focus.
             const containKeyboardFocus = (event: KeyboardEvent) => {
                 if (
                     event.defaultPrevented ||
