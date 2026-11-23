@@ -20,7 +20,7 @@ const UNPAID_PHOTOGRAPHER_ALBUM_PHOTOS: usize = 5;
 const MAIN_CHARACTER: Scale = Scale::new(0.25, 0.5);
 const MAIN_CHARACTER_MINIMUM: usize = 30;
 const EARLY_BIRD_HOURS: [u32; 4] = [4, 5, 6, 7];
-const EARLY_BIRD: Scale = Scale::new(0.06, 0.15);
+const EARLY_BIRD: Scale = Scale::new(0.06, 0.1);
 const NIGHT_OWL_HOURS: [u32; 6] = [22, 23, 0, 1, 2, 3];
 const NIGHT_OWL: Scale = Scale::new(0.15, 0.3);
 const WEEKEND_DAYS: [u32; 2] = [6, 7];
@@ -947,6 +947,22 @@ mod tests {
         };
         assert_eq!(at_dawn(8), generic(RewindBadge::EarlyBird));
         assert_eq!(at_dawn(5), generic(RewindBadge::LimitedEdition));
+    }
+
+    #[test]
+    fn early_bird_peaks_at_ten_percent_of_photos_between_four_and_eight() {
+        let against_night_owl = |dawn_photos: usize| {
+            let mut files = weekday_shots(1, 100, 1);
+            for file in files.iter_mut().take(dawn_photos) {
+                file.creation_time -= 6 * HOUR;
+            }
+            for file in files.iter_mut().skip(dawn_photos).take(27) {
+                file.creation_time += 11 * HOUR;
+            }
+            badge_of(with_history(files))
+        };
+        assert_eq!(against_night_owl(10), generic(RewindBadge::EarlyBird));
+        assert_eq!(against_night_owl(9), generic(RewindBadge::NightOwl));
     }
 
     #[test]
