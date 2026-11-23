@@ -35,8 +35,6 @@ export const WhatsNew: React.FC<WhatsNewProps> = ({ open, onClose }) => {
             onClose={onClose}
             slots={{ transition: SlideUpTransition }}
             aria-labelledby="whats-new-title"
-            maxWidth="xs"
-            fullWidth
             sx={{
                 "& .MuiDialog-container": {
                     alignItems: isSmallWidth ? "flex-end" : "center",
@@ -49,116 +47,91 @@ export const WhatsNew: React.FC<WhatsNewProps> = ({ open, onClose }) => {
                         m: isSmallWidth ? 0 : 2.5,
                         width: isSmallWidth ? "100%" : "calc(100% - 40px)",
                         maxWidth: 440,
+                        p: 2.5,
+                        pb: "max(20px, env(safe-area-inset-bottom))",
                         maxHeight: "calc(100dvh - 40px)",
                         borderRadius: isSmallWidth ? "20px 20px 0 0" : "24px",
-                        backgroundImage: "none",
                         bgcolor: "#F4F4F4",
                         color: "#000000",
                         "--changelog-muted": "#666666",
                         "--changelog-close": "#FFFFFF",
-                        "--changelog-button": "#EAEAEA",
-                        "--changelog-hover": "#DEDEDE",
-                        "--changelog-pressed": "#D2D2D2",
+                        "--changelog-close-hover": "#EAEAEA",
                         ...theme.applyStyles("dark", {
                             bgcolor: "#161616",
                             color: "#FFFFFF",
                             "--changelog-muted": "#999999",
                             "--changelog-close": "#212121",
-                            "--changelog-button": "#0A0A0A",
-                            "--changelog-hover": "#141414",
-                            "--changelog-pressed": "#292929",
+                            "--changelog-close-hover": "#0A0A0A",
                         }),
                     }),
                 },
             }}
         >
-            <Box
-                sx={{
-                    display: "flex",
-                    flexDirection: "column",
-                    minHeight: 0,
-                    p: 2.5,
-                    pb: "max(20px, env(safe-area-inset-bottom))",
-                }}
+            <DialogTitle
+                id="whats-new-title"
+                sx={{ p: 0, pb: 2, textAlign: "center", position: "relative" }}
             >
-                <DialogTitle
-                    id="whats-new-title"
+                <IconButton
+                    aria-label={ut("Close")}
+                    onClick={onClose}
                     sx={{
-                        p: 0,
-                        pb: 2,
-                        textAlign: "center",
-                        position: "relative",
+                        position: "absolute",
+                        top: 0,
+                        right: 0,
+                        width: 36,
+                        height: 36,
+                        bgcolor: "var(--changelog-close)",
+                        color: "inherit",
+                        "&:hover": { bgcolor: "var(--changelog-close-hover)" },
                     }}
                 >
-                    <Box sx={{ position: "absolute", top: 0, right: 0 }}>
-                        <IconButton
-                            aria-label={ut("Close")}
-                            onClick={onClose}
-                            sx={{
-                                width: 36,
-                                height: 36,
-                                bgcolor: "var(--changelog-close)",
-                                color: "inherit",
-                                "&:hover": {
-                                    bgcolor: "var(--changelog-button)",
-                                },
-                            }}
-                        >
-                            <CloseIcon sx={{ fontSize: 20 }} />
-                        </IconButton>
-                    </Box>
-                    <Box
-                        component="img"
-                        src="/images/whats-new.png"
-                        alt=""
-                        sx={{
-                            display: "block",
-                            width: 115,
-                            height: 108,
-                            objectFit: "contain",
-                            mx: "auto",
-                            mb: 1,
-                        }}
-                    />
-                    <Typography
-                        component="span"
-                        sx={{
-                            fontFamily: '"Outfit Variable", Outfit, sans-serif',
-                            fontSize: 24,
-                            lineHeight: "32px",
-                            fontWeight: 600,
-                        }}
-                    >
-                        {ut("What's new")}
-                    </Typography>
-                </DialogTitle>
-                <DialogContent sx={{ p: 0, pr: 2 }}>
-                    <ChangelogContent />
-                </DialogContent>
-                <DialogActions sx={{ p: 0, pt: 2 }}>
-                    <FocusVisibleButton
-                        onClick={onClose}
-                        variant="contained"
-                        fullWidth
-                        sx={{
-                            height: 52,
-                            borderRadius: "20px",
-                            bgcolor: "#08C225",
-                            color: "#FFFFFF",
-                            fontSize: 14,
-                            fontWeight: 600,
-                            boxShadow: "none",
-                            "&:hover": {
-                                bgcolor: "#069D1E",
-                                boxShadow: "none",
-                            },
-                            "&:active": { bgcolor: "#057C18" },
-                        }}
-                    >
-                        {ut("Continue")}
-                    </FocusVisibleButton>
-                </DialogActions>
-            </Box>
+                    <CloseIcon sx={{ fontSize: 20 }} />
+                </IconButton>
+                <Box
+                    component="img"
+                    src="/images/whats-new.png"
+                    alt=""
+                    sx={{
+                        display: "block",
+                        width: 115,
+                        height: 108,
+                        objectFit: "contain",
+                        mx: "auto",
+                        mb: 1,
+                    }}
+                />
+                <Typography
+                    component="span"
+                    sx={{
+                        fontFamily: '"Outfit Variable", Outfit, sans-serif',
+                        fontSize: 24,
+                        lineHeight: "32px",
+                        fontWeight: 600,
+                    }}
+                >
+                    {ut("What's new")}
+                </Typography>
+            </DialogTitle>
+            <DialogContent sx={{ p: 0, pr: 2 }}>
+                <ChangelogContent />
+            </DialogContent>
+            <DialogActions sx={{ p: 0, pt: 2 }}>
+                <FocusVisibleButton
+                    onClick={onClose}
+                    fullWidth
+                    sx={{
+                        height: 52,
+                        borderRadius: "20px",
+                        bgcolor: "#08C225",
+                        color: "#FFFFFF",
+                        fontSize: 14,
+                        "&:hover": { bgcolor: "#069D1E" },
+                        "&:active": { bgcolor: "#057C18" },
+                    }}
+                >
+                    {ut("Continue")}
+                </FocusVisibleButton>
+            </DialogActions>
         </Dialog>
     );
 };
