@@ -188,6 +188,8 @@ export const PhotosNavigationShell: React.FC<
                             flexShrink: 0,
                             width: "100%",
                             px: { xs: "9px", sm: "14px" },
+                            // Leave room for the first button's focus outline.
+                            pt: "4px",
                             gap: "12px",
                             ...theme.applyStyles("light", {
                                 "& .MuiButton-colorSecondary": {
