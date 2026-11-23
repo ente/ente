@@ -60,6 +60,7 @@ class _RewindViewerState extends State<RewindViewer>
   static final _logger = Logger("RewindViewer");
   static const _tapZoneTop = 70 / 844;
   static const _tapZoneBottom = 770 / 844;
+  static const _turnPause = Duration(milliseconds: 400);
   static var _openViewers = 0;
 
   late final _starts = RewindPageStack.startsOf(widget.pages);
@@ -74,6 +75,7 @@ class _RewindViewerState extends State<RewindViewer>
   var _settledStep = -1;
   int? _resizeStep;
   int? _targetStep;
+  final _sinceTurn = Stopwatch();
   final _videoSaved = ValueNotifier(false);
   var _busy = false;
 
@@ -300,6 +302,10 @@ class _RewindViewerState extends State<RewindViewer>
     final controller = _controller;
     final height = _height;
     if (controller == null || height == null || !controller.hasClients) return;
+    if (_sinceTurn.isRunning && _sinceTurn.elapsed < _turnPause) return;
+    _sinceTurn
+      ..reset()
+      ..start();
     if (MediaQuery.disableAnimationsOf(context)) {
       controller.jumpTo(step * height);
       return;
