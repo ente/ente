@@ -76,6 +76,7 @@ class _RewindViewerState extends State<RewindViewer>
   int? _resizeStep;
   int? _targetStep;
   final _sinceTurn = Stopwatch();
+  var _lastTurn = 0;
   final _videoSaved = ValueNotifier(false);
   var _busy = false;
 
@@ -302,7 +303,13 @@ class _RewindViewerState extends State<RewindViewer>
     final controller = _controller;
     final height = _height;
     if (controller == null || height == null || !controller.hasClients) return;
-    if (_sinceTurn.isRunning && _sinceTurn.elapsed < _turnPause) return;
+    final turn = (step - _currentStep).sign;
+    if (turn == _lastTurn &&
+        _sinceTurn.isRunning &&
+        _sinceTurn.elapsed < _turnPause) {
+      return;
+    }
+    _lastTurn = turn;
     _sinceTurn
       ..reset()
       ..start();

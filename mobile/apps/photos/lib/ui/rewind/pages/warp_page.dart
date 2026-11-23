@@ -199,6 +199,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   static const _brakeMs = 90.0;
   static const _hintFromMs = 1500.0;
   static const _hintMs = 2200.0;
+  static const _landingHintMs = 900.0;
   static const _restMs = 500.0;
   static const _pickedAt = Offset(195, 356);
 
@@ -917,14 +918,16 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
         shown: window(since, turn * _hintMs, (turn + 1) * _hintMs),
       );
     }
-    final turn = (_ms / _hintMs).floor() % texts.length;
+    final clock = landed ? sinceLanding - _landingHintMs : _ms;
+    final turn = (clock / _hintMs).floor() % texts.length;
     final swapping = texts.length == 1
         ? 1.0
-        : window(_ms % _hintMs, 0, _hintMs);
+        : window(clock % _hintMs, 0, _hintMs);
     return (
       text: texts[turn],
       shown:
-          swapping * (landed ? window(sinceLanding, 900, double.infinity) : 1),
+          swapping *
+          (landed ? window(sinceLanding, _landingHintMs, double.infinity) : 1),
     );
   }
 
@@ -1326,6 +1329,23 @@ class _Tube extends CustomPainter {
   });
 
   static const _fogSteps = 8;
+  static const _softBounds = Rect.fromLTRB(-120, -120, 510, 964);
+  static const _sharpWithin = 230.0;
+  static const _softFrom = 470.0;
+  static final _softBlur = Paint()
+    ..imageFilter = ui.ImageFilter.blur(
+      sigmaX: 2.6,
+      sigmaY: 2.6,
+      tileMode: TileMode.clamp,
+    );
+  static final _softMask = Paint()
+    ..blendMode = BlendMode.dstIn
+    ..shader = ui.Gradient.radial(
+      _Course.vanish,
+      _softFrom,
+      const [Colors.transparent, Colors.transparent, Colors.white],
+      const [0, _sharpWithin / _softFrom, 1],
+    );
 
   final RewindAtlas? walls;
   final ImageShader? shader;
@@ -1368,17 +1388,24 @@ class _Tube extends CustomPainter {
         textureCoordinates: Float32List.fromList(pixels),
         indices: Uint16List.fromList(indices),
       );
-      canvas.drawVertices(
-        tube,
-        BlendMode.srcOver,
-        Paint()
-          ..shader = shader
-          ..colorFilter = _fade((1 - 0.42 * arrival) * (1 - 0.55 * dim)),
-      );
+      final paint = Paint()
+        ..shader = shader
+        ..colorFilter = _fade((1 - 0.42 * arrival) * (1 - 0.55 * dim));
+      canvas.drawVertices(tube, BlendMode.srcOver, paint);
+      _soften(canvas, tube, paint);
       tube.dispose();
     }
     _fog(canvas);
     _dusk(canvas);
+  }
+
+  void _soften(Canvas canvas, ui.Vertices tube, Paint paint) {
+    canvas.saveLayer(_softBounds, Paint());
+    canvas.saveLayer(_softBounds, _softBlur);
+    canvas.drawVertices(tube, BlendMode.srcOver, paint);
+    canvas.restore();
+    canvas.drawRect(_softBounds, _softMask);
+    canvas.restore();
   }
 
   static ColorFilter? _fade(double light) {
