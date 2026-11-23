@@ -90,7 +90,7 @@
     "description": "App lock setting title"
   },
   "appLockNotEnabled": "Az alkalmazászár nincs engedélyezve",
-  "appLockNotEnabledDescription": "A passkey megtekintéséhez kérjük, hitelesítsd magad",
+  "appLockNotEnabledDescription": "Kérjük, engedélyezd az alkalmazászárat a Biztonság > Alkalmazás zárolása menüpontban",
   "appLockOfflineModeWarning": "Úgy döntöttél, hogy biztonsági mentés nélkül folytatod. Ha elfelejted az alkalmazászárat, akkor többé nem férhetsz hozzá adataidhoz.",
   "apply": "Alkalmaz",
   "applyCodeTitle": "Kód alkalmazása",

@@ -341,7 +341,7 @@
   "authToUpdateBackupPassword": "Authentification pour mettre à jour le mot de passe de sauvegarde",
   "authToViewPasskey": "Veuillez vous authentifier pour afficher votre clé d'accès",
   "authToViewPasskeyGeneric": "Veuillez vous authentifier pour afficher la clé d'accès",
-  "authToViewSecrets": "Veuillez vous authentifier pour voir vos souvenirs",
+  "authToViewSecrets": "Veuillez vous authentifier pour voir vos secrets",
   "@authToViewSecrets": {
     "description": "Message prompting authentication to view secrets"
   },
