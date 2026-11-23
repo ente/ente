@@ -63,7 +63,7 @@ impl Museum {
         let result = (|| {
             let object_store = ObjectStore::start()?;
             server::write_config(&museum_config_file)?;
-            let postgres = postgres::start(free_port)?;
+            let postgres = postgres::start()?;
             let (server, port) = server::start(
                 &server_dir,
                 env,
@@ -158,7 +158,15 @@ impl Drop for TempDir {
 
 #[cfg(all(test, feature = "museum"))]
 mod tests {
-    use std::net::TcpListener;
+    use std::{
+        io::{Read, Write},
+        net::{TcpListener, TcpStream},
+        sync::{
+            Arc,
+            atomic::{AtomicBool, AtomicUsize, Ordering},
+        },
+        thread,
+    };
 
     use super::*;
 
@@ -171,7 +179,29 @@ mod tests {
     fn moves_off_a_port_another_server_answers_on() -> TestResult {
         let holder = TcpListener::bind((LOCAL_HOST, 0))?;
         let taken = holder.local_addr()?.port();
-        let museum = start_after(taken)?;
+        let stop = Arc::new(AtomicBool::new(false));
+        let hits = Arc::new(AtomicUsize::new(0));
+        let responder_stop = Arc::clone(&stop);
+        let responder_hits = Arc::clone(&hits);
+        let responder = thread::spawn(move || {
+            while let Ok((mut stream, _)) = holder.accept() {
+                if responder_stop.load(Ordering::SeqCst) {
+                    break;
+                }
+                responder_hits.fetch_add(1, Ordering::SeqCst);
+                let mut request = [0_u8; 1024];
+                let _ = stream.read(&mut request);
+                let _ = stream.write_all(
+                    b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n{\"id\":\"other\",\"message\":\"pong\"}",
+                );
+            }
+        });
+        let result = start_after(taken);
+        stop.store(true, Ordering::SeqCst);
+        let _ = TcpStream::connect((LOCAL_HOST, taken));
+        let _ = responder.join();
+        let museum = result?;
+        assert!(hits.load(Ordering::SeqCst) >= 1);
         assert_ne!(museum.endpoint(), format!("http://{LOCAL_HOST}:{taken}"));
         Ok(())
     }
@@ -180,7 +210,7 @@ mod tests {
     #[test]
     fn moves_off_a_port_it_cannot_bind() -> TestResult {
         let listener = TcpListener::bind((LOCAL_HOST, 0))?;
-        let holder = std::net::TcpStream::connect(listener.local_addr()?)?;
+        let holder = TcpStream::connect(listener.local_addr()?)?;
         let taken = holder.local_addr()?.port();
         let museum = start_after(taken)?;
         assert_ne!(museum.endpoint(), format!("http://{LOCAL_HOST}:{taken}"));

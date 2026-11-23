@@ -122,11 +122,13 @@ fn wait_for_museum(process: &mut ChildProcess, port: u16, instance: &str) -> Tes
     loop {
         process.ensure_running()?;
         let log = process.log();
-        match ping(port) {
-            Some(response) if response.contains(instance) => return Ok(Startup::Ready),
-            Some(_) if !log.contains(&listening) => return Ok(Startup::PortTaken),
-            _ if log.contains(&bind_failed) => return Ok(Startup::PortTaken),
-            _ => {}
+        if log.contains(&listening) {
+            match ping(port) {
+                Some(response) if response.contains(instance) => return Ok(Startup::Ready),
+                Some(_) => return Ok(Startup::PortTaken),
+                None if log.contains(&bind_failed) => return Ok(Startup::PortTaken),
+                None => {}
+            }
         }
         if Instant::now() >= deadline {
             return Err(format!(

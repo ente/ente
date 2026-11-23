@@ -5,7 +5,7 @@ use postgresql_embedded::blocking::PostgreSQL;
 
 use crate::{
     TestResult,
-    net::{LOCAL_HOST, PORT_ATTEMPTS},
+    net::{LOCAL_HOST, PORT_ATTEMPTS, free_port},
 };
 
 const DATABASE: &str = "ente_test";
@@ -66,7 +66,11 @@ impl Postgres {
     }
 }
 
-pub fn start(mut next_port: impl FnMut() -> TestResult<u16>) -> TestResult<Postgres> {
+pub fn start() -> TestResult<Postgres> {
+    start_with(free_port)
+}
+
+fn start_with(mut next_port: impl FnMut() -> TestResult<u16>) -> TestResult<Postgres> {
     let mut attempts = 0;
     loop {
         attempts += 1;
@@ -110,14 +114,13 @@ mod tests {
     use std::net::TcpListener;
 
     use super::*;
-    use crate::net::free_port;
 
     #[test]
     fn moves_off_a_taken_port() -> TestResult {
         let holder = TcpListener::bind((LOCAL_HOST, 0))?;
         let taken = holder.local_addr()?.port();
         let mut first = Some(taken);
-        let postgres = start(|| first.take().map_or_else(free_port, Ok))?;
+        let postgres = start_with(|| first.take().map_or_else(free_port, Ok))?;
         assert_ne!(postgres.port(), taken);
         postgres.execute_sql("SELECT 1")
     }
