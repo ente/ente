@@ -104,7 +104,7 @@ export const PhotosNavigationShell: React.FC<
     useImperativeHandle(ref, () => ({ showSettings }), [showSettings]);
     const isOffline = useIsOffline();
     const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
-    const [navigationCollapsed, setNavigationCollapsed] = useState(false);
+    const [navigationCollapsed, setNavigationCollapsed] = useState(isHome);
     const mobile = useMediaQuery(useTheme().breakpoints.down("md"));
     const navigationAvailable = hasNavigation;
     const panelOpen = navigationAvailable && !navigationCollapsed;
@@ -125,8 +125,8 @@ export const PhotosNavigationShell: React.FC<
         navigation.destination.albumMode ?? navigation.destination.section;
     const isInSearchMode = navigation.overlay?.section === "search";
     useEffect(() => {
-        setNavigationCollapsed(false);
-    }, [panelMode, isInSearchMode, navigation.destination.section]);
+        setNavigationCollapsed(isHome);
+    }, [panelMode, isHome, isInSearchMode, navigation.destination.section]);
     useEffect(() => {
         if (!mobile) closeMobileNavigation();
     }, [mobile, closeMobileNavigation]);
