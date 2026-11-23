@@ -237,7 +237,7 @@ export const RowSwitch: React.FC<RowSwitchProps> = ({
 
 interface RowLabelProps {
     startIcon?: React.ReactNode;
-    label: string;
+    label: React.ReactNode;
 }
 
 export const RowLabel: React.FC<RowLabelProps> = ({ startIcon, label }) => (
@@ -254,7 +254,11 @@ export const RowLabel: React.FC<RowLabelProps> = ({ startIcon, label }) => (
         <Stack direction="row" sx={{ py: "14px", gap: "10px" }}>
             {startIcon && startIcon}
             <Box sx={{ px: "2px" }}>
-                <Typography>{label}</Typography>
+                {typeof label == "string" ? (
+                    <Typography>{label}</Typography>
+                ) : (
+                    label
+                )}
             </Box>
         </Stack>
     </Stack>
