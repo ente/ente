@@ -43,6 +43,10 @@ impl ChildProcess {
         Ok(())
     }
 
+    pub fn log(&self) -> String {
+        fs::read_to_string(&self.log_path).unwrap_or_default()
+    }
+
     pub fn log_summary(&self) -> String {
         match fs::read_to_string(&self.log_path) {
             Ok(log) => format!("{} log at {}\n{log}", self.name, self.log_path.display()),
