@@ -30,6 +30,12 @@ class RewindChromeLayout {
     wordmarkSize.height,
   );
 
+  Rect get nextArrow => Rect.fromCenter(
+    center: Offset(size.width / 2, size.height - bottom - buttonSize / 2),
+    width: buttonSize,
+    height: buttonSize,
+  );
+
   Offset get rail {
     final scale = RewindStage.scaleFor(size);
     return Offset(14 * scale, RewindStage.originFor(size).dy + 186 * scale);
@@ -44,6 +50,7 @@ class RewindChromeOverlay extends StatelessWidget {
     required this.pageCount,
     required this.music,
     required this.onClose,
+    required this.onNext,
     required this.shareKey,
     required this.videoKey,
     this.onShare,
@@ -57,6 +64,7 @@ class RewindChromeOverlay extends StatelessWidget {
   final int pageCount;
   final RewindMusic music;
   final VoidCallback onClose;
+  final VoidCallback onNext;
   final GlobalKey shareKey;
   final GlobalKey videoKey;
   final VoidCallback? onShare;
@@ -120,6 +128,10 @@ class RewindChromeOverlay extends StatelessWidget {
             ),
           ),
         ),
+        Positioned.fromRect(
+          rect: layout.nextArrow,
+          child: _NextArrow(visible: chrome.nextArrow, onTap: onNext),
+        ),
         Positioned(
           right: RewindChromeLayout.sideInset,
           bottom: layout.bottom,
@@ -180,6 +192,80 @@ class _PopButton extends StatelessWidget {
             glyph: glyph,
             label: label,
             onTap: onTap ?? () {},
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NextArrow extends StatefulWidget {
+  const _NextArrow({required this.visible, required this.onTap});
+
+  final bool visible;
+  final VoidCallback onTap;
+
+  @override
+  State<_NextArrow> createState() => _NextArrowState();
+}
+
+class _NextArrowState extends State<_NextArrow>
+    with SingleTickerProviderStateMixin {
+  static const _hopShare = 0.4;
+  static const _hopDepth = 5.0;
+
+  late final _bob = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1600),
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncBob();
+  }
+
+  @override
+  void didUpdateWidget(_NextArrow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncBob();
+  }
+
+  void _syncBob() {
+    final bobbing = widget.visible && !MediaQuery.disableAnimationsOf(context);
+    if (!bobbing) {
+      _bob.stop();
+    } else if (!_bob.isAnimating) {
+      unawaited(_bob.repeat());
+    }
+  }
+
+  double get _drop {
+    final t = _bob.value;
+    return t < _hopShare ? _hopDepth * sin(pi * t / _hopShare) : 0;
+  }
+
+  @override
+  void dispose() {
+    _bob.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      ignoring: !widget.visible,
+      child: AnimatedOpacity(
+        opacity: widget.visible ? 1 : 0,
+        duration: const Duration(milliseconds: 300),
+        child: AnimatedBuilder(
+          animation: _bob,
+          builder: (context, child) =>
+              Transform.translate(offset: Offset(0, _drop), child: child),
+          child: RewindRoundButton(
+            glyph: RewindGlyph.next,
+            label: "Next card",
+            onTap: widget.onTap,
           ),
         ),
       ),
