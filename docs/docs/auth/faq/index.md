@@ -23,6 +23,17 @@ description: Frequently asked questions about Ente Auth
 4. Enter the account name, issuer, and secret (setup key).
 5. Save and verify the generated code.
 
+**On the desktop app (Windows, macOS and Linux):**
+
+The desktop app can't scan with a camera, so add codes like this:
+
+1. Click the **+** button in the bottom-right corner of the Ente Auth window. If you haven't added any codes yet, use the buttons in the middle of the window instead.
+2. If the service shows a setup key, choose **Enter details manually** (or **Enter a setup key**) and paste the key into the **Secret** field.
+3. If the service only shows a QR code, save a screenshot of it, choose **Import from gallery**, and select the image. Keep the screenshot private and delete it after setup, including from any photo backups where it may have been saved.
+4. Enter the generated code on the service to finish setup.
+
+You can also add the code on your phone and it will sync to the desktop app when you're signed in to the same Ente account.
+
 ### What should I enter in the Secret field when adding a code manually? {#manual-secret-field}
 
 Enter the two-factor setup key provided by the service you are securing. It is not your login password or Ente password.
@@ -63,6 +74,14 @@ The easiest workaround is to add the code manually:
 4. Enter the account name, issuer, and secret (setup key) shown by the service alongside the QR code.
 
 If the service only offers a QR code and no setup key, check its security settings for an option to "show setup key" or "can't scan?".
+
+### Why does Ente Auth say "Sorry, the endpoint you entered is invalid"? {#invalid-endpoint}
+
+This message comes from **Developer settings**, which is only for people who run their own Ente server (self-hosting). The screen opens if you tap the welcome screen 7 times and choose **Yes**.
+
+The address you entered wasn't saved, so nothing has changed. If you don't run your own server, leave Developer settings without entering anything, then tap **Log in** or **Sign up** as usual.
+
+If you do self-host, enter your server's full address, starting with `https://` or `http://`, and make sure the server is running. See [connecting the apps to your server](/self-hosting/installation/post-install/).
 
 ### How secure is Ente Auth?
 
@@ -278,6 +297,8 @@ Open **Settings** and tap **Sign in to backup your codes** at the top. Ente Auth
 ### Can I use Ente Auth on multiple devices and sync them?
 
 Yes, you can download Ente Auth on multiple devices and sync the codes with end-to-end encryption.
+
+To move your codes to a new phone, install Ente Auth on it and sign in with the same Ente account. Your backed-up codes sync to the new phone, so you don't need to scan each QR code again. Keep the old phone until you've checked that the codes work. If you used Ente Auth without backups, first see [How do I start backing up my codes after using Ente Auth without backups?](#enable-backup-later). To move codes to a different Ente account, see [Can I merge two Ente accounts or move my Auth codes to another account?](#merge-accounts).
 
 ### Do you support exporting to Google Authenticator format? {#export-google-authenticator}
 

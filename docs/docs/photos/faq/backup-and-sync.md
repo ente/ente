@@ -213,7 +213,7 @@ The same applies to Google Photos or any other gallery or cloud app: deleting th
 
 **Changes in Ente → Your device:**
 
-- ❌ Deleting a photo in Ente does NOT delete it from your device
+- ❌ Deleting a photo with **Delete from Ente** does NOT delete it from your device (choose **Delete from both** if you want that)
 - ❌ Moving photos between albums in Ente does NOT affect your device albums
 - ❌ Renaming albums in Ente does NOT rename device albums
 

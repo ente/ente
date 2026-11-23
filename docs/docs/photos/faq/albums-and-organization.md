@@ -13,6 +13,12 @@ Open the album and select the three-dot menu, then **Edit details**. To change t
 
 See the [Albums guide](/photos/features/albums-and-organization/albums) for steps on mobile, web, and desktop.
 
+### Why does an album show a blank cover? {#album-cover-missing}
+
+On mobile, an album in Ente shows its cover once at least one photo or video in it has been backed up. While its photos are still waiting to upload, the album can show a blank cover. The cover appears after the first item finishes uploading.
+
+Albums under **On device** use the photos on your phone, so they show a cover without backup.
+
 ### Can I manually arrange photos and videos within an album? {#manual-album-order}
 
 Ente does not currently support dragging photos and videos into a custom order within an album. To change the order using the options available in your app:
@@ -423,7 +429,7 @@ No! Freeing up device space only removes local copies from your device. All phot
 
 ### Can I choose which photos to delete from my device? {#selective-device-deletion}
 
-Currently, the "Free up space" feature removes all backed-up photos at once. If you want selective deletion, manually delete specific photos from your device's gallery app.
+Currently, the "Free up space" feature removes all backed-up photos at once. To delete only some photos from your device, select them in Ente, tap the trash icon and choose **Delete from device**. They stay in Ente. See [How do I delete a photo from Ente but keep it on my phone?](#delete-from-ente-only).
 
 ### How much space will I free up? {#how-much-space-freed}
 
@@ -457,7 +463,7 @@ When you delete a photo or video from your Ente account, it's moved to Trash rat
 
 - Long press to select the photo(s) you want to delete
 - Tap the trash icon in the action bar
-- Confirm the deletion
+- Choose where to delete it from (see [below](#delete-from-ente-only))
 
 On Android 11 and newer, photos deleted from your device's gallery through Ente move to Android's system trash. You can restore them from the **Device** tab in Trash, even if they were never backed up.
 
@@ -470,6 +476,18 @@ On Android 11 and newer, photos deleted from your device's gallery through Ente 
 Photos deleted from your Ente account remain in Trash for 30 days before being permanently deleted automatically.
 
 Learn more in the [deletion feature guide](/photos/features/albums-and-organization/deleting).
+
+### How do I delete a photo from Ente but keep it on my phone? {#delete-from-ente-only}
+
+On mobile, select the photo and tap the trash icon. For a photo that is on your phone and backed up, Ente asks where to delete it from:
+
+- **Delete from Ente**: moves it to Ente's Trash and keeps the copy on your phone (and in iCloud Photos or Google Photos, if you use them)
+- **Delete from device**: removes the copy on your phone and keeps it in Ente
+- **Delete from both**: removes it from your phone and moves it to Ente's Trash
+
+If you ticked **Set as my default choice**, Ente shows only that option next time. Tap **More options** to pick a different one.
+
+If Ente only offers **Delete from device** and warns that the item isn't backed up, the photo hasn't uploaded to Ente yet, so it exists only on your phone. On iPhone, your phone may then warn that it will be deleted from iCloud and all your devices. Cancel if you want to keep it, and let the photo back up first.
 
 ### How do I restore deleted photos? {#restore-photos}
 

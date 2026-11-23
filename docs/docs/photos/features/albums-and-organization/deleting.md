@@ -26,7 +26,7 @@ When you delete a photo from your Ente account:
 
 1. Long press to select the photo(s) you want to delete
 2. Tap the trash icon in the action bar
-3. Confirm the deletion
+3. Choose **Delete from Ente**, **Delete from device** or **Delete from both**. Photos that aren't backed up yet can only be deleted from the device. See [How do I delete a photo from Ente but keep it on my phone?](/photos/faq/albums-and-organization#delete-from-ente-only)
 
 ![Delete action highlighted in the bottom bar on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-photo-delete-action-callout.png){width=320px}
 
