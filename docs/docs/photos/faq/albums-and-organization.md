@@ -429,7 +429,7 @@ No! Freeing up device space only removes local copies from your device. All phot
 
 ### Can I choose which photos to delete from my device? {#selective-device-deletion}
 
-Currently, the "Free up space" feature removes all backed-up photos at once. To delete only some photos from your device, select them in Ente, tap the trash icon and choose **Delete from device**. They stay in Ente. If you use iCloud Photos, deleting from the device also removes the photo from your synced Apple library and other devices. See [How do I delete a photo from Ente but keep it on my phone?](#delete-from-ente-only).
+Currently, the "Free up space" feature removes all backed-up photos at once. To delete only some photos from your device, first [check that each one is backed up](/photos/faq/backup-and-sync#check-backup-status). Then select them in Ente, tap the trash icon and choose **Delete from device**. They stay in Ente. If a photo has not backed up yet, deleting it from the device removes its only copy. If you use iCloud Photos, deleting from the device also removes the photo from your synced Apple library and other devices. See [How do I delete a photo from Ente but keep it on my phone?](#delete-from-ente-only).
 
 ### How much space will I free up? {#how-much-space-freed}
 
