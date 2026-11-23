@@ -240,13 +240,16 @@ impl MlDb {
 
     pub(crate) fn for_each_face_without_embedding(
         &self,
+        mut accepts_file: impl FnMut(i64) -> bool,
         mut visit: impl FnMut(FaceWithoutEmbedding),
     ) -> Result<()> {
         self.read_each(
             &format!("SELECT {FACE_WITHOUT_EMBEDDING_COLUMNS} FROM faces"),
             (),
             |row| {
-                visit(read_face_without_embedding(row)?);
+                if accepts_file(row.get(1)?) {
+                    visit(read_face_without_embedding(row)?);
+                }
                 Ok(())
             },
         )
@@ -725,6 +728,30 @@ pub(in crate::ml_db) mod tests {
             .unwrap();
         assert_eq!((blurry.file_id, blurry.score, blurry.blur), (6, 0.9, 5.0));
         assert_eq!(blurry.detection_json, "{\"index\":0}");
+    }
+
+    #[test]
+    fn visits_all_face_metadata_for_matching_files() {
+        let (_directory, db) = seeded();
+        let mut faces = Vec::new();
+
+        db.for_each_face_without_embedding(
+            |file_id| matches!(file_id, 1 | 10),
+            |face| faces.push(face),
+        )
+        .unwrap();
+
+        faces.sort_by(|left, right| {
+            (left.file_id, &left.face_id).cmp(&(right.file_id, &right.face_id))
+        });
+        assert_eq!(
+            faces,
+            vec![
+                without_embedding(good_face(1, 0)),
+                without_embedding(face(1, 1, 0.95, 300.0, false)),
+                without_embedding(good_face(10, 0)),
+            ],
+        );
     }
 
     #[test]
