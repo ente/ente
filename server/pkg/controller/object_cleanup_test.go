@@ -197,7 +197,7 @@ func TestB2TempCleanupMultipartRetry(t *testing.T) {
 	var delayed bool
 	require.NoError(t, db.QueryRow(`SELECT COALESCE(cleanup_state, ''), expiration_time > now_utc_micro_seconds()
 		FROM temp_objects WHERE object_key = '1/b2-multipart'`).Scan(&cleanupState, &delayed))
-	require.Equal(t, string(ente.TempObjectDelete), cleanupState)
+	require.Equal(t, string(ente.TempObjectDirectDelete), cleanupState)
 	require.True(t, delayed)
 
 	_, err = c.Repo.GetFileUploadBucket(t.Context(), "1/b2-multipart", 1, ente.Photos)

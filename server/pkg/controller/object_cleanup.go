@@ -125,7 +125,7 @@ func (c *ObjectCleanupController) claimExpiredObjectsTx(tx *sql.Tx, tempObjects 
 
 	var delayOnlyKeys []string
 	var releaseHoldKeys []string
-	var claimDeleteKeys []string
+	var directDeleteKeys []string
 	claimed := make([]ente.TempObject, 0, len(tempObjects))
 	stagedCount := 0
 
@@ -145,14 +145,6 @@ func (c *ObjectCleanupController) claimExpiredObjectsTx(tx *sql.Tx, tempObjects 
 			continue
 		}
 
-		switch t.CleanupState {
-		case ente.TempObjectUploading, ente.TempObjectReleaseHold, ente.TempObjectDelete:
-		default:
-			logger.Errorf("Clearing tempObject failed: %v", stacktrace.NewError("unknown temporary object cleanup state %q", t.CleanupState))
-			delayOnlyKeys = append(delayOnlyKeys, t.ObjectKey)
-			continue
-		}
-
 		if _, exists := existingKeys[t.ObjectKey]; exists {
 			logger.Errorf("Clearing tempObject failed: %v", errors.New("aborting attempt to delete an object which has a DB entry"))
 			delayOnlyKeys = append(delayOnlyKeys, t.ObjectKey)
@@ -160,18 +152,21 @@ func (c *ObjectCleanupController) claimExpiredObjectsTx(tx *sql.Tx, tempObjects 
 		}
 
 		switch t.CleanupState {
-		case ente.TempObjectUploading:
+		case ente.TempObjectUploading, ente.TempObjectDirectDelete:
 			if dc == complianceDC {
 				releaseHoldKeys = append(releaseHoldKeys, t.ObjectKey)
 				stagedCount++
 			} else {
-				claimDeleteKeys = append(claimDeleteKeys, t.ObjectKey)
-				t.CleanupState = ente.TempObjectDelete
+				directDeleteKeys = append(directDeleteKeys, t.ObjectKey)
+				t.CleanupState = ente.TempObjectDirectDelete
 				claimed = append(claimed, t)
 			}
 		case ente.TempObjectReleaseHold, ente.TempObjectDelete:
 			delayOnlyKeys = append(delayOnlyKeys, t.ObjectKey)
 			claimed = append(claimed, t)
+		default:
+			logger.Errorf("Clearing tempObject failed: %v", stacktrace.NewError("unknown temporary object cleanup state %q", t.CleanupState))
+			delayOnlyKeys = append(delayOnlyKeys, t.ObjectKey)
 		}
 	}
 
@@ -181,7 +176,7 @@ func (c *ObjectCleanupController) claimExpiredObjectsTx(tx *sql.Tx, tempObjects 
 	if err := c.Repo.SetCleanupStateForTempObjects(tx, releaseHoldKeys, ente.TempObjectReleaseHold, now); err != nil {
 		return nil, 0, err
 	}
-	if err := c.Repo.SetCleanupStateForTempObjects(tx, claimDeleteKeys, ente.TempObjectDelete, retryExpiry); err != nil {
+	if err := c.Repo.SetCleanupStateForTempObjects(tx, directDeleteKeys, ente.TempObjectDirectDelete, retryExpiry); err != nil {
 		return nil, 0, err
 	}
 
