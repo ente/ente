@@ -103,7 +103,6 @@ export const AlbumContentHeader: React.FC<AlbumContentHeaderProps> = ({
             collectionSummary?.type == "archiveItems";
 
         const hideItemCount = showAlbums && collectionSummary.fileCount == 0;
-        // Hidden items retain the download button alongside their count.
         const collectionHeaderHeight = hideItemCount
             ? 0
             : collectionSummary?.type == "archiveItems"
