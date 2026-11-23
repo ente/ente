@@ -122,7 +122,7 @@ export const AlbumContentHeader: React.FC<AlbumContentHeaderProps> = ({
                         <AlbumsHeader
                             title={t(
                                 collectionSummary.type == "hiddenItems"
-                                    ? "hidden_albums"
+                                    ? "section_hidden"
                                     : "section_archive",
                             )}
                             albums={albums}
