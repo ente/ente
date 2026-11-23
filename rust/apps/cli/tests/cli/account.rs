@@ -801,7 +801,7 @@ fn security_settings_and_email_change_across_processes() -> ente_test_support::T
 
 #[cfg(all(unix, feature = "museum"))]
 #[test]
-fn interactive_creation_password_retry_and_enrollment() -> ente_test_support::TestResult {
+fn interactive_prompts_from_creation_to_email_change() -> ente_test_support::TestResult {
     use std::io::{BufRead, BufReader};
 
     ente_test_support::Museum::run(|museum| {
@@ -821,21 +821,32 @@ fn interactive_creation_password_retry_and_enrollment() -> ente_test_support::Te
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
                 .spawn()?;
+            let mut stdin = child.stdin.take().unwrap();
+            let mut stdout = BufReader::new(child.stdout.take().unwrap());
             let mut ready = String::new();
-            BufReader::new(child.stdout.take().unwrap()).read_line(&mut ready)?;
+            stdout.read_line(&mut ready)?;
             assert_eq!(ready.trim(), "expire");
             museum.execute_sql("UPDATE temp_two_factor SET expiration_time = 1")?;
-            writeln!(child.stdin.take().unwrap(), "expired")?;
+            writeln!(stdin, "expired")?;
+            ready.clear();
+            stdout.read_line(&mut ready)?;
+            assert_eq!(ready.trim(), "code");
+            let code =
+                museum.query_sql("SELECT ott FROM otts ORDER BY creation_time DESC LIMIT 1")?;
+            writeln!(stdin, "{code}")?;
             child.wait_with_output()?
         });
-        assert_eq!(home.json(&["account", "view"])["name"], email);
+        let changed = format!("changed-{email}");
+        let account = home.json(&["account", "view"]);
+        assert_eq!(account["name"], email);
+        assert_eq!(account["email"], changed);
         assert_eq!(
             home.json(&["account", "totp", "status"]),
             json!({"totpEnabled": true})
         );
         assert_eq!(
             home.json(&["photos", "api", "/users/details/v2"])["email"],
-            email
+            changed
         );
         Ok(())
     })
