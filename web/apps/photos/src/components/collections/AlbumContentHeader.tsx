@@ -116,6 +116,7 @@ export const AlbumContentHeader: React.FC<AlbumContentHeaderProps> = ({
             (archiveWithoutAlbums ? 18 : 0);
 
         setFileListHeader({
+            suppressEmptyState: showAlbums && albums.length > 0,
             component: shouldRenderCollectionHeader ? (
                 <Box sx={{ width: "100%" }}>
                     {showAlbums && (

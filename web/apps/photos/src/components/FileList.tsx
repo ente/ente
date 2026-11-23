@@ -85,6 +85,7 @@ export interface FileListHeaderOrFooter {
     component: React.ReactNode;
     height: number;
     extendToInlineEdges?: boolean;
+    suppressEmptyState?: boolean;
 }
 
 type FileListItem =
@@ -368,7 +369,7 @@ export const FileList: React.FC<FileListProps> = ({
             if (pendingSplits.length) pushItemsFromSplits(pendingSplits);
         }
 
-        if (!annotatedFiles.length) {
+        if (!annotatedFiles.length && !header?.suppressEmptyState) {
             items.push({
                 height: Math.max(
                     onAddPhotos ? 412 : 340,
