@@ -10,11 +10,13 @@ import (
 	"github.com/ente/museum/ente"
 	discordCtrl "github.com/ente/museum/pkg/controller/discord"
 	"github.com/ente/museum/pkg/controller/lock"
+	"github.com/ente/museum/pkg/external/listmonk"
 	"github.com/ente/museum/pkg/repo"
 	storageBonusRepo "github.com/ente/museum/pkg/repo/storagebonus"
 	"github.com/ente/museum/pkg/utils/email"
 	"github.com/ente/museum/pkg/utils/time"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 type UserAccessResetter interface {
@@ -314,6 +316,10 @@ func (c *EmailNotificationController) NudgePaidSubscriberForFamily() {
 }
 
 func (c *EmailNotificationController) SendLockerIntroMails(now int64) {
+	mailer := productMailer()
+	if !mailer.Configured() {
+		return
+	}
 	log.Info("Running SendLockerIntroMails")
 	if !c.LockController.TryLock(LockerIntroMailLock, time.MicrosecondsAfterHours(24)) {
 		log.Error("Could not acquire lock to send Locker intro mails")
@@ -326,6 +332,15 @@ func (c *EmailNotificationController) SendLockerIntroMails(now int64) {
 		log.WithError(err).Error("Could not fetch Locker intro candidates")
 		return
 	}
+	if len(userIDs) == 0 {
+		return
+	}
+	body, err := email.RenderMailBodyWithBase("base_v2.html", LockerIntroTemplate, nil)
+	if err != nil {
+		log.WithError(err).Error("Could not render Locker intro mail")
+		return
+	}
+	addresses := make([]string, 0, len(userIDs))
 	for _, userID := range userIDs {
 		logger := log.WithField("user_id", userID)
 		user, err := c.UserRepo.Get(userID)
@@ -338,10 +353,22 @@ func (c *EmailNotificationController) SendLockerIntroMails(now int64) {
 			logger.WithError(err).Error("Could not record Locker intro attempt")
 			continue
 		}
-		err = email.SendTemplatedEmailV2([]string{user.Email}, "Ente", "team@ente.com",
-			LockerIntroSubject, "base_v2.html", LockerIntroTemplate, nil, nil)
-		if err != nil {
-			logger.WithError(err).Error("Could not send Locker intro mail")
-		}
+		addresses = append(addresses, user.Email)
+	}
+	if err := mailer.Send(addresses, LockerIntroSubject, body); err != nil {
+		log.WithError(err).Error("Could not send Locker intro mail")
+	}
+}
+
+func productMailer() listmonk.ProductMailer {
+	return listmonk.ProductMailer{
+		Credentials: listmonk.Credentials{
+			BaseURL:  viper.GetString("listmonk.server-url"),
+			Username: viper.GetString("listmonk.username"),
+			Password: viper.GetString("listmonk.password"),
+		},
+		ListID:                  viper.GetInt("listmonk.product-mails.list-id"),
+		TemplateID:              viper.GetInt("listmonk.product-mails.template-id"),
+		UnsubscribeCampaignUUID: viper.GetString("listmonk.product-mails.unsubscribe-campaign-uuid"),
 	}
 }

@@ -276,6 +276,10 @@ func SendTemplatedEmailV2(to []string, fromName string, fromEmail string, subjec
 	return Send(to, fromName, fromEmail, subject, body, inlineImages)
 }
 
+func RenderMailBodyWithBase(baseTemplateName, templateName string, templateData map[string]interface{}) (string, error) {
+	return getMailBodyWithBase(baseTemplateName, templateName, templateData)
+}
+
 func GetMaskedEmail(email string) string {
 	at := strings.LastIndex(email, "@")
 	if at >= 0 {

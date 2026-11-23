@@ -332,6 +332,10 @@ listmonk:
     username:
     password:
     list-ids:
+    product-mails:
+        list-id:
+        template-id:
+        unsubscribe-campaign-uuid:
 
 # Various low-level configuration options
 internal:
