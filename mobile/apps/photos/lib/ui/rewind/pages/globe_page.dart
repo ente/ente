@@ -514,6 +514,7 @@ class _GlobeViewState extends State<_GlobeView>
   static const _apart = 0.36;
   static const _callouts = 6;
   static const _nearby = 0.035;
+  static const _notchDegrees = 15.0;
   static const _slots = [-128.0, -98.0, -8.0, 28.0, 62.0, 118.0, 152.0, 188.0];
 
   late final _reel = RewindPageScope.reelOf(context);
@@ -689,7 +690,13 @@ class _GlobeViewState extends State<_GlobeView>
       ),
       facing.longitude - drag.dx * 180 / (pi * _GlobeView.radius),
     );
+    if (_notchOf(_facing) != _notchOf(facing)) HapticFeedback.selectionClick();
   }
+
+  static (int, int) _notchOf(({double latitude, double longitude}) facing) => (
+    (facing.latitude / _notchDegrees).floor(),
+    (facing.longitude / _notchDegrees).floor(),
+  );
 
   late final Map<int, Offset> _berths = _berth();
 
