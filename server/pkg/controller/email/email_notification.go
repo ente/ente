@@ -15,6 +15,7 @@ import (
 	"github.com/ente/museum/pkg/utils/email"
 	"github.com/ente/museum/pkg/utils/time"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 type UserAccessResetter interface {
@@ -315,7 +316,7 @@ func (c *EmailNotificationController) NudgePaidSubscriberForFamily() {
 }
 
 func (c *EmailNotificationController) SendLockerIntroMails(now int64) {
-	if !c.SubscriptionSender.Configured(ente.ProductMailsEmailType) {
+	if viper.GetBool("internal.silent") || !c.SubscriptionSender.Configured(ente.ProductMailsEmailType) {
 		return
 	}
 	log.Info("Running SendLockerIntroMails")
