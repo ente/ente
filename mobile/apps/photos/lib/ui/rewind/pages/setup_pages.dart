@@ -173,9 +173,9 @@ const ritualSetupPage = SetupPage(
     onTop: true,
   ),
   art: SetupArt.ducky(
-    RewindAssets.cameraDucky,
-    Rect.fromLTWH(27, 411, 296.3, 373),
-    pivot: Offset(175, 762),
+    RewindAssets.almostTimeDucky,
+    Rect.fromLTWH(11, 386.5, 315.7, 400.3),
+    pivot: Offset(158, 762),
     delayMs: 830,
   ),
 );
@@ -252,10 +252,11 @@ const badgeSetupPage = SetupPage(
     size: 29.01,
   ),
   art: SetupArt.ducky(
-    RewindAssets.detectiveDucky,
-    Rect.fromLTWH(14.5, 420, 334, 378.4),
+    RewindAssets.badgeDucky,
+    Rect.fromLTWH(-18, 375.5, 375, 415),
+    stateMachine: "State Machine",
     ticks: [(RewindTick.bold, Rect.fromLTWH(209, 424, 16, 23))],
-    pivot: Offset(182, 777),
+    pivot: Offset(154, 746),
   ),
 );
 
