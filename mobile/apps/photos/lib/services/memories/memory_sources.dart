@@ -14,15 +14,22 @@ Future<Map<int, EnteFile>> getFilesAndMapForMemories({
   bool useGeneratedIds = false,
   bool requireLocalId = false,
   bool useLocalIntIds = false,
+  List<int>? uploadedFileIDs,
 }) async {
-  final allFilesFromSearchService = await SearchService.instance
-      .getAllFilesForSearch();
+  final sourceFiles = uploadedFileIDs == null
+      ? await SearchService.instance.getAllFilesForSearch()
+      : await FilesDB.instance.getFilesFromIDs(uploadedFileIDs);
   final archivedOrHiddenCollectionIDs = CollectionsService.instance
       .archivedOrHiddenCollectionIds();
   final excludedUploadFileIDs = <int>{};
   if (archivedOrHiddenCollectionIDs.isNotEmpty) {
-    final filesInArchivedCollections = await FilesDB.instance
-        .getAllFilesFromCollections(archivedOrHiddenCollectionIDs);
+    final filesInArchivedCollections = uploadedFileIDs == null
+        ? await FilesDB.instance.getAllFilesFromCollections(
+            archivedOrHiddenCollectionIDs,
+          )
+        : sourceFiles.where(
+            (file) => archivedOrHiddenCollectionIDs.contains(file.collectionID),
+          );
     for (final archivedFile in filesInArchivedCollections) {
       final archivedUploadID = archivedFile.uploadedFileID;
       if (archivedUploadID != null && archivedUploadID != -1) {
@@ -31,7 +38,7 @@ Future<Map<int, EnteFile>> getFilesAndMapForMemories({
     }
   }
   final candidateFiles = <EnteFile>[];
-  for (final file in allFilesFromSearchService) {
+  for (final file in sourceFiles) {
     final localId = file.localID;
     final hasLocalId = localId != null && localId.isNotEmpty;
     if (requireLocalId && !hasLocalId) {

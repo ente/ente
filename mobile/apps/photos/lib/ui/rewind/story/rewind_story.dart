@@ -32,7 +32,7 @@ class RewindStory {
     final rituals = await RewindRituals.settled();
     return compose(
       rewindChapters(report, rituals),
-      await RewindMedia.load(),
+      await RewindMedia.load(report),
       rituals: rituals,
     );
   }

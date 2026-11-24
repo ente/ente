@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use serde::{Deserialize, Serialize};
 
 use super::Result;
@@ -301,6 +303,80 @@ impl RewindReport {
         })
     }
 
+    pub fn file_ids(&self) -> Vec<i64> {
+        let Self {
+            totals,
+            colour,
+            places,
+            spots,
+            people_race,
+            busiest_day,
+            new_faces,
+            favourites,
+            weekly_habit,
+            crowd_favourite,
+            badge: _,
+            scrapbook,
+            finale,
+            tour: _,
+            globe,
+            mosaic,
+            warp,
+        } = self;
+        let ids: BTreeSet<i64> = std::iter::empty()
+            .chain(totals.iter().flat_map(|totals| &totals.file_ids))
+            .chain(colour.iter().flat_map(|colour| &colour.file_ids))
+            .chain(
+                places
+                    .iter()
+                    .flat_map(|places| &places.cities)
+                    .flat_map(|city| &city.file_ids),
+            )
+            .chain(spots.iter().flat_map(|spots| &spots.file_ids))
+            .chain(
+                people_race
+                    .iter()
+                    .flat_map(|race| &race.people)
+                    .flat_map(|person| &person.file_ids),
+            )
+            .chain(busiest_day.iter().flat_map(|day| &day.file_ids))
+            .chain(
+                new_faces
+                    .iter()
+                    .flat_map(|new_faces| &new_faces.faces)
+                    .flat_map(|face| &face.file_ids),
+            )
+            .chain(
+                favourites
+                    .iter()
+                    .flat_map(|favourites| &favourites.file_ids),
+            )
+            .chain(
+                weekly_habit
+                    .iter()
+                    .flat_map(|habit| habit.hour_file_ids.iter().chain(&habit.file_ids)),
+            )
+            .chain(
+                crowd_favourite
+                    .iter()
+                    .flat_map(|crowd| &crowd.photos)
+                    .map(|photo| &photo.file_id),
+            )
+            .chain(scrapbook.iter().flat_map(|scrapbook| &scrapbook.file_ids))
+            .chain(finale.iter().flat_map(|finale| &finale.file_ids))
+            .chain(
+                globe
+                    .iter()
+                    .flat_map(|globe| &globe.places)
+                    .flat_map(|place| &place.file_ids),
+            )
+            .chain(mosaic.iter().flat_map(|mosaic| &mosaic.file_ids))
+            .chain(warp.iter().flat_map(|warp| &warp.file_ids))
+            .copied()
+            .collect();
+        ids.into_iter().collect()
+    }
+
     pub(super) fn is_empty(&self) -> bool {
         *self == Self::default()
     }
@@ -317,5 +393,127 @@ impl RewindReport {
                     || mosaic.top_person_id.is_some()
                     || mosaic.cluster_id.is_some()
             })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn file_ids_cover_every_section_once_in_order() {
+        let report = RewindReport {
+            totals: Some(Totals {
+                files: 3,
+                top_percent: None,
+                file_ids: vec![30, 1],
+            }),
+            colour: Some(ColourOfTheYear {
+                colour: RewindColour::BerryBlue,
+                percent: 40,
+                file_ids: vec![2],
+            }),
+            places: Some(Places {
+                cities: vec![RewindCity {
+                    name: "Pune".into(),
+                    country: "India".into(),
+                    photo_count: 1,
+                    file_ids: vec![3],
+                }],
+                distance_km: 0,
+            }),
+            spots: Some(Spots {
+                spot_count: 1,
+                photo_count: 1,
+                file_ids: vec![4],
+            }),
+            people_race: Some(PeopleRace {
+                people: vec![RacePerson {
+                    person_id: "person".into(),
+                    photo_count: 1,
+                    monthly_counts: vec![1],
+                    face_ids: vec!["99_face".into()],
+                    file_ids: vec![5],
+                }],
+            }),
+            busiest_day: Some(BusiestDay {
+                month: 1,
+                day: 1,
+                photo_count: 1,
+                file_ids: vec![6],
+            }),
+            new_faces: Some(NewFaces {
+                count: 1,
+                faces: vec![NewFace {
+                    person_id: None,
+                    cluster_id: Some("cluster".into()),
+                    face_ids: vec!["98_face".into()],
+                    file_ids: vec![7],
+                }],
+            }),
+            favourites: Some(Favourites {
+                photo_count: 1,
+                file_ids: vec![8],
+            }),
+            weekly_habit: Some(WeeklyHabit {
+                weekday: 1,
+                hour: 9,
+                percent: 10,
+                hour_file_ids: vec![9],
+                file_ids: vec![10],
+            }),
+            crowd_favourite: Some(CrowdFavourite {
+                photos: vec![LikedPhoto {
+                    file_id: 11,
+                    like_count: 2,
+                }],
+            }),
+            badge: Some(Badge {
+                id: RewindBadge::MixedBag,
+                value: None,
+            }),
+            scrapbook: Some(Scrapbook { file_ids: vec![12] }),
+            finale: Some(Finale { file_ids: vec![13] }),
+            tour: None,
+            globe: Some(Globe {
+                rows: vec![],
+                land: vec![],
+                visited: vec![],
+                places: vec![GlobePlace {
+                    name: "Pune".into(),
+                    country_code: "IN".into(),
+                    latitude_microdegrees: 0,
+                    longitude_microdegrees: 0,
+                    photo_count: 1,
+                    file_ids: vec![14],
+                }],
+                route: vec![],
+                distance_km: 0,
+                city_count: 1,
+                country_count: 1,
+            }),
+            mosaic: Some(Mosaic {
+                file_ids: vec![15, 1],
+                me_person_id: None,
+                me_face_ids: vec![],
+                top_person_id: None,
+                top_face_ids: vec![],
+                cluster_id: None,
+                cluster_face_ids: vec![],
+            }),
+            warp: Some(Warp {
+                file_ids: vec![16, 2],
+            }),
+        };
+
+        assert_eq!(
+            report.file_ids(),
+            vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 30]
+        );
+    }
+
+    #[test]
+    fn an_empty_report_has_no_file_ids() {
+        assert!(RewindReport::default().file_ids().is_empty());
     }
 }
