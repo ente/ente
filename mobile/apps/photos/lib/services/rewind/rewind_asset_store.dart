@@ -14,16 +14,18 @@ class RewindAssetStore {
   static const nunito = "Nunito";
   static const bagelFatOne = "Bagel Fat One";
   static const courierPrime = "Courier Prime";
+  static const figtree = "Figtree";
 
-  static const _version = "rewind-2026-v8";
+  static const _version = "rewind-2026-v12";
   static const _url = "https://rewind-assets.ente.com/$_version.zip";
   static const _sha256 =
-      "4d301790b1423991cb4cc58b32a5aca5809fc533590daf2fc048f52fd2afe03c";
+      "e6a8d5cdaf919b4236ccd3cf29ff6e653f7945523d0c4f225f2f92c3e9348a9d";
   static const _fonts = {
     lilitaOne: "fonts/LilitaOne-Regular.ttf",
     nunito: "fonts/Nunito-Black.ttf",
     bagelFatOne: "fonts/BagelFatOne-Regular.ttf",
     courierPrime: "fonts/CourierPrime-Regular.ttf",
+    figtree: "fonts/Figtree-Bold.ttf",
   };
 
   final _logger = Logger("RewindAssetStore");

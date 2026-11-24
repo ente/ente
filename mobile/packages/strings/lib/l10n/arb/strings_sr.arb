@@ -588,7 +588,7 @@
   "@incorrectRecoveryKey": {
     "description": "Error message when recovery key is incorrect"
   },
-  "incorrectRecoveryKeyBody": "Унети кључ за опоравак је натачан",
+  "incorrectRecoveryKeyBody": "Унети кључ за опоравак је нетачан",
   "incorrectRecoveryKeyTitle": "Нетачан кључ за опоравак",
   "initialBackupCreated": "Иницијална резервна копија је направљена!",
   "insecureDevice": "Уређај није сигуран",
@@ -1252,7 +1252,7 @@
   "thankYou": "Хвала вам",
   "thankYouForSubscribing": "Хвала што сте се претплатили!",
   "theme": "Тема",
-  "theRecoveryKeyYouEnteredIsIncorrect": "Унети кључ за опоравак је натачан",
+  "theRecoveryKeyYouEnteredIsIncorrect": "Унети кључ за опоравак је нетачан",
   "@theRecoveryKeyYouEnteredIsIncorrect": {
     "description": "Detailed error message when recovery key is incorrect"
   },

@@ -892,7 +892,7 @@
   "optionalAsShortAsYouLike": "אופציונלי, קצר ככל שתרצה...",
   "parsingError": "שגיאת ניתוח",
   "passkey": "מפתח גישה",
-  "passkeyAuthTitle": "אימות באמצעות סיסמה",
+  "passkeyAuthTitle": "אימות באמצעות מפתח גישה",
   "@passkeyAuthTitle": {
     "description": "Passkey authentication title"
   },

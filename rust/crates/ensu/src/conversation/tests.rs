@@ -180,8 +180,14 @@ pub(super) struct Fake {
     stale_after_lookup: bool,
     fragments: Vec<(usize, usize)>,
     large_summary_calls: Option<std::ops::Range<usize>>,
+    tools: usize,
+    no_tools: bool,
 }
 impl Effects for Fake {
+    fn supports_tools(&self) -> bool {
+        !self.no_tools
+    }
+
     fn supports_partial_prompt_reuse(&self) -> bool {
         self.reuse_prefix
     }
@@ -209,12 +215,17 @@ impl Effects for Fake {
             self.check_current()
         }
     }
-    fn measure(&mut self, messages: &[ChatMessage]) -> Result<usize, PrepareError> {
+    fn measure(
+        &mut self,
+        messages: &[ChatMessage],
+        tools: Option<&ToolRequest>,
+    ) -> Result<usize, PrepareError> {
         self.cancelled |= self.cancel_during_measure;
         Ok(messages
             .iter()
             .map(|m| m.content.len().div_ceil(4) + 8)
-            .sum())
+            .sum::<usize>()
+            + tools.map_or(0, |_| self.tools))
     }
     fn summarize(
         &mut self,
@@ -333,7 +344,7 @@ fn required_original_excerpt_survives_compaction_without_duplicate_lookup() {
         messages.last().unwrap().content.matches("ZX-82Q").count(),
         1
     );
-    assert!(effects.measure(&messages).unwrap() <= 1280);
+    assert!(effects.measure(&messages, None).unwrap() <= 1280);
 }
 
 #[test]
@@ -381,7 +392,7 @@ fn fits_without_inference_and_reuses_saved_memory_after_restore() {
         ))
         .unwrap()
     );
-    assert_eq!(prompt_tokens, fresh.measure(&messages).unwrap());
+    assert_eq!(prompt_tokens, fresh.measure(&messages, None).unwrap());
     assert_eq!(expanded.state(), state.as_ref());
     assert_eq!(fresh.calls, 0);
     assert!(fresh.checkpoints.is_empty());
@@ -508,7 +519,7 @@ fn recovers_omitted_details_without_resummarizing_or_duplicating_tail() {
     .with_history_query(Some("What is the reservation code?".into()));
     let mut effects = Fake::default();
     let base = answer_messages("System", Some(&state.summary.text), &history[2..], current);
-    let base_tokens = effects.measure(&base).unwrap();
+    let base_tokens = effects.measure(&base, None).unwrap();
     let PreparationResult {
         messages,
         prompt_tokens,
@@ -526,7 +537,7 @@ fn recovers_omitted_details_without_resummarizing_or_duplicating_tail() {
         "The reservation departure is tomorrow."
     );
     assert!(prompt_tokens - base_tokens <= 2816 / 8);
-    assert_eq!(prompt_tokens, effects.measure(&messages).unwrap());
+    assert_eq!(prompt_tokens, effects.measure(&messages, None).unwrap());
     assert!(prompt_tokens <= 2816);
 
     let mut disabled = Preparation::new(
@@ -560,7 +571,7 @@ fn history_recovery_respects_remaining_input_budget() {
     let mut effects = Fake::default();
     let current = "What is the reservation code?";
     let base = answer_messages("System", Some(&state.summary.text), &[], current);
-    let context = effects.measure(&base).unwrap() + 128 + SAFETY_TOKENS;
+    let context = effects.measure(&base, None).unwrap() + 128 + SAFETY_TOKENS;
     let mut prep = Preparation::new(
         Uuid::from_u128(100),
         history,
@@ -664,7 +675,7 @@ fn large_exchange_is_chunked_without_gaps_or_partial_checkpoints() {
     for full_budget in [false, true] {
         let mut history = long_history(1, 14000);
         history[0].text = "Plan 🌱\n\"offline\" ".repeat(1000);
-        let payload = serde_json::json!(history_rows(&history)).to_string();
+        let payload = serde_json::json!(history_rows(&history, &Default::default())).to_string();
         let mut prep = work(history, None);
         let mut effects = Fake {
             large_summary_calls: full_budget.then_some(0..usize::MAX),
@@ -757,6 +768,7 @@ pub(super) fn turn_input(messages: Vec<Message>) -> TurnInput {
         output: None,
         state: None,
         candidates: GroundingCandidates::new(vec![], vec![], MAX_GROUNDING_BYTES).unwrap(),
+        tools: Default::default(),
     }
 }
 
@@ -808,4 +820,70 @@ fn turn_preparation_rejects_changed_current_messages_and_stale_history() {
     ));
     assert_eq!(effects.calls, 0);
     assert!(effects.checkpoints.is_empty());
+}
+
+#[test]
+fn tool_turns_render_as_calls_and_tools_are_withdrawn_when_they_cannot_fit() {
+    use crate::llm::{ToolCall, ToolValue};
+    let history = vec![
+        message(1, Sender::SelfUser, "Add milk"),
+        message(2, Sender::Other, "Saved “Milk”."),
+        message(3, Sender::SelfUser, "Thanks"),
+    ];
+    let call = ToolCall {
+        name: "save_to_do".into(),
+        arguments: [("title".to_owned(), ToolValue::Text("Milk".into()))].into(),
+    };
+    let mut input = turn_input(history.clone());
+    input.tools.history.insert(
+        history[1].uuid,
+        crate::conversation::ToolTurnHistory {
+            calls: vec![call.clone()],
+            responses: vec!["Saved “Milk”.".into()],
+            undone: true,
+            kept_edits: false,
+            proposal: None,
+        },
+    );
+    assert_eq!(
+        history_rows(&history, &input.tools.history)[1]["text"],
+        "Saved “Milk”.\n(The user undid these changes.)"
+    );
+    let mut effects = Fake::default();
+    let mut turn = prepare_turn(input, &mut effects).unwrap();
+    let messages = turn.preparation.run(&mut effects).unwrap().messages;
+    let roles: Vec<_> = messages.iter().map(|m| m.role.as_str()).collect();
+    assert_eq!(roles, ["system", "user", "assistant", "tool", "user"]);
+    assert_eq!(messages[2].tool_calls, [call]);
+    assert_eq!(messages[2].content, "");
+    assert_eq!(
+        messages[3].content,
+        "Saved “Milk”.\n(The user undid these changes.)"
+    );
+    for (context, kept) in [(1024, false), (4096, true)] {
+        let mut input = turn_input(vec![message(1, Sender::SelfUser, "Hi")]);
+        input.context = context;
+        input.output = None;
+        input.tools.tools = Some(crate::todo::chat_tools("Hi", &[]));
+        let mut effects = Fake {
+            tools: 750,
+            ..Default::default()
+        };
+        let mut prepared = prepare_turn(input, &mut effects).unwrap();
+        prepared.preparation.run(&mut effects).unwrap();
+        assert_eq!(prepared.tools.is_some(), kept, "{context}");
+    }
+    for (no_tools, asked) in [(false, "Buy milk"), (true, "Try again")] {
+        let mut input = turn_input(vec![message(1, Sender::SelfUser, "Try again")]);
+        input.tools.tools = Some(crate::todo::chat_tools("Buy milk", &[]));
+        input.tools.current_override = Some("Buy milk".into());
+        let mut effects = Fake {
+            no_tools,
+            ..Default::default()
+        };
+        let mut prepared = prepare_turn(input, &mut effects).unwrap();
+        let messages = prepared.preparation.run(&mut effects).unwrap().messages;
+        assert_eq!(prepared.tools.is_none(), no_tools);
+        assert_eq!(messages.last().unwrap().content, asked);
+    }
 }

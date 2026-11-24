@@ -137,7 +137,7 @@ pub(crate) fn target_dimensions(source: &Dimensions, max_side: u32) -> Dimension
 }
 
 pub(crate) fn oriented_output(
-    rgb: Vec<u8>,
+    mut rgb: Vec<u8>,
     source: Dimensions,
     target: Dimensions,
     orientation: Orientation,
@@ -147,36 +147,21 @@ pub(crate) fn oriented_output(
             "invalid bounded image buffer".into(),
         ));
     }
-    let rgb = oriented(rgb, &target, orientation);
-    let swaps_sides = matches!(
-        orientation,
-        Orientation::Rotate90
-            | Orientation::Rotate270
-            | Orientation::Rotate90FlipH
-            | Orientation::Rotate270FlipH
-    );
-    let oriented_dimensions = |dimensions: Dimensions| {
-        if swaps_sides {
-            Dimensions {
-                width: dimensions.height,
-                height: dimensions.width,
-            }
-        } else {
-            dimensions
-        }
-    };
-    Ok(BoundedDecodedImage {
-        image: DecodedImage {
-            dimensions: oriented_dimensions(target),
-            rgb,
-        },
-        original_dimensions: oriented_dimensions(source),
-    })
-}
-
-fn oriented(mut rgb: Vec<u8>, dimensions: &Dimensions, orientation: Orientation) -> Vec<u8> {
-    let (width, height) = (dimensions.width as usize, dimensions.height as usize);
+    let (width, height) = (target.width as usize, target.height as usize);
     let pixels = rgb.as_chunks_mut::<3>().0;
+    let transpose_output = |pixels: &[[u8; 3]], mirror_columns, mirror_rows| BoundedDecodedImage {
+        image: DecodedImage {
+            dimensions: Dimensions {
+                width: target.height,
+                height: target.width,
+            },
+            rgb: transposed(pixels, width, height, mirror_columns, mirror_rows),
+        },
+        original_dimensions: Dimensions {
+            width: source.height,
+            height: source.width,
+        },
+    };
     match orientation {
         Orientation::NoTransforms => {}
         Orientation::Rotate180 => pixels.reverse(),
@@ -194,12 +179,18 @@ fn oriented(mut rgb: Vec<u8>, dimensions: &Dimensions, orientation: Orientation)
                 upper.swap_with_slice(lower);
             }
         }
-        Orientation::Rotate90 => return transposed(pixels, width, height, true, false),
-        Orientation::Rotate270 => return transposed(pixels, width, height, false, true),
-        Orientation::Rotate90FlipH => return transposed(pixels, width, height, false, false),
-        Orientation::Rotate270FlipH => return transposed(pixels, width, height, true, true),
+        Orientation::Rotate90 => return Ok(transpose_output(pixels, true, false)),
+        Orientation::Rotate270 => return Ok(transpose_output(pixels, false, true)),
+        Orientation::Rotate90FlipH => return Ok(transpose_output(pixels, false, false)),
+        Orientation::Rotate270FlipH => return Ok(transpose_output(pixels, true, true)),
     }
-    rgb
+    Ok(BoundedDecodedImage {
+        image: DecodedImage {
+            dimensions: target,
+            rgb,
+        },
+        original_dimensions: source,
+    })
 }
 
 fn transposed(

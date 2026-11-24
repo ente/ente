@@ -1,0 +1,1 @@
+- Redesigned the photo viewer and refreshed its dialogs.

@@ -1,0 +1,1 @@
+- Refreshed the album-sharing dialogs and panels.

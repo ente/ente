@@ -1,0 +1,1 @@
+- Clarified download errors and fixed incomplete streamed downloads being reported as finished.

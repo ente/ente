@@ -1909,6 +1909,17 @@
       "title": "NVIDIA"
     },
     {
+      "title": "NY.gov",
+      "slug": "ny_gov",
+      "altNames": [
+        "NY Gov",
+        "NY.Gov ID",
+        "New York State",
+        "my.ny.gov",
+        "login.ny.gov"
+      ]
+    },
+    {
       "title": "OCENSA",
       "slug": "ocensa"
     },
@@ -2900,6 +2911,18 @@
       "title": "volcengine",
       "altNames": [
         "火山引擎"
+      ]
+    },
+    {
+      "title": "Voope",
+      "slug": "voope",
+      "altNames": [
+        "Voope Soluções",
+        "Voope Solucoes",
+        "Voope Sistemas",
+        "voopesistemas",
+        "voopesistemas.com.br",
+        "voope.com.br"
       ]
     },
     {

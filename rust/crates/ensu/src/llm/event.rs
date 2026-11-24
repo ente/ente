@@ -34,6 +34,8 @@ pub struct GenerationSummary {
     pub total_time_ms: Option<i64>,
     #[serde(default)]
     pub finish_reason: FinishReason,
+    #[serde(default)]
+    pub tools: Option<super::ToolOutcome>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

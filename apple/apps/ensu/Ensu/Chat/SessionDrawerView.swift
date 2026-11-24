@@ -5,6 +5,7 @@ struct SessionDrawerView: View {
     let currentSessionId: UUID?
     let onSelectSession: (ChatSession) -> Void
     let onDeleteSession: (ChatSession) -> Void
+    let onOpenTodos: () -> Void
     let onOpenSettings: () -> Void
 
     @State private var searchQuery: String = ""
@@ -129,18 +130,22 @@ struct SessionDrawerView: View {
     }
 
     private var footer: some View {
-        HStack {
-            Button {
-                hapticTap()
-                onOpenSettings()
-            } label: {
-                footerButtonLabel(title: "Settings")
-            }
-            .buttonStyle(.plain)
-            .contentShape(Rectangle())
-            Spacer(minLength: 0)
+        VStack(spacing: 0) {
+            footerButton(title: "To Do", action: onOpenTodos)
+            footerButton(title: "Settings", action: onOpenSettings)
         }
         .padding(EnsuSpacing.lg)
+    }
+
+    private func footerButton(title: String, action: @escaping () -> Void) -> some View {
+        Button {
+            hapticTap()
+            action()
+        } label: {
+            footerButtonLabel(title: title)
+        }
+        .buttonStyle(.plain)
+        .contentShape(Rectangle())
     }
 
     private func footerButtonLabel(title: String) -> some View {

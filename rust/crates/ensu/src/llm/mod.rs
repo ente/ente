@@ -7,6 +7,7 @@ mod history;
 pub mod memory;
 mod model;
 mod template;
+pub mod tools;
 mod worker;
 
 pub use context::*;
@@ -15,6 +16,10 @@ pub use execution::{ExecutionControl, ExecutionParams};
 pub use generate::*;
 pub use history::*;
 pub use model::*;
+pub use tools::{
+    MAX_TOOL_CALLS, ParameterKind, ToolCall, ToolExample, ToolExchange, ToolOutcome, ToolParameter,
+    ToolRequest, ToolSpec, ToolValue,
+};
 
 use llama_cpp_2::llama_backend::LlamaBackend;
 use std::sync::{Mutex, MutexGuard, OnceLock, PoisonError};
@@ -37,6 +42,16 @@ pub enum Error {
     PromptTooLong { tokens: usize, context_size: u32 },
     #[error("{op}: {message}")]
     Llama { op: &'static str, message: String },
+    #[error(transparent)]
+    ToolCall(#[from] ToolCallFailure),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+pub enum ToolCallFailure {
+    #[error("The model did not finish its tool call")]
+    Unfinished,
+    #[error("The model produced an invalid tool call")]
+    Invalid,
 }
 
 static BACKEND: OnceLock<Result<LlamaBackend, String>> = OnceLock::new();

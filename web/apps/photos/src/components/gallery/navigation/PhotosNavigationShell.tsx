@@ -187,7 +187,11 @@ export const PhotosNavigationShell: React.FC<
                             alignItems: "center",
                             flexShrink: 0,
                             width: "100%",
+                            overflowY: "auto",
+                            scrollbarWidth: "none",
                             px: { xs: "9px", sm: "14px" },
+                            // Leave room for the first button's focus outline.
+                            pt: "4px",
                             gap: "12px",
                             ...theme.applyStyles("light", {
                                 "& .MuiButton-colorSecondary": {
@@ -446,6 +450,7 @@ const HomeButton: React.FC<{ selected: boolean }> = ({ selected }) => {
                     minWidth: 0,
                     width: 38,
                     height: 38,
+                    flexShrink: 0,
                     p: 0,
                     borderRadius: "12px",
                     color: "text.base",

@@ -1026,6 +1026,14 @@ const BackToTopButton = styled(Fab)(({ theme }) => ({
     color: theme.vars.palette.text.base,
     boxShadow: "none",
     "&:hover": { backgroundColor: theme.vars.palette.fill.faintHover },
+    ...theme.applyStyles("light", {
+        backgroundColor: `color-mix(in srgb, ${theme.vars.palette.accent.main} 14%, ${theme.vars.palette.background.paper})`,
+        color: `color-mix(in srgb, ${theme.vars.palette.accent.main} 55%, ${theme.vars.palette.text.base})`,
+        border: `1px solid color-mix(in srgb, ${theme.vars.palette.accent.main} 74%, ${theme.vars.palette.text.base})`,
+        "&:hover": {
+            backgroundColor: `color-mix(in srgb, ${theme.vars.palette.accent.main} 24%, ${theme.vars.palette.background.paper})`,
+        },
+    }),
     [theme.breakpoints.down("sm")]: { display: "none" },
 }));
 

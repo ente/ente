@@ -442,7 +442,7 @@
     "description": "Delete account button label"
   },
   "deleteAlbum": "Apagar álbum",
-  "deleteAlbumDialog": "Eliminar também as fotos (e vídeos) presentes neste álbum de <bold>all</bold>  os outros álbuns de que fazem parte?",
+  "deleteAlbumDialog": "Eliminar também as fotos (e vídeos) presentes neste álbum de <bold>todos</bold> os outros álbuns de que fazem parte?",
   "deleteAlbumsDialogBody": "Esta ação elimina todos os álbuns vazios. Isto é útil quando pretende reduzir a confusão na sua lista de álbuns.",
   "deleteAll": "Apagar tudo",
   "deleteCodeAuthMessage": "Autenticar para eliminar código",

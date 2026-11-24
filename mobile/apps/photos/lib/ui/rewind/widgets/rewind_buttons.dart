@@ -2,7 +2,7 @@ import "package:flutter/material.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 
-enum RewindGlyph { sound, muted, share, video, close }
+enum RewindGlyph { sound, muted, share, video, close, next }
 
 class RewindRoundButton extends StatelessWidget {
   const RewindRoundButton({
@@ -138,6 +138,18 @@ class _RoundButtonPainter extends CustomPainter {
         line.strokeWidth = 2.6 * 40 / 36;
         canvas.drawLine(const Offset(14, 14), const Offset(26, 26), line);
         canvas.drawLine(const Offset(26, 14), const Offset(14, 26), line);
+      case RewindGlyph.next:
+        line.strokeWidth = 2.8;
+        canvas.drawPath(
+          Path()
+            ..moveTo(14, 13)
+            ..lineTo(20, 19)
+            ..lineTo(26, 13)
+            ..moveTo(14, 21)
+            ..lineTo(20, 27)
+            ..lineTo(26, 21),
+          line,
+        );
     }
   }
 

@@ -19,6 +19,7 @@ class TopPercentPage extends RewindPage {
   static const pageKey = "top_percent";
 
   static const _night = Color(0xFF1A2A8F);
+  static const _crowd = Size(390, 540);
   static const _textDelayMs = 900;
 
   final int percent;
@@ -60,7 +61,7 @@ class TopPercentPage extends RewindPage {
               RewindStage(
                 children: [
                   RewindLayer(
-                    rect: Offset.zero & RewindStage.size,
+                    rect: Offset.zero & _crowd,
                     position: position,
                     child: RewindSpread(
                       mirror: wide

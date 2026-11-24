@@ -98,6 +98,7 @@ mod tests {
         for error in [
             live_photo::Error::Components,
             live_photo::Error::ExpansionLimit,
+            live_photo::Error::Unsupported,
             live_photo::Error::Io(std::io::ErrorKind::InvalidData.into()),
             live_photo::Error::Zip(zip::result::ZipError::Io(
                 std::io::ErrorKind::UnexpectedEof.into(),

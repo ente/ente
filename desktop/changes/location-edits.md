@@ -1,0 +1,1 @@
+- Fixed issues with edited photo locations.

@@ -104,6 +104,7 @@ class RewindMedia {
   final _Samples? _samples;
   final _used = <int>{};
   final _handedOut = <EnteFile>[];
+  final _galleries = <EnteFile>[];
   final _faces = <String, Future<RewindFace?>>{};
   final _blurryFaces = <int, Map<String, FaceWithoutEmbedding>>{};
   final _shownFaces = <String, List<RewindFace>>{};
@@ -157,23 +158,19 @@ class RewindMedia {
 
   EnteFile? photo(int id) => _pick([id], 1).firstOrNull;
 
-  List<EnteFile> extraPhotos(
-    Int64List ids,
-    int slots, {
-    bool preloadRemote = false,
-  }) {
+  List<EnteFile> extraPhotos(Int64List ids, int slots, {bool preload = false}) {
     final files = [
       for (final id in ids.inner.map(_fileId).toSet()) ?_files[id],
     ].take(slots).toList();
-    if (preloadRemote) {
-      _handedOut.addAll(files.where((file) => file.isRemoteOnlyFile));
+    if (preload) {
+      _handedOut.addAll(files.where((file) => file.isUploaded));
     }
     return files;
   }
 
-  List<EnteFile> glimpses(Int64List ids, int slots) {
+  List<EnteFile> gallery(Int64List ids, int slots) {
     final files = extraPhotos(ids, slots);
-    _handedOut.addAll(files);
+    _galleries.addAll(files);
     return files;
   }
 
@@ -191,10 +188,14 @@ class RewindMedia {
     return files;
   }
 
-  List<EnteFile> takeHandedOut() {
-    final files = List.of(_handedOut);
-    _handedOut.clear();
-    return files;
+  List<EnteFile> takeHandedOut() => _take(_handedOut);
+
+  List<EnteFile> takeGalleries() => _take(_galleries);
+
+  static List<EnteFile> _take(List<EnteFile> files) {
+    final taken = List.of(files);
+    files.clear();
+    return taken;
   }
 
   String? personName(String personId) =>

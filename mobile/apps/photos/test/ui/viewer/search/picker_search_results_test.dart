@@ -2,20 +2,27 @@ import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
+import "package:photo_manager/photo_manager.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/db/ml/base.dart";
 import "package:photos/ente_theme_data.dart";
 import "package:photos/models/device_collection.dart";
+import "package:photos/models/file/file.dart";
 import "package:photos/models/search/device_album_search_result.dart";
 import "package:photos/models/search/generic_search_result.dart";
 import "package:photos/models/search/hierarchical/hierarchical_search_filter.dart";
 import "package:photos/models/search/search_constants.dart";
 import "package:photos/models/search/search_result.dart";
 import "package:photos/models/search/search_types.dart";
+import "package:photos/module/metadata/local_file.dart";
 import "package:photos/services/entity_service.dart";
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
+import "package:photos/ui/device_picker/device_picker_controller.dart";
+import "package:photos/ui/picker/local_media_picker_search.dart";
 import "package:photos/ui/viewer/search/search_suggestions.dart";
 import "package:shared_preferences/shared_preferences.dart";
+
+import "../../device_picker/device_picker_test_helpers.dart";
 
 void main() {
   setUpAll(() async {
@@ -25,6 +32,55 @@ void main() {
         .init(preferences)
         .onError<MissingPluginException>((_, _) {});
     PersonService.init(_FakeEntityService(), _FakeMLDataDB(), preferences);
+  });
+
+  test('local picker restricts indexed results to accessible media', () async {
+    final image = media('100');
+    final video = media('101').copyWith(typeInt: 2);
+    final fresh = media('103');
+    final library = FakeDeviceLibrary()
+      ..access = PermissionState.limited
+      ..readOverride = (album, _, _) async {
+        final filter = album.filterOption;
+        if (filter is! CustomFilter) return [media('0')];
+        expect(filter.makeOrderBy().single.column, CustomColumns.android.id);
+        final where = filter.makeWhere();
+        if (where.contains("lower('sam''s_%')")) return [fresh, image];
+        if (where == '_id IN (104)') throw StateError('temporary read failure');
+        final ids = RegExp(r'\d+').allMatches(where).map((m) => m[0]);
+        return [video, image].where((asset) => ids.contains(asset.id)).toList();
+      };
+    library.folders[0] = library.folders.first.copyWith(
+      type: RequestType.image,
+    );
+    final model = DevicePickerController(library: library);
+    addTearDown(model.dispose);
+    await model.refresh();
+    final filename = (await searchLocalPickerAlbums(
+      model,
+      "sam's_%",
+    )).whereType<PickerFilenameResult>().single;
+    await model.openAlbum(filename.album, filenameMatches: true);
+    await model.refresh();
+    expect(model.media.map((asset) => asset.id), [fresh.id, image.id]);
+    await model.openAlbum(model.albums.first);
+    expect(model.media.single.id, '0');
+    final indexed = [
+      for (final asset in [media('102'), video, image])
+        fileFromAsset('Camera', asset),
+    ];
+    final captureTime = DateTime.utc(2019).microsecondsSinceEpoch;
+    indexed.last.creationTime = captureTime;
+    applyMediaTypeMetadata(indexed.last, false, 42);
+    final eligible = <String, EnteFile?>{};
+    Future<void> resolve(List<EnteFile> files) =>
+        resolveLocalSearchFiles(model, files, eligible, () => true);
+    await resolve([fileFromAsset('Camera', media('104'))]);
+    await resolve(indexed);
+    expect(eligible.values.nonNulls.map((file) => file.localID), [image.id]);
+    final match = eligible[image.id]!;
+    expect(match.creationTime, captureTime);
+    expect(match.pubMmdEncodedJson, indexed.last.pubMmdEncodedJson);
   });
 
   for (final theme in [lightThemeData, darkThemeData]) {

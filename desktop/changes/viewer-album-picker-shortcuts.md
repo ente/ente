@@ -1,0 +1,1 @@
+- Disabled viewer shortcuts while the album picker is open.

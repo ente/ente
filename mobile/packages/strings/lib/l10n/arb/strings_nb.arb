@@ -448,7 +448,7 @@
   "invalidProtonExportMessage": "Den valgte fila er ikke en gyldig Proton Authenticator eksport.",
   "invalidProtonExportTitle": "Ugyldig Proton-eksport",
   "invalidQRCode": "Ugyldig QR-kode",
-  "invalidRecoveryKey": "Gjenopprettingsnøkkelen du har skrevet inn er ikke gyldig. Kontroller at den inneholder 24 tegn og kontroller stavemåten av hvert ord.\n\nHvis du har angitt en eldre gjenopprettingskode, må du kontrollere at den er 64 tegn lang, og kontrollere hvert av dem.",
+  "invalidRecoveryKey": "Gjenopprettingsnøkkelen du har skrevet inn er ikke gyldig. Kontroller at den inneholder 24 ord og kontroller stavemåten av hvert ord.\n\nHvis du har angitt en eldre gjenopprettingskode, må du kontrollere at den er 64 tegn lang, og kontrollere hvert av dem.",
   "ok": "OK",
   "@ok": {
     "description": "Generic OK button label"
@@ -690,7 +690,7 @@
   "@recoveryKeySaved": {
     "description": "Recovery key saved confirmation message"
   },
-  "recoveryKeySaveDescription": "Vi lagrer ikke denne nøkkelen, lagre denne nøkkelen med 24 tegn på et trygt sted.",
+  "recoveryKeySaveDescription": "Vi lagrer ikke denne nøkkelen, lagre denne nøkkelen med 24 ord på et trygt sted.",
   "@recoveryKeySaveDescription": {
     "description": "Recovery key save description"
   },

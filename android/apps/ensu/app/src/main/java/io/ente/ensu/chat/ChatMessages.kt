@@ -37,6 +37,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -65,10 +66,14 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import io.ente.ensu.bindings.GroundedSource
+import io.ente.ensu.bindings.ToolTurnConfirm
+import io.ente.ensu.bindings.ToolTurnStatus
+import io.ente.ensu.bindings.ToolTurnUndo
 import io.ente.ensu.bindings.parseGroundedAssistantText
 import io.ente.ensu.components.AttributionDialog
 import io.ente.ensu.components.AttributionLink
 import io.ente.ensu.components.BranchSwitcher
+import io.ente.ensu.components.CompactButton
 import io.ente.ensu.components.ImageAttachmentThumbnail
 import io.ente.ensu.components.KnowledgeCard
 import io.ente.ensu.designsystem.EnsuColor
@@ -111,6 +116,9 @@ internal fun MessageList(
     onBranchChange: (String, Int) -> Unit,
     onOpenAttachment: (Attachment) -> Unit,
     onStartDownload: (Boolean) -> Unit,
+    todoTurns: Map<String, ToolTurnStatus>,
+    onConfirmTodoTurn: (ChatMessage) -> Unit,
+    onUndoTodoTurn: (ChatMessage) -> Unit,
 ) {
     if (isModelStateKnown && !isModelDownloaded && !isChatUnsupported) {
         DownloadOnboarding(
@@ -322,6 +330,10 @@ internal fun MessageList(
                             onRetry = { onRetryMessage(message) },
                             onBranchChange = onBranchChange,
                             showsMetadata = true,
+                            isGenerating = isGenerating,
+                            todoTurn = todoTurns[message.id],
+                            onConfirmTodoTurn = { onConfirmTodoTurn(message) },
+                            onUndoTodoTurn = { onUndoTodoTurn(message) },
                         )
                     }
                 }
@@ -642,6 +654,10 @@ private fun AssistantMessageBubble(
     onRetry: () -> Unit,
     onBranchChange: (String, Int) -> Unit,
     showsMetadata: Boolean,
+    isGenerating: Boolean,
+    todoTurn: ToolTurnStatus?,
+    onConfirmTodoTurn: () -> Unit,
+    onUndoTodoTurn: () -> Unit,
 ) {
     val clipboard = LocalClipboardManager.current
     val parsed = remember(message.text) { parseGroundedAssistantText(message.text) }
@@ -662,7 +678,8 @@ private fun AssistantMessageBubble(
                     }
                 )
             }
-            if (!message.isSynthetic || isLastMessage) {
+            val retryable = todoTurn == null || todoTurn.canRetry
+            if ((!message.isSynthetic || isLastMessage) && retryable) {
                 add(
                     MessageAction("Retry", HugeIcons.RepeatIcon) {
                         haptic.perform(HapticFeedbackType.TextHandleMove)
@@ -767,6 +784,20 @@ private fun AssistantMessageBubble(
                             },
                         )
                     }
+                    if (todoTurn != null) {
+                        TodoTurnActions(
+                            status = todoTurn,
+                            enabled = !isGenerating,
+                            onConfirm = {
+                                haptic.perform(HapticFeedbackType.TextHandleMove)
+                                onConfirmTodoTurn()
+                            },
+                            onUndo = {
+                                haptic.perform(HapticFeedbackType.TextHandleMove)
+                                onUndoTodoTurn()
+                            },
+                        )
+                    }
                 }
             }
         }
@@ -775,6 +806,44 @@ private fun AssistantMessageBubble(
             KnowledgeSourcesDialog(
                 citations = parsed.sources,
                 onDismiss = { showSources = false },
+            )
+        }
+    }
+}
+
+@Composable
+private fun TodoTurnActions(
+    status: ToolTurnStatus,
+    enabled: Boolean,
+    onConfirm: () -> Unit,
+    onUndo: () -> Unit,
+) {
+    when (status.confirm) {
+        ToolTurnConfirm.NONE -> {}
+        ToolTurnConfirm.OFFERED ->
+            CompactButton(label = "Confirm", onClick = onConfirm, enabled = enabled)
+        ToolTurnConfirm.STALE ->
+            Text("Expired", style = EnsuTypography.small, color = EnsuColor.textMuted())
+    }
+    if (status.undo != ToolTurnUndo.NONE) {
+        val available = status.undo == ToolTurnUndo.AVAILABLE
+        TextButton(
+            onClick = onUndo,
+            enabled = available && enabled,
+            contentPadding =
+                PaddingValues(horizontal = EnsuSpacing.md.dp, vertical = EnsuSpacing.xs.dp),
+        ) {
+            Text(
+                text =
+                    when (status.undo) {
+                        ToolTurnUndo.UNDONE -> "Undone"
+                        ToolTurnUndo.PARTLY_UNDONE -> "Partly undone"
+                        ToolTurnUndo.STALE -> "Can't undo"
+                        ToolTurnUndo.AVAILABLE,
+                        ToolTurnUndo.NONE -> "Undo"
+                    },
+                style = EnsuTypography.small,
+                color = if (available) EnsuColor.textPrimary() else EnsuColor.textMuted(),
             )
         }
     }
