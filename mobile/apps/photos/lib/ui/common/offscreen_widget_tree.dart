@@ -5,18 +5,18 @@ import "package:flutter/rendering.dart";
 import "package:flutter/scheduler.dart";
 import "package:flutter/widgets.dart";
 
-class RewindReelBinding extends WidgetsFlutterBinding {
+class OffscreenTreeBinding extends WidgetsFlutterBinding {
   static WidgetsBinding ensureInitialized() {
     try {
       return WidgetsBinding.instance;
     } catch (_) {
-      return RewindReelBinding();
+      return OffscreenTreeBinding();
     }
   }
 
   @override
   BuildOwner? get buildOwner =>
-      RewindReelTree._current?._builds ?? super.buildOwner;
+      OffscreenWidgetTree._current?._builds ?? super.buildOwner;
 
   @override
   int scheduleFrameCallback(
@@ -24,7 +24,7 @@ class RewindReelBinding extends WidgetsFlutterBinding {
     bool rescheduling = false,
     bool scheduleNewFrame = true,
   }) =>
-      RewindReelTree._current?._schedule(callback) ??
+      OffscreenWidgetTree._current?._schedule(callback) ??
       super.scheduleFrameCallback(
         callback,
         rescheduling: rescheduling,
@@ -34,7 +34,7 @@ class RewindReelBinding extends WidgetsFlutterBinding {
   @override
   void cancelFrameCallbackWithId(int id) {
     if (id < 0) {
-      RewindReelTree._cancel(id);
+      OffscreenWidgetTree._cancel(id);
     } else {
       super.cancelFrameCallbackWithId(id);
     }
@@ -45,7 +45,7 @@ class RewindReelBinding extends WidgetsFlutterBinding {
     FrameCallback callback, {
     String debugLabel = "callback",
   }) {
-    final tree = RewindReelTree._current;
+    final tree = OffscreenWidgetTree._current;
     if (tree == null) {
       super.addPostFrameCallback(callback, debugLabel: debugLabel);
     } else {
@@ -55,25 +55,25 @@ class RewindReelBinding extends WidgetsFlutterBinding {
 
   @override
   void scheduleFrame() {
-    if (RewindReelTree._current == null) super.scheduleFrame();
+    if (OffscreenWidgetTree._current == null) super.scheduleFrame();
   }
 
   @override
   void scheduleForcedFrame() {
-    if (RewindReelTree._current == null) super.scheduleForcedFrame();
+    if (OffscreenWidgetTree._current == null) super.scheduleForcedFrame();
   }
 
   @override
   Duration get currentFrameTimeStamp =>
-      RewindReelTree._current?._time ?? super.currentFrameTimeStamp;
+      OffscreenWidgetTree._current?._time ?? super.currentFrameTimeStamp;
 
   @override
   SchedulerPhase get schedulerPhase =>
-      RewindReelTree._current?._phase ?? super.schedulerPhase;
+      OffscreenWidgetTree._current?._phase ?? super.schedulerPhase;
 }
 
-class RewindReelTree {
-  RewindReelTree({
+class OffscreenWidgetTree {
+  OffscreenWidgetTree({
     required Widget child,
     required Size size,
     required this.pixelRatio,
@@ -98,11 +98,11 @@ class RewindReelTree {
   }
 
   static final _zoneKey = Object();
-  static final _owners = <int, RewindReelTree>{};
+  static final _owners = <int, OffscreenWidgetTree>{};
   static var _lastId = 0;
 
-  static RewindReelTree? get _current =>
-      Zone.current[_zoneKey] as RewindReelTree?;
+  static OffscreenWidgetTree? get _current =>
+      Zone.current[_zoneKey] as OffscreenWidgetTree?;
 
   final double pixelRatio;
   final Widget _child;
@@ -211,8 +211,10 @@ class RewindReelTree {
         FlutterErrorDetails(
           exception: error,
           stack: stackTrace,
-          library: "rewind reel",
-          context: ErrorDescription("during a Rewind reel frame callback"),
+          library: "offscreen widget tree",
+          context: ErrorDescription(
+            "during an offscreen widget tree frame callback",
+          ),
         ),
       );
     }
