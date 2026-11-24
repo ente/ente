@@ -12,7 +12,7 @@ dependencies:
     git:
       url: https://github.com/ente/ente_crypto_dart.git
       ref: b3f17aac6973b630aff663e4d9f7c6ee92334a62
-  meta: 1.18.3
+  meta: 1.19.0
 
 dev_dependencies:
   flutter_lints: 6.0.0

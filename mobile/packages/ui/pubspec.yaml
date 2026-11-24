@@ -7,7 +7,7 @@ environment:
   flutter: ">=1.17.0"
 
 dependencies:
-  dio: 5.9.2
+  dio: 5.11.1
   ente_base:
     path: ../../packages/base
   ente_components:

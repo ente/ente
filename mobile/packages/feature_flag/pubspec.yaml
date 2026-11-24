@@ -6,7 +6,7 @@ environment:
 
 dependencies:
   collection: 1.19.1
-  dio: 5.9.2
+  dio: 5.11.1
   flutter:
     sdk: flutter
   shared_preferences: 2.5.4
