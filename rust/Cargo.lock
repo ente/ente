@@ -2944,6 +2944,7 @@ dependencies = [
  "ente-location",
  "ente-test-support",
  "ente-vecdb",
+ "flate2",
  "futures-util",
  "log",
  "mockito",
