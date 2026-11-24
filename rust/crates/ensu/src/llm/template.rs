@@ -1,5 +1,6 @@
 use llama_cpp_2::model::{LlamaChatMessage, LlamaChatTemplate, LlamaModel};
 
+use super::tools::{Format, ToolRequest};
 use super::{ChatMessage, Error, format_error};
 
 const LFM_SHA256: [u8; 32] = [
@@ -15,12 +16,23 @@ const QWEN_SHA256: [u8; 32] = [
     0x77, 0xf4, 0x3b, 0xe7, 0x54, 0xa9, 0x4e, 0x27, 0x25, 0xa5, 0x8c, 0x4e, 0x16, 0xd2, 0xed, 0x67,
 ];
 
-pub(super) fn build_chat_prompt(
+pub(super) struct Prompt {
+    pub(super) text: String,
+    pub(super) native_format: Option<Format>,
+}
+
+pub(super) fn supports_tools(model: &LlamaModel) -> bool {
+    build_prompt(model, vec![ChatMessage::new("user", "")], None, true, None)
+        .is_ok_and(|prompt| prompt.native_format.is_some())
+}
+
+pub(super) fn build_prompt(
     model: &LlamaModel,
     messages: Vec<ChatMessage>,
     template_override: Option<String>,
     add_assistant: bool,
-) -> Result<String, Error> {
+    tools: Option<&ToolRequest>,
+) -> Result<Prompt, Error> {
     let source = match template_override {
         Some(template) => template,
         None => model
@@ -29,6 +41,7 @@ pub(super) fn build_chat_prompt(
             .and_then(|template| template.to_string().ok())
             .unwrap_or_else(|| "chatml".to_owned()),
     };
+    let has_token = |text: &str| super::tools::single_token(model, text).is_some();
     if !source.is_empty()
         && source != "chatml"
         && source
@@ -37,15 +50,30 @@ pub(super) fn build_chat_prompt(
     {
         let template = LlamaChatTemplate::new(&source)
             .map_err(|err| Error::InvalidInput(format_error("Invalid template", err)))?;
-        let chat = messages
+        let plain = super::tools::adapt_messages(None, messages.clone(), None, &has_token);
+        let chat = plain
             .iter()
             .map(|message| LlamaChatMessage::new(message.role.clone(), message.content.clone()))
             .collect::<Result<Vec<_>, _>>()
             .map_err(|err| Error::InvalidInput(format_error("Invalid chat message", err)))?;
-        if let Ok(prompt) = model.apply_chat_template(&template, &chat, add_assistant) {
-            return Ok(prompt);
+        if let Ok(text) = model.apply_chat_template(&template, &chat, add_assistant) {
+            return Ok(Prompt {
+                text,
+                native_format: None,
+            });
         }
     }
+    let format = match Template::identify(&source) {
+        Ok(Template::Native(format)) => Some(format),
+        Ok(Template::ChatMl) | Err(_) => None,
+    }
+    .filter(|format| format.required_tokens().into_iter().all(&has_token));
+    let messages = super::tools::adapt_messages(
+        format,
+        messages,
+        tools.filter(|_| format.is_some()),
+        &has_token,
+    );
     let vocab = model.vocab();
     let special_token = |token: llama_cpp_2::token::LlamaToken| {
         if token.0 < 0 {
@@ -54,21 +82,23 @@ pub(super) fn build_chat_prompt(
         String::from_utf8(vocab.token_to_piece(token, true, None))
             .map_err(|err| Error::InvalidInput(format_error("Invalid special token", err)))
     };
-    render(
+    let text = render(
         &source,
         &special_token(vocab.bos())?,
         &special_token(vocab.eos())?,
         &messages,
         add_assistant,
-    )
+    )?;
+    Ok(Prompt {
+        text,
+        native_format: format,
+    })
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Template {
     ChatMl,
-    Lfm,
-    Gemma,
-    Qwen,
+    Native(Format),
 }
 
 impl Template {
@@ -77,9 +107,9 @@ impl Template {
             return Ok(Self::ChatMl);
         }
         match ente_ensu_crypto::sha256(source.as_bytes()) {
-            LFM_SHA256 => Ok(Self::Lfm),
-            GEMMA_SHA256 => Ok(Self::Gemma),
-            QWEN_SHA256 => Ok(Self::Qwen),
+            LFM_SHA256 => Ok(Self::Native(Format::Lfm)),
+            GEMMA_SHA256 => Ok(Self::Native(Format::Gemma)),
+            QWEN_SHA256 => Ok(Self::Native(Format::Qwen)),
             _ => Err(Error::Unsupported(
                 "This model's chat template is not supported by this version of Ensu",
             )),
@@ -110,9 +140,9 @@ fn render(
             }
             Ok(prompt)
         }
-        Template::Lfm => Ok(render_lfm(bos, messages, add_assistant)),
-        Template::Gemma => Ok(render_gemma(bos, messages, add_assistant)),
-        Template::Qwen => render_qwen(messages, add_assistant),
+        Template::Native(Format::Lfm) => Ok(render_lfm(bos, messages, add_assistant)),
+        Template::Native(Format::Gemma) => Ok(render_gemma(bos, messages, add_assistant)),
+        Template::Native(Format::Qwen) => render_qwen(messages, add_assistant),
     }
 }
 
@@ -184,12 +214,18 @@ fn render_gemma(bos: &str, mut messages: &[ChatMessage], add_assistant: bool) ->
         messages = &messages[1..];
     }
     let mut previous_role = None;
-    let mut turns = messages
-        .iter()
-        .filter(|message| role(message) != "tool")
-        .peekable();
+    let mut turns = messages.iter().peekable();
     while let Some(message) = turns.next() {
         let current_role = role(message);
+        if current_role == "tool" {
+            prompt.push_str(&message.content);
+            match turns.peek().map(|next| role(next)) {
+                Some("assistant") => previous_role = Some("assistant"),
+                Some("tool") | None => {}
+                Some(_) => prompt.push_str("<turn|>\n"),
+            }
+            continue;
+        }
         let rendered_role = if current_role == "assistant" {
             "model"
         } else {
@@ -210,12 +246,16 @@ fn render_gemma(bos: &str, mut messages: &[ChatMessage], add_assistant: bool) ->
         } else {
             prompt.push_str(trim(&message.content));
         }
-        if rendered_role != "model" || turns.peek().is_none_or(|next| role(next) != "assistant") {
+        if rendered_role != "model"
+            || turns
+                .peek()
+                .is_none_or(|next| !matches!(role(next), "assistant" | "tool"))
+        {
             prompt.push_str("<turn|>\n");
         }
         previous_role = Some(current_role);
     }
-    if add_assistant {
+    if add_assistant && messages.last().is_none_or(|last| role(last) != "tool") {
         prompt.push_str("<|turn>model\n");
     }
     prompt
@@ -288,6 +328,10 @@ fn render_qwen(messages: &[ChatMessage], add_assistant: bool) -> Result<String, 
     Ok(prompt)
 }
 
+#[cfg(all(test, feature = "sqlite"))]
+#[path = "tool_history_tests.rs"]
+mod tool_history_tests;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -295,10 +339,7 @@ mod tests {
     fn messages(turns: &[(&str, &str)]) -> Vec<ChatMessage> {
         turns
             .iter()
-            .map(|(role, content)| ChatMessage {
-                role: (*role).to_owned(),
-                content: (*content).to_owned(),
-            })
+            .map(|(role, content)| ChatMessage::new(*role, *content))
             .collect()
     }
 
@@ -351,6 +392,21 @@ mod tests {
                 format!("{chatml}{suffix}")
             );
         }
+        let with_tool = self::messages(&[
+            ("user", "Add milk"),
+            ("assistant", "<call>"),
+            ("tool", "<result>"),
+            ("user", "Thanks"),
+        ]);
+        assert_eq!(
+            render_gemma("<bos>", &with_tool, true),
+            concat!(
+                "<bos><|turn>user\nAdd milk<turn|>\n",
+                "<|turn>model\n<call><result><turn|>\n",
+                "<|turn>user\nThanks<turn|>\n",
+                "<|turn>model\n",
+            )
+        );
     }
 
     #[test]
@@ -467,6 +523,15 @@ mod tests {
         }
     }
 
+    fn build_chat_prompt(
+        model: &LlamaModel,
+        messages: Vec<ChatMessage>,
+        template_override: Option<String>,
+        add_assistant: bool,
+    ) -> Result<String, Error> {
+        Ok(build_prompt(model, messages, template_override, add_assistant, None)?.text)
+    }
+
     #[test]
     #[ignore = "requires ENSU_TEST_MODEL"]
     fn named_templates_still_use_the_safe_llama_api() {
@@ -476,12 +541,7 @@ mod tests {
             &llama_cpp_2::model::params::LlamaModelParams::default().with_n_gpu_layers(0),
         )
         .unwrap();
-        let messages = |content: &str| {
-            vec![ChatMessage {
-                role: "user".to_owned(),
-                content: content.to_owned(),
-            }]
-        };
+        let messages = |content: &str| vec![ChatMessage::new("user", content)];
         assert_eq!(
             build_chat_prompt(&model, messages("Hi"), Some("llama2".to_owned()), true).unwrap(),
             "[INST] Hi [/INST]"

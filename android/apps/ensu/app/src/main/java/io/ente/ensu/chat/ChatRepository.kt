@@ -10,10 +10,15 @@ import io.ente.ensu.bindings.DbMessage
 import io.ente.ensu.bindings.DbSender
 import io.ente.ensu.bindings.EnsuDb
 import io.ente.ensu.bindings.LlmContext
+import io.ente.ensu.bindings.TodoItem
+import io.ente.ensu.bindings.ToolTurnStatus
+import io.ente.ensu.bindings.ToolsObserver
 import io.ente.ensu.bindings.cleanAssistantText
 import io.ente.ensu.storage.CredentialStore
 import io.ente.ensu.storage.FilePathManager
 import java.io.File
+
+internal data class TodoTurn(val reply: ChatMessage, val status: ToolTurnStatus)
 
 class ChatRepository(
     context: Context,
@@ -24,6 +29,7 @@ class ChatRepository(
     private val attachmentsDir = filePaths.attachmentsDir
     private val dbFile = filePaths.mainDbFile
     private val dbKey = credentialStore.getOrCreateChatDbKey(filePaths.hasChatData)
+    @Volatile var onToolsChanged: () -> Unit = {}
     private var db: EnsuDb = openDb(dbFile, dbKey)
 
     init {
@@ -162,8 +168,43 @@ class ChatRepository(
         text: String,
     ): ChatMessage {
         checkConversationOwner(prepared)
-        return toMessage(prepared.work.addAnswer(text, emptyList()), emptyList())
+        return toMessage(prepared.work.finish(text, emptyList()).message, emptyList())
     }
+
+    internal fun applyToolCalls(prepared: PreparedConversation): TodoTurn {
+        checkConversationOwner(prepared)
+        val finished = prepared.work.finish("", emptyList())
+        return TodoTurn(
+            reply = toMessage(finished.message, emptyList()),
+            status = checkNotNull(finished.toolTurn),
+        )
+    }
+
+    fun confirmToolTurn(replyId: String): ToolTurnStatus = withDbRecovery {
+        db.confirmToolTurn(replyId)
+    }
+
+    fun undoToolTurn(replyId: String): ToolTurnStatus = withDbRecovery { db.undoToolTurn(replyId) }
+
+    fun toolTurnStatuses(sessionId: String): Map<String, ToolTurnStatus> = withDbRecovery {
+        db.toolTurnStatuses(sessionId)
+    }
+
+    fun listTodos(): List<TodoItem> = withDbRecovery { db.listTodos() }
+
+    fun createTodo(title: String, dueAtMs: Long?): TodoItem = withDbRecovery {
+        db.createTodo(title, dueAtMs)
+    }
+
+    fun updateTodo(todo: TodoItem, title: String, dueAtMs: Long?): TodoItem = withDbRecovery {
+        db.updateTodo(todo.id, todo.version, title, dueAtMs)
+    }
+
+    fun setTodoCompleted(todo: TodoItem, completed: Boolean): TodoItem = withDbRecovery {
+        db.setTodoCompleted(todo.id, todo.version, completed)
+    }
+
+    fun deleteTodo(todo: TodoItem) = withDbRecovery { db.deleteTodo(todo.id, todo.version) }
 
     fun updateMessageText(messageId: String, text: String) = withDbRecovery {
         db.updateMessageText(messageId, text)
@@ -190,9 +231,16 @@ class ChatRepository(
 
     private fun openDb(dbFile: File, key: ByteArray): EnsuDb {
         return EnsuDb.open(
-            dbFile.absolutePath,
-            key,
-        )
+                dbFile.absolutePath,
+                key,
+            )
+            .also { opened ->
+                opened.observeTools(
+                    object : ToolsObserver {
+                        override fun onChange() = onToolsChanged()
+                    }
+                )
+            }
     }
 
     private fun <T> withDbRecovery(block: () -> T): T {

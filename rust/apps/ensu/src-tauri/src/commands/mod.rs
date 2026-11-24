@@ -10,6 +10,7 @@ pub(crate) mod llm;
 pub(crate) mod notes;
 pub(crate) mod secure_storage;
 pub(crate) mod system;
+pub(crate) mod todo;
 pub(crate) mod voice;
 
 use tauri::AppHandle;

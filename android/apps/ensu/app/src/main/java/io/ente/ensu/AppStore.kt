@@ -27,6 +27,7 @@ import io.ente.ensu.notifications.BackgroundGeneration
 import io.ente.ensu.notifications.NotificationPermissions
 import io.ente.ensu.settings.DeveloperSettingsState
 import io.ente.ensu.settings.SessionPreferencesDataStore
+import io.ente.ensu.todo.TodoStore
 import java.util.Locale
 import java.util.UUID
 import kotlinx.coroutines.CoroutineScope
@@ -41,7 +42,7 @@ class AppStore(
     backgroundGeneration: BackgroundGeneration,
     notificationPermissions: NotificationPermissions,
     private val sessionPreferences: SessionPreferencesDataStore,
-    chatRepository: ChatRepository,
+    private val chatRepository: ChatRepository,
     val llmProvider: LlmProvider,
     knowledgeProvider: KnowledgeProvider,
     val assetStore: AssetStore,
@@ -57,6 +58,8 @@ class AppStore(
 
     val notesStore =
         NotesStore(context, llmProvider, logRepository).also { llmProvider.modelMaintenance = it }
+
+    val todoStore: TodoStore = TodoStore(chatRepository, logRepository)
 
     private val messageStore = mutableMapOf<String, MutableList<ChatMessage>>()
     private val attachmentActions = AttachmentStoreActions(_state, messageStore)
@@ -181,7 +184,12 @@ class AppStore(
 
     fun bootstrap(scope: CoroutineScope) {
         notesStore.bootstrap(scope)
+        todoStore.bootstrap(scope)
         chatActions.setScope(scope)
+        chatRepository.onToolsChanged = {
+            chatActions.loadTodoTurns()
+            todoStore.reload()
+        }
         modelSettingsActions.bootstrap(scope)
         refreshDeviceCapability(scope)
         chatActions.bootstrap(scope)
@@ -391,6 +399,14 @@ class AppStore(
         invalidateComposer()
         chatActions.sendMessage()
     }
+
+    fun loadTodoTurns() = chatActions.loadTodoTurns()
+
+    fun confirmToolTurn(replyId: String) = chatActions.confirmToolTurn(replyId)
+
+    fun undoToolTurn(replyId: String) = chatActions.undoToolTurn(replyId)
+
+    fun dismissTodoTurnError() = chatActions.dismissTodoTurnError()
 
     fun confirmOverflowTrim() = chatActions.confirmOverflowTrim()
 
