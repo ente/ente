@@ -195,12 +195,14 @@ export class FileViewerPhotoSwipe<
         if (useIslandLayout) {
             const opener = document.activeElement;
             const containKeyboardFocus = (event: KeyboardEvent) => {
+                const isActivationKey =
+                    event.key == "Enter" || event.key == " ";
                 if (
                     event.defaultPrevented ||
                     event.altKey ||
                     event.ctrlKey ||
                     event.metaKey ||
-                    (event.key != "Tab" && event.key != "Enter") ||
+                    (event.key != "Tab" && !isActivationKey) ||
                     delegate.shouldIgnoreKeyboardEvent(event)
                 ) {
                     return;
@@ -208,8 +210,13 @@ export class FileViewerPhotoSwipe<
 
                 const viewer = pswp.element!;
                 const active = document.activeElement;
-                if (event.key == "Enter") {
-                    if (!viewer.contains(active)) event.preventDefault();
+                const activeInViewer = viewer.contains(active);
+                if (!activeInViewer && active?.closest('[aria-modal="true"]')) {
+                    return;
+                }
+
+                if (isActivationKey) {
+                    if (!activeInViewer) event.preventDefault();
                     return;
                 }
 
@@ -229,7 +236,7 @@ export class FileViewerPhotoSwipe<
                     el.getClientRects().length > 0 &&
                     getComputedStyle(el).visibility == "visible";
                 if (
-                    !viewer.contains(active) ||
+                    !activeInViewer ||
                     active == viewer ||
                     active ==
                         (event.shiftKey
