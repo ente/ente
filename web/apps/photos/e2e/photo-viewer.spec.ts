@@ -22,6 +22,9 @@ const testWithPhotos = test.extend<{
             })
             .click();
 
+        await page
+            .getByRole("button", { name: "Show navigation panel" })
+            .click();
         const albums = page.getByRole("navigation", { name: "Albums" });
         await albums.getByRole("button", { name: "New album" }).click();
         const newAlbum = page.getByRole("dialog", { name: "New album" });

@@ -46,6 +46,7 @@ const openAlbumWithPhotos = async (
         .getByRole("button", { name: "Continue with 10 GB plan" })
         .click();
 
+    await page.getByRole("button", { name: "Show navigation panel" }).click();
     const navigation = page.getByRole("navigation", {
         name: "Albums",
         exact: true,
