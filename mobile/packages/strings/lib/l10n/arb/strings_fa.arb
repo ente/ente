@@ -107,7 +107,7 @@
   "@authenticationSuccessful": {
     "description": "Success message when authentication is successful"
   },
-  "authToChangeEmailVerificationSetting": "لطفا جهت تغییر ایمیل تایید هویت کنید",
+  "authToChangeEmailVerificationSetting": "لطفا جهت تغییر تائید ایمیل، احراز هویت کنید",
   "authToChangeLockscreenSetting": "لطفا جهت تغییر تنظیمات قفل صفحه، اعتبارسنجی کنید",
   "authToChangeYourEmail": "لطفا جهت تغییر ایمیل خود، اعتبارسنجی کنید",
   "authToChangeYourPassword": "لطفا جهت تغییر گذرواژه خود، اعتبارسنجی کنید",

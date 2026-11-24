@@ -230,7 +230,7 @@
   "authToUpdateBackupPassword": "Authenticeer om uw back-up wachtwoord bij te werken",
   "authToViewPasskey": "Verifieer uzelf om uw toegangssleutel te bekijken",
   "authToViewPasskeyGeneric": "Verifieer uzelf om uw passkey te bekijken",
-  "authToViewSecrets": "Graag verifiëren om uw herstelsleutel te bekijken",
+  "authToViewSecrets": "Graag verifiëren om uw geheimen te bekijken",
   "@authToViewSecrets": {
     "description": "Message prompting authentication to view secrets"
   },

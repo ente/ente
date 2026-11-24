@@ -511,7 +511,7 @@
     }
   },
   "cleanUncategorized": "Effacer les éléments non classés",
-  "cleanUncategorizedDescription": "Supprimer tous les fichiers non-catégorisés étant présents dans d'autres albums",
+  "cleanUncategorizedDescription": "Retirer de « Aucune catégorie » tous les fichiers présents dans d'autres albums",
   "cleanupComplete": "Nettoyage terminé",
   "cleanupHiddenFiles": "Nettoyer les fichiers cachés",
   "cleanupHiddenFilesDescription": "Certains fichiers dans les albums cachés existant toujours dans les albums non cachés les rendent visibles en dehors de la section cachée. Nettoyer-les, cela les supprimera des albums non cachés.",
@@ -1973,7 +1973,7 @@
   "noExifData": "Aucune donnée EXIF",
   "noFacesFound": "Aucun visage détecté",
   "noFilesFound": "Aucun element ici",
-  "noHiddenFilesOnDevice": "Supprimer les fichiers cachés de l'appareil",
+  "noHiddenFilesOnDevice": "Aucun fichier caché sur l'appareil",
   "noImagesWithLocation": "Aucune image avec localisation",
   "noInternetConnection": "Aucune connexion internet",
   "@noInternetConnection": {
@@ -2368,7 +2368,7 @@
       }
     }
   },
-  "recoverAccountDesc": "Vous pouvez restaurer le compte de {email} pendant {days} jours après avoir démarré le processus de récupération.",
+  "recoverAccountDesc": "Vous pouvez récupérer le compte de {email} {days} jours après avoir démarré le processus de récupération.",
   "@recoverAccountDesc": {
     "description": "Description for recover account page when recovery not started",
     "placeholders": {
@@ -3299,7 +3299,7 @@
   "tropicalParadise": "Évasions tropicales",
   "troubleshooting": "Dépannage",
   "troubleshootingDesc": "Problèmes courants et leurs solutions",
-  "trustedContactAccepted": "Vous avez invité {email} à être un contact de confiance. Il doit encore accepter votre invitation.",
+  "trustedContactAccepted": "Vous avez ajouté {email} en tant que contact de confiance. Votre invitation a été acceptée.",
   "@trustedContactAccepted": {
     "description": "Description shown when a trusted contact has accepted the invite",
     "placeholders": {

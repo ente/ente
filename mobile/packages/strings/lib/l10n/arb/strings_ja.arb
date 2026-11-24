@@ -911,7 +911,7 @@
   "groupByWeek": "週",
   "groupByYear": "年",
   "guestView": "ゲストビュー",
-  "guestViewEnablePreSteps": "アプリのロックを有効にするには、システム設定でデバイスのパスコードまたは画面ロックを設定してください。",
+  "guestViewEnablePreSteps": "ゲストビューを有効にするには、システム設定でデバイスのパスコードまたは画面ロックを設定してください。",
   "happyBirthday": "お誕生日おめでとうございます! 🥳",
   "hearUsWhereOptionalTitle": "Ente についてどのようにお聞きになりましたか？（任意）",
   "@hearUsWhereOptionalTitle": {
