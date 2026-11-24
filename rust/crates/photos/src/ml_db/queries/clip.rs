@@ -53,17 +53,17 @@ impl MlDb {
     pub fn get_clip_embeddings_for_file_ids(
         &self,
         file_ids: &[i64],
-        minimum_ml_version: i64,
+        ml_version: i64,
     ) -> Result<Vec<ClipEmbedding>> {
         let mut embeddings = Vec::new();
         for chunk in file_ids.chunks(MAX_SQL_BIND_PARAMS_PER_QUERY - 1) {
             let sql = format!(
-                "SELECT file_id, embedding, ml_version FROM clip WHERE file_id IN ({}) AND ml_version >= ?",
+                "SELECT file_id, embedding, ml_version FROM clip WHERE file_id IN ({}) AND ml_version = ?",
                 bind_placeholders(chunk.len())
             );
             let rows: Vec<ClipEmbedding> = self.read_all(
                 &sql,
-                params_from_iter(chunk.iter().chain([&minimum_ml_version])),
+                params_from_iter(chunk.iter().chain([&ml_version])),
                 read_clip_embedding,
             )?;
             embeddings.extend(rows);
@@ -294,7 +294,7 @@ pub(in crate::ml_db) mod tests {
     }
 
     #[test]
-    fn clip_embeddings_for_file_ids_at_minimum_version() {
+    fn clip_embeddings_for_file_ids_at_exact_version() {
         let (_directory, db) = seeded();
         let mut embeddings = db
             .get_clip_embeddings_for_file_ids(&[1, 2, 3, 4, 99], 1)
@@ -302,15 +302,7 @@ pub(in crate::ml_db) mod tests {
         embeddings.sort_by_key(|embedding| embedding.file_id);
         assert_eq!(
             embeddings,
-            vec![
-                full_clip(1),
-                ClipEmbedding {
-                    version: 2,
-                    ..full_clip(2)
-                },
-                clip(3, vec![1.0, 2.0]),
-                clip(4, vec![]),
-            ]
+            vec![full_clip(1), clip(3, vec![1.0, 2.0]), clip(4, vec![])]
         );
         assert_eq!(
             db.get_clip_embeddings_for_file_ids(&[1, 2], 2).unwrap(),

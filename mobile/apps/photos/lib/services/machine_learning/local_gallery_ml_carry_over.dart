@@ -135,6 +135,7 @@ Future<void> _carryOver(
 }
 
 bool _canCarryOver(FileMLInstruction instruction) =>
+    !instruction.remoteFetchFailed &&
     instruction.file.isOwner &&
     (instruction.file.localID ?? '').isNotEmpty &&
     (instruction.shouldRunFaces || instruction.shouldRunClip);

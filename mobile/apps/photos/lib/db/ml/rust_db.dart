@@ -241,11 +241,11 @@ class RustMLDataDB implements IMLDataDB<int> {
   @override
   Future<List<Face>> getFacesForFileIDs(
     List<int> fileIDs, {
-    int minimumMlVersion = faceMlVersion,
+    int mlVersion = faceMlVersion,
   }) async {
     final rows = await (await store).getFacesForFileIds(
       fileIds: Int64List.fromList(fileIDs),
-      minimumMlVersion: minimumMlVersion,
+      mlVersion: mlVersion,
     );
     return rows.map(mappers.toFace).toList();
   }
@@ -574,11 +574,11 @@ class RustMLDataDB implements IMLDataDB<int> {
   @override
   Future<List<ClipEmbedding>> getClipEmbeddingsForFileIDs(
     List<int> fileIDs, {
-    int minimumMlVersion = clipMlVersion,
+    int mlVersion = clipMlVersion,
   }) async {
     final rows = await (await store).getClipEmbeddingsForFileIds(
       fileIds: Int64List.fromList(fileIDs),
-      minimumMlVersion: minimumMlVersion,
+      mlVersion: mlVersion,
     );
     return rows.map(mappers.toClipEmbedding).toList();
   }

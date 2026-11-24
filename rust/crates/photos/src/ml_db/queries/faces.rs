@@ -221,7 +221,7 @@ impl MlDb {
     pub fn get_faces_for_file_ids(
         &self,
         file_ids: &[i64],
-        minimum_ml_version: i64,
+        ml_version: i64,
     ) -> Result<Vec<FaceRow>> {
         let mut faces = Vec::new();
         for chunk in file_ids.chunks(MAX_SQL_BIND_PARAMS_PER_QUERY - 1) {
@@ -231,13 +231,13 @@ impl MlDb {
                     is_sideways, height, width, ml_version
                 FROM faces
                 WHERE file_id IN ({})
-                    AND ml_version >= ?
+                    AND ml_version = ?
                 "#,
                 bind_placeholders(chunk.len())
             );
             let rows: Vec<(FaceRow, Vec<u8>)> = self.read_all(
                 &sql,
-                params_from_iter(chunk.iter().chain([&minimum_ml_version])),
+                params_from_iter(chunk.iter().chain([&ml_version])),
                 read_face_row_and_encoded_embedding,
             )?;
             for (face, embedding) in rows {
@@ -804,7 +804,7 @@ pub(in crate::ml_db) mod tests {
     }
 
     #[test]
-    fn faces_for_file_ids_include_embeddings_at_minimum_version() {
+    fn faces_for_file_ids_include_embeddings_at_exact_version() {
         let (_directory, db) = seeded();
         let mut faces = db.get_faces_for_file_ids(&[1, 5, 10, 99], 1).unwrap();
         faces.sort_by(|left, right| left.face_id.cmp(&right.face_id));
@@ -823,6 +823,7 @@ pub(in crate::ml_db) mod tests {
                 ..good_face(10, 0)
             }]
         );
+        assert!(db.get_faces_for_file_ids(&[1, 5], 0).unwrap().is_empty());
         assert!(db.get_faces_for_file_ids(&[], 1).unwrap().is_empty());
     }
 

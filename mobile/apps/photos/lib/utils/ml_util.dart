@@ -60,6 +60,7 @@ class FileMLInstruction {
   bool shouldRunClip;
   bool shouldRunPets;
   FileDataEntity? existingRemoteFileML;
+  bool remoteFetchFailed = false;
 
   FileMLInstruction({
     required this.file,
@@ -625,6 +626,9 @@ Future<List<FileMLInstruction>> hydrateRemoteMLDataForInstructions(
       ? await _fetchFilesDataForMlHydrationWithRecovery(pendingIndex)
       : await fileDataService.getFilesData(ids);
   _logger.info("embeddingResponse ${res.debugLog()}");
+  for (final fileID in res.fetchErrorFileIDs) {
+    pendingIndex[fileID]?.remoteFetchFailed = true;
+  }
   final List<Face> faces = [];
   final List<ClipEmbedding> clipEmbeddings = [];
   for (final fileMl in res.data.values) {

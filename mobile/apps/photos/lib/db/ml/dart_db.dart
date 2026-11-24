@@ -129,42 +129,33 @@ class DartMLDataDB
     }
   }
 
-  // Batch to stay below SQLite's bind-variable limit.
   @override
   Future<void> bulkInsertFaces(List<Face> faces) async {
+    if (faces.isEmpty) return;
     final db = await asyncDB;
-    const batchSize = 500;
-    final numBatches = (faces.length / batchSize).ceil();
-    for (int i = 0; i < numBatches; i++) {
-      final start = i * batchSize;
-      final end = min((i + 1) * batchSize, faces.length);
-      final batch = faces.sublist(start, end);
-
-      const String sql =
-          '''
-        INSERT INTO $facesTable (
-          $fileIDColumn, $faceIDColumn, $faceDetectionColumn, $embeddingColumn, $faceScore, $faceBlur, $isSideways, $imageHeight, $imageWidth, $mlVersionColumn
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT($fileIDColumn, $faceIDColumn) DO UPDATE SET $faceIDColumn = excluded.$faceIDColumn, $faceDetectionColumn = excluded.$faceDetectionColumn, $embeddingColumn = excluded.$embeddingColumn, $faceScore = excluded.$faceScore, $faceBlur = excluded.$faceBlur, $isSideways = excluded.$isSideways, $imageHeight = excluded.$imageHeight, $imageWidth = excluded.$imageWidth, $mlVersionColumn = excluded.$mlVersionColumn
-      ''';
-      final parameterSets = batch.map((face) {
-        final map = mapRemoteToFaceDB(face);
-        return [
-          map[fileIDColumn],
-          map[faceIDColumn],
-          map[faceDetectionColumn],
-          map[embeddingColumn],
-          map[faceScore],
-          map[faceBlur],
-          map[isSideways],
-          map[imageHeight],
-          map[imageWidth],
-          map[mlVersionColumn],
-        ];
-      }).toList();
-
-      await db.executeBatch(sql, parameterSets);
-    }
+    const String sql =
+        '''
+      INSERT INTO $facesTable (
+        $fileIDColumn, $faceIDColumn, $faceDetectionColumn, $embeddingColumn, $faceScore, $faceBlur, $isSideways, $imageHeight, $imageWidth, $mlVersionColumn
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT($fileIDColumn, $faceIDColumn) DO UPDATE SET $faceIDColumn = excluded.$faceIDColumn, $faceDetectionColumn = excluded.$faceDetectionColumn, $embeddingColumn = excluded.$embeddingColumn, $faceScore = excluded.$faceScore, $faceBlur = excluded.$faceBlur, $isSideways = excluded.$isSideways, $imageHeight = excluded.$imageHeight, $imageWidth = excluded.$imageWidth, $mlVersionColumn = excluded.$mlVersionColumn
+    ''';
+    final parameterSets = faces.map((face) {
+      final map = mapRemoteToFaceDB(face);
+      return [
+        map[fileIDColumn],
+        map[faceIDColumn],
+        map[faceDetectionColumn],
+        map[embeddingColumn],
+        map[faceScore],
+        map[faceBlur],
+        map[isSideways],
+        map[imageHeight],
+        map[imageWidth],
+        map[mlVersionColumn],
+      ];
+    }).toList();
+    await db.executeBatch(sql, parameterSets);
   }
 
   @override
@@ -527,7 +518,7 @@ class DartMLDataDB
   @override
   Future<List<Face>> getFacesForFileIDs(
     List<int> fileIDs, {
-    int minimumMlVersion = faceMlVersion,
+    int mlVersion = faceMlVersion,
   }) async {
     final db = await asyncDB;
     final faces = <Face>[];
@@ -537,9 +528,9 @@ class DartMLDataDB
         '''
         SELECT $faceIDColumn, $fileIDColumn, $faceDetectionColumn, $embeddingColumn, $faceScore, $faceBlur, $imageWidth, $imageHeight
         FROM $facesTable
-        WHERE $fileIDColumn IN ($placeholders) AND $mlVersionColumn >= ?
+        WHERE $fileIDColumn IN ($placeholders) AND $mlVersionColumn = ?
         ''',
-        [...chunk, minimumMlVersion],
+        [...chunk, mlVersion],
       );
       faces.addAll(rows.map(mapRowToFace));
     }
@@ -1590,7 +1581,7 @@ class DartMLDataDB
   @override
   Future<List<ClipEmbedding>> getClipEmbeddingsForFileIDs(
     List<int> fileIDs, {
-    int minimumMlVersion = clipMlVersion,
+    int mlVersion = clipMlVersion,
   }) async {
     final db = await asyncDB;
     final embeddings = <ClipEmbedding>[];
@@ -1600,9 +1591,9 @@ class DartMLDataDB
         '''
         SELECT $fileIDColumn, $embeddingColumn, $mlVersionColumn
         FROM $clipTable
-        WHERE $fileIDColumn IN ($placeholders) AND $mlVersionColumn >= ?
+        WHERE $fileIDColumn IN ($placeholders) AND $mlVersionColumn = ?
         ''',
-        [...chunk, minimumMlVersion],
+        [...chunk, mlVersion],
       );
       for (final row in rows) {
         embeddings.add(

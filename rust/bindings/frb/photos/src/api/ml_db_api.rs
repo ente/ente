@@ -582,12 +582,12 @@ impl MlStore {
     pub fn get_faces_for_file_ids(
         &self,
         file_ids: Vec<i64>,
-        minimum_ml_version: i64,
+        ml_version: i64,
     ) -> Result<Vec<FaceRow>, MlDbError> {
         Ok(self
             .inner
             .db()
-            .get_faces_for_file_ids(&file_ids, minimum_ml_version)?)
+            .get_faces_for_file_ids(&file_ids, ml_version)?)
     }
 
     pub fn get_file_ids_to_faces_without_embedding(
@@ -962,12 +962,12 @@ impl MlStore {
     pub fn get_clip_embeddings_for_file_ids(
         &self,
         file_ids: Vec<i64>,
-        minimum_ml_version: i64,
+        ml_version: i64,
     ) -> Result<Vec<ClipEmbedding>, MlDbError> {
         Ok(self
             .inner
             .db()
-            .get_clip_embeddings_for_file_ids(&file_ids, minimum_ml_version)?)
+            .get_clip_embeddings_for_file_ids(&file_ids, ml_version)?)
     }
 
     pub fn get_clip_indexed_file_count(&self, minimum_ml_version: i64) -> Result<i64, MlDbError> {
