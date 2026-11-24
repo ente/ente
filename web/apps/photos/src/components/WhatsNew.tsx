@@ -109,7 +109,7 @@ export const WhatsNew: React.FC<WhatsNewProps> = ({ open, onClose }) => {
                         fontWeight: 600,
                     }}
                 >
-                    {ut("What's new")}
+                    {ut("What’s new in Ente Photos 2.0")}
                 </Typography>
             </DialogTitle>
             <DialogContent sx={{ p: 0, pr: 2 }}>
@@ -142,21 +142,21 @@ const ChangelogContent: React.FC = () => {
     return (
         <Stack sx={{ gap: 2 }}>
             <UpdateEntry
-                title={ut("Your memories, now playing")}
+                title={ut("A fresh look")}
                 description={ut(
-                    "Sit back and relive your favorite moments with album slideshows.",
+                    "We’ve redesigned the app, from the gallery to Settings. The new collapsible navigation rail makes it easier to move around your library.",
                 )}
             />
             <UpdateEntry
-                title={ut("More RAW, more possibilities")}
+                title={ut("Feed and Places")}
                 description={ut(
-                    "Preview more RAW formats, with improved RAW and Ultra HDR thumbnails on Windows and Linux.",
+                    "Catch up on shared photos, likes, and comments in Feed. Search for a location in Places or explore the map to see photos taken there.",
                 )}
             />
             <UpdateEntry
-                title={ut("Little touches, happier browsing")}
+                title={ut("Easier to find, edit, and download")}
                 description={ut(
-                    "Video loading progress and retry, a refreshed All People view, plus fixes for video sizing, maps, and more.",
+                    "Jump to a date with the new date scrubber. Try the redesigned search and photo editing presets, keep track of your downloads, and so much more.",
                 )}
             />
         </Stack>
