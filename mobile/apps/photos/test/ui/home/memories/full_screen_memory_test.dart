@@ -7,6 +7,7 @@ import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
+import "package:image/image.dart" as img;
 import "package:package_info_plus/package_info_plus.dart";
 import "package:photos/core/cache/image_cache.dart";
 import "package:photos/core/cache/thumbnail_in_memory_cache.dart";
@@ -26,6 +27,8 @@ import "package:photos/ui/home/memories/full_screen_memory.dart";
 import "package:photos/ui/home/memories/memory_music_session.dart";
 import "package:photos/ui/notification/update/change_log_page.dart";
 import "package:photos/ui/viewer/file/file_widget.dart";
+import "package:photos/ui/viewer/file/image_zoom/image_zoom_viewer.dart";
+import "package:photos/ui/viewer/file/image_zoom/viewer_jpeg_image.dart";
 import "package:shared_preferences/shared_preferences.dart";
 
 void main() {
@@ -100,7 +103,12 @@ void main() {
     FileLruCache.clearAll();
   });
 
-  Future<void> openMemory(WidgetTester tester) async {
+  Future<void> openMemory(
+    WidgetTester tester, {
+    bool isActive = true,
+    VoidCallback? onNextMemory,
+    ValueChanged<bool>? onMediaInteractionLockChanged,
+  }) async {
     await tester.pumpWidget(
       MaterialApp(
         theme: lightThemeData,
@@ -118,11 +126,13 @@ void main() {
             removeCurrentMemory: () {},
             preloadThumbnail: (_) {},
             preloadVideos: (_) {},
-            child: const FullScreenMemory(
+            child: FullScreenMemory(
               "Memory",
               0,
               memoryID: "memory",
-              isActive: true,
+              isActive: isActive,
+              onNextMemory: onNextMemory,
+              onMediaInteractionLockChanged: onMediaInteractionLockChanged,
             ),
           ),
         ),
@@ -150,6 +160,77 @@ void main() {
 
   FileWidget media(WidgetTester tester) =>
       tester.widget<FileWidget>(find.byType(FileWidget));
+
+  testWidgets("a memory JPEG keeps its preview until a manual pinch settles", (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 2;
+    tester.view.physicalSize = const Size(720, 1440);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    final jpeg = File("${directory.path}/portrait.jpg")
+      ..writeAsBytesSync(img.encodeJpg(img.Image(width: 1200, height: 1600)));
+    file.title = "portrait.jpg";
+    FileLruCache.put("${file.tag}falsefalse", jpeg);
+    final fit = ViewerJpegImage.fit(jpeg, const Size(720, 1440) * 1.15);
+    final detail = FileImage(jpeg);
+    final viewerFinder = find.byType(ImageZoomViewer);
+    ImageZoomViewer viewer() => tester.widget<ImageZoomViewer>(viewerFinder);
+    Future<void> waitFor(ImageProvider expected) async {
+      for (var i = 0; i < 100 && viewer().imageProvider != expected; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 10)),
+        );
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      expect(viewer().imageProvider, expected);
+    }
+
+    await openMemory(tester, isActive: false);
+    expect(imageCache.statusForKey(fit).untracked, isTrue);
+    expect(imageCache.statusForKey(detail).untracked, isTrue);
+    final interactionLocks = <bool>[];
+    var advanced = false;
+    await openMemory(
+      tester,
+      onNextMemory: () => advanced = true,
+      onMediaInteractionLockChanged: interactionLocks.add,
+    );
+    await waitFor(fit);
+    final preview = viewer().imageProvider;
+    final startZoom = zoom(tester);
+    await tester.pump(const Duration(seconds: 2));
+    expect(zoom(tester), isNot(startZoom));
+    expect(viewer().imageProvider, same(preview));
+    expect(imageCache.statusForKey(detail).untracked, isTrue);
+
+    final center = tester.getCenter(viewerFinder);
+    const radius = Offset(35, 0);
+    final left = await tester.startGesture(center - radius);
+    final right = await tester.startGesture(center + radius);
+    await left.moveTo(center - radius * 2);
+    await right.moveTo(center + radius * 2);
+    await tester.pump();
+    expect(viewer().controller!.isZoomed, isTrue);
+    await left.up();
+    await tester.pump();
+    expect(imageCache.statusForKey(detail).untracked, isTrue);
+    await right.up();
+    await waitFor(detail);
+    final pausedProgress = progress(tester);
+    await tester.pump(const Duration(seconds: 5));
+    expect(progress(tester), pausedProgress);
+    expect(viewer().controller!.isZoomed, isTrue);
+    await tester.tapAt(Offset(20, center.dy));
+    await tester.pump(const Duration(seconds: 1));
+    expect(progress(tester), pausedProgress);
+    await tester.tapAt(center);
+    await tester.pump();
+    expect(advanced, isTrue);
+    expect(interactionLocks, [true, false]);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 50));
+  });
 
   testWidgets("What's New pauses memories and resumes from the same point", (
     tester,

@@ -15,6 +15,7 @@ import "package:photos/ente_theme_data.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
 import "package:photos/service_locator.dart";
+import "package:photos/ui/viewer/album_slideshow/album_slideshow_page.dart";
 import "package:photos/ui/viewer/file/detail_page.dart";
 import "package:photos/ui/viewer/file/image_zoom/image_zoom_viewer.dart";
 import "package:photos/ui/viewer/file/image_zoom/viewer_jpeg_image.dart";
@@ -70,7 +71,11 @@ void main() {
     });
   });
 
-  Future<void> openViewer(WidgetTester tester, List<EnteFile> items) async {
+  Future<void> openPage(WidgetTester tester, Widget page) async {
+    tester.binding.defaultBinaryMessenger.setMockMessageHandler(
+      "dev.flutter.pigeon.wakelock_plus_platform_interface.WakelockPlusApi.toggle",
+      (_) async => const StandardMessageCodec().encodeMessage([null]),
+    );
     tester.view
       ..physicalSize = viewport
       ..devicePixelRatio = 1;
@@ -80,18 +85,20 @@ void main() {
         theme: darkThemeData,
         localizationsDelegates: StringsLocalizations.localizationsDelegates,
         supportedLocales: StringsLocalizations.supportedLocales,
-        home: DetailPage(
-          DetailPageConfiguration(
-            items,
-            1,
-            "viewer-test",
-            mode: DetailPageMode.selection,
-            onSelectionRemoved: (_) {},
-          ),
-        ),
+        home: page,
       ),
     );
   }
+
+  DetailPage detailPage(List<EnteFile> items) => DetailPage(
+    DetailPageConfiguration(
+      items,
+      1,
+      "viewer-test",
+      mode: DetailPageMode.selection,
+      onSelectionRemoved: (_) {},
+    ),
+  );
 
   Future<void> waitFor(WidgetTester tester, bool Function() ready) async {
     for (var frame = 0; frame < 100 && !ready(); frame++) {
@@ -106,7 +113,7 @@ void main() {
   testWidgets("swiping between JPEGs reuses their fitted previews", (
     tester,
   ) async {
-    await openViewer(tester, files);
+    await openPage(tester, detailPage(files));
     final viewer = find.byType(ImageZoomViewer).hitTestable();
     ImageZoomViewer visible() => tester.widget<ImageZoomViewer>(viewer);
     await waitFor(
@@ -188,10 +195,6 @@ void main() {
       const MethodChannel("plugins.flutter.io/path_provider"),
       (_) => cacheDirectory.future,
     );
-    messenger.setMockMessageHandler(
-      "dev.flutter.pigeon.wakelock_plus_platform_interface.WakelockPlusApi.toggle",
-      (_) async => const StandardMessageCodec().encodeMessage([null]),
-    );
 
     EnteFile video(int id) {
       final file = EnteFile()
@@ -202,7 +205,10 @@ void main() {
       return file;
     }
 
-    await openViewer(tester, [files.first, video(1), video(2), files.last]);
+    await openPage(
+      tester,
+      detailPage([files.first, video(1), video(2), files.last]),
+    );
     await waitFor(
       tester,
       () => imageCache.statusForKey(previews.first).keepAlive,
@@ -226,5 +232,32 @@ void main() {
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(seconds: 5));
+  });
+
+  testWidgets("album slideshow decodes each JPEG only when displayed", (
+    tester,
+  ) async {
+    await openPage(tester, AlbumSlideshowPage(files: files, title: "Album"));
+
+    Future<void> expectCurrent(int index) async {
+      await waitFor(
+        tester,
+        () => tester
+            .widgetList<ImageZoomViewer>(find.byType(ImageZoomViewer))
+            .any((viewer) => viewer.imageProvider == previews[index]),
+      );
+      expect(imageCache.statusForKey(previews[index + 1]).untracked, isTrue);
+    }
+
+    await expectCurrent(0);
+    await tester.pump(
+      Duration(seconds: localSettings.albumSlideshowDurationSeconds),
+    );
+    await expectCurrent(1);
+    await tester.tapAt(const Offset(310, 250));
+    await tester.pump();
+    await expectCurrent(2);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
   });
 }

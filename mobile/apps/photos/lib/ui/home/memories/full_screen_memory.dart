@@ -40,6 +40,7 @@ import "package:photos/ui/home/memories/memory_video_prefetcher.dart";
 import "package:photos/ui/home/memories/memory_viewer_constants.dart";
 import "package:photos/ui/social/widgets/file_social_overlay.dart";
 import "package:photos/ui/viewer/file/file_widget.dart";
+import "package:photos/ui/viewer/file/image_zoom/viewer_jpeg_image.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 import "package:photos/ui/viewer/file_details/favorite_widget.dart";
 import "package:photos/ui/viewer/gallery/jump_to_date_gallery.dart";
@@ -367,10 +368,13 @@ class _FullScreenMemoryState extends State<FullScreenMemory> {
       !_isRouteCurrent ||
       _isViewerPaused ||
       _isViewerActionPaused ||
-      _isPlaybackPaused;
+      _isPlaybackPaused ||
+      _isJpegZoomLocked;
   bool get _isMediaPlaybackActive =>
       widget.isActive && _isRouteCurrent && !_isViewerActionPaused;
-  bool _isMediaInteractionLocked = false;
+  EnteFile? _interactionLockedFile;
+  bool get _isJpegZoomLocked =>
+      _interactionLockedFile != null && isViewerJpeg(_interactionLockedFile!);
   final _socialControlsVisible = ValueNotifier<bool>(false);
   FullScreenMemoryData? _memoryData;
   ValueNotifier<int>? _itemIndexNotifier;
@@ -494,6 +498,7 @@ class _FullScreenMemoryState extends State<FullScreenMemory> {
       final index = inheritedData.indexNotifier.value;
       if (!_isValidMemoryIndex(index, inheritedData.memories.length)) return;
       final currentFile = inheritedData.memories[index].file;
+      if (isViewerJpeg(currentFile)) return;
       Bus.instance.fire(
         ResetZoomOfPhotoView(
           localID: currentFile.localID,
@@ -529,12 +534,21 @@ class _FullScreenMemoryState extends State<FullScreenMemory> {
 
   void _resetAnimation() {
     if (!mounted) return;
+    _setInteractionLockedFile(null);
     _progressAnimationController
       ?..stop()
       ..reset();
     _zoomAnimationController
       ?..stop()
       ..reset();
+  }
+
+  void _setInteractionLockedFile(EnteFile? file) {
+    if (_interactionLockedFile == file) return;
+    final wasJpegZoomLocked = _isJpegZoomLocked;
+    _interactionLockedFile = file;
+    widget.onMediaInteractionLockChanged?.call(file != null);
+    if (wasJpegZoomLocked != _isJpegZoomLocked) _syncAnimationState();
   }
 
   void _setProgressAnimationController(AnimationController controller) {
@@ -603,7 +617,6 @@ class _FullScreenMemoryState extends State<FullScreenMemory> {
   void _goToNext(FullScreenMemoryData inheritedData) {
     if (!widget.isActive) return;
     if (inheritedData.memories.isEmpty) return;
-    _isMediaInteractionLocked = false;
     hasFinalFileLoaded = false;
     final currentIndex = _clampedMemoryIndex(
       inheritedData.indexNotifier.value,
@@ -625,7 +638,6 @@ class _FullScreenMemoryState extends State<FullScreenMemory> {
   void _goToPrevious(FullScreenMemoryData inheritedData) {
     if (!widget.isActive) return;
     if (inheritedData.memories.isEmpty) return;
-    _isMediaInteractionLocked = false;
     hasFinalFileLoaded = false;
     final currentIndex = _clampedMemoryIndex(
       inheritedData.indexNotifier.value,
@@ -640,7 +652,7 @@ class _FullScreenMemoryState extends State<FullScreenMemory> {
       widget.onPreviousMemory!();
     } else {
       isAtFirstOrLastFile = true;
-      _resetAnimation();
+      if (!_isJpegZoomLocked) _resetAnimation();
       _toggleAnimation(pause: false);
     }
   }
@@ -655,7 +667,6 @@ class _FullScreenMemoryState extends State<FullScreenMemory> {
         inheritedData.memories[currentIndex].file.fileType == FileType.video) {
       Bus.instance.fire(PauseVideoEvent());
     }
-    _isMediaInteractionLocked = false;
     isAtFirstOrLastFile = false;
     unawaited(
       memoriesCacheService.markMemoryAsSeen(
@@ -771,7 +782,7 @@ class _FullScreenMemoryState extends State<FullScreenMemory> {
                     if (!(ModalRoute.of(context)?.isCurrent ?? false)) return;
                     unawaited(showDetailsSheet(context, currentFile));
                   },
-                  canSwipeUp: () => !_isMediaInteractionLocked,
+                  canSwipeUp: () => _interactionLockedFile == null,
                   hasPointerNotifier: hasPointerOnScreenNotifier,
                   child: AnimatedOpacity(
                     opacity: _firstPhotoOpacity,
@@ -801,6 +812,8 @@ class _FullScreenMemoryState extends State<FullScreenMemory> {
                         child: FileWidget(
                           currentFile,
                           isActive: _isMediaPlaybackActive,
+                          isSelectedViewerPage: widget.isActive,
+                          jpegPreviewScale: MemoriesZoomWidget.maxScale,
                           itemIndex: safeIndex,
                           activeItemIndexListenable:
                               inheritedData.indexNotifier,
@@ -812,10 +825,12 @@ class _FullScreenMemoryState extends State<FullScreenMemory> {
                           isFromMemories: true,
                           isAudioMutedOverride: memoryAudio?.isVideoMuted,
                           shouldDisableScroll: (isLocked) {
-                            _isMediaInteractionLocked = isLocked;
-                            widget.onMediaInteractionLockChanged?.call(
-                              isLocked,
-                            );
+                            if (inheritedData.indexNotifier.value ==
+                                safeIndex) {
+                              _setInteractionLockedFile(
+                                isLocked ? currentFile : null,
+                              );
+                            }
                           },
                           playbackCallback: (shouldEnable, _) {
                             final activeIndex = _clampedMemoryIndex(
@@ -1446,6 +1461,8 @@ class _MemoryBlur extends StatelessWidget {
 }
 
 class MemoriesZoomWidget extends StatefulWidget {
+  static const maxScale = 1.15;
+
   final Widget child;
   final bool isVideo;
   final void Function(AnimationController)? scaleController;
@@ -1485,8 +1502,8 @@ class _MemoriesZoomWidgetState extends State<MemoriesZoomWidget>
       animationBehavior: AnimationBehavior.preserve,
     );
 
-    final startScale = widget.zoomIn ? 1.05 : 1.15;
-    final endScale = widget.zoomIn ? 1.15 : 1.05;
+    final startScale = widget.zoomIn ? 1.05 : MemoriesZoomWidget.maxScale;
+    final endScale = widget.zoomIn ? MemoriesZoomWidget.maxScale : 1.05;
 
     final startX = (random.nextDouble() - 0.5) * 0.1;
     final startY = (random.nextDouble() - 0.5) * 0.1;

@@ -29,6 +29,7 @@ class FileWidget extends StatelessWidget {
   final Function({required int memoryDuration})? onFinalFileLoad;
   final ValueChanged<File>? onFinalImageLoaded;
   final bool? isSelectedViewerPage;
+  final double jpegPreviewScale;
   final FileViewerImagePageReadinessRegistration?
   onImagePageReadinessRegistration;
   final ValueNotifier<QrCodeDetectionResult?>? qrDetectionsNotifier;
@@ -51,6 +52,7 @@ class FileWidget extends StatelessWidget {
     this.onFinalFileLoad,
     this.onFinalImageLoaded,
     this.isSelectedViewerPage,
+    this.jpegPreviewScale = 1,
     this.onImagePageReadinessRegistration,
     this.qrDetectionsNotifier,
     this.onTextSelectionStart,
@@ -73,6 +75,7 @@ class FileWidget extends StatelessWidget {
         onFinalFileLoad: onFinalFileLoad,
         onFinalImageLoaded: onFinalImageLoaded,
         isSelectedViewerPage: isSelectedViewerPage,
+        jpegPreviewScale: jpegPreviewScale,
         onImagePageReadinessRegistration: onImagePageReadinessRegistration,
         qrDetectionsNotifier: qrDetectionsNotifier,
         onTextSelectionStart: onTextSelectionStart,

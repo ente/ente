@@ -43,8 +43,9 @@ class ZoomableImage extends StatefulWidget {
   final bool isGuestView;
   final bool isFromMemories;
   final bool enableVerticalSwipeActions;
-  // Null when the image is displayed outside the paged file viewer.
+  // Null for views that don't use screen-sized JPEGs.
   final bool? isSelectedViewerPage;
+  final double jpegPreviewScale;
   final Function({required int memoryDuration})? onFinalFileLoad;
   final ValueChanged<File>? onFinalImageLoaded;
   final FileViewerImagePageReadinessRegistration?
@@ -61,6 +62,7 @@ class ZoomableImage extends StatefulWidget {
     this.isFromMemories = false,
     this.enableVerticalSwipeActions = true,
     this.isSelectedViewerPage,
+    this.jpegPreviewScale = 1,
     this.onFinalFileLoad,
     this.onFinalImageLoaded,
     this.onImagePageReadinessRegistration,
@@ -239,8 +241,9 @@ class _ZoomableImageState extends State<ZoomableImage> {
     if (widget.isSelectedViewerPage != null && isViewerJpeg(_photo)) {
       return LayoutBuilder(
         builder: (context, constraints) {
+          final pixelRatio = MediaQuery.devicePixelRatioOf(context);
           _physicalViewport =
-              constraints.biggest * MediaQuery.devicePixelRatioOf(context);
+              constraints.biggest * pixelRatio * widget.jpegPreviewScale;
           _updateJpegRequest();
           return _buildViewer(context);
         },
@@ -479,6 +482,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
   }
 
   void _updateJpegRequest() {
+    if (widget.isFromMemories && widget.isSelectedViewerPage == false) return;
     final file = _jpegFile;
     final viewport = _physicalViewport;
     if (file == null ||

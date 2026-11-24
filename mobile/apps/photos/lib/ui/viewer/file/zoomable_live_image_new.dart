@@ -32,6 +32,7 @@ class ZoomableLiveImageNew extends StatefulWidget {
   final Function({required int memoryDuration})? onFinalFileLoad;
   final ValueChanged<File>? onFinalImageLoaded;
   final bool? isSelectedViewerPage;
+  final double jpegPreviewScale;
   final FileViewerImagePageReadinessRegistration?
   onImagePageReadinessRegistration;
   final ValueNotifier<QrCodeDetectionResult?>? qrDetectionsNotifier;
@@ -47,6 +48,7 @@ class ZoomableLiveImageNew extends StatefulWidget {
     this.onFinalFileLoad,
     this.onFinalImageLoaded,
     this.isSelectedViewerPage,
+    this.jpegPreviewScale = 1,
     this.onImagePageReadinessRegistration,
     this.qrDetectionsNotifier,
     this.onTextSelectionStart,
@@ -207,6 +209,7 @@ class _ZoomableLiveImageNewState extends State<ZoomableLiveImageNew>
       onFinalFileLoad: widget.onFinalFileLoad,
       onFinalImageLoaded: widget.onFinalImageLoaded,
       isSelectedViewerPage: widget.isSelectedViewerPage,
+      jpegPreviewScale: widget.jpegPreviewScale,
       onImagePageReadinessRegistration: widget.onImagePageReadinessRegistration,
     );
 
