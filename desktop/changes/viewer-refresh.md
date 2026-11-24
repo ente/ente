@@ -1,0 +1,1 @@
+- Redesigned the viewer with floating panels, grouped controls, and compact status indicators. Refreshed the Rename File, Fix Time, Cast, and TV pairing dialogs.

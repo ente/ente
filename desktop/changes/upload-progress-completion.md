@@ -1,0 +1,1 @@
+- Upload progress reaches 100% when the upload finishes.

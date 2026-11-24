@@ -1,0 +1,1 @@
+- Kept desktop dialogs and side panels clear of the title bar.

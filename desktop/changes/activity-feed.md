@@ -1,0 +1,1 @@
+- Added a Feed for shared photos, likes, and comments. Open photos directly from the Feed.

@@ -1,0 +1,1 @@
+- Renamed “Faster uploads” to “Smart routing.” Both names work in Settings search.

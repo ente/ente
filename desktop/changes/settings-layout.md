@@ -1,0 +1,1 @@
+- Redesigned Settings with a two-panel layout.
