@@ -238,7 +238,10 @@ testWithPhotos(
             .getByRole("menuitem", { name: "Add to album", exact: true })
             .click();
 
-        const tabs = page.getByRole("tablist", { name: "Filter albums" });
+        const tabs = page.getByRole("tablist", {
+            name: "Filter albums",
+            includeHidden: true,
+        });
         await tabs.getByRole("tab", { name: "All", exact: true }).click();
         await page.keyboard.press("ArrowRight");
         await expect(tabs.getByRole("tab", { name: "Ente" })).toBeFocused();
@@ -250,7 +253,7 @@ testWithPhotos(
         await expect(tabs.getByRole("tab", { name: "Ente" })).toBeFocused();
 
         await page.keyboard.press("Escape");
-        await expect(tabs).toBeHidden();
+        await expect(tabs).toHaveCount(0);
         await page.keyboard.press("ArrowRight");
         await expect(counter).toHaveText("2 / 4");
         await page.keyboard.press("Delete");
