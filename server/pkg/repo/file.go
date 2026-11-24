@@ -1,12 +1,11 @@
 package repo
 
 import (
-	"cmp"
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"slices"
 	"strconv"
 	"strings"
 
@@ -324,38 +323,82 @@ func (repo *FileRepository) Update(file ente.File, fileSize int64, thumbnailSize
 
 func (repo *FileRepository) UpdateMagicAttributes(
 	ctx context.Context,
+	userID int64,
 	fileUpdates []ente.UpdateMagicMetadata,
 	isPublicMetadata bool,
 	skipVersion *bool,
 ) error {
-	slices.SortStableFunc(fileUpdates, func(a, b ente.UpdateMagicMetadata) int {
-		return cmp.Compare(a.ID, b.ID)
-	})
-	updationTime := time.Microseconds()
+	column := "magic_metadata"
+	if isPublicMetadata {
+		column = "pub_magic_metadata"
+	}
 	tx, err := repo.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
 	defer tx.Rollback()
-	fileIDs := make([]int64, 0)
+	requestedIDs := make([]int64, 0, len(fileUpdates))
 	for _, update := range fileUpdates {
-		update.MagicMetadata.Version = update.MagicMetadata.Version + 1
-		fileIDs = append(fileIDs, update.ID)
-		if isPublicMetadata {
-			_, err = tx.ExecContext(ctx, `UPDATE files SET pub_magic_metadata = $1,  updation_time = $2 WHERE file_id = $3`,
-				update.MagicMetadata, updationTime, update.ID)
-		} else {
-			_, err = tx.ExecContext(ctx, `UPDATE files SET magic_metadata = $1,  updation_time = $2 WHERE file_id = $3`,
-				update.MagicMetadata, updationTime, update.ID)
+		requestedIDs = append(requestedIDs, update.ID)
+	}
+	owned, err := lockOwnedMagicMetadata(ctx, tx, column, userID, requestedIDs)
+	if err != nil {
+		return stacktrace.Propagate(err, "")
+	}
+	fileIDs := make([]int64, 0, len(fileUpdates))
+	metadata := make([]string, 0, len(fileUpdates))
+	position := make(map[int64]int, len(fileUpdates))
+	for _, update := range fileUpdates {
+		md, ok := owned[update.ID]
+		if !ok {
+			var ownerID int64
+			if err := tx.QueryRowContext(ctx, `SELECT owner_id FROM files WHERE file_id = $1`, update.ID).Scan(&ownerID); err != nil {
+				return stacktrace.Propagate(err, "file %d", update.ID)
+			}
+			log.WithFields(log.Fields{
+				"file_id":   update.ID,
+				"owner_id":  ownerID,
+				"user_id":   userID,
+				"public_md": isPublicMetadata,
+			}).Error("can't update magic metadata for file which isn't owned by user")
+			return stacktrace.Propagate(ente.ErrPermissionDenied, "")
 		}
+		// Reject version mismatches and large key-count drops to avoid data loss.
+		if md != nil && (md.Version != update.MagicMetadata.Version || md.Count-update.MagicMetadata.Count > 2) {
+			log.WithFields(log.Fields{
+				"existing_count":   md.Count,
+				"existing_version": md.Version,
+				"file_id":          update.ID,
+				"public_md":        isPublicMetadata,
+				"received_count":   update.MagicMetadata.Count,
+				"received_version": update.MagicMetadata.Version,
+				"user_id":          userID,
+			}).Error("invalid ops: mismatch in metadata version or count")
+			return stacktrace.Propagate(ente.ErrVersionMismatch, "mismatch in metadata version or count")
+		}
+		update.MagicMetadata.Version++
+		encoded, err := json.Marshal(update.MagicMetadata)
 		if err != nil {
 			return stacktrace.Propagate(err, "")
 		}
+		if i, ok := position[update.ID]; ok {
+			metadata[i] = string(encoded)
+			continue
+		}
+		position[update.ID] = len(fileIDs)
+		fileIDs = append(fileIDs, update.ID)
+		metadata = append(metadata, string(encoded))
+	}
+	updationTime := time.Microseconds()
+	_, err = tx.ExecContext(ctx, `UPDATE files SET `+column+` = input.metadata, updation_time = $3
+		FROM unnest($1::bigint[], $2::jsonb[]) AS input(file_id, metadata)
+		WHERE files.file_id = input.file_id`, pq.Array(fileIDs), pq.Array(metadata), updationTime)
+	if err != nil {
+		return stacktrace.Propagate(err, "")
 	}
 	if skipVersion != nil && *skipVersion {
 		return tx.Commit()
 	}
-	// todo: full table scan, need to add index (for discussion: add user_id and idx {user_id, file_id}).
 	updatedRows, err := tx.QueryContext(ctx, `UPDATE collection_files 
 			SET updation_time = $1 WHERE file_id = ANY($2) AND is_deleted= false RETURNING collection_id`, updationTime,
 		pq.Array(fileIDs))
@@ -540,19 +583,23 @@ func (repo *FileRepository) VerifyFileOwner(ctx context.Context, fileIDs []int64
 	}
 }
 
-func (repo *FileRepository) GetOwnerAndMagicMetadata(fileID int64, publicMetadata bool) (int64, *ente.MagicMetadata, error) {
-	var row *sql.Row
-	if publicMetadata {
-		row = repo.DB.QueryRow(`SELECT owner_id, pub_magic_metadata FROM files WHERE file_id = $1`,
-			fileID)
-	} else {
-		row = repo.DB.QueryRow(`SELECT owner_id, magic_metadata FROM files WHERE file_id = $1`,
-			fileID)
+func lockOwnedMagicMetadata(ctx context.Context, tx *sql.Tx, column string, userID int64, fileIDs []int64) (map[int64]*ente.MagicMetadata, error) {
+	rows, err := tx.QueryContext(ctx, `SELECT file_id, `+column+` FROM files
+		WHERE owner_id = $1 AND file_id = ANY($2) ORDER BY file_id FOR NO KEY UPDATE`, userID, pq.Array(fileIDs))
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "")
 	}
-	var ownerID int64
-	var magicMetadata *ente.MagicMetadata
-	err := row.Scan(&ownerID, &magicMetadata)
-	return ownerID, magicMetadata, stacktrace.Propagate(err, "")
+	defer rows.Close()
+	result := make(map[int64]*ente.MagicMetadata, len(fileIDs))
+	for rows.Next() {
+		var fileID int64
+		var metadata *ente.MagicMetadata
+		if err := rows.Scan(&fileID, &metadata); err != nil {
+			return nil, stacktrace.Propagate(err, "")
+		}
+		result[fileID] = metadata
+	}
+	return result, stacktrace.Propagate(rows.Err(), "")
 }
 
 func (repo *FileRepository) GetSize(userID int64, fileIDs []int64) (int64, error) {

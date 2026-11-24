@@ -661,11 +661,8 @@ func (c *FileController) GetDuplicates(userID int64) ([]ente.DuplicateFiles, err
 }
 
 func (c *FileController) UpdateMagicMetadata(ctx *gin.Context, req ente.UpdateMultipleMagicMetadataRequest, isPublicMetadata bool) error {
-	err := c.validateUpdateMetadataRequest(ctx, req, isPublicMetadata)
-	if err != nil {
-		return stacktrace.Propagate(err, "")
-	}
-	err = c.FileRepo.UpdateMagicAttributes(ctx, req.MetadataList, isPublicMetadata, req.SkipVersion)
+	userID := auth.GetUserID(ctx.Request.Header)
+	err := c.FileRepo.UpdateMagicAttributes(ctx, userID, req.MetadataList, isPublicMetadata, req.SkipVersion)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to update magic attributes")
 	}
@@ -756,42 +753,6 @@ func (c *FileController) VerifyFileOwnership(ctx *gin.Context, ownerID int64, fi
 		logger.Error("user is not an owner of any file")
 		return stacktrace.Propagate(ente.ErrPermissionDenied, "")
 	}
-}
-
-func (c *FileController) validateUpdateMetadataRequest(ctx *gin.Context, req ente.UpdateMultipleMagicMetadataRequest, isPublicMetadata bool) error {
-	userID := auth.GetUserID(ctx.Request.Header)
-	for _, updateMMdRequest := range req.MetadataList {
-		ownerID, existingMetadata, err := c.FileRepo.GetOwnerAndMagicMetadata(updateMMdRequest.ID, isPublicMetadata)
-		if err != nil {
-			return stacktrace.Propagate(err, "")
-		}
-		if ownerID != userID {
-			log.WithFields(log.Fields{
-				"file_id":   updateMMdRequest.ID,
-				"owner_id":  ownerID,
-				"user_id":   userID,
-				"public_md": isPublicMetadata,
-			}).Error("can't update magic metadata for file which isn't owned by use")
-			return stacktrace.Propagate(ente.ErrPermissionDenied, "")
-		}
-		oldToNewCountDiff := 0
-		if existingMetadata != nil {
-			oldToNewCountDiff = existingMetadata.Count - updateMMdRequest.MagicMetadata.Count
-		}
-		// Reject version mismatches and large key-count drops to avoid data loss.
-		if existingMetadata != nil && (existingMetadata.Version != updateMMdRequest.MagicMetadata.Version || oldToNewCountDiff > 2) {
-			log.WithFields(log.Fields{
-				"existing_count":   existingMetadata.Count,
-				"existing_version": existingMetadata.Version,
-				"file_id":          updateMMdRequest.ID,
-				"received_count":   updateMMdRequest.MagicMetadata.Count,
-				"received_version": updateMMdRequest.MagicMetadata.Version,
-				"public_md":        isPublicMetadata,
-			}).Error("invalid ops: mismatch in metadata version or count")
-			return stacktrace.Propagate(ente.ErrVersionMismatch, "mismatch in metadata version or count")
-		}
-	}
-	return nil
 }
 
 func (c *FileController) CleanupDeletedFiles() {
