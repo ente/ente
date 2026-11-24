@@ -17,79 +17,7 @@ struct NotesSettingsView: View {
                 .font(EnsuTypography.small)
                 .foregroundStyle(EnsuColor.textMuted)
                 ForEach(store.collections) { collection in
-                    EnsuCard {
-                        HStack {
-                            VStack(alignment: .leading, spacing: EnsuSpacing.xs) {
-                                Text(collection.label)
-                                    .font(EnsuTypography.large)
-                                    .foregroundStyle(EnsuColor.textPrimary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                                Text(summary(collection))
-                                    .font(EnsuTypography.mini)
-                                    .foregroundStyle(EnsuColor.textMuted)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                            Spacer()
-                            Toggle(
-                                "Use \(collection.label) for future messages",
-                                isOn: Binding(
-                                    get: { !store.disabledIDs.contains(collection.id) },
-                                    set: {
-                                        store.setEnabled(collection.id, enabled: $0)
-                                    })
-                            )
-                            .labelsHidden()
-                            .tint(EnsuColor.accent)
-                            if allowsRemoval {
-                                ActionButton(
-                                    icon: "Delete01Icon", tooltip: "Remove \(collection.label)",
-                                    size: 44
-                                ) {
-                                    removing = collection
-                                }
-                            }
-                        }
-                        if let progress = collection.progress {
-                            HStack(spacing: EnsuSpacing.sm) {
-                                ProgressView(value: Double(progress), total: 100)
-                                    .tint(EnsuColor.action)
-                                Text("\(progress)%")
-                                    .font(EnsuTypography.mini)
-                                    .foregroundStyle(EnsuColor.textMuted)
-                            }
-                        } else if collection.status == .indexing || collection.status == .updating {
-                            ProgressView().tint(EnsuColor.action)
-                        }
-                        if collection.status == .updateScheduled {
-                            Text("Changes detected in this folder.")
-                                .font(EnsuTypography.small)
-                                .foregroundStyle(EnsuColor.textMuted)
-                            CompactButton(text: "Update now") {
-                                store.updateNow(collection.id)
-                            }
-                            .accessibilityLabel("Update \(collection.label) now")
-                        } else if collection.status == .pending
-                            || collection.status == .updateRequested
-                        {
-                            Text(
-                                collection.status == .updateRequested
-                                    ? "Update queued. Keep Ensu open."
-                                    : "Indexing will continue when the app and model are ready."
-                            )
-                            .font(EnsuTypography.small)
-                            .foregroundStyle(EnsuColor.textMuted)
-                        }
-                        if let error = collection.error {
-                            Text(error)
-                                .font(EnsuTypography.small)
-                                .foregroundStyle(EnsuColor.error)
-                        }
-                        if collection.status == .error || collection.status == .unavailable {
-                            CompactButton(text: "Retry") {
-                                store.retry(collection.id)
-                            }
-                        }
-                    }
+                    notesCard(collection)
                 }
                 CompactButton(text: "Add notes folder") {
                     showPicker = true
@@ -126,6 +54,85 @@ struct NotesSettingsView: View {
             Button("Cancel", role: .cancel) { removing = nil }
         } message: {
             Text("Remove this folder from Your Notes? Your original files will be kept.")
+        }
+    }
+
+    private func notesCard(_ collection: NoteCollectionState) -> some View {
+        EnsuCard(spacing: EnsuSpacing.md) {
+            HStack {
+                VStack(alignment: .leading, spacing: EnsuSpacing.xs) {
+                    Text(collection.label)
+                        .font(EnsuTypography.large)
+                        .foregroundStyle(EnsuColor.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(summary(collection))
+                        .font(EnsuTypography.mini)
+                        .foregroundStyle(EnsuColor.textMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer()
+                Toggle(
+                    "Use \(collection.label) for future messages",
+                    isOn: Binding(
+                        get: { !store.disabledIDs.contains(collection.id) },
+                        set: { store.setEnabled(collection.id, enabled: $0) })
+                )
+                .labelsHidden()
+                .tint(EnsuColor.accent)
+                if allowsRemoval {
+                    ActionButton(
+                        icon: "Delete01Icon", tooltip: "Remove \(collection.label)",
+                        size: 44
+                    ) {
+                        removing = collection
+                    }
+                }
+            }
+            if let progress = collection.progress {
+                HStack(spacing: EnsuSpacing.sm) {
+                    ProgressView(value: Double(progress), total: 100)
+                        .tint(EnsuColor.action)
+                    Text("\(progress)%")
+                        .font(EnsuTypography.mini)
+                        .foregroundStyle(EnsuColor.textMuted)
+                }
+            } else if collection.status == .indexing || collection.status == .updating {
+                ProgressView()
+                    .tint(EnsuColor.action)
+                    .accessibilityLabel("Updating \(collection.label)")
+            }
+            if collection.canRequestUpdate {
+                VStack(alignment: .leading, spacing: EnsuSpacing.sm) {
+                    Text(
+                        collection.status == .updateRequested
+                            ? "Update queued. Keep Ensu open."
+                            : "Changes detected in this folder."
+                    )
+                    .font(EnsuTypography.small)
+                    .foregroundStyle(EnsuColor.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    CompactButton(text: "Update now") {
+                        store.updateNow(collection.id)
+                    }
+                    .accessibilityLabel("Update \(collection.label) now")
+                }
+            } else if collection.status == .pending {
+                Text("Indexing will continue when the app and model are ready.")
+                    .font(EnsuTypography.small)
+                    .foregroundStyle(EnsuColor.textMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if let error = collection.error {
+                Text(error)
+                    .font(EnsuTypography.small)
+                    .foregroundStyle(EnsuColor.error)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if collection.status == .error || collection.status == .unavailable {
+                CompactButton(text: "Retry") {
+                    store.retry(collection.id)
+                }
+            }
         }
     }
 

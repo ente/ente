@@ -584,6 +584,7 @@ const Page: React.FC = () => {
     const [isPreparingMessage, setIsPreparingMessage] = useState(false);
     const pendingSendRef = useRef(false);
     const voiceInputActiveRef = useRef(0);
+    const [voiceInputActive, setVoiceInputActive] = useState(false);
     const chatMountedRef = useRef(true);
     const settingsFlowOpenRef = useRef(false);
     const notesWarmupEpochRef = useRef(0);
@@ -1832,6 +1833,7 @@ const Page: React.FC = () => {
         async (operation, signal) => {
             signal.throwIfAborted();
             voiceInputActiveRef.current++;
+            setVoiceInputActive(true);
             notesWarmupEpochRef.current++;
             notesIdleScheduler.cancel();
             notesIndexingPausedRef.current = true;
@@ -1843,6 +1845,9 @@ const Page: React.FC = () => {
                 return await provider.withVoiceInput(operation, signal);
             } finally {
                 voiceInputActiveRef.current--;
+                if (chatMountedRef.current) {
+                    setVoiceInputActive(voiceInputActiveRef.current > 0);
+                }
                 if (
                     chatMountedRef.current &&
                     voiceInputActiveRef.current === 0
@@ -1869,7 +1874,8 @@ const Page: React.FC = () => {
     ]);
 
     const isIndexingBlocked = useCallback(
-        () => notesIndexingPausedRef.current || isChatBusy(),
+        (manual = false) =>
+            (!manual && notesIndexingPausedRef.current) || isChatBusy(),
         [isChatBusy],
     );
     const cancelNotesIndexing = useCallback(() => {
@@ -1906,7 +1912,10 @@ const Page: React.FC = () => {
     } = useNotesCollections({
         isTauriRuntime,
         isGenerating:
-            isPreparingMessage || isGenerating || isSessionSummaryGenerating,
+            isPreparingMessage ||
+            isGenerating ||
+            isSessionSummaryGenerating ||
+            voiceInputActive,
         isIndexingPaused: notesIndexingPaused,
         isIndexingBlocked,
         modelReady: modelGateStatus === "ready",

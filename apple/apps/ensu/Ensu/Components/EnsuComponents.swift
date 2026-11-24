@@ -3,10 +3,11 @@ import UIKit
 
 struct EnsuCard<Content: View>: View {
     var padding: CGFloat = EnsuSpacing.lg
+    var spacing: CGFloat = EnsuSpacing.sm
     @ViewBuilder var content: () -> Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: EnsuSpacing.sm, content: content)
+        VStack(alignment: .leading, spacing: spacing, content: content)
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(EnsuColor.fillFaint)
@@ -49,7 +50,7 @@ struct CompactButton: View {
         Button(action: action) {
             Text(text)
                 .font(prominent ? EnsuTypography.body.weight(.semibold) : EnsuTypography.small)
-                .foregroundColor(prominent ? .black : nil)
+                .foregroundColor(.black)
                 .padding(.horizontal, prominent ? EnsuSpacing.sm : EnsuSpacing.xs)
                 .frame(minHeight: prominent ? EnsuSpacing.xxl : nil)
         }

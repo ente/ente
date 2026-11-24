@@ -10,8 +10,8 @@ import {
     type NotesCollection,
 } from "@/services/notes";
 import {
+    notesCollectionActivity,
     NotesLifecycleController,
-    type NotesCollectionActivity,
     type NotesCollectionView,
 } from "@/services/notes-lifecycle";
 import { tauriCommandError } from "@/services/tauri-error";
@@ -26,7 +26,7 @@ interface UseNotesCollectionsOptions {
     isTauriRuntime: boolean;
     isGenerating: boolean;
     isIndexingPaused: boolean;
-    isIndexingBlocked: () => boolean;
+    isIndexingBlocked: (manual?: boolean) => boolean;
     modelReady: boolean;
     ensureProvider: () => Promise<LlmProvider>;
     cancelIndexing: () => void;
@@ -134,27 +134,18 @@ export const useNotesCollections = ({
     );
 
     const startIndex = useCallback(
-        (
-            collectionId: string,
-            force = false,
-            automatic = false,
-            automaticRequestKey?: number,
-        ) => {
-            const blocked = !modelReady || isIndexingBlocked();
+        (collectionId: string, force = false, automatic = false) => {
+            const blocked = !modelReady || isIndexingBlocked(force);
             const request = automatic
-                ? controller.ensureIndex(
-                      collectionId,
-                      blocked,
-                      automaticRequestKey,
-                  )
+                ? controller.ensureIndex(collectionId, blocked)
                 : controller.requestIndex(collectionId, force, blocked);
             if (request === "ignored") return;
             lifecycleChanged();
+            setOperationError(null);
             if (request === "queued") {
                 log.info("Your Notes indexing queued", { collectionId });
                 return;
             }
-            setOperationError(null);
             log.info("Your Notes indexing started", {
                 collectionId,
                 automatic,
@@ -162,18 +153,16 @@ export const useNotesCollections = ({
             });
 
             const ownsIndex = () => controller.canContinueIndex(collectionId);
-            const canStartIndex = () => ownsIndex() && !isIndexingBlocked();
+            const canStartIndex = () =>
+                ownsIndex() && !isIndexingBlocked(force);
             void ensureProvider()
                 .then((provider) =>
                     provider.withKnowledgeRetrieval(async (retrievalEpoch) => {
                         let needsRerun = true;
                         let bypassQuietPeriod = force;
                         while (needsRerun && ownsIndex()) {
-                            if (isIndexingBlocked()) {
-                                controller.queueIndex(
-                                    collectionId,
-                                    bypassQuietPeriod,
-                                );
+                            if (isIndexingBlocked(force)) {
+                                controller.queueIndex(collectionId, force);
                                 lifecycleChanged();
                                 return;
                             }
@@ -246,19 +235,16 @@ export const useNotesCollections = ({
 
     useEffect(() => {
         const blocked = !modelReady || isIndexingBlocked();
-        const queued = controller.drainQueued(blocked);
-        if (queued.length > 0) {
-            lifecycleChanged();
-            for (const [collectionId, force] of queued) {
-                startIndex(collectionId, force);
-            }
-        }
+        const next = controller.takeNextQueued(
+            blocked,
+            !modelReady || isIndexingBlocked(true),
+        );
+        if (next) startIndex(...next);
     }, [
         controller,
         isGenerating,
         isIndexingPaused,
         isIndexingBlocked,
-        lifecycleChanged,
         lifecycleRevision,
         modelReady,
         startIndex,
@@ -309,13 +295,7 @@ export const useNotesCollections = ({
             ) {
                 timeouts.push(
                     window.setTimeout(
-                        () =>
-                            startIndex(
-                                collection.id,
-                                false,
-                                true,
-                                collection.updateDueAtMs ?? undefined,
-                            ),
+                        () => startIndex(collection.id, false, true),
                         Math.max(0, collection.updateDueAtMs - now),
                     ),
                 );
@@ -400,43 +380,16 @@ export const useNotesCollections = ({
 
     const collectionViews = useMemo<NotesCollectionView[]>(
         () =>
-            collections.map((collection) => {
-                const lifecycleActivity = controller.indexActivity(
-                    collection.id,
-                );
-                let activity: NotesCollectionActivity;
-                if (
-                    collection.status === "indexing" ||
-                    collection.status === "updating"
-                ) {
-                    activity = null;
-                } else if (lifecycleActivity === "failed") {
-                    activity = "failed";
-                } else if (lifecycleActivity === "starting") {
-                    activity = "starting";
-                } else if (lifecycleActivity === "queued") {
-                    activity = !modelReady
-                        ? "waitingForModel"
-                        : isIndexingPaused
-                          ? "waitingForChat"
-                          : isGenerating || isIndexingBlocked()
-                            ? "waitingForGeneration"
-                            : "starting";
-                } else if (collection.updateDueAtMs != null) {
-                    activity = null;
-                } else if (collection.status !== "pending") {
-                    activity = null;
-                } else if (!modelReady) {
-                    activity = "waitingForModel";
-                } else if (isIndexingPaused) {
-                    activity = "waitingForChat";
-                } else if (isGenerating || isIndexingBlocked()) {
-                    activity = "waitingForGeneration";
-                } else {
-                    activity = "starting";
-                }
-                return { ...collection, activity };
-            }),
+            collections.map((collection) => ({
+                ...collection,
+                activity: notesCollectionActivity(
+                    collection,
+                    controller,
+                    modelReady,
+                    isIndexingPaused,
+                    isGenerating || isIndexingBlocked(true),
+                ),
+            })),
         [
             collections,
             controller,

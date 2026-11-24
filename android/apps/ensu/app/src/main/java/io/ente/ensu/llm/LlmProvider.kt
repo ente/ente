@@ -57,6 +57,12 @@ import kotlinx.coroutines.withContext
 
 private const val BACKGROUND_CACHE_RETENTION_MILLIS = 60_000L
 
+internal enum class EmbeddingUse {
+    Retrieval,
+    AutomaticIndexing,
+    ManualIndexing,
+}
+
 internal class ModelMemoryDeferred : Exception()
 
 internal class ModelMemoryUnavailable(cause: Throwable? = null) :
@@ -600,7 +606,7 @@ class LlmProvider(
         queryBytes: Int,
         block: suspend (embed: (String) -> List<Float>) -> T,
     ): T = withModelContext {
-        withEmbeddingContext(maintenance = false, queryBytes = queryBytes) { embedding ->
+        withEmbeddingContext(use = EmbeddingUse.Retrieval, queryBytes = queryBytes) { embedding ->
             block { text ->
                 if (!appForeground) {
                     updateExecutionPolicy()
@@ -612,7 +618,7 @@ class LlmProvider(
     }
 
     internal suspend fun <T> withEmbeddingContext(
-        maintenance: Boolean = true,
+        use: EmbeddingUse,
         queryBytes: Int = 0,
         checkCancellation: () -> Unit = {},
         block: suspend (LlmContext) -> T,
@@ -622,21 +628,27 @@ class LlmProvider(
                 checkCancellation()
                 deviceCapabilityProvider.chatCapability().requireChatSupported()
                 if (!isEmbeddingModelReady()) throw EmbeddingAssetInvalid()
-                if (maintenance && memoryPressure.suppressesOptionalWork())
+                if (
+                    use == EmbeddingUse.AutomaticIndexing && memoryPressure.suppressesOptionalWork()
+                )
                     throw ModelMemoryDeferred()
                 unloadTranscriptionModelIfLoaded()
                 releaseProjector()
                 if (
                     !canAllocate(
                         LlmMemoryOperation.EMBEDDING,
-                        queryBytes.takeUnless { maintenance },
+                        queryBytes.takeIf { use == EmbeddingUse.Retrieval },
                     )
                 ) {
-                    if (maintenance && chatForeground && loadedModel != null)
+                    if (
+                        use == EmbeddingUse.AutomaticIndexing &&
+                            chatForeground &&
+                            loadedModel != null
+                    )
                         throw ModelMemoryDeferred()
                     unloadModel()
                     if (!hasRequiredWorkReserve()) {
-                        if (maintenance) throw ModelMemoryDeferred()
+                        if (use == EmbeddingUse.AutomaticIndexing) throw ModelMemoryDeferred()
                         throw ModelMemoryUnavailable()
                     }
                 }

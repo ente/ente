@@ -15,6 +15,9 @@ struct NoteCollectionState: Identifiable {
     var progress: UInt8?
     var error: String?
     var completedEmpty = false
+    var canRequestUpdate: Bool {
+        status == .updateScheduled || status == .updateRequested
+    }
     var eligible: Bool {
         indexAvailable && status != .error && status != .unavailable
     }
@@ -129,7 +132,6 @@ final class NotesStore: ObservableObject, ModelMaintenance {
         guard foreground != value else { return }
         foreground = value
         if value {
-            failed.removeAll()
             scans.formUnion(collections.map(\.id))
             pump()
         } else {
@@ -196,8 +198,10 @@ final class NotesStore: ObservableObject, ModelMaintenance {
     }
 
     func updateNow(_ id: String) {
-        guard collections.contains(where: { $0.id == id && $0.status == .updateScheduled }),
-            pending[id]?.trigger == .changesDetected
+        guard
+            collections.contains(where: { $0.id == id && $0.canRequestUpdate }),
+            let trigger = pending[id]?.trigger,
+            trigger == .changesDetected || trigger == .manual
         else { return }
 
         pending[id]?.trigger = .manual
@@ -286,6 +290,9 @@ final class NotesStore: ObservableObject, ModelMaintenance {
                 enqueue(
                     reference.collectionId, forced: [reference.documentId], changesDetected: true,
                     due: .distantPast)
+                update(reference.collectionId) {
+                    $0.status = pending[reference.collectionId]?.waitingStatus ?? .pending
+                }
             } catch {
                 fail(reference.collectionId, error)
             }
@@ -315,7 +322,7 @@ final class NotesStore: ObservableObject, ModelMaintenance {
     private func requestRebuild(_ id: String) {
         enqueue(id, rebuild: true, due: .distantPast)
         update(id) {
-            $0.status = .pending
+            $0.status = pending[id]?.waitingStatus ?? .pending
             $0.indexAvailable = false
         }
     }
@@ -428,6 +435,7 @@ final class NotesStore: ObservableObject, ModelMaintenance {
                     update(id) {
                         if let next = pending[id] {
                             $0.status = next.waitingStatus
+                            $0.progress = nil
                             $0.documentCount = result.summary.documentCount
                             $0.lastUpdatedAtMs = result.summary.lastUpdatedAtMs
                             $0.indexAvailable =
@@ -464,6 +472,7 @@ final class NotesStore: ObservableObject, ModelMaintenance {
                 let saved = try? await provider.inspect(id)
                 update(id) {
                     $0.status = pending[id]?.waitingStatus ?? .pending
+                    $0.progress = nil
                     if let saved { $0.lastUpdatedAtMs = saved.lastUpdatedAtMs }
                     $0.indexAvailable =
                         hadIndex && saved?.initialComplete == true
