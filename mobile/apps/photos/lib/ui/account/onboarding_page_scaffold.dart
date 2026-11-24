@@ -17,22 +17,34 @@ enum OnboardingIllustration {
   forgotPassword("assets/onboarding_forgot_password.riv", 0.5294, -28.5, -6.1),
   key("assets/onboarding_key.riv", 0.5325, -31, 6.7),
   recoveryKey("assets/onboarding_key.riv", 0.4714, -29.4, -4.6),
-  pricing("assets/onboarding_pricing.riv", 0.535, -20.8, 7.9);
+  pricing("assets/onboarding_pricing.riv", 0.535, -20.8, 7.9),
+  permission(
+    "assets/onboarding_permission.riv",
+    1,
+    69,
+    0,
+    artboardWidth: 375,
+    artboardHeight: 315,
+    bindsViewModel: false,
+  );
 
   const OnboardingIllustration(
     this.asset,
     this.scale,
     this.topOffset,
-    this.centerOffset,
-  );
-
-  static const double artboardWidth = 500;
-  static const double artboardHeight = 509;
+    this.centerOffset, {
+    this.artboardWidth = 500,
+    this.artboardHeight = 509,
+    this.bindsViewModel = true,
+  });
 
   final String asset;
   final double scale;
   final double topOffset;
   final double centerOffset;
+  final double artboardWidth;
+  final double artboardHeight;
+  final bool bindsViewModel;
 
   double get width => artboardWidth * scale;
   double get height => artboardHeight * scale;
@@ -48,8 +60,13 @@ class OnboardingPageScaffold extends StatefulWidget {
     required this.body,
     this.actions = const [],
     this.headerHeight = defaultHeaderHeight,
+    this.fitsHeaderToContent = false,
+    this.illustrationScale = 1,
     this.minimumKeyboardHeaderHeight = 0,
     this.showBackButton = true,
+    this.titleStyle,
+    this.titleMaxWidth,
+    this.titleMaxLines = 2,
     this.titleBarStyle = OnboardingTitleBarStyle.card,
     this.headerTrailing,
     this.titleTopPadding,
@@ -70,8 +87,13 @@ class OnboardingPageScaffold extends StatefulWidget {
   final Widget body;
   final List<Widget> actions;
   final double headerHeight;
+  final bool fitsHeaderToContent;
+  final double illustrationScale;
   final double minimumKeyboardHeaderHeight;
   final bool showBackButton;
+  final TextStyle? titleStyle;
+  final double? titleMaxWidth;
+  final int? titleMaxLines;
   final OnboardingTitleBarStyle titleBarStyle;
   final Widget? headerTrailing;
   final double? titleTopPadding;
@@ -120,6 +142,10 @@ class OnboardingPageScaffoldState extends State<OnboardingPageScaffold> {
   double _measuredFooterHeight = 0;
   double _footerSafeArea = 0;
   bool _measurementScheduled = false;
+
+  double get _illustrationRevealHeight =>
+      (widget.illustration.topOffset + widget.illustration.height / 2) *
+      widget.illustrationScale;
 
   bool get _isTransitioning =>
       (_route?.animation?.isAnimating ?? false) ||
@@ -391,13 +417,19 @@ class OnboardingPageScaffoldState extends State<OnboardingPageScaffold> {
                           _titleBarHeight,
                     ),
                   );
-            final keyboardHeaderHeight = availableHeaderHeight.clamp(
+            final fittedHeaderHeight = availableHeaderHeight.clamp(
               minimumHeaderHeight,
               widget.headerHeight,
             );
             final headerHeight =
                 mediaQuery.padding.top +
-                (isKeyboardOpen ? keyboardHeaderHeight : widget.headerHeight);
+                (isKeyboardOpen
+                    ? fittedHeaderHeight
+                    : !widget.fitsHeaderToContent
+                    ? widget.headerHeight
+                    : fittedHeaderHeight >= _illustrationRevealHeight
+                    ? fittedHeaderHeight
+                    : minimumHeaderHeight);
             return Column(
               children: [
                 ConstrainedBox(
@@ -407,6 +439,7 @@ class OnboardingPageScaffoldState extends State<OnboardingPageScaffold> {
                         _isTransitioning ||
                             _contentHeight == null ||
                             keyboardChanged ||
+                            widget.fitsHeaderToContent ||
                             mediaQuery.disableAnimations
                         ? Duration.zero
                         : Motion.slow,
@@ -453,7 +486,9 @@ class OnboardingPageScaffoldState extends State<OnboardingPageScaffold> {
       builder: (context, constraints) {
         final visibleHeaderHeight =
             constraints.maxHeight - mediaQuery.padding.top;
-        final naturalScale = widget.headerHeight > 0
+        final naturalScale = widget.fitsHeaderToContent
+            ? 1.0
+            : widget.headerHeight > 0
             ? (visibleHeaderHeight / widget.headerHeight).clamp(0.0, 1.0)
             : 0.0;
         final illustrationScale = compactIllustrationScale > 0
@@ -465,6 +500,18 @@ class OnboardingPageScaffoldState extends State<OnboardingPageScaffold> {
                     .clamp(0.0, compactIllustrationScale),
               )
             : naturalScale;
+        final artScale = illustrationScale * widget.illustrationScale;
+        final illustrationTop =
+            illustration.topOffset * artScale +
+            (compactIllustrationScale > 0
+                ? (visibleHeaderHeight - widget.headerHeight) *
+                      illustrationScale *
+                      0.18
+                : 0);
+        final isIllustrationVisible =
+            illustrationScale > 0 &&
+            (!widget.fitsHeaderToContent ||
+                visibleHeaderHeight >= _illustrationRevealHeight);
         return Stack(
           clipBehavior: Clip.none,
           children: [
@@ -499,30 +546,23 @@ class OnboardingPageScaffoldState extends State<OnboardingPageScaffold> {
               ),
             if (_fileLoader != null)
               Positioned(
-                top:
-                    mediaQuery.padding.top +
-                    illustration.topOffset * illustrationScale +
-                    (compactIllustrationScale > 0
-                        ? (visibleHeaderHeight - widget.headerHeight) *
-                              illustrationScale *
-                              0.18
-                        : 0),
+                top: mediaQuery.padding.top + illustrationTop,
                 left: 0,
                 right: 0,
                 height: illustration.height,
                 child: IgnorePointer(
                   child: Visibility(
-                    visible: illustrationScale > 0,
+                    visible: isIllustrationVisible,
                     maintainState: true,
-                    child: Align(
+                    child: OverflowBox(
                       alignment: Alignment.topCenter,
+                      minWidth: 0,
+                      maxWidth: double.infinity,
+                      minHeight: 0,
                       child: Transform.translate(
-                        offset: Offset(
-                          illustration.centerOffset * illustrationScale,
-                          0,
-                        ),
+                        offset: Offset(illustration.centerOffset * artScale, 0),
                         child: Transform.scale(
-                          scale: illustrationScale,
+                          scale: artScale,
                           alignment: Alignment.topCenter,
                           child: _illustrationWidget,
                         ),
@@ -545,7 +585,9 @@ class OnboardingPageScaffoldState extends State<OnboardingPageScaffold> {
         height: widget.illustration.height,
         child: rive.RiveWidgetBuilder(
           fileLoader: _fileLoader!,
-          dataBind: rive.DataBind.auto(),
+          dataBind: widget.illustration.bindsViewModel
+              ? rive.DataBind.auto()
+              : null,
           onLoaded: _onLoaded,
           builder: (context, state) {
             if (state is rive.RiveLoaded) {
@@ -596,13 +638,24 @@ class OnboardingPageScaffoldState extends State<OnboardingPageScaffold> {
         widget.titleBarStyle == OnboardingTitleBarStyle.card;
     final canPop =
         hasCardTitleBar && widget.showBackButton && (_route?.canPop ?? false);
-    final title = Text(
+    final titleText = Text(
       widget.title,
       textAlign: TextAlign.center,
-      maxLines: 2,
-      overflow: TextOverflow.ellipsis,
-      style: TextStyles.display2.copyWith(color: colors.textBase),
+      maxLines: widget.titleMaxLines,
+      overflow: widget.titleMaxLines == null ? null : TextOverflow.ellipsis,
+      style: (widget.titleStyle ?? TextStyles.display2).copyWith(
+        color: colors.textBase,
+      ),
     );
+    final titleMaxWidth = widget.titleMaxWidth;
+    final title = titleMaxWidth == null
+        ? titleText
+        : Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: titleMaxWidth),
+              child: titleText,
+            ),
+          );
     final titleContent = widget.showDeveloperSettingsTapArea
         ? DeveloperSettingsTapArea(
             behavior: HitTestBehavior.translucent,

@@ -874,6 +874,10 @@ class _HomeWidgetState extends State<HomeWidget> {
         Configuration.instance.hasConfiguredAccount() &&
         !isLocalGalleryMode &&
         _shouldShowPermissionWidget();
+    final isOnLocalGalleryPermissionScreen =
+        !Configuration.instance.hasConfiguredAccount() &&
+        _startWithoutAccount &&
+        (!isLocalGalleryMode || _shouldShowPermissionWidget());
     return UserDetailsStateWidget(
       child: PopScope(
         canPop: false,
@@ -992,7 +996,9 @@ class _HomeWidgetState extends State<HomeWidget> {
           ),
 
           // Keep an AppBar so the status bar color follows the current screen.
-          appBar: isOnOnlineGrantPermissionScreen
+          appBar:
+              isOnOnlineGrantPermissionScreen ||
+                  isOnLocalGalleryPermissionScreen
               ? null
               : PreferredSize(
                   preferredSize: const Size.fromHeight(0),
