@@ -242,6 +242,15 @@
       "slug": "band"
     },
     {
+      "title": "Barberia",
+      "slug": "barberia",
+      "hex": "F5A227",
+      "altNames": [
+        "Barberia.io",
+        "Barberia Master"
+      ]
+    },
+    {
       "title": "Basebuilder",
       "slug": "basebuilder",
       "hex": "ff6900"
