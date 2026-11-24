@@ -1,6 +1,5 @@
 import { recoveryKeyMnemonic } from "@/services/recovery-key";
 import { Box, Stack } from "@mui/material";
-import { RecoveryKey } from "ente-accounts/components/RecoveryKey";
 import { updateSavedLocalUser } from "ente-accounts/services/accounts-db";
 import { openAccountsManagePasskeysPage } from "ente-accounts/services/passkey";
 import { getActiveSessions } from "ente-accounts/services/sessions";
@@ -42,6 +41,7 @@ import React, {
 import { DeleteAccount } from "../account/DeleteAccount";
 import { SessionsSettings } from "../account/SessionsSettings";
 import { ManageMemberSubscription } from "./ManageMemberSubscription";
+import { RecoveryKeyDialog } from "./RecoveryKeyDialog";
 import { openManageSubscription } from "./subscription";
 
 export type AccountAction = Extract<
@@ -402,7 +402,7 @@ export const Account: React.FC<AccountProps> = ({
                     onClick={handleDeleteAccount}
                 />
             </Stack>
-            <RecoveryKey
+            <RecoveryKeyDialog
                 {...recoveryKeyVisibilityProps}
                 getRecoveryKeyMnemonic={recoveryKeyMnemonic}
                 {...{ showMiniDialog }}

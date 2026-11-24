@@ -1,7 +1,14 @@
-import { Stack, TextField, Typography } from "@mui/material";
+import { PhotosFormDialog } from "@/components/PhotosFormDialog";
+import { ButtonBase, InputBase, Stack, Typography } from "@mui/material";
 import { EnteSwitch } from "ente-base/components/EnteSwitch";
-import { TitledMiniDialog } from "ente-base/components/MiniDialog";
-import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
+import {
+    peopleActionFocusSx,
+    v2CancelButtonSx,
+    v2HelperSx,
+    v2InputSx,
+    v2LabelSx,
+    v2SubmitButtonSx,
+} from "ente-base/components/SingleInput.styles";
 import { ShowHidePasswordInputAdornment } from "ente-base/components/mui/PasswordInputAdornment";
 import {
     TitledNestedSidebarDrawer,
@@ -24,7 +31,7 @@ import {
     type SetupDeviceLockResult,
 } from "ente-new/photos/services/app-lock";
 import { t } from "i18next";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useId, useRef, useState } from "react";
 
 type DeviceLockEnableOutcome = "success" | "cancelled" | "failed";
 
@@ -481,14 +488,10 @@ const PinSetupDialog: React.FC<SetupDialogProps> = ({
         isConfirm: boolean,
         hasError?: boolean,
     ) => (
-        <Stack
-            direction="row"
-            sx={{ gap: 1.5, width: "100%", justifyContent: "space-between" }}
-        >
+        <Stack direction="row" sx={{ gap: "12px" }}>
             {values.map((digit, i) => (
-                <TextField
+                <InputBase
                     key={i}
-                    hiddenLabel
                     error={hasError}
                     value={digit}
                     onChange={(e) =>
@@ -499,103 +502,69 @@ const PinSetupDialog: React.FC<SetupDialogProps> = ({
                         refs.current[i] = el;
                     }}
                     type="password"
-                    slotProps={{
-                        htmlInput: {
-                            maxLength: 1,
-                            inputMode: "numeric",
-                            autoComplete: "off",
-                            style: {
-                                textAlign: "center",
-                                fontSize: "1.25rem",
-                                padding: "12px 0",
-                            },
-                            "aria-label": `PIN digit ${String(i + 1)}`,
-                        },
+                    inputProps={{
+                        maxLength: 1,
+                        inputMode: "numeric",
+                        autoComplete: "off",
+                        "aria-label": t("app_lock_pin_digit_label", {
+                            index: i + 1,
+                        }),
+                        "aria-invalid": hasError,
                     }}
-                    sx={{ flex: 1, minWidth: 0 }}
+                    sx={[
+                        v2InputSx,
+                        {
+                            flex: 1,
+                            minWidth: 0,
+                            px: 0,
+                            fontSize: "1.25rem",
+                            "& input": { textAlign: "center" },
+                        },
+                    ]}
                 />
             ))}
         </Stack>
     );
 
+    const isConfirm = step === "confirm";
+
     return (
-        <TitledMiniDialog
+        <PhotosFormDialog
             open={open}
             onClose={handleClose}
             title={t("app_lock_set_pin")}
-            sx={{
-                "& .MuiDialogTitle-root": { pb: 0 },
-                "& .MuiDialogTitle-root + .MuiDialogContent-root": { pt: 0 },
-            }}
         >
             <Stack
                 component="form"
-                onSubmit={(e: React.SubmitEvent) => handleSubmit(e)}
-                sx={{ gap: 1.5, py: 0 }}
+                onSubmit={handleSubmit}
+                sx={{ gap: "20px" }}
             >
-                {step === "enter" ? (
-                    <>
-                        <Typography
-                            sx={{ color: "text.muted", textAlign: "left" }}
-                        >
-                            {t("enter_pin")}
+                <Stack sx={{ gap: "8px" }}>
+                    <Typography sx={v2LabelSx}>
+                        {t(isConfirm ? "confirm_pin" : "enter_pin")}
+                    </Typography>
+                    {isConfirm
+                        ? renderPinInputs(
+                              confirmPin,
+                              confirmInputRefs,
+                              true,
+                              !!error,
+                          )
+                        : renderPinInputs(pin, inputRefs, false)}
+                    {error && (
+                        <Typography role="alert" sx={v2HelperSx(true)}>
+                            {error}
                         </Typography>
-                        {renderPinInputs(pin, inputRefs, false)}
-                        <FocusVisibleButton
-                            fullWidth
-                            color="accent"
-                            type="submit"
-                            disabled={pin.some((d) => !d)}
-                        >
-                            {t("next")}
-                        </FocusVisibleButton>
-                    </>
-                ) : (
-                    <>
-                        <Typography
-                            sx={{ color: "text.muted", textAlign: "left" }}
-                        >
-                            {t("confirm_pin")}
-                        </Typography>
-                        {renderPinInputs(
-                            confirmPin,
-                            confirmInputRefs,
-                            true,
-                            !!error,
-                        )}
-                        {error && (
-                            <Typography
-                                variant="small"
-                                sx={{
-                                    color: "critical.main",
-                                    textAlign: "left",
-                                }}
-                            >
-                                {error}
-                            </Typography>
-                        )}
-                        <Stack sx={{ gap: 1.5, width: "100%" }}>
-                            <FocusVisibleButton
-                                fullWidth
-                                color="accent"
-                                type="submit"
-                                disabled={confirmPin.some((d) => !d)}
-                            >
-                                {t("confirm")}
-                            </FocusVisibleButton>
-                            <FocusVisibleButton
-                                fullWidth
-                                color="secondary"
-                                type="button"
-                                onClick={handleBack}
-                            >
-                                {t("go_back")}
-                            </FocusVisibleButton>
-                        </Stack>
-                    </>
-                )}
+                    )}
+                </Stack>
+                <AppLockSetupActions
+                    disabled={(isConfirm ? confirmPin : pin).some(
+                        (digit) => !digit,
+                    )}
+                    onBack={isConfirm ? handleBack : undefined}
+                />
             </Stack>
-        </TitledMiniDialog>
+        </PhotosFormDialog>
     );
 };
 
@@ -611,6 +580,8 @@ const PasswordSetupDialog: React.FC<SetupDialogProps> = ({
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [error, setError] = useState("");
 
+    const inputID = useId();
+    const errorID = useId();
     const passwordInputRef = useRef<HTMLInputElement>(null);
     const confirmPasswordInputRef = useRef<HTMLInputElement>(null);
     const focusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -700,108 +671,105 @@ const PasswordSetupDialog: React.FC<SetupDialogProps> = ({
         [step, handleNext, handleConfirm],
     );
 
+    const isConfirm = step === "confirm";
+    const value = isConfirm ? confirmPassword : password;
+    const setValue = isConfirm ? setConfirmPassword : setPassword;
+    const isVisible = isConfirm ? showConfirmPassword : showPassword;
+    const setVisible = isConfirm ? setShowConfirmPassword : setShowPassword;
+
     return (
-        <TitledMiniDialog
+        <PhotosFormDialog
             open={open}
             onClose={handleClose}
             title={t("app_lock_set_password")}
-            sx={{
-                "& .MuiDialogTitle-root": { pb: 0 },
-                "& .MuiDialogTitle-root + .MuiDialogContent-root": { pt: 0 },
-            }}
         >
             <Stack
                 component="form"
-                onSubmit={(e: React.SubmitEvent) => handleSubmit(e)}
-                sx={{ gap: 2, py: 1 }}
+                onSubmit={handleSubmit}
+                sx={{ gap: "20px" }}
             >
-                {step === "enter" ? (
-                    <>
-                        <TextField
-                            fullWidth
-                            inputRef={passwordInputRef}
-                            label={t("app_lock_enter_password")}
-                            type={showPassword ? "text" : "password"}
-                            value={password}
-                            onChange={(e) => {
-                                setPassword(e.target.value);
-                                setError("");
-                            }}
-                            slotProps={{
-                                input: {
-                                    endAdornment: (
-                                        <ShowHidePasswordInputAdornment
-                                            showPassword={showPassword}
-                                            onToggle={() =>
-                                                setShowPassword((s) => !s)
-                                            }
-                                        />
-                                    ),
-                                },
-                            }}
-                        />
-                        <FocusVisibleButton
-                            fullWidth
-                            color="accent"
-                            type="submit"
-                            disabled={!password}
+                <Stack sx={{ gap: "8px" }}>
+                    <Typography
+                        component="label"
+                        htmlFor={inputID}
+                        sx={v2LabelSx}
+                    >
+                        {t(
+                            isConfirm
+                                ? "app_lock_confirm_password"
+                                : "app_lock_enter_password",
+                        )}
+                    </Typography>
+                    <InputBase
+                        key={step}
+                        id={inputID}
+                        inputRef={
+                            isConfirm
+                                ? confirmPasswordInputRef
+                                : passwordInputRef
+                        }
+                        type={isVisible ? "text" : "password"}
+                        value={value}
+                        error={!!error}
+                        inputProps={{
+                            "aria-describedby": error ? errorID : undefined,
+                        }}
+                        onChange={(event) => {
+                            setValue(event.target.value);
+                            setError("");
+                        }}
+                        sx={v2InputSx}
+                        endAdornment={
+                            <ShowHidePasswordInputAdornment
+                                showPassword={isVisible}
+                                onToggle={() =>
+                                    setVisible((visible) => !visible)
+                                }
+                            />
+                        }
+                    />
+                    {error && (
+                        <Typography
+                            id={errorID}
+                            role="alert"
+                            sx={v2HelperSx(true)}
                         >
-                            {t("next")}
-                        </FocusVisibleButton>
-                    </>
-                ) : (
-                    <>
-                        <TextField
-                            fullWidth
-                            inputRef={confirmPasswordInputRef}
-                            label={t("app_lock_confirm_password")}
-                            type={showConfirmPassword ? "text" : "password"}
-                            value={confirmPassword}
-                            error={!!error}
-                            helperText={error || undefined}
-                            onChange={(e) => {
-                                setConfirmPassword(e.target.value);
-                                setError("");
-                            }}
-                            slotProps={{
-                                input: {
-                                    endAdornment: (
-                                        <ShowHidePasswordInputAdornment
-                                            showPassword={showConfirmPassword}
-                                            onToggle={() =>
-                                                setShowConfirmPassword(
-                                                    (s) => !s,
-                                                )
-                                            }
-                                        />
-                                    ),
-                                },
-                            }}
-                        />
-                        <Stack sx={{ gap: 1.5, width: "100%" }}>
-                            <FocusVisibleButton
-                                fullWidth
-                                color="accent"
-                                type="submit"
-                                disabled={!confirmPassword}
-                            >
-                                {t("confirm")}
-                            </FocusVisibleButton>
-                            <FocusVisibleButton
-                                fullWidth
-                                color="secondary"
-                                type="button"
-                                onClick={handleBack}
-                            >
-                                {t("go_back")}
-                            </FocusVisibleButton>
-                        </Stack>
-                    </>
-                )}
+                            {error}
+                        </Typography>
+                    )}
+                </Stack>
+                <AppLockSetupActions
+                    disabled={!value}
+                    onBack={isConfirm ? handleBack : undefined}
+                />
             </Stack>
-        </TitledMiniDialog>
+        </PhotosFormDialog>
     );
 };
+
+const AppLockSetupActions: React.FC<{
+    disabled: boolean;
+    onBack?: () => void;
+}> = ({ disabled, onBack }) => (
+    <Stack direction="row" sx={{ gap: "12px" }}>
+        {onBack && (
+            <ButtonBase
+                type="button"
+                onClick={onBack}
+                sx={[v2CancelButtonSx, peopleActionFocusSx]}
+            >
+                {t("go_back")}
+            </ButtonBase>
+        )}
+        <ButtonBase
+            type="submit"
+            disabled={disabled}
+            sx={[v2SubmitButtonSx, peopleActionFocusSx]}
+        >
+            {t(onBack ? "confirm" : "next")}
+        </ButtonBase>
+    </Stack>
+);
 
 interface AutoLockOptionsDrawerProps extends NestedSidebarDrawerVisibilityProps {
     currentValue: number;
