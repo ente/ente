@@ -16,6 +16,12 @@ const NEW_FACES_SHOWN: usize = 12;
 const NEW_FACE_FACES: usize = 3;
 const NEW_FACE_PHOTOS: usize = 9;
 
+struct Arrival<'a> {
+    entity: &'a Entity,
+    is_named: bool,
+    photo_count: usize,
+}
+
 pub(in crate::rewind) fn new_faces(
     request: &RewindRequest,
     library: &Library<'_>,
@@ -29,26 +35,39 @@ pub(in crate::rewind) fn new_faces(
         .filter(|person| Some(person.id.as_str()) != me)
         .map(|person| (person, true));
     let unnamed = people.clusters().iter().map(|cluster| (cluster, false));
-    let mut arrivals: Vec<(&Entity, bool, usize)> = named
+    let mut arrivals: Vec<Arrival<'_>> = named
         .chain(unnamed)
         .filter(|(entity, _)| entity.first_local_time >= library.start())
         .filter_map(|(entity, is_named)| {
             let files = people.files_of(entity, library);
             let days: HashSet<i64> = files.iter().map(|file| file.day).collect();
-            (files.len() >= NEW_FACE_MINIMUM_PHOTOS && days.len() >= NEW_FACE_MINIMUM_DAYS)
-                .then_some((entity, is_named, files.len()))
+            let photo_count = files.len();
+            (photo_count >= NEW_FACE_MINIMUM_PHOTOS && days.len() >= NEW_FACE_MINIMUM_DAYS)
+                .then_some(Arrival {
+                    entity,
+                    is_named,
+                    photo_count,
+                })
         })
         .collect();
     arrivals.sort_by(|first, second| {
-        (Reverse(first.1), Reverse(first.2), &first.0.id).cmp(&(
-            Reverse(second.1),
-            Reverse(second.2),
-            &second.0.id,
-        ))
+        (
+            Reverse(first.is_named),
+            Reverse(first.photo_count),
+            &first.entity.id,
+        )
+            .cmp(&(
+                Reverse(second.is_named),
+                Reverse(second.photo_count),
+                &second.entity.id,
+            ))
     });
     let faces: Vec<NewFace> = arrivals
         .iter()
-        .filter_map(|&(entity, is_named, _)| {
+        .filter_map(|arrival| {
+            let Arrival {
+                entity, is_named, ..
+            } = *arrival;
             let face_ids = best_faces(ranking, people, entity, library, NEW_FACE_FACES);
             (!face_ids.is_empty()).then(|| NewFace {
                 person_id: is_named.then(|| entity.id.clone()),
