@@ -14,6 +14,7 @@ import "package:photos/service_locator.dart";
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
 import "package:photos/services/machine_learning/ml_result.dart";
 import "package:photos/services/memories/memory_sources.dart";
+import "package:photos/src/rust/api/rewind_api.dart" as rust;
 import "package:photos/ui/rewind/story/rewind_face.dart";
 import "package:photos/utils/face/face_thumbnail_cache.dart";
 
@@ -27,28 +28,41 @@ typedef _FaceCrop = ({String faceId, Uint8List crop});
 class RewindMedia {
   RewindMedia._(
     this._files,
-    this._people, {
+    this._people,
+    this._hiddenPeopleFiles, {
+    required Set<int>? reportFileIDs,
     required bool waitsForOriginals,
     _Samples? samples,
-  }) : _waitsForOriginals = waitsForOriginals,
+  }) : _reportFileIDs = reportFileIDs,
+       _waitsForOriginals = waitsForOriginals,
        _samples = samples;
 
   static final _logger = Logger("RewindMedia");
   static const _sampleFaceCount = 5;
   static const _eyeLine = 0.4;
 
-  static Future<RewindMedia> load({bool waitsForOriginals = false}) async {
+  static Future<RewindMedia> load(
+    rust.RewindReport report, {
+    bool waitsForOriginals = false,
+  }) async {
     final people = await _namedPeople();
+    final hiddenPeopleFiles = await _filesHiddenFromMemories(people.values);
+    final fileIDs = isLocalGalleryMode
+        ? null
+        : (await rust.rewindReportFileIds(report: report)).inner;
     return RewindMedia._(
-      await _showableFiles(people.values),
+      await _showableFiles(hiddenPeopleFiles, uploadedFileIDs: fileIDs),
       people,
+      hiddenPeopleFiles,
+      reportFileIDs: fileIDs?.toSet(),
       waitsForOriginals: waitsForOriginals,
     );
   }
 
   static Future<RewindMedia> sampled() async {
     final people = await _namedPeople();
-    final files = await _showableFiles(people.values);
+    final hiddenPeopleFiles = await _filesHiddenFromMemories(people.values);
+    final files = await _showableFiles(hiddenPeopleFiles);
     final photos = files.entries
         .where((entry) => entry.value.fileType != FileType.video)
         .sortedBy<num>((entry) => -(entry.value.creationTime ?? 0))
@@ -58,6 +72,8 @@ class RewindMedia {
     return RewindMedia._(
       files,
       people,
+      hiddenPeopleFiles,
+      reportFileIDs: null,
       waitsForOriginals: true,
       samples: _Samples(photos, [
         for (final person in people.values)
@@ -67,25 +83,54 @@ class RewindMedia {
   }
 
   static Future<Map<int, EnteFile>> _showableFiles(
-    Iterable<PersonEntity> people,
-  ) async {
+    Set<int> hiddenPeopleFiles, {
+    List<int>? uploadedFileIDs,
+  }) async {
     final files = await getFilesAndMapForMemories(
       useLocalIntIds: isLocalGalleryMode,
       requireLocalId: isLocalGalleryMode,
+      uploadedFileIDs: uploadedFileIDs,
     );
+    files.removeWhere((fileId, _) => hiddenPeopleFiles.contains(fileId));
+    return files;
+  }
+
+  static Future<Set<int>> _filesHiddenFromMemories(
+    Iterable<PersonEntity> people,
+  ) async {
+    final hidden = <int>{};
     for (final person in people) {
       if (!person.data.hideFromMemories) continue;
-      for (final fileId in person.data.manuallyAssigned) {
-        files.remove(fileId);
-      }
+      hidden.addAll(person.data.manuallyAssigned);
       final faceIds = await MLDataDB.instance.getFaceIDsForPerson(
         person.remoteID,
       );
-      for (final faceId in faceIds) {
-        files.remove(tryGetFileIdFromFaceId(faceId));
-      }
+      hidden.addAll([
+        for (final faceId in faceIds) ?tryGetFileIdFromFaceId(faceId),
+      ]);
     }
-    return files;
+    return hidden;
+  }
+
+  Future<EnteFile?> _file(int fileId) async {
+    final file = _files[fileId];
+    final reportFileIDs = _reportFileIDs;
+    if (file != null ||
+        reportFileIDs == null ||
+        reportFileIDs.contains(fileId) ||
+        _hiddenPeopleFiles.contains(fileId)) {
+      return file;
+    }
+    return _filesOutsideReport[fileId] ??= _loadOutsideReport(fileId);
+  }
+
+  Future<EnteFile?> _loadOutsideReport(int fileId) async {
+    final loaded = await _showableFiles(
+      _hiddenPeopleFiles,
+      uploadedFileIDs: [fileId],
+    );
+    _files.addAll(loaded);
+    return loaded[fileId];
   }
 
   static Future<Map<String, PersonEntity>> _namedPeople() async {
@@ -100,8 +145,11 @@ class RewindMedia {
 
   final Map<int, EnteFile> _files;
   final Map<String, PersonEntity> _people;
+  final Set<int> _hiddenPeopleFiles;
+  final Set<int>? _reportFileIDs;
   final bool _waitsForOriginals;
   final _Samples? _samples;
+  final _filesOutsideReport = <int, Future<EnteFile?>>{};
   final _used = <int>{};
   final _handedOut = <EnteFile>[];
   final _galleries = <EnteFile>[];
@@ -321,7 +369,7 @@ class RewindMedia {
     for (final faceId in faceIds) {
       try {
         final fileId = getFileIdFromFaceId<int>(faceId);
-        final file = _files[fileId];
+        final file = await _file(fileId);
         if (file == null) continue;
         final faces = await _ml.getFacesForGivenFileID(fileId);
         final face = faces?.firstWhereOrNull((face) => face.faceID == faceId);

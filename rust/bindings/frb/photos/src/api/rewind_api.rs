@@ -360,6 +360,10 @@ pub fn decode_rewind_state(
     rewind::decode_rewind_state(&bytes, year, local_gallery_mode)
 }
 
+pub fn rewind_report_file_ids(report: RewindReport) -> Vec<i64> {
+    report.file_ids()
+}
+
 pub fn encode_rewind_request(request: RewindRequest) -> Result<Vec<u8>, RewindError> {
     Ok(rewind::encode_rewind_request(&request)?)
 }
