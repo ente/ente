@@ -32,9 +32,9 @@ async fn setup_two_factor_encrypts_secret_with_recovery_key() {
     let key_gen =
         auth::generate_keys_with_strength(password, auth::KeyDerivationStrength::Interactive)
             .unwrap();
-    let recovery_key = key_gen.private_key_attributes.recovery_key.into_string();
-    let expected_recovery_key =
-        crypto::Key::try_from_slice(&hex::decode(&recovery_key).unwrap()).unwrap();
+    let expected_recovery_key_bytes =
+        hex::decode(&*key_gen.private_key_attributes.recovery_key).unwrap();
+    let expected_recovery_key = crypto::Key::try_from_slice(&expected_recovery_key_bytes).unwrap();
     let master_key = b64::decode(&key_gen.private_key_attributes.key).unwrap();
     let key_attributes = key_gen.key_attributes.clone();
 
@@ -91,13 +91,34 @@ async fn setup_two_factor_encrypts_secret_with_recovery_key() {
     result.enable(&client, &code).await.unwrap();
 
     assert_eq!(result.secret_code, secret_code);
-    assert_eq!(result.recovery_key, recovery_key);
+    assert_eq!(
+        result.recovery_key.as_bytes(),
+        expected_recovery_key_bytes.as_slice()
+    );
 
     setup.assert_async().await;
     enable.assert_async().await;
     enable.remove_async().await;
 
-    let rejected = server
+    let incorrect_totp = server
+        .mock("POST", "/users/two-factor/enable")
+        .with_status(401)
+        .with_body(r#"{"code":"INCORRECT_TOTP","message":"Incorrect TOTP"}"#)
+        .expect(2)
+        .create_async()
+        .await;
+    assert!(matches!(
+        result.enable(&client, &code).await,
+        Err(Error::Http(error)) if error.status_code() == Some(401)
+    ));
+    assert!(matches!(
+        enable_two_factor(&client, secret_code, &expected_recovery_key_bytes, &code).await,
+        Err(Error::IncorrectTotp)
+    ));
+    incorrect_totp.assert_async().await;
+    incorrect_totp.remove_async().await;
+
+    let session_invalid = server
         .mock("POST", "/users/two-factor/enable")
         .with_status(401)
         .expect(2)
@@ -108,10 +129,10 @@ async fn setup_two_factor_encrypts_secret_with_recovery_key() {
         Err(Error::Http(error)) if error.status_code() == Some(401)
     ));
     assert!(matches!(
-        enable_two_factor(&client, secret_code, &recovery_key, &code).await,
-        Err(Error::IncorrectTotp)
+        enable_two_factor(&client, secret_code, &expected_recovery_key_bytes, &code).await,
+        Err(Error::SessionInvalid)
     ));
-    rejected.assert_async().await;
+    session_invalid.assert_async().await;
 }
 
 #[test]
@@ -133,11 +154,11 @@ fn enrollment_verifies_the_supplied_secret_and_window() {
 }
 
 #[tokio::test]
-async fn configure_passkey_recovery_accepts_hex_recovery_key() {
+async fn configure_passkey_recovery_accepts_raw_recovery_key() {
     let key_gen =
         auth::generate_keys_with_strength("pw", auth::KeyDerivationStrength::Interactive).unwrap();
-    let recovery_key_hex = key_gen.private_key_attributes.recovery_key.into_string();
-    let expected_recovery_key = hex::decode(&recovery_key_hex).unwrap();
+    let recovery_key = hex::decode(&*key_gen.private_key_attributes.recovery_key).unwrap();
+    let expected_recovery_key = recovery_key.clone();
 
     let mut server = Server::new_async().await;
     let configure = server
@@ -163,7 +184,7 @@ async fn configure_passkey_recovery_accepts_hex_recovery_key() {
     let client = make_client(server.url());
     client.set_auth_token(Some("session-token".into()));
 
-    configure_passkey_recovery(&client, PASSKEY_SECRET, &recovery_key_hex)
+    configure_passkey_recovery(&client, PASSKEY_SECRET, &recovery_key)
         .await
         .unwrap();
 
@@ -420,7 +441,6 @@ async fn change_password_rejects_other_master_key_without_uploading() {
 #[tokio::test]
 async fn passkey_management_only_configures_recovery_when_needed() {
     let recovery_key = [7; 32];
-    let mnemonic = auth::recovery_key_to_mnemonic(&recovery_key).unwrap();
     for enabled in [false, true] {
         let mut server = Server::new_async().await;
         let status = server
@@ -452,7 +472,7 @@ async fn passkey_management_only_configures_recovery_when_needed() {
             .create_async()
             .await;
         assert_eq!(
-            passkey_management_url(&make_client(server.url()), &mnemonic)
+            passkey_management_url(&make_client(server.url()), &recovery_key)
                 .await
                 .unwrap(),
             "https://accounts.ente.io/passkeys?token=a%2Bb%2F%3D"
@@ -460,5 +480,30 @@ async fn passkey_management_only_configures_recovery_when_needed() {
         status.assert_async().await;
         configure.assert_async().await;
         token.assert_async().await;
+    }
+}
+
+#[tokio::test]
+async fn rejects_malformed_recovery_key_bytes() {
+    let client = make_client("http://127.0.0.1:9".into());
+    for error in [
+        TwoFactorSetup::from_secret(TOTP_SECRET.into(), &[0; 16])
+            .err()
+            .unwrap(),
+        enable_two_factor(&client, TOTP_SECRET, &[0; 16], "123456")
+            .await
+            .unwrap_err(),
+        configure_passkey_recovery(&client, PASSKEY_SECRET, &[0; 16])
+            .await
+            .unwrap_err(),
+        passkey_management_url(&client, &[0; 16]).await.unwrap_err(),
+    ] {
+        assert!(matches!(
+            error,
+            Error::Crypto(crypto::Error::InvalidKeyLength {
+                expected: 32,
+                actual: 16,
+            })
+        ));
     }
 }

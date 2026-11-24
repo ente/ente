@@ -3,7 +3,6 @@ import "dart:io";
 
 import 'package:dio/dio.dart';
 import "package:ente_base/models/accounts.dart";
-import 'package:ente_crypto/ente_crypto.dart';
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/foundation.dart";
@@ -721,7 +720,7 @@ class UserService {
   Future<String> passkeyManagementUrl() => _withAccountsClient(
     (client) => client.passkeyManagementUrl(
       token: _config.getToken()!,
-      recoveryKey: CryptoUtil.bin2hex(_config.getRecoveryKey()),
+      recoveryKey: _config.getRecoveryKey(),
     ),
   );
 
@@ -1023,7 +1022,7 @@ class UserService {
         (client) => client.enableTwoFactor(
           token: _config.getToken()!,
           secret: secret,
-          recoveryKey: CryptoUtil.bin2hex(recoveryKey),
+          recoveryKey: recoveryKey,
           code: code,
         ),
       );
