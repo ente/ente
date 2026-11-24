@@ -25,22 +25,7 @@ import React, {
     useRef,
     useState,
 } from "react";
-
-const ChevronDownIcon: React.FC = () => (
-    <svg
-        width="22"
-        height="22"
-        viewBox="0 0 20 20"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        style={{ marginLeft: -6, transform: "translateY(-2px)" }}
-    >
-        <path
-            d="M10.0007 12.5004L6.46484 8.96544L7.64401 7.78711L10.0007 10.1438L12.3573 7.78711L13.5365 8.96544L10.0007 12.5004Z"
-            fill="currentColor"
-        />
-    </svg>
-);
+import { ActivityAlbumMenu } from "./ActivityAlbumMenu";
 
 const HeartFilledIcon: React.FC = () => (
     <svg
@@ -160,7 +145,6 @@ export const LikesSidebar: React.FC<LikesSidebarProps> = ({
     anonUserNames,
 }) => {
     const [loading, setLoading] = useState(false);
-    const [collectionDropdownOpen, setCollectionDropdownOpen] = useState(false);
 
     const [reactionsByCollection, setReactionsByCollection] = useState<
         Map<number, UnifiedReaction[]>
@@ -405,23 +389,9 @@ export const LikesSidebar: React.FC<LikesSidebarProps> = ({
         };
     }, [open, collectionsInfo]);
 
-    const handleCollectionSelect = (collectionID: number) => {
-        setSelectedCollectionID(collectionID);
-        setCollectionDropdownOpen(false);
-    };
-
-    const showOverlay = collectionDropdownOpen;
-
     return (
         <SidebarDrawer open={open} onClose={onClose} anchor="right">
             <DrawerContentWrapper>
-                {showOverlay && (
-                    <ContextMenuOverlay
-                        onClick={() => {
-                            setCollectionDropdownOpen(false);
-                        }}
-                    />
-                )}
                 <Header>
                     {hasCollectionContext ? (
                         <Typography
@@ -436,101 +406,13 @@ export const LikesSidebar: React.FC<LikesSidebarProps> = ({
                                 : t("like_count", { count: likers.length })}
                         </Typography>
                     ) : collectionsInfo.length > 1 ? (
-                        <Box
-                            sx={{
-                                position: "relative",
-                                zIndex: collectionDropdownOpen ? 12 : "auto",
-                            }}
-                        >
-                            <CollectionDropdownButton
-                                onClick={() =>
-                                    setCollectionDropdownOpen(
-                                        !collectionDropdownOpen,
-                                    )
-                                }
-                            >
-                                <Box sx={{ position: "relative" }}>
-                                    {selectedCollectionInfo &&
-                                    thumbnailURLs.get(
-                                        selectedCollectionInfo.id,
-                                    ) ? (
-                                        <CollectionThumbnail
-                                            src={thumbnailURLs.get(
-                                                selectedCollectionInfo.id,
-                                            )}
-                                            alt=""
-                                        />
-                                    ) : (
-                                        <CollectionThumbnailPlaceholder />
-                                    )}
-                                    <CollectionBadge>
-                                        {selectedCollectionInfo?.likeCount ?? 0}
-                                    </CollectionBadge>
-                                </Box>
-                                <Typography
-                                    sx={(theme) => ({
-                                        color: "#000",
-                                        fontWeight: 600,
-                                        fontSize: 14,
-                                        lineHeight: "20px",
-                                        marginBottom: "4px",
-                                        ...theme.applyStyles("dark", {
-                                            color: "#fff",
-                                        }),
-                                    })}
-                                >
-                                    {selectedCollectionInfo?.name ?? "Album"}
-                                </Typography>
-                                <ChevronDownIcon />
-                            </CollectionDropdownButton>
-                            {collectionDropdownOpen && (
-                                <CollectionDropdownMenu>
-                                    {sortedCollectionsInfo.map((collection) => (
-                                        <CollectionDropdownItem
-                                            key={collection.id}
-                                            onClick={() =>
-                                                handleCollectionSelect(
-                                                    collection.id,
-                                                )
-                                            }
-                                        >
-                                            <Box sx={{ position: "relative" }}>
-                                                {thumbnailURLs.get(
-                                                    collection.id,
-                                                ) ? (
-                                                    <CollectionThumbnail
-                                                        src={thumbnailURLs.get(
-                                                            collection.id,
-                                                        )}
-                                                        alt=""
-                                                    />
-                                                ) : (
-                                                    <CollectionThumbnailPlaceholder />
-                                                )}
-                                                <CollectionBadge>
-                                                    {collection.likeCount}
-                                                </CollectionBadge>
-                                            </Box>
-                                            <Typography
-                                                sx={(theme) => ({
-                                                    color: "#000",
-                                                    fontWeight: 600,
-                                                    fontSize: 14,
-                                                    lineHeight: "20px",
-                                                    marginBottom: "4px",
-                                                    ...theme.applyStyles(
-                                                        "dark",
-                                                        { color: "#fff" },
-                                                    ),
-                                                })}
-                                            >
-                                                {collection.name}
-                                            </Typography>
-                                        </CollectionDropdownItem>
-                                    ))}
-                                </CollectionDropdownMenu>
-                            )}
-                        </Box>
+                        <ActivityAlbumMenu
+                            albums={sortedCollectionsInfo}
+                            selected={selectedCollectionInfo}
+                            thumbnailURLs={thumbnailURLs}
+                            getCount={(album) => album.likeCount}
+                            onSelect={setSelectedCollectionID}
+                        />
                     ) : (
                         <Typography
                             sx={(theme) => ({
@@ -625,89 +507,6 @@ const CloseButton = styled(IconButton)(({ theme }) => ({
     }),
 }));
 
-const CollectionDropdownButton = styled(Box)(({ theme }) => ({
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 14,
-    padding: "5px 6px 0px 6px",
-    borderRadius: 12,
-    backgroundColor: "#F0F0F0",
-    cursor: "pointer",
-    "&:hover": { backgroundColor: "#E8E8E8" },
-    ...theme.applyStyles("dark", {
-        backgroundColor: "#363636",
-        "&:hover": { backgroundColor: "#404040" },
-    }),
-}));
-
-const CollectionThumbnail = styled("img")(() => ({
-    width: 24,
-    height: 24,
-    borderRadius: 5,
-    objectFit: "cover",
-}));
-
-const CollectionThumbnailPlaceholder = styled(Box)(() => ({
-    width: 24,
-    height: 24,
-    borderRadius: 5,
-    backgroundColor: "#08C225",
-}));
-
-const CollectionBadge = styled(Box)(({ theme }) => ({
-    position: "absolute",
-    bottom: 4,
-    right: -4,
-    display: "inline-flex",
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: "50%",
-    backgroundColor: "#FFF",
-    color: "#000",
-    fontSize: 10,
-    fontWeight: 600,
-    lineHeight: 1,
-    minWidth: 16,
-    minHeight: 16,
-    ...theme.applyStyles("dark", { backgroundColor: "#fff", color: "#000" }),
-}));
-
-const CollectionDropdownMenu = styled(Box)(({ theme }) => ({
-    position: "absolute",
-    top: "calc(100% + 8px)",
-    left: 0,
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    alignItems: "flex-start",
-    width: 184,
-    padding: 4,
-    gap: 4,
-    borderRadius: 12,
-    border: "1px solid rgba(0, 0, 0, 0.08)",
-    backgroundColor: "#F0F0F0",
-    zIndex: 12,
-    ...theme.applyStyles("dark", {
-        border: "1px solid rgba(0, 0, 0, 0.08)",
-        backgroundColor: "#363636",
-    }),
-}));
-
-const CollectionDropdownItem = styled(Box)(({ theme }) => ({
-    display: "flex",
-    alignItems: "center",
-    gap: 14,
-    padding: "5px 6px 0px 6px",
-    borderRadius: 8,
-    cursor: "pointer",
-    width: "100%",
-    "&:hover": { backgroundColor: "#E8E8E8" },
-    ...theme.applyStyles("dark", {
-        "&:hover": { backgroundColor: "rgba(255, 255, 255, 0.16)" },
-    }),
-}));
-
 const LikersContainer = styled(Box)(({ theme }) => ({
     flex: 1,
     overflow: "auto",
@@ -762,16 +561,4 @@ const EmptyMessage = styled(Typography)(({ theme }) => ({
     marginTop: -28,
     color: "#666",
     ...theme.applyStyles("dark", { color: "rgba(255, 255, 255, 0.5)" }),
-}));
-
-const ContextMenuOverlay = styled(Box)(() => ({
-    position: "absolute",
-    top: -25,
-    left: -25,
-    right: -25,
-    bottom: -33,
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
-    zIndex: 10,
-    borderRadius: "36px",
-    "@media (max-width: 450px)": { borderRadius: 0 },
 }));

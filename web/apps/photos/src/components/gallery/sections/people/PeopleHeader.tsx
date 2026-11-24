@@ -11,23 +11,23 @@ import {
     collectionDialogPaperSx,
     collectionDialogTitleSx,
 } from "@/components/CollectionDialog/styles";
+import { GalleryActionMenu } from "@/components/gallery/GalleryActionMenu";
 import { useWrapAsyncOperation } from "@/components/utils/use-wrap-async";
 import {
     Add01Icon,
     Cancel01Icon,
+    CheckListIcon,
+    Edit02Icon,
+    PinIcon,
+    PinOffIcon,
     Tick02Icon,
+    UserBlock01Icon,
+    ViewIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import AddIcon from "@mui/icons-material/Add";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import ClearIcon from "@mui/icons-material/Clear";
-import EditIcon from "@mui/icons-material/Edit";
-import HideImageOutlinedIcon from "@mui/icons-material/HideImageOutlined";
-import ListAltOutlinedIcon from "@mui/icons-material/ListAltOutlined";
-import PushPinIcon from "@mui/icons-material/PushPin";
-import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
 import RestoreIcon from "@mui/icons-material/Restore";
-import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import {
     Box,
     Dialog,
@@ -51,10 +51,6 @@ import { ActivityErrorIndicator } from "ente-base/components/ErrorIndicator";
 import { ActivityIndicator } from "ente-base/components/mui/ActivityIndicator";
 import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
 import { LoadingButton } from "ente-base/components/mui/LoadingButton";
-import {
-    OverflowMenu,
-    OverflowMenuOption,
-} from "ente-base/components/OverflowMenu";
 import {
     v2CancelButtonSx,
     v2SubmitButtonSx,
@@ -217,41 +213,41 @@ const CGroupPersonHeader: React.FC<CGroupPersonHeaderProps> = ({ person }) => {
     return (
         <>
             <PersonHeaderSummary person={person} name={name} />
-            <OverflowMenu ariaID="person-options">
-                <OverflowMenuOption
-                    startIcon={<ListAltOutlinedIcon />}
-                    onClick={showSuggestions}
-                >
-                    {t("review_suggestions")}
-                </OverflowMenuOption>
-                <OverflowMenuOption
-                    startIcon={<EditIcon />}
-                    onClick={showNameInput}
-                >
-                    {t("rename")}
-                </OverflowMenuOption>
-                {person.isPinned ? (
-                    <OverflowMenuOption
-                        startIcon={<PushPinOutlinedIcon />}
-                        onClick={handleUnpin}
-                    >
-                        {t("unpin_person")}
-                    </OverflowMenuOption>
-                ) : (
-                    <OverflowMenuOption
-                        startIcon={<PushPinIcon />}
-                        onClick={handlePin}
-                    >
-                        {t("pin_person")}
-                    </OverflowMenuOption>
-                )}
-                <OverflowMenuOption
-                    startIcon={<ClearIcon />}
-                    onClick={handleReset}
-                >
-                    {t("reset")}
-                </OverflowMenuOption>
-            </OverflowMenu>
+            <GalleryActionMenu
+                label={t("more_options")}
+                items={[
+                    {
+                        label: t("review_suggestions"),
+                        icon: <HugeiconsIcon icon={CheckListIcon} size={20} />,
+                        onClick: showSuggestions,
+                    },
+                    {
+                        label: t("rename"),
+                        icon: <HugeiconsIcon icon={Edit02Icon} size={20} />,
+                        onClick: showNameInput,
+                    },
+                    {
+                        label: person.isPinned
+                            ? t("unpin_person")
+                            : t("pin_person"),
+                        icon: (
+                            <HugeiconsIcon
+                                icon={person.isPinned ? PinOffIcon : PinIcon}
+                                size={20}
+                            />
+                        ),
+                        onClick: () => {
+                            void (person.isPinned ? handleUnpin : handlePin)();
+                        },
+                    },
+                    {
+                        label: t("reset"),
+                        icon: <HugeiconsIcon icon={Cancel01Icon} size={20} />,
+                        destructive: true,
+                        onClick: handleReset,
+                    },
+                ]}
+            />
 
             <SingleInputDialog
                 {...nameInputVisibilityProps}
@@ -289,14 +285,16 @@ const IgnoredPersonHeader: React.FC<IgnoredPersonHeaderProps> = ({
                 name={person.name?.trim() || t("ignored")}
                 nameProps={{ color: "text.muted" }}
             />
-            <OverflowMenu ariaID="person-options">
-                <OverflowMenuOption
-                    startIcon={<VisibilityOutlinedIcon />}
-                    onClick={handleUndoIgnore}
-                >
-                    {t("show_person")}
-                </OverflowMenuOption>
-            </OverflowMenu>
+            <GalleryActionMenu
+                label={t("more_options")}
+                items={[
+                    {
+                        label: t("show_person"),
+                        icon: <HugeiconsIcon icon={ViewIcon} size={20} />,
+                        onClick: () => void handleUndoIgnore(),
+                    },
+                ]}
+            />
         </>
     );
 };
@@ -342,20 +340,26 @@ const ClusterPersonHeader: React.FC<ClusterPersonHeaderProps> = ({
                     </IconButton>
                 </Tooltip>
 
-                <OverflowMenu ariaID="person-options">
-                    <OverflowMenuOption
-                        startIcon={<AddIcon />}
-                        onClick={showAddPerson}
-                    >
-                        {t("add_a_name")}
-                    </OverflowMenuOption>
-                    <OverflowMenuOption
-                        startIcon={<HideImageOutlinedIcon />}
-                        onClick={confirmIgnore}
-                    >
-                        {t("ignore")}
-                    </OverflowMenuOption>
-                </OverflowMenu>
+                <GalleryActionMenu
+                    label={t("more_options")}
+                    items={[
+                        {
+                            label: t("add_a_name"),
+                            icon: <HugeiconsIcon icon={Add01Icon} size={20} />,
+                            onClick: showAddPerson,
+                        },
+                        {
+                            label: t("ignore"),
+                            icon: (
+                                <HugeiconsIcon
+                                    icon={UserBlock01Icon}
+                                    size={20}
+                                />
+                            ),
+                            onClick: confirmIgnore,
+                        },
+                    ]}
+                />
             </Stack>
 
             <AddPersonDialog
