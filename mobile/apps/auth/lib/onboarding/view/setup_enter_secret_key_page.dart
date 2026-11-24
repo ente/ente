@@ -603,6 +603,7 @@ class _SetupEnterSecretKeyPageState extends State<SetupEnterSecretKeyPage> {
       context,
       context.strings.incorrectDetails,
       message ?? context.strings.pleaseVerifyDetails,
+      showContactSupport: false,
     );
   }
 
