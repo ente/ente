@@ -40,21 +40,34 @@ Future<List<FileMLInstruction>> carryOverLocalGalleryMLData(
   required String client,
   MlRunControl? control,
 }) async {
+  Set<FileMLInstruction> failedUploads = {};
   try {
-    await _carryOver(instructions, client: client, control: control);
+    failedUploads = await _carryOver(
+      instructions,
+      client: client,
+      control: control,
+    );
   } catch (e, s) {
     _logger.warning("Could not carry over local gallery ML data", e, s);
   }
-  return instructions.where((instruction) => instruction.pendingML).toList();
+  return instructions
+      .where(
+        (instruction) =>
+            instruction.pendingML && !failedUploads.contains(instruction),
+      )
+      .toList();
 }
 
-Future<void> _carryOver(
+Future<Set<FileMLInstruction>> _carryOver(
   List<FileMLInstruction> instructions, {
   required String client,
   MlRunControl? control,
 }) async {
-  final localIntIDs = await _localIntIDsForCarryOver(instructions);
-  if (localIntIDs.isEmpty) return;
+  final carriable = instructions
+      .where((instruction) => instruction.remoteMLStateKnown)
+      .toList();
+  final localIntIDs = await _localIntIDsForCarryOver(carriable);
+  if (localIntIDs.isEmpty) return {};
   final keys = localIntIDs.values.toSet().toList();
   final localGalleryDB = MLDataDB.localGalleryInstance;
   final facesByKey = groupBy(
@@ -68,8 +81,9 @@ Future<void> _carryOver(
 
   final carriedFaces = <Face>[];
   final carriedClips = <ClipEmbedding>[];
+  final failedUploads = <FileMLInstruction>{};
   int carriedFileCount = 0;
-  for (final instruction in instructions) {
+  for (final instruction in carriable) {
     if (control?.stopRequested ?? false) break;
     final key = localIntIDs[instruction.file.localID];
     if (key == null || !_canCarryOver(instruction)) continue;
@@ -113,6 +127,7 @@ Future<void> _carryOver(
       await fileDataService.putFileData(instruction.file, data);
     } catch (e, s) {
       _logger.warning("Could not upload carried-over ML for $fileID", e, s);
+      failedUploads.add(instruction);
       continue;
     }
     if (faces != null) {
@@ -126,16 +141,17 @@ Future<void> _carryOver(
     carriedFileCount++;
   }
 
-  if (carriedFileCount == 0) return;
-  await MLDataDB.instance.bulkInsertFaces(carriedFaces);
-  await MLDataDB.instance.putClip(carriedClips);
-  _logger.info(
-    "Carried over local gallery ML results for $carriedFileCount files",
-  );
+  if (carriedFileCount > 0) {
+    await MLDataDB.instance.bulkInsertFaces(carriedFaces);
+    await MLDataDB.instance.putClip(carriedClips);
+    _logger.info(
+      "Carried over local gallery ML results for $carriedFileCount files",
+    );
+  }
+  return failedUploads;
 }
 
 bool _canCarryOver(FileMLInstruction instruction) =>
-    !instruction.remoteFetchFailed &&
     instruction.file.isOwner &&
     (instruction.file.localID ?? '').isNotEmpty &&
     (instruction.shouldRunFaces || instruction.shouldRunClip);

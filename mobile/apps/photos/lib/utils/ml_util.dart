@@ -60,7 +60,7 @@ class FileMLInstruction {
   bool shouldRunClip;
   bool shouldRunPets;
   FileDataEntity? existingRemoteFileML;
-  bool remoteFetchFailed = false;
+  bool remoteMLStateKnown = false;
 
   FileMLInstruction({
     required this.file,
@@ -626,8 +626,8 @@ Future<List<FileMLInstruction>> hydrateRemoteMLDataForInstructions(
       ? await _fetchFilesDataForMlHydrationWithRecovery(pendingIndex)
       : await fileDataService.getFilesData(ids);
   _logger.info("embeddingResponse ${res.debugLog()}");
-  for (final fileID in res.fetchErrorFileIDs) {
-    pendingIndex[fileID]?.remoteFetchFailed = true;
+  for (final fileID in res.pendingIndexFileIDs) {
+    pendingIndex[fileID]?.remoteMLStateKnown = true;
   }
   final List<Face> faces = [];
   final List<ClipEmbedding> clipEmbeddings = [];
@@ -636,6 +636,7 @@ Future<List<FileMLInstruction>> hydrateRemoteMLDataForInstructions(
     if (existingInstruction == null) {
       continue;
     }
+    existingInstruction.remoteMLStateKnown = true;
     final facesFromRemoteEmbedding = _getFacesFromRemoteEmbedding(fileMl);
     // A non-null result is compatible remote data, even when no face was found.
     if (facesFromRemoteEmbedding != null) {
