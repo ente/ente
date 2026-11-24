@@ -96,7 +96,12 @@ class MosaicPage extends RewindPage {
     return RewindWarmBuilder<_Tiling>(
       warm: _tiling,
       builder: (context, tiling) {
-        final card = _card(position, isActive, tiling);
+        final card = _card(
+          position,
+          isActive,
+          tiling,
+          tagTaps: RewindPageScope.reelOf(context) ? null : _tagTaps,
+        );
         return Stack(
           fit: StackFit.expand,
           children: [
@@ -136,7 +141,12 @@ class MosaicPage extends RewindPage {
     ),
   );
 
-  Widget _card(double position, bool isActive, _Tiling? tiling) {
+  Widget _card(
+    double position,
+    bool isActive,
+    _Tiling? tiling, {
+    required Listenable? tagTaps,
+  }) {
     final count = tiling == null
         ? null
         : "IN ${rewindCounted(tiling.photos, "MOMENT", "MOMENTS")}.";
@@ -164,7 +174,7 @@ class MosaicPage extends RewindPage {
                         key: ValueKey(tiling),
                         tiling: tiling,
                         active: isActive,
-                        tagTaps: _tagTaps,
+                        tagTaps: tagTaps,
                       ),
                     ),
                   ),
@@ -643,7 +653,7 @@ class _Wall extends StatefulWidget {
 
   final _Tiling? tiling;
   final bool active;
-  final Listenable tagTaps;
+  final Listenable? tagTaps;
 
   @override
   State<_Wall> createState() => _WallState();
@@ -671,20 +681,20 @@ class _WallState extends State<_Wall> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    widget.tagTaps.addListener(_onTagTap);
+    widget.tagTaps?.addListener(_onTagTap);
   }
 
   @override
   void didUpdateWidget(_Wall oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.tagTaps == widget.tagTaps) return;
-    oldWidget.tagTaps.removeListener(_onTagTap);
-    widget.tagTaps.addListener(_onTagTap);
+    oldWidget.tagTaps?.removeListener(_onTagTap);
+    widget.tagTaps?.addListener(_onTagTap);
   }
 
   @override
   void dispose() {
-    widget.tagTaps.removeListener(_onTagTap);
+    widget.tagTaps?.removeListener(_onTagTap);
     _glide.dispose();
     super.dispose();
   }
