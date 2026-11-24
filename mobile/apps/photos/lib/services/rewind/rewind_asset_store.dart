@@ -15,10 +15,10 @@ class RewindAssetStore {
   static const bagelFatOne = "Bagel Fat One";
   static const courierPrime = "Courier Prime";
 
-  static const _version = "rewind-2026-v10";
+  static const _version = "rewind-2026-v11";
   static const _url = "https://rewind-assets.ente.com/$_version.zip";
   static const _sha256 =
-      "add0ddb5f2b8852be7e9cd17ef399c1d7504f1ed8a14e5d2d331364e6902c690";
+      "20134eea80e232918ec6d1fa1d1d4b29f809a7d22092acdcb86f04f48f30560e";
   static const _fonts = {
     lilitaOne: "fonts/LilitaOne-Regular.ttf",
     nunito: "fonts/Nunito-Black.ttf",

@@ -59,12 +59,13 @@ abstract final class RewindAssets {
   static const famDucky = "$_rive/ente-rewind-fam-ducky.riv";
   static const photosDucky = "$_rive/ente-rewind-photos-ducky.riv";
   static const cameraDucky = "$_rive/ente-rewind-camera-ducky.riv";
+  static const almostTimeDucky = "$_rive/ente-rewind-almost-time-ducky.riv";
   static const artistDucky = "$_rive/ente-rewind-artist-ducky.riv";
   static const puzzleDucky = "$_rive/ente-rewind-puzzle-ducky.riv";
   static const superheroDucky = "$_rive/ente-rewind-superhero-ducky.riv";
   static const topPercent = "$_rive/ente-rewind-top-percent.riv";
   static const likesDucky = "$_rive/ente-rewind-likes-ducky.riv";
-  static const detectiveDucky = "$_rive/ente-rewind-detective-ducky.riv";
+  static const badgeDucky = "$_rive/ente-rewind-badge-ducky.riv";
   static const fire = "$_rive/ente-rewind-fire.riv";
   static const badges = "$_rive/ente-rewind-badges.riv";
   static const yearDuckies = "$_rive/ente-rewind-year-duckies.riv";

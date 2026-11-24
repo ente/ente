@@ -54,11 +54,11 @@ class SetupArt {
   const SetupArt.ducky(
     this.asset,
     this.rect, {
+    this.stateMachine = "Loop",
     this.ticks = const [],
     this.pivot,
     this.delayMs = 760,
-  }) : preset = RewindPreset.duck,
-       animated = true;
+  }) : preset = RewindPreset.duck;
 
   const SetupArt.image(
     this.asset,
@@ -67,15 +67,17 @@ class SetupArt {
     this.pivot,
     this.delayMs = 760,
     this.preset = RewindPreset.duck,
-  }) : animated = false;
+  }) : stateMachine = null;
 
   final String asset;
   final Rect rect;
+  final String? stateMachine;
   final List<(RewindTick, Rect)> ticks;
   final Offset? pivot;
   final int delayMs;
   final RewindPreset preset;
-  final bool animated;
+
+  bool get animated => stateMachine != null;
 }
 
 class SetupPage extends RewindPage {
@@ -201,9 +203,16 @@ class SetupPage extends RewindPage {
       children: [
         Positioned.fromRect(
           rect: art.rect,
-          child: art.animated
-              ? RewindDucky(art.asset)
-              : Image.file(RewindAssets.file(art.asset), fit: BoxFit.contain),
+          child: switch (art.stateMachine) {
+            final stateMachine? => RewindDucky(
+              art.asset,
+              stateMachine: stateMachine,
+            ),
+            null => Image.file(
+              RewindAssets.file(art.asset),
+              fit: BoxFit.contain,
+            ),
+          },
         ),
         for (final (tick, rect) in art.ticks)
           Positioned.fromRect(rect: rect, child: RewindTickMark(tick)),
