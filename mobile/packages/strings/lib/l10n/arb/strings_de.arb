@@ -1043,7 +1043,7 @@
   "deleteSuggestions": "Vorschläge löschen",
   "deleteSuggestionsDesc": "Zur Löschung vorgeschlagene Elemente anzeigen",
   "deleteSuggestionSent": "Löschvorschlag gesendet",
-  "deleteTagMessage": "Sind Sie sicher, dass Sie diesen Tag löschen wollen? Diese Aktion ist unumkehrbar.",
+  "deleteTagMessage": "Sind Sie sicher, dass Sie dieses Tag löschen wollen? Diese Aktion ist unumkehrbar.",
   "deleteTagTitle": "Tag löschen?",
   "deleteUnparseableCodeMessage": "Dadurch wird dieser Code dauerhaft aus Auth gelöscht. Er wird nicht in den Papierkorb verschoben.",
   "deleteUnparseableCodeTitle": "Nicht verarbeitbaren Code löschen?",
