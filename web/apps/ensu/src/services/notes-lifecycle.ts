@@ -40,7 +40,13 @@ export class NotesLifecycleController {
         force: boolean,
         blocked: boolean,
     ): NotesIndexRequest {
-        if (this.disposed || this.removing.has(collectionId)) return "ignored";
+        if (
+            this.disposed ||
+            this.removing.has(collectionId) ||
+            this.activeCollectionId === collectionId
+        ) {
+            return "ignored";
+        }
         this.failed.delete(collectionId);
         if (blocked || this.hasActiveJobs() || this.queued.has(collectionId)) {
             this.queueIndex(collectionId, force);
@@ -56,22 +62,17 @@ export class NotesLifecycleController {
         requestKey?: number,
     ): NotesIndexRequest {
         if (
-            this.disposed ||
-            this.removing.has(collectionId) ||
             (this.failed.has(collectionId) &&
                 !this.hasNewerUpdate(collectionId, requestKey)) ||
-            this.activeCollectionId === collectionId ||
             this.queued.has(collectionId)
         ) {
             return "ignored";
         }
-        this.failed.delete(collectionId);
-        if (blocked || this.hasActiveJobs() || this.queued.size > 0) {
-            this.queueIndex(collectionId, false);
-            return "queued";
-        }
-        this.activeCollectionId = collectionId;
-        return "start";
+        return this.requestIndex(
+            collectionId,
+            false,
+            blocked || this.queued.size > 0,
+        );
     }
 
     queueIndex(collectionId: string, force: boolean) {
@@ -127,6 +128,11 @@ export class NotesLifecycleController {
 
     isManualUpdateRequested(collectionId: string) {
         return this.queued.get(collectionId) === true;
+    }
+
+    discardQueuedAutomaticIndex(collectionId: string) {
+        if (this.queued.get(collectionId) !== false) return false;
+        return this.queued.delete(collectionId);
     }
 
     takeNextQueued(blocked: boolean, manualBlocked = blocked) {
@@ -236,6 +242,7 @@ export const notesCollectionActivity = (
     if (controller.isManualUpdateRequested(collection.id)) {
         return "updateRequested";
     }
+    if (collection.status === "unavailable") return null;
     if (
         collection.updateDueAtMs != null &&
         (collection.status === "ready" ||

@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::path::Path;
 
 use super::{
@@ -16,6 +17,52 @@ pub struct NotesFreshness {
     pub source_revision: Option<String>,
 }
 
+#[derive(Default)]
+struct SourceRevision<'a> {
+    revisions: BTreeMap<&'a str, String>,
+    unstable: bool,
+}
+
+impl<'a> SourceRevision<'a> {
+    fn record(&mut self, document_id: &'a str, bytes: &[u8]) -> &str {
+        let revision = self.revisions.entry(document_id).or_default();
+        *revision = notes_content_revision(bytes);
+        revision
+    }
+
+    fn finish(self) -> Option<String> {
+        if self.unstable {
+            return None;
+        }
+        let mut bytes = Vec::new();
+        for (id, revision) in self.revisions {
+            bytes.extend_from_slice(&(id.len() as u64).to_le_bytes());
+            bytes.extend_from_slice(id.as_bytes());
+            bytes.extend_from_slice(revision.as_bytes());
+        }
+        Some(notes_content_revision(&bytes))
+    }
+}
+
+pub fn inspect_notes_source_revision<E>(
+    inventory: &[NotesSourceDocument],
+    mut check_for_cancellation: impl FnMut() -> Result<(), E>,
+    mut read_document: impl FnMut(&str) -> Result<NotesDocumentContent, E>,
+) -> Result<Option<String>, NotesIndexingError<E>> {
+    check_for_cancellation().map_err(NotesIndexingError::Adapter)?;
+    let mut revision = SourceRevision::default();
+    for document in inventory {
+        check_for_cancellation().map_err(NotesIndexingError::Adapter)?;
+        match read_document(&document.document_id).map_err(NotesIndexingError::Adapter)? {
+            NotesDocumentContent::Bytes(bytes) => {
+                revision.record(&document.document_id, &bytes);
+            }
+            NotesDocumentContent::Changed => revision.unstable = true,
+        }
+    }
+    Ok(revision.finish())
+}
+
 pub fn inspect_notes_freshness<E>(
     writer: &NotesIndexWriter,
     inventory: &[NotesSourceDocument],
@@ -26,14 +73,12 @@ pub fn inspect_notes_freshness<E>(
     let plan = writer.plan_reconciliation(inventory, &[], false)?;
     let mut changed = !plan.deleted_document_ids.is_empty() || !writer.initial_inventory_complete();
     let mut forced_document_ids = Vec::new();
-    let mut revisions = std::collections::BTreeMap::new();
-    let mut stable = true;
+    let mut source_revision = SourceRevision::default();
     for document in inventory {
         check_for_cancellation().map_err(NotesIndexingError::Adapter)?;
         match read_document(&document.document_id).map_err(NotesIndexingError::Adapter)? {
             NotesDocumentContent::Bytes(bytes) => {
-                let revision = notes_content_revision(&bytes);
-                revisions.insert(&document.document_id, revision.clone());
+                let revision = source_revision.record(&document.document_id, &bytes);
                 if let Some(saved) = writer.indexed_revision(&document.document_id) {
                     if revision != saved {
                         forced_document_ids.push(document.document_id.clone());
@@ -44,7 +89,7 @@ pub fn inspect_notes_freshness<E>(
                 }
             }
             NotesDocumentContent::Changed => {
-                stable = false;
+                source_revision.unstable = true;
                 changed = true;
                 forced_document_ids.push(document.document_id.clone());
             }
@@ -53,15 +98,7 @@ pub fn inspect_notes_freshness<E>(
     Ok(NotesFreshness {
         changed,
         forced_document_ids,
-        source_revision: stable.then(|| {
-            let mut bytes = Vec::new();
-            for (id, revision) in revisions {
-                bytes.extend_from_slice(&(id.len() as u64).to_le_bytes());
-                bytes.extend_from_slice(id.as_bytes());
-                bytes.extend_from_slice(revision.as_bytes());
-            }
-            notes_content_revision(&bytes)
-        }),
+        source_revision: source_revision.finish(),
     })
 }
 
@@ -127,19 +164,16 @@ mod tests {
             )
             .unwrap()
         };
-        assert!(!inspect(b"first", None).changed);
-        assert!(!inspect(b"first", Some(2)).changed);
+        let first = inspect(b"first", None);
+        let metadata_changed = inspect(b"first", Some(2));
+        assert!(!first.changed);
+        assert!(!metadata_changed.changed);
         let changed = inspect(b"other", Some(1));
         assert!(changed.changed);
         assert_eq!(changed.forced_document_ids, ["note.md"]);
-        assert_eq!(
-            inspect(b"first", None).source_revision,
-            inspect(b"first", Some(2)).source_revision
-        );
-        assert_ne!(
-            inspect(b"first", None).source_revision,
-            changed.source_revision
-        );
+        assert!(first.source_revision.is_some());
+        assert_eq!(first.source_revision, metadata_changed.source_revision);
+        assert_ne!(first.source_revision, changed.source_revision);
     }
 
     #[test]
@@ -160,21 +194,64 @@ mod tests {
         };
         let writer = fixture(root.path(), None, false);
         let first = inspect(&writer);
-        assert!(first.changed);
-        assert_eq!(first.source_revision, inspect(&writer).source_revision);
         drop(writer);
         let writer = fixture(root.path(), Some(b"first"), true);
-        assert!(!inspect(&writer).changed);
         assert_eq!(first.source_revision, inspect(&writer).source_revision);
         std::fs::write(&path, b"newer").unwrap();
         let newer = inspect(&writer);
-        assert!(newer.changed);
         assert_ne!(first.source_revision, newer.source_revision);
-        assert_eq!(newer.source_revision, inspect(&writer).source_revision);
         let empty =
             inspect_notes_freshness(&writer, &[], || Ok::<_, ()>(()), |_| unreachable!()).unwrap();
         assert!(empty.changed);
+        assert!(empty.source_revision.is_some());
         assert_ne!(newer.source_revision, empty.source_revision);
+        assert_eq!(
+            empty.source_revision,
+            inspect_notes_source_revision(&[], || Ok::<_, ()>(()), |_| unreachable!()).unwrap()
+        );
+        drop(writer);
+        std::fs::write(root.path().join(ID).join("manifest.json"), b"invalid").unwrap();
+        assert!(NotesIndexWriter::open(root.path(), ID.into()).is_err());
+        assert_eq!(
+            newer.source_revision,
+            inspect_notes_source_revision(
+                &[source(b"newer", None)],
+                || Ok::<_, std::io::Error>(()),
+                |_| std::fs::read(&path).map(NotesDocumentContent::Bytes),
+            )
+            .unwrap()
+        );
+    }
+
+    #[test]
+    fn source_revision_is_order_independent() {
+        let mut inventory = [source(b"note", None), source(b"other", None)];
+        inventory[1].document_id = "other.md".into();
+        let inspect = |inventory: &[NotesSourceDocument]| {
+            inspect_notes_source_revision(
+                inventory,
+                || Ok::<_, ()>(()),
+                |id| Ok(NotesDocumentContent::Bytes(id.as_bytes().into())),
+            )
+            .unwrap()
+        };
+        let revision = inspect(&inventory);
+        assert!(revision.is_some());
+        inventory.reverse();
+        assert_eq!(revision, inspect(&inventory));
+    }
+
+    #[test]
+    fn source_revision_propagates_cancellation_and_read_errors() {
+        let inventory = [source(b"note", None)];
+        assert!(matches!(
+            inspect_notes_source_revision(&inventory, || Err("cancelled"), |_| unreachable!()),
+            Err(NotesIndexingError::Adapter("cancelled"))
+        ));
+        assert!(matches!(
+            inspect_notes_source_revision(&inventory, || Ok(()), |_| Err("unavailable")),
+            Err(NotesIndexingError::Adapter("unavailable"))
+        ));
     }
 
     #[test]
@@ -206,6 +283,15 @@ mod tests {
         assert!(changed.changed);
         assert_eq!(changed.forced_document_ids, ["note.md"]);
         assert_eq!(changed.source_revision, None);
+        assert_eq!(
+            changed.source_revision,
+            inspect_notes_source_revision(
+                &inventory,
+                || Ok::<_, &str>(()),
+                |_| Ok(NotesDocumentContent::Changed),
+            )
+            .unwrap()
+        );
     }
 
     #[test]

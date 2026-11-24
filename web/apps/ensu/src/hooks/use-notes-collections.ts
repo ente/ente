@@ -22,6 +22,11 @@ const NOTES_INDEX_RERUN_YIELD_MS = 25;
 const NOTES_REMOVE_WAIT_ERROR =
     "Wait for indexing to finish, then remove this folder.";
 
+interface NotesOperationError {
+    message: string;
+    indexCollectionId?: string;
+}
+
 interface UseNotesCollectionsOptions {
     isTauriRuntime: boolean;
     isGenerating: boolean;
@@ -48,7 +53,8 @@ export const useNotesCollections = ({
     collectionsRef.current = collections;
     const [loading, setLoading] = useState(false);
     const [loaded, setLoaded] = useState(false);
-    const [operationError, setOperationError] = useState<string | null>(null);
+    const [operationError, setOperationError] =
+        useState<NotesOperationError | null>(null);
     const [listError, setListError] = useState<string | null>(null);
     const [subscriptionError, setSubscriptionError] = useState<string | null>(
         null,
@@ -137,10 +143,15 @@ export const useNotesCollections = ({
 
     const startIndex = useCallback(
         (collectionId: string, force = false, automatic = false) => {
-            const latestRequestKey = () =>
+            const latestCollection = () =>
                 collectionsRef.current.find(
                     (collection) => collection.id === collectionId,
-                )?.updateDueAtMs ?? undefined;
+                );
+            const latestRequestKey = () =>
+                latestCollection()?.updateDueAtMs ?? undefined;
+            const sourceUnavailable = () =>
+                !force && latestCollection()?.status === "unavailable";
+            if (sourceUnavailable()) return;
             let requestKey = latestRequestKey();
             const blocked = !modelReady || isIndexingBlocked(force);
             const request = automatic
@@ -148,7 +159,9 @@ export const useNotesCollections = ({
                 : controller.requestIndex(collectionId, force, blocked);
             if (request === "ignored") return;
             lifecycleChanged();
-            setOperationError(null);
+            setOperationError((current) =>
+                current?.indexCollectionId === collectionId ? null : current,
+            );
             if (request === "queued") {
                 log.info("Your Notes indexing queued", { collectionId });
                 return;
@@ -161,13 +174,16 @@ export const useNotesCollections = ({
 
             const ownsIndex = () => controller.canContinueIndex(collectionId);
             const canStartIndex = () =>
-                ownsIndex() && !isIndexingBlocked(force);
+                ownsIndex() &&
+                !isIndexingBlocked(force) &&
+                !sourceUnavailable();
             void ensureProvider()
                 .then((provider) =>
                     provider.withKnowledgeRetrieval(async (retrievalEpoch) => {
                         let needsRerun = true;
                         let bypassQuietPeriod = force;
                         while (needsRerun && ownsIndex()) {
+                            if (sourceUnavailable()) return;
                             if (isIndexingBlocked(force)) {
                                 controller.queueIndex(collectionId, force);
                                 lifecycleChanged();
@@ -207,7 +223,10 @@ export const useNotesCollections = ({
                         );
                     } else if (name !== "not_due") {
                         controller.failIndex(collectionId, requestKey);
-                        setOperationError(notesErrorMessage(error));
+                        setOperationError({
+                            message: notesErrorMessage(error),
+                            indexCollectionId: collectionId,
+                        });
                         log.error("Failed to index Your Notes", error);
                     }
                     void refresh();
@@ -217,7 +236,7 @@ export const useNotesCollections = ({
                     lifecycleChanged();
                     if (completion.clearedRemovalWait) {
                         setOperationError((current) =>
-                            current === NOTES_REMOVE_WAIT_ERROR
+                            current?.message === NOTES_REMOVE_WAIT_ERROR
                                 ? null
                                 : current,
                         );
@@ -242,6 +261,15 @@ export const useNotesCollections = ({
     );
 
     useEffect(() => {
+        let discarded = false;
+        for (const collection of collections) {
+            if (collection.status === "unavailable") {
+                discarded =
+                    controller.discardQueuedAutomaticIndex(collection.id) ||
+                    discarded;
+            }
+        }
+        if (discarded) lifecycleChanged();
         const blocked = !modelReady || isIndexingBlocked();
         const next = controller.takeNextQueued(
             blocked,
@@ -249,10 +277,12 @@ export const useNotesCollections = ({
         );
         if (next) startIndex(...next);
     }, [
+        collections,
         controller,
         isGenerating,
         isIndexingPaused,
         isIndexingBlocked,
+        lifecycleChanged,
         lifecycleRevision,
         modelReady,
         startIndex,
@@ -294,14 +324,19 @@ export const useNotesCollections = ({
     useEffect(() => {
         if (!isTauriRuntime) return;
         if (
-            collections.some((collection) =>
-                controller.hasNewerUpdate(
-                    collection.id,
-                    collection.updateDueAtMs ?? undefined,
-                ),
+            collections.some(
+                (collection) =>
+                    collection.id === operationError?.indexCollectionId &&
+                    collection.status !== "unavailable" &&
+                    controller.hasNewerUpdate(
+                        collection.id,
+                        collection.updateDueAtMs ?? undefined,
+                    ),
             )
         ) {
-            setOperationError(null);
+            setOperationError((current) =>
+                current === operationError ? null : current,
+            );
         }
         if (!modelReady) return;
         const timeouts: number[] = [];
@@ -309,6 +344,7 @@ export const useNotesCollections = ({
         for (const collection of collections) {
             if (
                 collection.updateDueAtMs != null &&
+                collection.status !== "unavailable" &&
                 (collection.status === "ready" ||
                     collection.status === "pending" ||
                     controller.hasNewerUpdate(
@@ -333,6 +369,7 @@ export const useNotesCollections = ({
         isTauriRuntime,
         lifecycleRevision,
         modelReady,
+        operationError,
         startIndex,
     ]);
 
@@ -371,7 +408,7 @@ export const useNotesCollections = ({
                 replaceCollection(collection);
                 runIndex(collection.id);
             } catch (error) {
-                setOperationError(notesErrorMessage(error));
+                setOperationError({ message: notesErrorMessage(error) });
                 log.error("Failed to add Notes folder", error);
             }
         },
@@ -383,7 +420,7 @@ export const useNotesCollections = ({
             confirmRemoval(label, async () => {
                 const removal = controller.beginRemoval(collectionId);
                 if (removal.kind === "wait") {
-                    setOperationError(NOTES_REMOVE_WAIT_ERROR);
+                    setOperationError({ message: NOTES_REMOVE_WAIT_ERROR });
                     return;
                 }
                 setOperationError(null);
@@ -396,7 +433,7 @@ export const useNotesCollections = ({
                     );
                 } catch (error) {
                     controller.cancelRemoval(collectionId);
-                    setOperationError(notesErrorMessage(error));
+                    setOperationError({ message: notesErrorMessage(error) });
                     log.error("Failed to remove Notes collection", error);
                     void refresh();
                     if (removal.queuedForce !== undefined) {
@@ -435,7 +472,8 @@ export const useNotesCollections = ({
         collections: collectionViews,
         loading,
         loaded,
-        error: subscriptionError ?? listError ?? operationError,
+        error:
+            subscriptionError ?? listError ?? operationError?.message ?? null,
         retry,
         addFolder,
         removeCollection,

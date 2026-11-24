@@ -35,6 +35,9 @@ final class NotesStore: ObservableObject, ModelMaintenance {
     private enum IndexTrigger {
         case maintenance, changesDetected, manual
     }
+    private enum IndexFailure {
+        case sourceAccess, indexing
+    }
     private struct Pending {
         let generation: UInt64
         let forced: Set<String>
@@ -60,7 +63,7 @@ final class NotesStore: ObservableObject, ModelMaintenance {
     private let limits = notesLimits()
     private var pending: [String: Pending] = [:]
     private var scans = Set<String>()
-    private var failed = Set<String>()
+    private var failed: [String: IndexFailure] = [:]
     private var sourceRevisions: [String: String] = [:]
     private var generation: UInt64 = 0
     private var active: Run?
@@ -189,7 +192,7 @@ final class NotesStore: ObservableObject, ModelMaintenance {
                     collections.removeAll { $0.id == id }
                     pending.removeValue(forKey: id)
                     scans.remove(id)
-                    failed.remove(id)
+                    failed.removeValue(forKey: id)
                     sourceRevisions.removeValue(forKey: id)
                     operationError = nil
                 }
@@ -218,7 +221,7 @@ final class NotesStore: ObservableObject, ModelMaintenance {
         else {
             return
         }
-        failed.remove(id)
+        failed.removeValue(forKey: id)
         enqueue(id, due: .distantPast)
         pending[id]?.trigger = .manual
         update(id) {
@@ -291,7 +294,9 @@ final class NotesStore: ObservableObject, ModelMaintenance {
                     reference.collectionId, forced: [reference.documentId], changesDetected: true,
                     due: .distantPast)
                 update(reference.collectionId) {
-                    $0.status = pending[reference.collectionId]?.waitingStatus ?? .pending
+                    if failed[reference.collectionId] == nil {
+                        $0.status = pending[reference.collectionId]?.waitingStatus ?? .pending
+                    }
                 }
             } catch {
                 fail(reference.collectionId, error)
@@ -322,7 +327,7 @@ final class NotesStore: ObservableObject, ModelMaintenance {
     private func requestRebuild(_ id: String) {
         enqueue(id, rebuild: true, due: .distantPast)
         update(id) {
-            $0.status = pending[id]?.waitingStatus ?? .pending
+            if failed[id] == nil { $0.status = pending[id]?.waitingStatus ?? .pending }
             $0.indexAvailable = false
         }
     }
@@ -352,7 +357,7 @@ final class NotesStore: ObservableObject, ModelMaintenance {
         let embeddingReady = modelProvider.isEmbeddingModelReady()
         let request =
             embeddingReady
-            ? pending.filter { !failed.contains($0.key) && $0.value.due <= Date() }.min {
+            ? pending.filter { failed[$0.key] == nil && $0.value.due <= Date() }.min {
                 lhs, rhs in
                 let lhsManual = lhs.value.trigger == .manual
                 let rhsManual = rhs.value.trigger == .manual
@@ -360,12 +365,12 @@ final class NotesStore: ObservableObject, ModelMaintenance {
             } : nil
         guard
             let id = request?.key
-                ?? scans.filter({ pending[$0] == nil || failed.contains($0) }).min(),
+                ?? scans.filter({ pending[$0] == nil || failed[$0] != nil }).min(),
             let collection = collections.first(where: { $0.id == id })
         else {
             let due =
                 embeddingReady
-                ? pending.filter { !failed.contains($0.key) }.values.map(\.due).min() : nil
+                ? pending.filter { failed[$0.key] == nil }.values.map(\.due).min() : nil
             let seconds = min(300, max(0.1, due?.timeIntervalSinceNow ?? 300))
             wake = Task { [weak self] in
                 do {
@@ -395,23 +400,32 @@ final class NotesStore: ObservableObject, ModelMaintenance {
             do {
                 try cancellation.check()
                 if let snapshot {
-                    var forced = snapshot.forced
-                    do {
-                        let freshness = try await provider.inspectFreshness(id, operation: operation)
-                        if let revision = freshness.sourceRevision { sourceRevisions[id] = revision }
-                        forced.formUnion(freshness.forcedDocumentIds)
-                    } catch NotesError.RebuildRequired {}
-                    let forcedDocumentIDs = Array(forced)
+                    sourceRevisions.removeValue(forKey: id)
                     let result = try await modelProvider.withEmbeddingContext(
                         for: snapshot.trigger == .manual ? .manualIndexing : .automaticIndexing,
                         checkCancellation: cancellation.check
                     ) { context in
-                        try await self.provider.index(
+                        var forced = snapshot.forced
+                        do {
+                            let freshness = try await self.provider.inspectFreshness(
+                                id, operation: operation)
+                            if let revision = freshness.sourceRevision {
+                                await MainActor.run { self.sourceRevisions[id] = revision }
+                            }
+                            forced.formUnion(freshness.forcedDocumentIds)
+                        } catch NotesError.RebuildRequired {
+                            if let revision = try await self.provider.inspectSourceRevision(
+                                id, operation: operation)
+                            {
+                                await MainActor.run { self.sourceRevisions[id] = revision }
+                            }
+                        }
+                        return try await self.provider.index(
                             id,
                             context: context,
                             operation: operation,
                             options: NotesIndexOptions(
-                                forcedDocumentIds: forcedDocumentIDs,
+                                forcedDocumentIds: Array(forced),
                                 rebuild: snapshot.rebuild
                             )
                         ) { [weak self] progress in
@@ -443,7 +457,7 @@ final class NotesStore: ObservableObject, ModelMaintenance {
                             $0.documentCount = result.summary.documentCount
                             $0.lastUpdatedAtMs = result.summary.lastUpdatedAtMs
                             $0.indexAvailable =
-                                hadIndex && result.summary.initialComplete
+                                hadIndex && !next.rebuild && result.summary.initialComplete
                                 && result.summary.documentCount > 0
                         } else {
                             $0 = Self.state(record, result.summary)
@@ -451,24 +465,29 @@ final class NotesStore: ObservableObject, ModelMaintenance {
                     }
                 } else {
                     let result = try await provider.inspectFreshness(id, operation: operation)
-                    if failed.contains(id) {
-                        guard let revision = result.sourceRevision,
-                            revision != sourceRevisions[id]
-                        else { return }
-                        failed.remove(id)
-                        pending.removeValue(forKey: id)
+                    var recovery: Pending?
+                    if let failure = failed[id] {
+                        if failure == .indexing
+                            && !hasNewSourceRevision(id, result.sourceRevision)
+                        {
+                            return
+                        }
+                        failed.removeValue(forKey: id)
+                        recovery = pending.removeValue(forKey: id)
                     }
                     if let revision = result.sourceRevision { sourceRevisions[id] = revision }
-                    update(id) {
-                        $0 = Self.state(record, result.summary, progress: $0.progress)
-                    }
-                    if result.changed {
+                    if result.changed || recovery?.rebuild == true {
                         enqueue(
-                            id, forced: Set(result.forcedDocumentIds),
+                            id, forced: Set(result.forcedDocumentIds).union(recovery?.forced ?? []),
+                            rebuild: recovery?.rebuild == true,
                             changesDetected: result.summary.initialComplete,
                             due: result.summary.initialComplete ? nil : .distantPast)
-                        update(id) {
-                            $0.status = pending[id]?.waitingStatus ?? .pending
+                    }
+                    update(id) {
+                        $0 = Self.state(record, result.summary, progress: $0.progress)
+                        if let next = pending[id] {
+                            $0.status = next.waitingStatus
+                            $0.indexAvailable = $0.indexAvailable && !next.rebuild
                             $0.error = nil
                         }
                     }
@@ -481,25 +500,26 @@ final class NotesStore: ObservableObject, ModelMaintenance {
                 }
             } catch NotesError.Cancelled {
                 if snapshot == nil { scans.insert(id) }
-                if failed.contains(id) { return }
+                if failed[id] != nil { return }
                 let saved = try? await provider.inspect(id)
                 update(id) {
                     $0.status = pending[id]?.waitingStatus ?? .pending
                     $0.progress = nil
                     if let saved { $0.lastUpdatedAtMs = saved.lastUpdatedAtMs }
                     $0.indexAvailable =
-                        hadIndex && saved?.initialComplete == true
+                        hadIndex && pending[id]?.rebuild != true && saved?.initialComplete == true
                         && (saved?.documentCount ?? 0) > 0
                 }
             } catch NotesError.RebuildRequired {
-                if failed.contains(id) { return }
                 if snapshot == nil {
-                    requestRebuild(id)
-                } else {
+                    await recoverRebuild(id, operation: operation)
+                } else if failed[id] == nil {
                     fail(id, NotesError.RebuildRequired)
                 }
             } catch {
-                if snapshot == nil && failed.contains(id) { return }
+                if snapshot == nil && (failed[id] != nil || pending[id]?.trigger == .manual) {
+                    return
+                }
                 fail(id, error)
             }
         }
@@ -512,9 +532,49 @@ final class NotesStore: ObservableObject, ModelMaintenance {
         }
     }
 
+    private func hasNewSourceRevision(_ id: String, _ revision: String?) -> Bool {
+        guard let revision else { return false }
+        guard let failedRevision = sourceRevisions[id] else {
+            sourceRevisions[id] = revision
+            return false
+        }
+        return revision != failedRevision
+    }
+
+    private func recoverRebuild(_ id: String, operation: NotesReadOperation) async {
+        requestRebuild(id)
+        guard failed[id] != nil else { return }
+        do {
+            let revision = try await provider.inspectSourceRevision(id, operation: operation)
+            try operation.cancellation.check()
+            guard let failure = failed[id] else { return }
+            if failure == .indexing && !hasNewSourceRevision(id, revision) { return }
+            let recovery = pending.removeValue(forKey: id)
+            failed.removeValue(forKey: id)
+            if let revision { sourceRevisions[id] = revision }
+            enqueue(
+                id, forced: recovery?.forced ?? [], rebuild: true,
+                changesDetected: failure == .indexing,
+                due: failure == .indexing ? nil : .distantPast)
+            update(id) {
+                $0.status = pending[id]?.waitingStatus ?? .pending
+                $0.indexAvailable = false
+                $0.error = nil
+                $0.progress = nil
+            }
+        } catch NotesError.Cancelled {
+            scans.insert(id)
+        } catch {}
+    }
+
     private func fail(_ id: String, _ error: Error) {
         guard collections.contains(where: { $0.id == id }) else { return }
-        failed.insert(id)
+        switch error as? NotesError {
+        case .Unavailable?, .SourceRead?, .SourceChanged?:
+            failed[id] = .sourceAccess
+        default:
+            failed[id] = .indexing
+        }
         scans.remove(id)
         update(id) {
             $0.status = (error as? NotesError) == .Unavailable ? .unavailable : .error

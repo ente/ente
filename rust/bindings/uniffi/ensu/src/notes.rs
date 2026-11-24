@@ -282,6 +282,21 @@ impl NotesCollection {
         Ok((&writer).into())
     }
 
+    pub fn inspect_source_revision(
+        &self,
+        source: Arc<dyn NotesSource>,
+        cancellation: Arc<NotesCancellation>,
+    ) -> Result<Option<String>, NotesError> {
+        cancellation.check()?;
+        let inventory = inventory(source.as_ref(), &cancellation, &self.id)?;
+        core::inspect_notes_source_revision(
+            &inventory,
+            || cancellation.check(),
+            |id| read_content(source.as_ref(), id, &cancellation),
+        )
+        .map_err(Into::into)
+    }
+
     pub fn inspect_freshness(
         &self,
         source: Arc<dyn NotesSource>,
@@ -294,11 +309,7 @@ impl NotesCollection {
             &writer,
             &inventory,
             || cancellation.check(),
-            |id| match read(source.as_ref(), id, &cancellation) {
-                Ok(value) => Ok(core::NotesDocumentContent::Bytes(value.bytes)),
-                Err(NotesError::SourceChanged) => Ok(core::NotesDocumentContent::Changed),
-                Err(error) => Err(error),
-            },
+            |id| read_content(source.as_ref(), id, &cancellation),
         )?;
         Ok(NotesFreshness {
             summary: (&writer).into(),
@@ -452,6 +463,18 @@ fn read(
         return Err(NotesError::SourceChanged);
     }
     Ok(value)
+}
+
+fn read_content(
+    source: &dyn NotesSource,
+    id: &str,
+    cancellation: &NotesCancellation,
+) -> Result<core::NotesDocumentContent, NotesError> {
+    match read(source, id, cancellation) {
+        Ok(value) => Ok(core::NotesDocumentContent::Bytes(value.bytes)),
+        Err(NotesError::SourceChanged) => Ok(core::NotesDocumentContent::Changed),
+        Err(error) => Err(error),
+    }
 }
 
 #[uniffi::export]

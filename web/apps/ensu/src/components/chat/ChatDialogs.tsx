@@ -80,6 +80,16 @@ const formatNotesUpdatedAt = (timestamp: number) =>
         timeStyle: "short",
     });
 
+const notesActivityMessages: Partial<
+    Record<NonNullable<NotesCollectionView["activity"]>, string>
+> = {
+    updateRequested: "Update queued. Keep Ensu open.",
+    updateScheduled: "Changes detected in this folder.",
+    waitingForGeneration: "Indexing will resume after the current response.",
+    waitingForModel: "Indexing will start when the model is ready.",
+    waitingForChat: "Indexing will resume when chat is idle.",
+};
+
 const compactInlineLinkSx = {
     border: 0,
     p: 0,
@@ -888,12 +898,12 @@ export const ChatDialogs = memo(
                                 const starting =
                                     collection.activity === "starting";
                                 const progress = collection.indexingProgress;
+                                const updatePending =
+                                    collection.activity === "updateRequested" ||
+                                    collection.activity === "updateScheduled";
                                 const canRetry =
                                     collection.activity === "failed" ||
-                                    (collection.activity !==
-                                        "updateRequested" &&
-                                        collection.activity !==
-                                            "updateScheduled" &&
+                                    (!updatePending &&
                                         (collection.status === "error" ||
                                             collection.status ===
                                                 "unavailable"));
@@ -901,26 +911,15 @@ export const ChatDialogs = memo(
                                     !indexing &&
                                     !starting &&
                                     !canRetry &&
-                                    (collection.activity ===
-                                        "updateScheduled" ||
-                                        collection.activity ===
-                                            "updateRequested");
+                                    updatePending;
                                 const waitingMessage =
-                                    collection.activity === "updateRequested"
-                                        ? "Update queued. Keep Ensu open."
-                                        : collection.activity ===
-                                            "updateScheduled"
-                                          ? "Changes detected in this folder."
-                                          : collection.activity ===
-                                              "waitingForGeneration"
-                                            ? "Indexing will resume after the current response."
-                                            : collection.activity ===
-                                                "waitingForModel"
-                                              ? "Indexing will start when the model is ready."
-                                              : collection.activity ===
-                                                  "waitingForChat"
-                                                ? "Indexing will resume when chat is idle."
-                                                : null;
+                                    collection.activity &&
+                                    notesActivityMessages[collection.activity];
+                                const requestUpdate = () =>
+                                    handleIndexNotesCollection(
+                                        collection.id,
+                                        true,
+                                    );
                                 return (
                                     <Stack
                                         key={collection.id}
@@ -1076,12 +1075,7 @@ export const ChatDialogs = memo(
                                                         color="accent"
                                                         size="small"
                                                         aria-label={`Update ${collection.label} now`}
-                                                        onClick={() =>
-                                                            handleIndexNotesCollection(
-                                                                collection.id,
-                                                                true,
-                                                            )
-                                                        }
+                                                        onClick={requestUpdate}
                                                     >
                                                         Update now
                                                     </Button>
@@ -1121,12 +1115,7 @@ export const ChatDialogs = memo(
                                                 collection.watcherError) && (
                                                 <Button
                                                     size="small"
-                                                    onClick={() =>
-                                                        handleIndexNotesCollection(
-                                                            collection.id,
-                                                            true,
-                                                        )
-                                                    }
+                                                    onClick={requestUpdate}
                                                     sx={{
                                                         alignSelf: "flex-start",
                                                     }}

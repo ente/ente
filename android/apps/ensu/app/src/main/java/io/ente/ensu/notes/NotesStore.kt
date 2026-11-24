@@ -89,6 +89,11 @@ class NotesStore(
     private val logRepository: FileLogRepository,
     private val provider: NotesProvider = NotesProvider(context),
 ) : ModelMaintenance {
+    private enum class IndexFailure {
+        SourceAccess,
+        Indexing,
+    }
+
     private class Run(
         val cancel: NotesCancellation,
         val job: Job,
@@ -98,7 +103,7 @@ class NotesStore(
     private val registrations = linkedMapOf<String, NotesRegistration>()
     private val pending = NotesIndexQueue()
     private val scans = linkedSetOf<String>()
-    private val failed = mutableSetOf<String>()
+    private val failed = mutableMapOf<String, IndexFailure>()
     private val sourceRevisions = mutableMapOf<String, String>()
     private val maintenance = NotesMaintenanceGate<Run>()
     private var scope: CoroutineScope? = null
@@ -286,6 +291,13 @@ class NotesStore(
 
     fun retry(id: String) {
         if (!loaded || disabled || id !in registrations) return
+        if (
+            _state.value.collections.none {
+                it.id == id &&
+                    (it.status == NotesStatus.Error || it.status == NotesStatus.Unavailable)
+            }
+        )
+            return
         failed.remove(id)
         pending.retry(id)
         scans.add(id)
@@ -365,7 +377,9 @@ class NotesStore(
                         changesDetected = true,
                         immediate = true,
                     )
-                    update(record.id) { it.copy(status = waitingStatus(record.id)) }
+                    if (record.id !in failed) {
+                        update(record.id) { it.copy(status = waitingStatus(record.id)) }
+                    }
                 } catch (error: Exception) {
                     fail(record.id, error)
                 }
@@ -405,11 +419,55 @@ class NotesStore(
 
     private fun requestRebuild(id: String) {
         enqueue(id, rebuild = true, immediate = true)
-        update(id) { it.copy(status = waitingStatus(id), indexAvailable = false) }
+        update(id) {
+            it.copy(
+                status = if (id in failed) it.status else waitingStatus(id),
+                indexAvailable = false,
+            )
+        }
     }
 
     private fun waitingStatus(id: String) =
         pending[id]?.trigger?.waitingStatus ?: NotesStatus.Pending
+
+    private fun keepIndexFailure(id: String, revision: String?): Boolean {
+        if (failed[id] != IndexFailure.Indexing) return false
+        val previous = sourceRevisions[id]
+        revision?.let { sourceRevisions[id] = it }
+        return revision == null || previous == null || revision == previous
+    }
+
+    private suspend fun recoverRebuild(id: String) {
+        requestRebuild(id)
+        val revision =
+            try {
+                NotesCancellation().use { provider.inspectSourceRevision(id, it) }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                return
+            }
+        val failure = failed[id] ?: return
+        if (keepIndexFailure(id, revision)) return
+        failed.remove(id)
+        val previous = pending.remove(id)
+        revision?.let { sourceRevisions[id] = it }
+        enqueue(
+            id,
+            forced = previous?.forced.orEmpty(),
+            rebuild = true,
+            changesDetected = failure == IndexFailure.Indexing,
+            immediate = failure == IndexFailure.SourceAccess,
+        )
+        update(id) {
+            it.copy(
+                status = waitingStatus(id),
+                progress = null,
+                error = null,
+                indexAvailable = false,
+            )
+        }
+    }
 
     private fun enqueue(
         id: String,
@@ -430,13 +488,13 @@ class NotesStore(
         val embeddingReady = llm.isEmbeddingModelReady()
         val request =
             if (embeddingReady) {
-                pending.next(failed)
+                pending.next(failed.keys)
             } else null
         val id = request?.key ?: scans.firstOrNull { it !in pending || it in failed }
         if (id == null) {
             val due =
                 if (embeddingReady) {
-                    pending.nextDue(failed)
+                    pending.nextDue(failed.keys)
                 } else null
             wake = owner.launch {
                 delay(
@@ -469,32 +527,44 @@ class NotesStore(
                 try {
                     cancel.check()
                     if (snapshot == null) {
-                        val result = provider.inspectFreshness(id, cancel)
-                        if (id in failed) {
-                            val revision = result.sourceRevision
-                            if (revision == null || revision == sourceRevisions[id]) {
+                        val result =
+                            try {
+                                provider.inspectFreshness(id, cancel)
+                            } catch (error: NotesException.RebuildRequired) {
+                                if (id !in failed) throw error
+                                recoverRebuild(id)
                                 completed = true
                                 return@launch
                             }
-                            failed.remove(id)
-                            pending.remove(id)
-                        }
+                        val previous =
+                            failed[id]?.let {
+                                if (keepIndexFailure(id, result.sourceRevision)) {
+                                    completed = true
+                                    return@launch
+                                }
+                                failed.remove(id)
+                                pending.remove(id)
+                            }
                         result.sourceRevision?.let { sourceRevisions[id] = it }
-                        update(id) {
-                            fromSummary(record, result.summary)
-                                .copy(
-                                    progress =
-                                        if (result.summary.initialComplete) null else it.progress
-                                )
-                        }
-                        if (result.changed) {
+                        if (result.changed || previous?.rebuild == true) {
                             enqueue(
                                 id,
-                                forced = result.forcedDocumentIds.toSet(),
+                                forced = previous?.forced.orEmpty() + result.forcedDocumentIds,
+                                rebuild = previous?.rebuild == true,
                                 changesDetected = result.summary.initialComplete,
                                 immediate = !result.summary.initialComplete,
                             )
-                            update(id) { it.copy(status = waitingStatus(id), error = null) }
+                        }
+                        update(id) {
+                            val refreshed = fromSummary(record, result.summary)
+                            refreshed.copy(
+                                status = if (id in pending) waitingStatus(id) else refreshed.status,
+                                error = if (id in pending) null else refreshed.error,
+                                progress =
+                                    if (result.summary.initialComplete) null else it.progress,
+                                indexAvailable =
+                                    refreshed.indexAvailable && pending[id]?.rebuild != true,
+                            )
                         }
                     } else {
                         update(id) {
@@ -504,12 +574,7 @@ class NotesStore(
                                 error = null,
                             )
                         }
-                        val forced = snapshot.forced.toMutableSet()
-                        try {
-                            val freshness = provider.inspectFreshness(id, cancel)
-                            freshness.sourceRevision?.let { sourceRevisions[id] = it }
-                            forced.addAll(freshness.forcedDocumentIds)
-                        } catch (_: NotesException.RebuildRequired) {}
+                        sourceRevisions.remove(id)
                         val result =
                             llm.withEmbeddingContext(
                                 use =
@@ -518,6 +583,25 @@ class NotesStore(
                                     else EmbeddingUse.AutomaticIndexing,
                                 checkCancellation = cancel::check,
                             ) { embedding ->
+                                val forced = snapshot.forced.toMutableSet()
+                                val revision =
+                                    try {
+                                        val freshness =
+                                            NotesCancellation().use { freshnessCancellation ->
+                                                provider.inspectFreshness(id, freshnessCancellation)
+                                            }
+                                        forced.addAll(freshness.forcedDocumentIds)
+                                        freshness.sourceRevision
+                                    } catch (_: NotesException.RebuildRequired) {
+                                        NotesCancellation().use { revisionCancellation ->
+                                            provider.inspectSourceRevision(id, revisionCancellation)
+                                        }
+                                    }
+                                revision?.let {
+                                    withContext(Dispatchers.Main.immediate) {
+                                        sourceRevisions[id] = it
+                                    }
+                                }
                                 provider.index(
                                     id,
                                     embedding,
@@ -562,7 +646,8 @@ class NotesStore(
                                     indexAvailable =
                                         hadIndex &&
                                             result.summary.initialComplete &&
-                                            result.summary.documentCount > 0uL,
+                                            result.summary.documentCount > 0uL &&
+                                            pending[id]?.rebuild != true,
                                 )
                             }
                         }
@@ -598,7 +683,8 @@ class NotesStore(
                                         indexAvailable =
                                             hadIndex &&
                                                 saved?.initialComplete == true &&
-                                                saved.documentCount > 0uL,
+                                                saved.documentCount > 0uL &&
+                                                pending[id]?.rebuild != true,
                                     )
                                 }
                             }
@@ -607,7 +693,14 @@ class NotesStore(
                                     requestRebuild(id)
                                 } else fail(id, failure)
                             }
-                            is Exception -> fail(id, failure)
+                            is Exception -> {
+                                if (
+                                    snapshot != null ||
+                                        pending[id]?.trigger != NotesIndexTrigger.Manual
+                                ) {
+                                    fail(id, failure)
+                                }
+                            }
                         }
                     }
                 }
@@ -630,7 +723,14 @@ class NotesStore(
             tag = "Notes",
             throwable = e,
         )
-        failed.add(id)
+        failed[id] =
+            if (
+                e is NotesException.Unavailable ||
+                    e is NotesException.SourceRead ||
+                    e is NotesException.SourceChanged
+            )
+                IndexFailure.SourceAccess
+            else IndexFailure.Indexing
         scans.remove(id)
         update(id) {
             it.copy(

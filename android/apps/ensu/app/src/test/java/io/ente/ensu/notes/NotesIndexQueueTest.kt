@@ -9,16 +9,28 @@ import org.junit.Test
 
 class NotesIndexQueueTest {
     @Test
-    fun retryPromotesAutomaticAndInitialFailuresToManualWork() {
+    fun manualRequestsTakePriorityCoalesceAndClearDeferral() {
         val queue = NotesIndexQueue { 100 }
-        queue.enqueue("automatic", changesDetected = true)
-        for (id in listOf("automatic", "initial")) {
-            queue.retry(id)
-            val retry = requireNotNull(queue.next(emptySet()))
-            assertEquals(id, retry.key)
-            assertEquals(NotesIndexTrigger.Manual, retry.value.trigger)
-            queue.finish(id, retry.value)
-        }
+        queue.enqueue("automatic", immediate = true)
+        queue.enqueue("selected", forced = setOf("edited.md"), changesDetected = true)
+        assertEquals("automatic", queue.next(emptySet())?.key)
+        assertFalse(queue.updateNow("automatic"))
+        assertTrue(queue.updateNow("selected"))
+        val snapshot = requireNotNull(queue.next(emptySet()))
+        assertEquals("selected", snapshot.key)
+        assertEquals(NotesStatus.UpdateRequested, snapshot.value.trigger.waitingStatus)
+        assertTrue(queue.updateNow("selected"))
+        assertSame(snapshot.value, queue["selected"])
+
+        queue.defer("selected")
+        assertEquals("automatic", queue.next(emptySet())?.key)
+        assertTrue(queue.updateNow("selected"))
+        val resumed = requireNotNull(queue.next(emptySet())).value
+        assertEquals(setOf("edited.md"), resumed.forced)
+        assertEquals(NotesIndexTrigger.Manual, resumed.trigger)
+        queue.finish("selected", resumed)
+        assertNull(queue["selected"])
+        assertFalse(queue.updateNow("selected"))
     }
 
     @Test
@@ -36,56 +48,24 @@ class NotesIndexQueueTest {
     }
 
     @Test
-    fun manualUpdateBypassesDelayAndRunsBeforeAutomaticWork() {
+    fun retriesPromoteFailuresAndPreserveChangesArrivingDuringTheAttempt() {
         val queue = NotesIndexQueue { 100 }
-        queue.enqueue("automatic", immediate = true)
-        queue.enqueue("selected", changesDetected = true)
-        queue.defer("selected")
-        assertEquals(NotesStatus.UpdateScheduled, queue["selected"]?.trigger?.waitingStatus)
-        assertEquals("automatic", queue.next(emptySet())?.key)
+        queue.enqueue("automatic", forced = setOf("first.md"), changesDetected = true)
+        for (id in listOf("automatic", "initial")) {
+            queue.retry(id)
+            val snapshot = requireNotNull(queue.next(emptySet())).value
+            assertEquals(NotesIndexTrigger.Manual, snapshot.trigger)
+            queue.enqueue(id, forced = setOf("second.md"), rebuild = true)
+            queue.finish(id, snapshot)
+            assertNull(queue.next(setOf(id)))
+            queue.retry(id)
 
-        assertTrue(queue.updateNow("selected"))
-        assertEquals("selected", queue.next(emptySet())?.key)
-        assertEquals(NotesStatus.UpdateRequested, queue["selected"]?.trigger?.waitingStatus)
-        assertFalse(queue.updateNow("automatic"))
-    }
-
-    @Test
-    fun repeatedManualRequestsKeepOneQueuedUpdateAndCanClearDeferral() {
-        val queue = NotesIndexQueue { 100 }
-        queue.enqueue("selected", forced = setOf("edited.md"), changesDetected = true)
-        assertTrue(queue.updateNow("selected"))
-        val snapshot = requireNotNull(queue["selected"])
-        assertTrue(queue.updateNow("selected"))
-        assertSame(snapshot, queue["selected"])
-
-        queue.defer("selected")
-        assertNull(queue.next(emptySet()))
-        assertTrue(queue.updateNow("selected"))
-        val resumed = requireNotNull(queue.next(emptySet())).value
-        assertEquals(setOf("edited.md"), resumed.forced)
-        assertEquals(NotesIndexTrigger.Manual, resumed.trigger)
-        queue.finish("selected", resumed)
-        assertNull(queue.next(emptySet()))
-        assertFalse(queue.updateNow("selected"))
-    }
-
-    @Test
-    fun retryPreservesManualIntentAndMergedDocumentChanges() {
-        val queue = NotesIndexQueue { 100 }
-        queue.enqueue("selected", forced = setOf("first.md"), changesDetected = true)
-        queue.updateNow("selected")
-        val snapshot = requireNotNull(queue["selected"])
-        queue.enqueue("selected", forced = setOf("second.md"), rebuild = true)
-        queue.finish("selected", snapshot)
-        assertNull(queue.next(setOf("selected")))
-        queue.retry("selected")
-
-        val retry = requireNotNull(queue.next(emptySet())).value
-        assertEquals(NotesIndexTrigger.Manual, retry.trigger)
-        assertEquals(setOf("first.md", "second.md"), retry.forced)
-        assertTrue(retry.rebuild)
-        queue.finish("selected", retry)
-        assertNull(queue["selected"])
+            val retry = requireNotNull(queue.next(emptySet())).value
+            assertEquals(NotesIndexTrigger.Manual, retry.trigger)
+            assertEquals(snapshot.forced + "second.md", retry.forced)
+            assertTrue(retry.rebuild)
+            queue.finish(id, retry)
+            assertNull(queue[id])
+        }
     }
 }

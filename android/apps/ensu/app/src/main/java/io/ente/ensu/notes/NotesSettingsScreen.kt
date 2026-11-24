@@ -65,15 +65,131 @@ fun NotesSettingsScreen(
             )
         }
         items(state.collections, key = { it.id }) { collection ->
-            NotesCollectionCard(
-                collection = collection,
-                enabled = collection.id !in state.disabledIds,
-                allowRemoval = allowRemoval,
-                onSetEnabled = { store.setEnabled(collection.id, it) },
-                onUpdate = { store.updateNow(collection.id) },
-                onRetry = { store.retry(collection.id) },
-                onRemove = { removing = collection },
-            )
+            KnowledgeCard(spacing = EnsuSpacing.md.dp) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(EnsuSpacing.xs.dp),
+                    ) {
+                        Text(
+                            collection.label,
+                            style = EnsuTypography.large,
+                            color = EnsuColor.textPrimary(),
+                        )
+                        Text(
+                            text =
+                                buildString {
+                                    if (
+                                        collection.documentCount == 0L &&
+                                            (collection.status == NotesStatus.Pending ||
+                                                collection.status == NotesStatus.Indexing)
+                                    ) {
+                                        append("Preparing notes…")
+                                    } else {
+                                        append(
+                                            "${collection.documentCount} ${if (collection.documentCount == 1L) "note indexed" else "notes indexed"}"
+                                        )
+                                    }
+                                    collection.lastUpdatedAtMs?.let {
+                                        append(" · Updated at ")
+                                        append(
+                                            DateFormat.getDateTimeInstance(
+                                                    DateFormat.MEDIUM,
+                                                    DateFormat.SHORT,
+                                                )
+                                                .format(Date(it))
+                                        )
+                                    }
+                                },
+                            style = EnsuTypography.mini,
+                            color = EnsuColor.textMuted(),
+                        )
+                    }
+                    Switch(
+                        checked = collection.id !in state.disabledIds,
+                        onCheckedChange = { store.setEnabled(collection.id, it) },
+                        modifier =
+                            Modifier.semantics {
+                                contentDescription =
+                                    "Use ${collection.label} for future messages in all chats"
+                            },
+                    )
+                    if (allowRemoval)
+                        IconButton(
+                            onClick = { removing = collection },
+                            modifier = Modifier.size(48.dp),
+                        ) {
+                            Icon(
+                                painter = painterResource(HugeIcons.Delete01Icon),
+                                contentDescription = "Remove ${collection.label}",
+                                modifier = Modifier.size(18.dp),
+                                tint = EnsuColor.textMuted(),
+                            )
+                        }
+                }
+                val progress = collection.progress
+                if (progress != null) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(EnsuSpacing.sm.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        LinearProgressIndicator(
+                            progress = { progress.coerceIn(0, 100) / 100f },
+                            modifier = Modifier.weight(1f),
+                            color = EnsuColor.action(),
+                            trackColor = EnsuColor.border(),
+                        )
+                        Text(
+                            "$progress%",
+                            style = EnsuTypography.mini,
+                            color = EnsuColor.textMuted(),
+                        )
+                    }
+                } else if (
+                    collection.status == NotesStatus.Indexing ||
+                        collection.status == NotesStatus.Updating
+                ) {
+                    LinearProgressIndicator(
+                        modifier =
+                            Modifier.fillMaxWidth().semantics {
+                                contentDescription = "Updating ${collection.label}"
+                            },
+                        color = EnsuColor.action(),
+                        trackColor = EnsuColor.border(),
+                    )
+                }
+                if (collection.canRequestUpdate) {
+                    Column(verticalArrangement = Arrangement.spacedBy(EnsuSpacing.sm.dp)) {
+                        Text(
+                            if (collection.status == NotesStatus.UpdateRequested)
+                                "Update queued. Keep Ensu open."
+                            else "Changes detected in this folder.",
+                            style = EnsuTypography.small,
+                            color = EnsuColor.textPrimary(),
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                        )
+                        CompactButton(
+                            label = "Update now",
+                            onClick = { store.updateNow(collection.id) },
+                            modifier =
+                                Modifier.semantics {
+                                    contentDescription = "Update ${collection.label} now"
+                                },
+                        )
+                    }
+                } else if (collection.status == NotesStatus.Pending) {
+                    Text(
+                        "Indexing will continue when the app and model are ready.",
+                        style = EnsuTypography.small,
+                        color = EnsuColor.textMuted(),
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                    )
+                }
+                collection.error?.let {
+                    Text(it, style = EnsuTypography.small, color = EnsuColor.error)
+                    CompactButton(label = "Retry", onClick = { store.retry(collection.id) })
+                }
+            }
         }
         item {
             CompactButton(
@@ -120,141 +236,5 @@ fun NotesSettingsScreen(
             dismissButton = { TextButton(onClick = { removing = null }) { Text("Cancel") } },
             containerColor = EnsuColor.backgroundBase(),
         )
-    }
-}
-
-@Composable
-private fun NotesCollectionCard(
-    collection: NoteCollectionState,
-    enabled: Boolean,
-    allowRemoval: Boolean,
-    onSetEnabled: (Boolean) -> Unit,
-    onUpdate: () -> Unit,
-    onRetry: () -> Unit,
-    onRemove: () -> Unit,
-) {
-    KnowledgeCard(spacing = EnsuSpacing.md.dp) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(EnsuSpacing.xs.dp),
-            ) {
-                Text(
-                    collection.label,
-                    style = EnsuTypography.large,
-                    color = EnsuColor.textPrimary(),
-                )
-                Text(
-                    text =
-                        buildString {
-                            if (
-                                collection.documentCount == 0L &&
-                                    (collection.status == NotesStatus.Pending ||
-                                        collection.status == NotesStatus.Indexing)
-                            ) {
-                                append("Preparing notes…")
-                            } else {
-                                append(
-                                    "${collection.documentCount} ${if (collection.documentCount == 1L) "note indexed" else "notes indexed"}"
-                                )
-                            }
-                            collection.lastUpdatedAtMs?.let {
-                                append(" · Updated at ")
-                                append(
-                                    DateFormat.getDateTimeInstance(
-                                            DateFormat.MEDIUM,
-                                            DateFormat.SHORT,
-                                        )
-                                        .format(Date(it))
-                                )
-                            }
-                        },
-                    style = EnsuTypography.mini,
-                    color = EnsuColor.textMuted(),
-                )
-            }
-            Switch(
-                checked = enabled,
-                onCheckedChange = onSetEnabled,
-                modifier =
-                    Modifier.semantics {
-                        contentDescription =
-                            "Use ${collection.label} for future messages in all chats"
-                    },
-            )
-            if (allowRemoval)
-                IconButton(
-                    onClick = onRemove,
-                    modifier = Modifier.size(48.dp),
-                ) {
-                    Icon(
-                        painter = painterResource(HugeIcons.Delete01Icon),
-                        contentDescription = "Remove ${collection.label}",
-                        modifier = Modifier.size(18.dp),
-                        tint = EnsuColor.textMuted(),
-                    )
-                }
-        }
-        val progress = collection.progress
-        if (progress != null) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(EnsuSpacing.sm.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                LinearProgressIndicator(
-                    progress = { progress.coerceIn(0, 100) / 100f },
-                    modifier = Modifier.weight(1f),
-                    color = EnsuColor.action(),
-                    trackColor = EnsuColor.border(),
-                )
-                Text(
-                    "$progress%",
-                    style = EnsuTypography.mini,
-                    color = EnsuColor.textMuted(),
-                )
-            }
-        } else if (
-            collection.status == NotesStatus.Indexing || collection.status == NotesStatus.Updating
-        ) {
-            LinearProgressIndicator(
-                modifier =
-                    Modifier.fillMaxWidth().semantics {
-                        contentDescription = "Updating ${collection.label}"
-                    },
-                color = EnsuColor.action(),
-                trackColor = EnsuColor.border(),
-            )
-        }
-        if (collection.canRequestUpdate) {
-            Column(verticalArrangement = Arrangement.spacedBy(EnsuSpacing.sm.dp)) {
-                Text(
-                    if (collection.status == NotesStatus.UpdateRequested)
-                        "Update queued. Keep Ensu open."
-                    else "Changes detected in this folder.",
-                    style = EnsuTypography.small,
-                    color = EnsuColor.textPrimary(),
-                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-                )
-                CompactButton(
-                    label = "Update now",
-                    onClick = onUpdate,
-                    modifier =
-                        Modifier.semantics {
-                            contentDescription = "Update ${collection.label} now"
-                        },
-                )
-            }
-        } else if (collection.status == NotesStatus.Pending) {
-            Text(
-                "Indexing will continue when the app and model are ready.",
-                style = EnsuTypography.small,
-                color = EnsuColor.textMuted(),
-                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-            )
-        }
-        collection.error?.let {
-            Text(it, style = EnsuTypography.small, color = EnsuColor.error)
-            CompactButton(label = "Retry", onClick = onRetry)
-        }
     }
 }
