@@ -121,8 +121,26 @@ vi.mock("@/utils/photoFrame", () => ({
     handleSelectCreatorMulti: vi.fn(),
 }));
 
+function findElementByType(node: any, targetType: unknown): any {
+    if (!node || typeof node !== "object") return null;
+    if (Array.isArray(node)) {
+        for (const child of node) {
+            const found = findElementByType(child, targetType);
+            if (found) return found;
+        }
+        return null;
+    }
+    if (node.type === targetType) return node;
+    if (node.props?.children) {
+        return findElementByType(node.props.children, targetType);
+    }
+    return null;
+}
+
+const MockDateScrubber = vi.hoisted(() => vi.fn(() => null));
+
 vi.mock("@/components/date-scrubber/DateScrubber", () => ({
-    DateScrubber: () => null,
+    DateScrubber: MockDateScrubber,
 }));
 
 vi.mock("@/components/FileContextMenu", () => ({
@@ -184,16 +202,18 @@ function makeAnnotatedFiles(count: number, favoriteIds = new Set<number>()): Fil
 }
 
 function renderFileList(props: Parameters<typeof FileList>[0]) {
+    let tree: any = null;
     for (let pass = 0; pass < 4; pass++) {
         cursor = 0;
         pendingEffects.length = 0;
-        FileList(props);
+        tree = FileList(props);
         if (pendingEffects.length === 0) break;
         const effects = pendingEffects.splice(0);
         for (const effect of effects) {
             effect.fn();
         }
     }
+    return tree;
 }
 
 describe("FileList scroll preservation on timeline updates", () => {
@@ -214,10 +234,14 @@ describe("FileList scroll preservation on timeline updates", () => {
     });
 
     test("preserves scroll position when annotatedFiles updates (e.g. favoriting) and clamps when list shrinks", () => {
-        const scrollTo = vi.fn();
-        const scrollToItem = vi.fn();
-        const resetAfterIndex = vi.fn();
         const outerEl = { scrollTop: 0 };
+        const scrollTo = vi.fn((offset: number) => {
+            outerEl.scrollTop = offset;
+        });
+        const scrollToItem = vi.fn((row: number) => {
+            outerEl.scrollTop = row * 100;
+        });
+        const resetAfterIndex = vi.fn();
 
         const baseProps = {
             width: 1000,
@@ -251,19 +275,37 @@ describe("FileList scroll preservation on timeline updates", () => {
 
         // Update annotatedFiles (e.g., favoriting a photo triggers timeline recalculation)
         const updatedFiles = makeAnnotatedFiles(30, new Set([1]));
-        renderFileList({ ...baseProps, annotatedFiles: updatedFiles });
+        const treeAfterFavorite = renderFileList({
+            ...baseProps,
+            annotatedFiles: updatedFiles,
+        });
 
+        expect(outerEl.scrollTop).toBe(300);
         expect(scrollToItem).not.toHaveBeenCalled();
         expect(scrollTo).not.toHaveBeenCalled();
+        const scrubberAfterFavorite = findElementByType(
+            treeAfterFavorite,
+            MockDateScrubber,
+        );
+        expect(scrubberAfterFavorite?.props.scrollOffset).toBe(300);
 
         // Shrink list so maxOffset < current scrollTop (300) while scrubber stays active
         const fewerFiles = makeAnnotatedFiles(6);
-        renderFileList({ ...baseProps, annotatedFiles: fewerFiles });
+        const treeAfterShrink = renderFileList({
+            ...baseProps,
+            annotatedFiles: fewerFiles,
+        });
 
         expect(scrollToItem).not.toHaveBeenCalled();
         expect(scrollTo).toHaveBeenCalledTimes(1);
         const clampedOffset = scrollTo.mock.calls[0]![0] as number;
         expect(clampedOffset).toBeGreaterThan(0);
         expect(clampedOffset).toBeLessThan(300);
+        expect(outerEl.scrollTop).toBe(clampedOffset);
+        const scrubberAfterShrink = findElementByType(
+            treeAfterShrink,
+            MockDateScrubber,
+        );
+        expect(scrubberAfterShrink?.props.scrollOffset).toBe(clampedOffset);
     });
 });
