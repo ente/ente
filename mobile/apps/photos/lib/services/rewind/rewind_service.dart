@@ -46,6 +46,7 @@ class RewindService {
   final _lock = Lock();
   final _state = ValueNotifier<rust.RewindState?>(null);
   final _story = ValueNotifier<RewindStory?>(null);
+  final _revealed = ValueNotifier<bool>(false);
   int? _storyComputedAt;
   String? _hiddenReason;
   String _missingStateReason = "no state";
@@ -72,9 +73,15 @@ class RewindService {
 
   ValueListenable<RewindStory?> get story => _story;
 
+  bool get revealed => _revealed.value;
+
   RewindProgress get progress => _progress;
 
-  late final Listenable changes = Listenable.merge([_story, _progress]);
+  late final Listenable changes = Listenable.merge([
+    _story,
+    _revealed,
+    _progress,
+  ]);
 
   String get diagnosis {
     final hiddenReason = _hiddenReason;
@@ -84,6 +91,8 @@ class RewindService {
       _storySummary,
       if (!memoriesCacheService.showAnyMemories)
         "home tile hidden because memories are off",
+      if (RewindEdition.isPrelaunch(DateTime.now()))
+        "hidden until ${RewindEdition.availableFrom}",
     ].join(", ");
   }
 
@@ -179,7 +188,7 @@ class RewindService {
   }
 
   String? _unavailableReason(DateTime now) {
-    if (!RewindEdition.isAvailable(now)) {
+    if (!RewindEdition.canPrepare(now)) {
       return "not available (flag ${flagService.rewind})";
     }
     if (_owner == null) return "no owner";
@@ -197,6 +206,12 @@ class RewindService {
 
   bool _madeWithDisabledMl(rust.RewindState state) =>
       state.mlCoverage != null && !rewindUsesMl;
+
+  bool _madeBeforeLaunch(rust.RewindState state) =>
+      RewindEdition.isAvailable(DateTime.now()) &&
+      RewindEdition.isPrelaunch(
+        DateTime.fromMicrosecondsSinceEpoch(state.computedAt),
+      );
 
   Future<void> _publish(
     int owner,
@@ -254,9 +269,13 @@ class RewindService {
   }
 
   Future<void> _buildStory({bool sharpenFaces = true}) async {
+    _revealed.value = RewindEdition.isAvailable(DateTime.now());
     final state = _state.value;
     final status = state?.status;
-    if (state == null || status is! rust.RewindStatus_Ready || isProcessBg) {
+    if (state == null ||
+        status is! rust.RewindStatus_Ready ||
+        isProcessBg ||
+        _madeBeforeLaunch(state)) {
       _setStory(null, null);
       return;
     }
@@ -357,11 +376,12 @@ class RewindService {
   Future<rust.RewindState?> _load(int owner) async {
     final cache = await _cacheFile(owner);
     if (!await cache.exists()) return null;
-    return rust.decodeRewindState(
+    final stored = await rust.decodeRewindState(
       bytes: await cache.readAsBytes(),
       year: RewindEdition.year,
       localGalleryMode: isLocalGalleryMode,
     );
+    return stored == null || _madeBeforeLaunch(stored) ? null : stored;
   }
 
   bool _isFresh(
@@ -380,7 +400,8 @@ class RewindService {
   }
 
   Future<void> _updateNotification() async {
-    final status = _state.value?.status;
+    final state = _state.value;
+    final status = state?.status;
     if (status is rust.RewindStatus_NothingToShow &&
         _progress.notificationScheduled) {
       await NotificationService.instance.clearAllScheduledNotifications(
@@ -389,7 +410,10 @@ class RewindService {
       await _progress.clearNotificationScheduled();
       return;
     }
-    if (status is! rust.RewindStatus_Ready ||
+    if (state == null ||
+        status is! rust.RewindStatus_Ready ||
+        !_revealed.value ||
+        _madeBeforeLaunch(state) ||
         _progress.opened ||
         _progress.notificationScheduled ||
         !await NotificationService.instance.hasGrantedPermissions()) {
