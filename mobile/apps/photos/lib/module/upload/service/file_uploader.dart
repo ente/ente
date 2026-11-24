@@ -398,6 +398,7 @@ class FileUploader {
 
     final String lockKey = file.localID!;
     bool isMultipartUpload = false;
+    bool hasActiveMultipartTrack = false;
 
     late final bool acquiredLock;
     try {
@@ -593,47 +594,68 @@ class FileUploader {
           "Init multipartUpload $hasExistingMultiPart, isUpdate $isUpdatedFile",
         );
         if (hasExistingMultiPart) {
-          fileObjectKey = await _multiPartUploader.putExistingMultipartFile(
-            encryptedFile,
-            lockKey,
-            mediaUploadData.fileHash,
-            collectionID,
-            existingMultipartEncFileName,
-            onSendProgress: onSendProgress,
-          );
-        } else {
-          if (partMd5s == null || partMd5s.isEmpty) {
-            throw MultiPartError("Missing part MD5s for multipart upload");
+          hasActiveMultipartTrack = true;
+          try {
+            fileObjectKey = await _multiPartUploader.putExistingMultipartFile(
+              encryptedFile,
+              lockKey,
+              mediaUploadData.fileHash,
+              collectionID,
+              existingMultipartEncFileName,
+              onSendProgress: onSendProgress,
+            );
+          } on DioException catch (e) {
+            final statusCode = e.response?.statusCode;
+            if (statusCode == 404 || statusCode == 401) {
+              // putExistingMultipartFile deleted the stale multipart track.
+              hasActiveMultipartTrack = false;
+            }
+            final canReuseEncryptedFile =
+                statusCode == 404 &&
+                partMd5s != null &&
+                partMd5s.isNotEmpty &&
+                (fileAttributes.partSize == null ||
+                    fileAttributes.partSize ==
+                        _multiPartUploader.multipartPartSizeForUpload);
+            if (!canReuseEncryptedFile) {
+              rethrow;
+            }
+            _logger.info(
+              "Multipart upload returned 404 for $lockKey; starting fresh multipart upload reusing existing encrypted file",
+            );
+            fileObjectKey = await _startFreshMultipartUpload(
+              lockKey: lockKey,
+              fileHash: mediaUploadData.fileHash,
+              collectionID: collectionID,
+              encryptedFile: encryptedFile,
+              encFileSize: encFileSize,
+              count: count,
+              fileAttributes: fileAttributes,
+              fileMd5: fileMd5,
+              partMd5s: partMd5s,
+              onTrackCreated: () {
+                hasActiveMultipartTrack = true;
+              },
+              onSendProgress: onSendProgress,
+            );
+          } on MultiPartError {
+            hasActiveMultipartTrack = false;
+            rethrow;
           }
-          final multipartPartLength =
-              fileAttributes.partSize ??
-              _multiPartUploader.multipartPartSizeForUpload;
-          final fileUploadURLs = await _multiPartUploader
-              .getMultipartUploadURLs(
-                count: count,
-                contentLength: encFileSize,
-                partLength: multipartPartLength,
-                partMd5s: partMd5s,
-              );
-          final encFileName = encryptedFile.path.split('/').last;
-          await _multiPartUploader.createTableEntry(
-            lockKey,
-            mediaUploadData.fileHash,
-            collectionID,
-            fileUploadURLs,
-            encFileName,
-            encFileSize,
-            fileAttributes.key,
-            fileAttributes.header,
+        } else {
+          fileObjectKey = await _startFreshMultipartUpload(
+            lockKey: lockKey,
+            fileHash: mediaUploadData.fileHash,
+            collectionID: collectionID,
+            encryptedFile: encryptedFile,
+            encFileSize: encFileSize,
+            count: count,
+            fileAttributes: fileAttributes,
             fileMd5: fileMd5,
             partMd5s: partMd5s,
-          );
-          fileObjectKey = await _multiPartUploader.putMultipartFile(
-            fileUploadURLs,
-            encryptedFile,
-            encFileSize,
-            fileMd5: fileMd5,
-            partMd5s: partMd5s,
+            onTrackCreated: () {
+              hasActiveMultipartTrack = true;
+            },
             onSendProgress: onSendProgress,
           );
         }
@@ -804,9 +826,10 @@ class FileUploader {
         // These failures cannot be retried without user intervention.
         uploadHardFailure = true;
       }
-      if ((isMultipartUpload || hasExistingMultiPart) &&
-          isPutOrMultiPartError(e)) {
+      if ((uploadHardFailure || isPutOrMultiPartError(e)) &&
+          (isMultipartUpload || hasExistingMultiPart)) {
         await UploadLocksDB.instance.deleteMultipartTrack(lockKey);
+        hasActiveMultipartTrack = false;
         await deleteFileSystemEntityIfPresent(File(encryptedFilePath));
       }
       rethrow;
@@ -819,9 +842,59 @@ class FileUploader {
         encryptedFilePath,
         encryptedThumbnailPath,
         lockKey: lockKey,
-        isMultiPartUpload: isMultipartUpload,
+        keepMultipartEncryptedFile:
+            hasActiveMultipartTrack && !uploadCompleted && !uploadHardFailure,
       );
     }
+  }
+
+  Future<String> _startFreshMultipartUpload({
+    required String lockKey,
+    required String fileHash,
+    required int collectionID,
+    required File encryptedFile,
+    required int encFileSize,
+    required int count,
+    required FileEncryptResult fileAttributes,
+    required String? fileMd5,
+    required List<String>? partMd5s,
+    required VoidCallback onTrackCreated,
+    ProgressCallback? onSendProgress,
+  }) async {
+    if (partMd5s == null || partMd5s.isEmpty) {
+      throw MultiPartError("Missing part MD5s for multipart upload");
+    }
+    final multipartPartLength =
+        fileAttributes.partSize ??
+        _multiPartUploader.multipartPartSizeForUpload;
+    final fileUploadURLs = await _multiPartUploader.getMultipartUploadURLs(
+      count: count,
+      contentLength: encFileSize,
+      partLength: multipartPartLength,
+      partMd5s: partMd5s,
+    );
+    final encFileName = encryptedFile.path.split('/').last;
+    await _multiPartUploader.createTableEntry(
+      lockKey,
+      fileHash,
+      collectionID,
+      fileUploadURLs,
+      encFileName,
+      encFileSize,
+      fileAttributes.key,
+      fileAttributes.header,
+      fileMd5: fileMd5,
+      partMd5s: partMd5s,
+    );
+    onTrackCreated();
+    return _multiPartUploader.putMultipartFile(
+      fileUploadURLs,
+      encryptedFile,
+      encFileSize,
+      fileMd5: fileMd5,
+      partMd5s: partMd5s,
+      onSendProgress: onSendProgress,
+    );
   }
 
   bool isPutOrMultiPartError(Object e) {
@@ -845,7 +918,7 @@ class FileUploader {
     String encryptedFilePath,
     String encryptedThumbnailPath, {
     required String lockKey,
-    bool isMultiPartUpload = false,
+    bool keepMultipartEncryptedFile = false,
   }) async {
     if (mediaUploadData != null) {
       // delete the file from app's internal cache if it was copied to app
@@ -866,7 +939,7 @@ class FileUploader {
       }
     }
     if (File(encryptedFilePath).existsSync()) {
-      if (isMultiPartUpload && !uploadCompleted) {
+      if (keepMultipartEncryptedFile) {
         _logger.info(
           "skip delete for multipart encrypted file $encryptedFilePath",
         );
