@@ -898,7 +898,10 @@ class _BodyState extends State<_Body> {
         return;
       }
       final imageBytes = await ioFile.readAsBytes();
-      if (!mounted) return;
+      if (!mounted) {
+        await dialog.hide();
+        return;
+      }
       await precacheImage(MemoryImage(imageBytes), context);
       await dialog.hide();
       if (!mounted) return;
