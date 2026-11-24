@@ -81,7 +81,7 @@ export const PhotosNavigationShell: React.FC<
     const sectionID = activeSectionID(navigation);
     const hasNavigation = sectionDefinition(sectionID).hasNavigation;
     const isHome =
-        !navigation.overlay &&
+        navigation.overlay?.section !== "search" &&
         navigation.destination.section === "albums" &&
         navigation.destination.collectionID === PseudoCollectionID.all;
 
@@ -104,7 +104,7 @@ export const PhotosNavigationShell: React.FC<
     useImperativeHandle(ref, () => ({ showSettings }), [showSettings]);
     const isOffline = useIsOffline();
     const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
-    const [navigationCollapsed, setNavigationCollapsed] = useState(isHome);
+    const [navigationCollapsed, setNavigationCollapsed] = useState(false);
     const mobile = useMediaQuery(useTheme().breakpoints.down("md"));
     const navigationAvailable = hasNavigation;
     const panelOpen = navigationAvailable && !navigationCollapsed;
@@ -123,9 +123,10 @@ export const PhotosNavigationShell: React.FC<
     };
     const panelMode =
         navigation.destination.albumMode ?? navigation.destination.section;
+    const isInSearchMode = navigation.overlay?.section === "search";
     useEffect(() => {
-        setNavigationCollapsed(isHome);
-    }, [panelMode, isHome, sectionID, navigation.destination.section]);
+        setNavigationCollapsed(false);
+    }, [panelMode, isInSearchMode, navigation.destination.section]);
     useEffect(() => {
         if (!mobile) closeMobileNavigation();
     }, [mobile, closeMobileNavigation]);
@@ -189,6 +190,8 @@ export const PhotosNavigationShell: React.FC<
                             overflowY: "auto",
                             scrollbarWidth: "none",
                             px: { xs: "9px", sm: "14px" },
+                            // Leave room for the first button's focus outline.
+                            pt: "4px",
                             gap: "12px",
                             ...theme.applyStyles("light", {
                                 "& .MuiButton-colorSecondary": {
