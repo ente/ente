@@ -75,6 +75,7 @@ impl std::str::FromStr for Sender {
 pub enum EntityType {
     Session,
     Message,
+    Todo,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

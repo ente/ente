@@ -249,6 +249,10 @@ struct AssistantMessageBubbleView: View {
     let onBranchChange: (Int) -> Void
     let onOpenAttachment: (ChatAttachment) -> Void
     let showsMetadata: Bool
+    let isGenerating: Bool
+    var todoTurn: ToolTurnStatus? = nil
+    var onConfirmTodoTurn: () -> Void = {}
+    var onUndoTodoTurn: () -> Void = {}
 
     @State private var showSources = false
 
@@ -285,7 +289,9 @@ struct AssistantMessageBubbleView: View {
                             onCopy()
                         }
                     }
-                    if !message.isSynthetic || isLastMessage {
+                    if todoTurn?.canRetry ?? true
+                        && (!message.isSynthetic || isLastMessage)
+                    {
                         Button("Retry") {
                             hapticMedium()
                             onRetry()
@@ -304,6 +310,10 @@ struct AssistantMessageBubbleView: View {
                                 onNext: { onBranchChange(1) }
                             )
                         }
+                        if let todoTurn {
+                            todoTurnActions(todoTurn)
+                                .disabled(isGenerating)
+                        }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, EnsuSpacing.sm)
@@ -315,6 +325,34 @@ struct AssistantMessageBubbleView: View {
         }
         .sheet(isPresented: $showSources) {
             KnowledgeSourcesSheet(citations: parsed.sources)
+        }
+    }
+
+    private func undoLabel(_ undo: ToolTurnUndo) -> String {
+        switch undo {
+        case .none, .available: "Undo"
+        case .undone: "Undone"
+        case .partlyUndone: "Partly undone"
+        case .stale: "Can’t undo"
+        }
+    }
+
+    @ViewBuilder
+    private func todoTurnActions(_ turn: ToolTurnStatus) -> some View {
+        switch turn.confirm {
+        case .none:
+            EmptyView()
+        case .offered:
+            CompactButton(text: "Confirm") {
+                hapticTap()
+                onConfirmTodoTurn()
+            }
+        case .stale:
+            TextActionButton(text: "Expired", action: {}).disabled(true)
+        }
+        if turn.undo != .none {
+            TextActionButton(text: undoLabel(turn.undo), action: onUndoTodoTurn)
+                .disabled(turn.undo != .available)
         }
     }
 
@@ -766,7 +804,7 @@ struct MarkdownView: View {
                     CodeBlockView(code: code)
                 case .math(let text):
                     MathBlockView(text: text)
-                case .list(let items):
+                case .list(let items, let firstNumber):
                     let resolvedItems =
                         (showCursor && isLast)
                         ? items.enumerated().map { offset, item in
@@ -775,9 +813,9 @@ struct MarkdownView: View {
                         : items
 
                     VStack(alignment: .leading, spacing: EnsuSpacing.md) {
-                        ForEach(Array(resolvedItems.enumerated()), id: \.offset) { _, item in
+                        ForEach(Array(resolvedItems.enumerated()), id: \.offset) { offset, item in
                             HStack(alignment: .top, spacing: EnsuSpacing.sm) {
-                                Text("•")
+                                Text(firstNumber.map { "\($0 + offset)." } ?? "•")
                                     .font(EnsuTypography.message)
                                     .foregroundStyle(EnsuColor.textPrimary)
                                 if item.hasMath {

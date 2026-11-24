@@ -813,12 +813,14 @@ fn grounding_cache_publishes_only_saved_answers_and_preserves_evidence_positions
     assert_ne!(abandoned.grounding_anchor, first_anchor);
     let captured = snapshot(&history);
     let answer = cache
-        .save_answer(&db, &captured, &mut first, "An answer.", vec![])
-        .unwrap();
+        .finish(&db, &captured, &mut first, reply("An answer."))
+        .unwrap()
+        .reply
+        .message;
     assert!(first.is_saved());
     assert!(
         cache
-            .save_answer(&db, &captured, &mut first, "Duplicate answer.", vec![])
+            .finish(&db, &captured, &mut first, reply("Duplicate answer."))
             .is_err()
     );
     append(&mut history, answer, "What happens with less sunlight?");
@@ -833,8 +835,10 @@ fn grounding_cache_publishes_only_saved_answers_and_preserves_evidence_positions
         history.last().unwrap().text
     );
     let answer = cache
-        .save_answer(&db, &snapshot(&history), &mut second, "An answer.", vec![])
-        .unwrap();
+        .finish(&db, &snapshot(&history), &mut second, reply("An answer."))
+        .unwrap()
+        .reply
+        .message;
     append(&mut history, answer, "Explain the new fact.");
     let changed = pack_hit("Stomata allow carbon dioxide to enter.", "Stomata", 3);
     let mut third = prepare(&history, vec![changed.clone()]);
@@ -855,7 +859,7 @@ fn grounding_cache_publishes_only_saved_answers_and_preserves_evidence_positions
         .unwrap();
     assert!(
         cache
-            .save_answer(&db, &captured, &mut third, "Stale answer.", vec![])
+            .finish(&db, &captured, &mut third, reply("Stale answer."))
             .is_err()
     );
     assert!(!third.is_saved());
@@ -865,8 +869,10 @@ fn grounding_cache_publishes_only_saved_answers_and_preserves_evidence_positions
     assert_eq!(retained.grounding_anchor, first_anchor);
     let mut third = prepare(&history, vec![changed.clone()]);
     let answer = cache
-        .save_answer(&db, &snapshot(&history), &mut third, "An answer.", vec![])
-        .unwrap();
+        .finish(&db, &snapshot(&history), &mut third, reply("An answer."))
+        .unwrap()
+        .reply
+        .message;
     append(&mut history, answer, "What if they close?");
     let fourth = prepare(&history, vec![changed]);
     for (before, after) in third.messages.iter().zip(&fourth.messages) {
@@ -969,5 +975,15 @@ fn compaction_and_fallback_relocate_grounding_without_summarizing_excerpts() {
         );
         assert_ne!(result.grounding_anchor, first.grounding_anchor);
         assert!(!effects.summary_contains_grounding);
+    }
+}
+
+fn reply(text: &str) -> Reply<'_> {
+    Reply {
+        text,
+        sources: &[],
+        passages: Vec::new(),
+        attachments: Vec::new(),
+        tools: None,
     }
 }

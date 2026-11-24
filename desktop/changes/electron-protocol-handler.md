@@ -1,0 +1,1 @@
+- Switched the desktop app to Electron’s built-in protocol handler.

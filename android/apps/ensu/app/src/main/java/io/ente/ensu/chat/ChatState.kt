@@ -1,5 +1,6 @@
 package io.ente.ensu.chat
 
+import io.ente.ensu.bindings.ToolTurnStatus
 import io.ente.ensu.device.ChatDeviceCapability
 import io.ente.ensu.llm.DownloadPhase
 
@@ -32,7 +33,11 @@ data class ChatState(
     val deviceCapability: ChatDeviceCapability = ChatDeviceCapability.Unknown,
     val showUnsupportedDeviceDialog: Boolean = false,
     val overflowDialog: OverflowDialogState? = null,
+    val todoTurns: Map<String, ToolTurnStatus> = emptyMap(),
+    val todoTurnError: TodoTurnError? = null,
 )
+
+data class TodoTurnError(val title: String, val message: String)
 
 data class OverflowDialogState(
     val inputTokens: Int,

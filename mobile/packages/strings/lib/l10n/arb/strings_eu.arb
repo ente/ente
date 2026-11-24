@@ -180,7 +180,7 @@
   "@enterPassword": {
     "description": "Enter password field label"
   },
-  "enterPasswordToEncrypt": "Sartu pasahitz bat, zure data deszifratu ahal izateko",
+  "enterPasswordToEncrypt": "Sartu pasahitz bat, zure data zifratu ahal izateko",
   "@enterPasswordToEncrypt": {
     "description": "Prompt to enter password for encryption"
   },
@@ -355,7 +355,7 @@
   "@recoveryKeyCopiedToClipboard": {
     "description": "Recovery key copied message"
   },
-  "recoveryKeyOnForgotPassword": "Zure pasahitza ahazten baduzu, zure datuak berreskuratzeko modu bakarra gailu honen bidez izango da.",
+  "recoveryKeyOnForgotPassword": "Zure pasahitza ahazten baduzu, zure datuak berreskuratzeko modu bakarra giltza honen bidez izango da.",
   "@recoveryKeyOnForgotPassword": {
     "description": "Recovery key importance explanation"
   },

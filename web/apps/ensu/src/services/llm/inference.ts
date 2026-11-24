@@ -141,7 +141,7 @@ class WasmInference implements InferenceBackend {
             throw new Error("WASM backend: model must be loaded first.");
         }
         return this.wllama.formatChat(
-            messages,
+            toWllamaMessages(messages),
             true,
             templateOverride ?? undefined,
         );
@@ -167,7 +167,7 @@ class WasmInference implements InferenceBackend {
         try {
             const addAssistant = request.addAssistant ?? true;
             const prompt = await this.wllama.formatChat(
-                request.messages,
+                toWllamaMessages(request.messages),
                 addAssistant,
                 request.templateOverride ?? undefined,
             );
@@ -727,6 +727,12 @@ const normalizeWllamaError = (error: unknown, fallback: string) => {
     if (error instanceof Error) return error;
     return new Error(typeof error === "string" ? error : fallback);
 };
+
+const toWllamaMessages = (messages: LlmMessage[]) =>
+    messages.map(({ role, content }) => ({
+        role: role === "tool" ? ("assistant" as const) : role,
+        content,
+    }));
 
 const buildGenerateChatRequest = (request: GenerateChatRequest) => ({
     messages: request.messages,

@@ -1,0 +1,1 @@
+- Made album and photo selection controls fit narrow windows.

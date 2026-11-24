@@ -124,7 +124,7 @@ export const Help: React.FC<HelpProps> = ({
         >
             <Stack sx={{ px: 2, py: 1, gap: 1 }}>
                 <RowCard
-                    title="Help centre"
+                    title={t("ente_help")}
                     subtitle="ente.com/help/photos"
                     onClick={handleHelp}
                 />
@@ -134,7 +134,7 @@ export const Help: React.FC<HelpProps> = ({
                     onClick={handleBlog}
                 />
                 <RowCard
-                    title="Request a feature"
+                    title={t("request_feature")}
                     subtitle="github.com/ente/ente"
                     onClick={handleRequestFeature}
                 />
@@ -145,12 +145,12 @@ export const Help: React.FC<HelpProps> = ({
                 />
                 <RowCard
                     title={t("view_logs")}
-                    subtitle="Share with support when something goes wrong"
+                    subtitle={t("view_logs_subtitle")}
                     onClick={confirmViewLogs}
                 />
                 {appVersion && (
                     <RowCard
-                        title="About"
+                        title={t("about")}
                         subtitle={`Photos ${appVersion}`}
                         endIcon={null}
                     />

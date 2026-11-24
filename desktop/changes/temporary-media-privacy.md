@@ -1,0 +1,1 @@
+- Restricted access to temporary media files.

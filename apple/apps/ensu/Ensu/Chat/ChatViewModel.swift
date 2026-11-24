@@ -3,6 +3,12 @@ import Foundation
 import os
 import SwiftUI
 
+struct TodoTurnError: Identifiable {
+    let id = UUID()
+    let title: String
+    let message: String
+}
+
 @MainActor
 final class ChatViewModel: ObservableObject {
     private struct ModelReadyKey: Equatable {
@@ -91,6 +97,9 @@ final class ChatViewModel: ObservableObject {
     @Published var deviceCapability: ChatDeviceCapability = .unknown
     @Published var showUnsupportedDeviceDialog: Bool = false
     @Published var generationErrorMessage: String?
+    @Published var todoTurnError: TodoTurnError?
+    @Published private(set) var todoTurns: [UUID: ToolTurnStatus] = [:]
+    private(set) lazy var todoStore = TodoStore(db: { [weak self] in self?.chatDb })
     @Published var draftCursorMoveToken = UUID()
     let knowledgeStore: KnowledgeStore
     let notesStore: NotesStore
@@ -110,7 +119,9 @@ final class ChatViewModel: ObservableObject {
     var composerSelection = NSRange(location: 0, length: 0)
     var composerIsComposing = false
     @Published var voiceInsertionCaret: Int?
-    private var chatDb: EnsuDb
+    private var chatDb: EnsuDb {
+        didSet { observeTools() }
+    }
     private let attachmentsDir: URL
     private let chatDbPath: String
     private let chatDbKey: Data
@@ -239,6 +250,7 @@ final class ChatViewModel: ObservableObject {
         }
 
         voiceTranscriber.onActivityChanged = { [weak self] in self?.refreshChatWarmup() }
+        observeTools()
         refreshDeviceCapability()
         refreshModelDownloadInfo()
         Task {
@@ -1457,10 +1469,12 @@ final class ChatViewModel: ObservableObject {
                     let snapshot = buffer.withLock { $0 }
                     let interrupted: Bool
                     let totalTimeMs: Int64?
+                    var calledTools = false
                     switch result {
                     case let .success(summary):
                         interrupted = false
                         totalTimeMs = summary.totalTimeMs
+                        calledTools = summary.calledTools
                     case let .failure(error):
                         interrupted = true
                         totalTimeMs = nil
@@ -1491,7 +1505,7 @@ final class ChatViewModel: ObservableObject {
                         parent: userNode, response: snapshot.text, tokenCount: snapshot.tokenCount,
                         totalTimeMs: totalTimeMs, interrupted: interrupted,
                         generationId: generationId, citations: citations,
-                        preparation: preparation)
+                        preparation: preparation, calledTools: calledTools)
                 }
             do {
                 if prompt.imageFiles.isEmpty {
@@ -1711,6 +1725,7 @@ final class ChatViewModel: ObservableObject {
                     messages: result.messages,
                     temperature: temperature,
                     maxTokens: result.maxTokens,
+                    tools: result.tools,
                     control: control,
                     onPromptProgress: onPromptProgress,
                     onToken: onToken
@@ -1744,9 +1759,10 @@ final class ChatViewModel: ObservableObject {
     private func finishGeneration(
         parent: MessageNode, response: String, tokenCount: Int, totalTimeMs: Int64?,
         interrupted: Bool, generationId: UUID, citations: [GroundedSource] = [],
-        preparation: ConversationPreparation? = nil
+        preparation: ConversationPreparation? = nil, calledTools: Bool = false
     ) async {
         var savedResponse: (UUID, String)?
+        let appliesTools = calledTools && !interrupted && !stopRequested && preparation != nil
         let rawText = response.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmed: String
         if rawText.isEmpty || preparation != nil {
@@ -1767,8 +1783,10 @@ final class ChatViewModel: ObservableObject {
             }
         }
         let isActiveGeneration = activeGenerationId == generationId
-        if trimmed.isEmpty {
-            if isActiveGeneration && !interrupted && generationErrorMessage == nil {
+        if trimmed.isEmpty && !appliesTools {
+            if isActiveGeneration && !interrupted && !stopRequested
+                && generationErrorMessage == nil
+            {
                 let details =
                     "session=\(parent.sessionId.uuidString) promptLen=\(parent.text.count)"
                 logger.warning("Generation returned empty response", details: details)
@@ -1785,7 +1803,8 @@ final class ChatViewModel: ObservableObject {
                 do {
                     let inserted: DbMessage
                     if let preparation {
-                        inserted = try preparation.addAnswer(text: trimmed, attachments: meta)
+                        let finished = try preparation.finish(text: trimmed, attachments: meta)
+                        inserted = finished.message
                     } else {
                         inserted = try chatDb.insertMessage(
                             sessionUuid: parent.sessionId.uuidString,
@@ -1837,7 +1856,10 @@ final class ChatViewModel: ObservableObject {
                         )
                     }
                 } catch {
-                    if preparation != nil {
+                    if case let ConversationError.Refused(reason, _) = error {
+                        todoTurnError = TodoTurnError(
+                            title: "Couldn’t update To Dos", message: reason.message)
+                    } else if preparation != nil {
                         generationErrorMessage =
                             "The response could not be saved. Retry the message."
                     }
@@ -2144,6 +2166,53 @@ final class ChatViewModel: ObservableObject {
             }
         }
         messages = augmented
+        loadTodoTurns()
+    }
+
+    private func loadTodoTurns() {
+        guard let session = currentSessionId,
+            let statuses = try? chatDb.toolTurnStatuses(sessionId: session.uuidString)
+        else {
+            todoTurns = [:]
+            return
+        }
+        todoTurns = Dictionary(
+            uniqueKeysWithValues: statuses.compactMap { id, status in
+                UUID(uuidString: id).map { ($0, status) }
+            })
+    }
+
+    private func observeTools() {
+        chatDb.observeTools(
+            observer: ToolsWatcher { [weak self] in
+                Task { @MainActor in
+                    self?.loadTodoTurns()
+                    self?.todoStore.reload()
+                }
+            })
+    }
+
+    func confirmToolTurn(_ message: RenderedChatMessage) {
+        changeTodoTurn(message, failure: "Couldn’t confirm") {
+            try $0.confirmToolTurn(replyId: $1)
+        }
+    }
+
+    func undoToolTurn(_ message: RenderedChatMessage) {
+        changeTodoTurn(message, failure: "Couldn’t undo") { try $0.undoToolTurn(replyId: $1) }
+    }
+
+    private func changeTodoTurn(
+        _ message: RenderedChatMessage, failure: String,
+        _ change: (EnsuDb, String) throws -> ToolTurnStatus
+    ) {
+        guard !isGenerating else { return }
+        do {
+            todoTurns[message.id] = try change(chatDb, message.id.uuidString)
+        } catch {
+            logger.error("To Do turn change failed", error)
+            todoTurnError = TodoTurnError(title: failure, message: todoErrorMessage(error))
+        }
     }
 
     private func deterministicSyntheticMessageId(parentId: UUID) -> UUID {
@@ -2245,7 +2314,7 @@ final class ChatViewModel: ObservableObject {
     }
 
     private func isDuplicate(_ lhs: MessageNode, _ rhs: MessageNode) -> Bool {
-        guard lhs.role == rhs.role else { return false }
+        guard lhs.role == rhs.role, lhs.role != .assistant else { return false }
         guard lhs.text == rhs.text else { return false }
         guard attachmentSignature(lhs.attachments) == attachmentSignature(rhs.attachments) else {
             return false

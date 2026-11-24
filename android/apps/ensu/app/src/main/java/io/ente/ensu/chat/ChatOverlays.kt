@@ -61,6 +61,25 @@ internal fun OverflowDialog(
     )
 }
 
+@Composable
+internal fun TodoTurnErrorDialog(error: TodoTurnError, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = error.title, style = EnsuTypography.h3) },
+        text = {
+            Text(
+                text = error.message,
+                style = EnsuTypography.body,
+                color = EnsuColor.textPrimary(),
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(text = "OK", color = EnsuColor.textPrimary()) }
+        },
+        containerColor = EnsuColor.backgroundBase(),
+    )
+}
+
 private const val UNSUPPORTED_DEVICE_MESSAGE =
     "This device doesn't have enough memory to run Ensu's AI model. " +
         "You can view existing chats, but can't send new messages."

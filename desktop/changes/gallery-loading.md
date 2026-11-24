@@ -1,0 +1,1 @@
+- Improved gallery loading placeholders and refreshed the welcome screen.

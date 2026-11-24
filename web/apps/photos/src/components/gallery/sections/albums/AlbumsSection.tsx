@@ -22,7 +22,10 @@ import {
     renameCollection,
     updateCollectionDetails,
 } from "ente-new/photos/services/collection";
-import { PseudoCollectionID } from "ente-new/photos/services/collection-summary";
+import {
+    PseudoCollectionID,
+    type CollectionSummary,
+} from "ente-new/photos/services/collection-summary";
 
 import { uploadManager } from "@/services/upload-manager";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -35,6 +38,8 @@ import { usePhotosNavigation } from "../../navigation/PhotosNavigationContext";
 import type { GallerySectionProps } from "../types";
 import { AlbumsNavigation } from "./AlbumsNavigation";
 import { GalleryLoadingSkeleton } from "./GalleryLoadingSkeleton";
+
+const emptyAlbums: CollectionSummary[] = [];
 
 export const AlbumsSection = ({
     library,
@@ -83,7 +88,7 @@ export const AlbumsSection = ({
         () => albumFiles(library, view),
         [library, view],
     );
-    const barMode =
+    const albumMode =
         view.type == "hidden-albums"
             ? "hidden-albums"
             : view.type == "archive-albums"
@@ -133,29 +138,40 @@ export const AlbumsSection = ({
     const [createFromOverview, setCreateFromOverview] = useState(false);
     const { selectCollection, showAlbumOverview, openOverviewAlbum } =
         usePhotosNavigation();
-    const barCollectionSummaries =
-        barMode == "hidden-albums"
+    const sectionCollectionSummaries =
+        albumMode == "hidden-albums"
             ? library.hiddenCollectionSummaries
-            : barMode == "archive-albums"
+            : albumMode == "archive-albums"
               ? library.archivedCollectionSummaries
               : library.normalCollectionSummaries;
-    const collectionSummary =
-        activeCollectionID === undefined
-            ? undefined
-            : barCollectionSummaries.get(activeCollectionID);
+    const useRegularAlbumsNavigation =
+        albumMode != "albums" &&
+        ![...sectionCollectionSummaries.values()].some(
+            ({ id, attributes }) =>
+                id != PseudoCollectionID.archiveItems &&
+                id != PseudoCollectionID.hiddenItems &&
+                id != library.uncategorizedCollectionSummaryID &&
+                !attributes.has("hideFromCollectionBar"),
+        );
+    const navigationMode = useRegularAlbumsNavigation ? "albums" : albumMode;
     const {
         sidebarCollectionSummaries,
         overviewAlbums,
         visibleAlbumFilters: sidebarAlbumFilters,
     } = useAlbumNavigationData({
-        mode: barMode,
+        mode: navigationMode,
         collectionsSortBy,
-        collectionSummaries: barCollectionSummaries,
+        collectionSummaries: useRegularAlbumsNavigation
+            ? library.normalCollectionSummaries
+            : sectionCollectionSummaries,
         uncategorizedCollectionSummaryID:
             library.uncategorizedCollectionSummaryID,
         albumFilter,
         albumSearchQuery,
     });
+    const sectionAlbums = useRegularAlbumsNavigation
+        ? emptyAlbums
+        : sidebarCollectionSummaries;
     useEffect(() => {
         const available = visibleAlbumFilters([
             ...library.normalCollectionSummaries.values(),
@@ -179,7 +195,7 @@ export const AlbumsSection = ({
     }, [operations.saveGroups, activeCollectionID]);
     const activeCollectionFiles = useMemo(() => {
         if (!activeCollection) return [];
-        if (barMode == "hidden-albums" || barMode == "archive-albums") {
+        if (albumMode == "hidden-albums" || albumMode == "archive-albums") {
             return filteredFiles;
         }
 
@@ -198,7 +214,7 @@ export const AlbumsSection = ({
         });
     }, [
         activeCollection,
-        barMode,
+        albumMode,
         filteredFiles,
         hiddenFileIDs,
         tempDeletedFileIDs,
@@ -302,7 +318,7 @@ export const AlbumsSection = ({
             fullBleed={isMapView}
             navigation={
                 <AlbumsNavigation
-                    mode={barMode}
+                    mode={navigationMode}
                     {...presentation}
                     albumExpansion={albumExpansion}
                     albumFilter={albumFilter}
@@ -356,20 +372,20 @@ export const AlbumsSection = ({
                     {...{ library, operations, navigation }}
                     header={fileListHeader}
                     suppressEmptyState={
-                        (collectionSummary?.type == "hiddenItems" ||
-                            collectionSummary?.type == "archiveItems") &&
-                        sidebarCollectionSummaries.length > 0
+                        (activeCollectionSummary?.type == "hiddenItems" ||
+                            activeCollectionSummary?.type == "archiveItems") &&
+                        sectionAlbums.length > 0
                     }
                     enableDateScrubber={
                         !library.isFirstLoad &&
-                        barMode === "albums" &&
+                        albumMode === "albums" &&
                         activeCollectionID === PseudoCollectionID.all &&
                         !isInSearchMode
                     }
                     onAddPhotos={canAddPhotos ? handleAddPhotos : undefined}
                     source={{
-                        mode: barMode,
-                        modePlus: barMode,
+                        mode: albumMode,
+                        modePlus: albumMode,
                         files: filteredFiles,
                         activeCollectionID: activeCollectionID!,
                         activeCollectionSummary,
@@ -382,10 +398,10 @@ export const AlbumsSection = ({
                 >
                     {(hasActiveFileSelection) => (
                         <AlbumContentHeader
-                            albums={sidebarCollectionSummaries}
+                            albums={sectionAlbums}
                             user={user!}
                             activeCollection={activeCollection}
-                            collectionSummary={collectionSummary}
+                            collectionSummary={activeCollectionSummary}
                             setBlockingLoad={setBlockingLoad}
                             setFileListHeader={setFileListHeader}
                             hasActiveFileSelection={hasActiveFileSelection}
@@ -396,7 +412,7 @@ export const AlbumsSection = ({
                             showBackToAlbums={
                                 albumOpenedFromOverview !== undefined &&
                                 albumOpenedFromOverview.collectionID ===
-                                    collectionSummary?.id
+                                    activeCollectionSummary?.id
                             }
                             onEditAlbumDetails={showEditAlbumDetails}
                             onCollectionSlideshow={startSlideshow}
@@ -411,7 +427,7 @@ export const AlbumsSection = ({
             )}
             <CreateAlbumDialog
                 {...createAlbum.props}
-                isHidden={barMode == "hidden-albums"}
+                isHidden={albumMode == "hidden-albums"}
                 onRemoteFilesPull={remoteFilesPull}
                 onSelectCollectionID={(id) => {
                     if (createFromOverview) openOverviewAlbum(id);

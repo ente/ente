@@ -629,14 +629,16 @@ mod tests {
             VectorArena::new(0),
             Err(VecDbError::InvalidDimensions {
                 dims: 0,
-                storage: StorageKind::F32
+                storage: StorageKind::F32,
+                ..
             })
         ));
         assert!(matches!(
             VectorArena::new(12),
             Err(VecDbError::InvalidDimensions {
                 dims: 12,
-                storage: StorageKind::F32
+                storage: StorageKind::F32,
+                ..
             })
         ));
         assert!(VectorArena::new(8).is_ok());
@@ -650,7 +652,7 @@ mod tests {
                 VectorArena::with_storage(dims, StorageKind::I8),
                 Err(VecDbError::InvalidDimensions {
                     dims: rejected,
-                    storage: StorageKind::I8
+                    storage: StorageKind::I8, ..
                 }) if rejected == dims
             ));
         }

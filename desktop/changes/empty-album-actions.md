@@ -1,0 +1,1 @@
+- Upload directly into empty albums and delete empty albums in bulk from their overview.

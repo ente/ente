@@ -148,7 +148,11 @@ export const AlbumContentHeader: React.FC<AlbumContentHeaderProps> = ({
                             onCollectionCast={showCollectionCast}
                             onEditAlbumDetails={onEditAlbumDetails}
                             hasActiveFileSelection={hasActiveFileSelection}
-                            showSectionBack={isHidden && !hasAlbums}
+                            showSectionBack={
+                                (isHidden && !hasAlbums) ||
+                                collectionSummary.type == "uncategorized" ||
+                                collectionSummary.type == "trash"
+                            }
                             onDescriptionHeightChange={setDescriptionHeight}
                         />
                     )}
