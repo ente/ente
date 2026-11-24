@@ -1720,6 +1720,19 @@ class FilesDB with SqlDbBase {
     return result;
   }
 
+  Future<List<EnteFile>> getAllRowsForUploadedFileIDs(
+    List<int> uploadedFileIDs,
+  ) async {
+    if (uploadedFileIDs.isEmpty) {
+      return [];
+    }
+    final db = await instance.sqliteAsyncDB;
+    final results = await db.getAll(
+      'SELECT * FROM $filesTable WHERE $columnUploadedFileID IN (${uploadedFileIDs.join(',')})',
+    );
+    return convertToFiles(results);
+  }
+
   Future<Map<int, List<EnteFile>>> getAllFilesGroupByCollectionID(
     List<int> ids,
   ) async {

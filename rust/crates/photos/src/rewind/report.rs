@@ -10,6 +10,7 @@ use super::library::Library;
 use super::people::People;
 use super::ranking::Ranking;
 use crate::memories::{CityLookup, ClipVectors};
+use crate::ml_db::try_file_id_from_face_id;
 use crate::ml_store::{FillState, Index, MlStore};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -323,6 +324,26 @@ impl RewindReport {
             mosaic,
             warp,
         } = self;
+        let face_ids = std::iter::empty()
+            .chain(
+                people_race
+                    .iter()
+                    .flat_map(|race| &race.people)
+                    .flat_map(|person| &person.face_ids),
+            )
+            .chain(
+                new_faces
+                    .iter()
+                    .flat_map(|new_faces| &new_faces.faces)
+                    .flat_map(|face| &face.face_ids),
+            )
+            .chain(mosaic.iter().flat_map(|mosaic| {
+                mosaic
+                    .me_face_ids
+                    .iter()
+                    .chain(&mosaic.top_face_ids)
+                    .chain(&mosaic.cluster_face_ids)
+            }));
         let ids: BTreeSet<i64> = std::iter::empty()
             .chain(totals.iter().flat_map(|totals| &totals.file_ids))
             .chain(colour.iter().flat_map(|colour| &colour.file_ids))
@@ -373,6 +394,11 @@ impl RewindReport {
             .chain(mosaic.iter().flat_map(|mosaic| &mosaic.file_ids))
             .chain(warp.iter().flat_map(|warp| &warp.file_ids))
             .copied()
+            .chain(
+                face_ids
+                    .map(String::as_str)
+                    .filter_map(try_file_id_from_face_id),
+            )
             .collect();
         ids.into_iter().collect()
     }
@@ -401,7 +427,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn file_ids_cover_every_section_once_in_order() {
+    fn file_ids_cover_every_section_and_face_once_in_order() {
         let report = RewindReport {
             totals: Some(Totals {
                 files: 3,
@@ -495,11 +521,11 @@ mod tests {
             mosaic: Some(Mosaic {
                 file_ids: vec![15, 1],
                 me_person_id: None,
-                me_face_ids: vec![],
+                me_face_ids: vec!["97_face".into()],
                 top_person_id: None,
-                top_face_ids: vec![],
+                top_face_ids: vec!["96_face".into()],
                 cluster_id: None,
-                cluster_face_ids: vec![],
+                cluster_face_ids: vec!["95_face".into(), "not a face".into(), "5_face".into()],
             }),
             warp: Some(Warp {
                 file_ids: vec![16, 2],
@@ -508,7 +534,9 @@ mod tests {
 
         assert_eq!(
             report.file_ids(),
-            vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 30]
+            vec![
+                1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 30, 95, 96, 97, 98, 99
+            ]
         );
     }
 

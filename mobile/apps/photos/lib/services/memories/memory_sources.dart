@@ -20,7 +20,7 @@ Future<Map<int, EnteFile>> getFilesAndMapForMemories({
 }) async {
   final uploadRows = uploadedFileIDs == null
       ? null
-      : await FilesDB.instance.getFilesFromIDs(uploadedFileIDs);
+      : await FilesDB.instance.getAllRowsForUploadedFileIDs(uploadedFileIDs);
   final sourceFiles = uploadRows == null
       ? await SearchService.instance.getAllFilesForSearch()
       : await applyDBFilters(
