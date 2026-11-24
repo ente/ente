@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:auto_size_text/auto_size_text.dart';
-import 'package:clipboard/clipboard.dart';
 import 'package:ente_auth/core/configuration.dart';
 import 'package:ente_auth/ente_theme_data.dart';
 import 'package:ente_auth/events/multi_select_action_requested_event.dart';
@@ -30,6 +29,7 @@ import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_context_menu/flutter_context_menu.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:logging/logging.dart';
@@ -924,7 +924,7 @@ class _CodeWidgetState extends State<CodeWidget> {
     final shouldMinimizeOnCopy = PreferenceService.instance
         .shouldMinimizeOnCopy();
 
-    await FlutterClipboard.copy(content);
+    await Clipboard.setData(ClipboardData(text: content));
     if (!mounted) return;
     showToast(context, confirmationMessage);
     if (Platform.isAndroid && shouldMinimizeOnCopy) {
