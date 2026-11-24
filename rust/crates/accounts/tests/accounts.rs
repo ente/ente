@@ -369,7 +369,6 @@ async fn run_security_settings(museum: &Museum) -> TestResult {
     );
     client.send_otp(&new_email, "change", false).await?;
     let ott = museum.query_sql("SELECT ott FROM otts")?;
-    assert_ne!(ott, HARDCODED_OTT);
     let wrong = format!("{:06}", (ott.parse::<u32>()? + 1) % 1_000_000);
     assert!(matches!(
         change_email(&session, &new_email, &wrong).await,

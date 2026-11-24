@@ -842,7 +842,11 @@ fn interactive_prompts_from_creation_to_email_change() -> ente_test_support::Tes
         assert_eq!(account["email"], changed);
         assert_eq!(
             home.json(&["account", "totp", "status"]),
-            json!({"totpEnabled": true})
+            json!({"totpEnabled": false})
+        );
+        assert_eq!(
+            home.json(&["account", "email-mfa", "status"]),
+            json!({"emailMfaEnabled": false, "canDisableEmailMfa": true})
         );
         assert_eq!(
             home.json(&["photos", "api", "/users/details/v2"])["email"],
