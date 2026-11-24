@@ -159,6 +159,60 @@ testWithPhotos(
 );
 
 testWithPhotos(
+    "wraps keyboard focus inside the Home photo viewer",
+    async ({ photoAlbum: { page, thumbnails } }) => {
+        await page.setViewportSize({ width: 1280, height: 800 });
+        await page.getByRole("button", { name: "Home", exact: true }).click();
+        const feed = page.getByRole("button", { name: "Feed", exact: true });
+        await expect(feed).toBeVisible();
+        await thumbnails.first().click();
+
+        const viewer = page.locator(".pswp");
+        const next = viewer.getByRole("button", { name: "Next", exact: true });
+        await expect(next).toBeVisible();
+        await expect(viewer.locator(".pswp__top-bar")).toHaveCSS(
+            "opacity",
+            "1",
+        );
+        await page.keyboard.press("Tab");
+        const focused = viewer.locator(":focus");
+        await expect(focused).toHaveCount(1);
+        const first = viewer.getByRole("button", {
+            name: (await focused.getAttribute("aria-label"))!,
+            exact: true,
+        });
+        await expect(first).toBeFocused();
+
+        for (let tab = 0; tab < 12; tab++) {
+            await page.keyboard.press("Tab");
+            await expect(focused).toHaveCount(1);
+            if (await next.evaluate((el) => el === document.activeElement))
+                break;
+        }
+        await expect(next).toBeFocused();
+
+        await page.keyboard.press("h");
+        await expect(viewer).not.toHaveClass(/pswp--ui-visible/);
+        await page.keyboard.press("Tab");
+        await expect(viewer).toHaveClass(/pswp--ui-visible/);
+        await expect(first).toBeFocused();
+
+        await page.keyboard.press("Shift+Tab");
+        await expect(next).toBeFocused();
+
+        await test.step("blocks Enter when focus is moved to Feed", async () => {
+            await feed.focus();
+            await expect(feed).toBeFocused();
+            await page.keyboard.press("Enter");
+            await expect(viewer).toBeVisible();
+            await expect(feed).toHaveAttribute("aria-pressed", "false");
+            await page.keyboard.press("Tab");
+            await expect(first).toBeFocused();
+        });
+    },
+);
+
+testWithPhotos(
     "keeps viewer shortcuts inactive while Add to album is open",
     async ({ photoAlbum: { page, thumbnails } }) => {
         const albums = page.getByRole("navigation", { name: "Albums" });
@@ -184,7 +238,10 @@ testWithPhotos(
             .getByRole("menuitem", { name: "Add to album", exact: true })
             .click();
 
-        const tabs = page.getByRole("tablist", { name: "Filter albums" });
+        const tabs = page.getByRole("tablist", {
+            name: "Filter albums",
+            includeHidden: true,
+        });
         await tabs.getByRole("tab", { name: "All", exact: true }).click();
         await page.keyboard.press("ArrowRight");
         await expect(tabs.getByRole("tab", { name: "Ente" })).toBeFocused();
@@ -196,7 +253,7 @@ testWithPhotos(
         await expect(tabs.getByRole("tab", { name: "Ente" })).toBeFocused();
 
         await page.keyboard.press("Escape");
-        await expect(tabs).toBeHidden();
+        await expect(tabs).toHaveCount(0);
         await page.keyboard.press("ArrowRight");
         await expect(counter).toHaveText("2 / 4");
         await page.keyboard.press("Delete");

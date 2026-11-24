@@ -1261,6 +1261,8 @@ export const FileViewer: React.FC<FileViewerProps> = ({
                 return true;
             }
 
+            if (event.key == "Tab") return false;
+
             const activeElement = document.activeElement as HTMLElement | null;
             if (activeElement) {
                 const tagName = activeElement.tagName;

@@ -193,6 +193,72 @@ export class FileViewerPhotoSwipe<
         this.pswp = pswp;
 
         if (useIslandLayout) {
+            const opener = document.activeElement;
+            const containKeyboardFocus = (event: KeyboardEvent) => {
+                if (
+                    event.defaultPrevented ||
+                    event.altKey ||
+                    event.ctrlKey ||
+                    event.metaKey ||
+                    (event.key != "Tab" && event.key != "Enter") ||
+                    delegate.shouldIgnoreKeyboardEvent(event)
+                ) {
+                    return;
+                }
+
+                const viewer = pswp.element!;
+                const active = document.activeElement;
+                if (event.key == "Enter") {
+                    if (!viewer.contains(active)) event.preventDefault();
+                    return;
+                }
+
+                viewer.classList.add("pswp--ui-visible");
+                areFullscreenUIControlsHiddenByShortcut = false;
+                clearFullscreenUIControlsHideTimer();
+
+                const controls = Array.from(
+                    viewer.querySelectorAll<HTMLElement>(
+                        "button, a[href], input, select, textarea, [tabindex]",
+                    ),
+                );
+                const isTabbable = (el: HTMLElement) =>
+                    el.tabIndex >= 0 &&
+                    !el.matches(":disabled") &&
+                    !el.closest("[inert]") &&
+                    el.getClientRects().length > 0 &&
+                    getComputedStyle(el).visibility == "visible";
+                if (
+                    !viewer.contains(active) ||
+                    active == viewer ||
+                    active ==
+                        (event.shiftKey
+                            ? controls.find(isTabbable)
+                            : controls.findLast(isTabbable))
+                ) {
+                    event.preventDefault();
+                    const destination = event.shiftKey
+                        ? controls.findLast(isTabbable)
+                        : controls.find(isTabbable);
+                    (destination ?? viewer).focus();
+                }
+            };
+
+            pswp.on("afterInit", () => {
+                pswp.element!.focus({ preventScroll: true });
+                document.addEventListener("keydown", containKeyboardFocus);
+            });
+            pswp.on("destroy", () => {
+                document.removeEventListener("keydown", containKeyboardFocus);
+                if (
+                    opener instanceof HTMLElement &&
+                    (document.activeElement == document.body ||
+                        pswp.element?.contains(document.activeElement))
+                ) {
+                    opener.focus({ preventScroll: true });
+                }
+            });
+
             pswp.on("afterInit", () => {
                 const counter = pswp.element?.querySelector(".pswp__counter");
                 const progress = pswp.element?.querySelector(
@@ -1592,7 +1658,10 @@ export class FileViewerPhotoSwipe<
         pswp.on("keydown", (pswpEvent) => {
             const e: KeyboardEvent = pswpEvent.originalEvent;
 
-            if (delegate.shouldIgnoreKeyboardEvent(e)) {
+            if (
+                (useIslandLayout && e.key == "Tab") ||
+                delegate.shouldIgnoreKeyboardEvent(e)
+            ) {
                 pswpEvent.preventDefault();
                 return;
             }
