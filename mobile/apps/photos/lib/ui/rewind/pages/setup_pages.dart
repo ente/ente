@@ -168,13 +168,14 @@ const ritualSetupPage = SetupPage(
   ],
   callout: SetupCallout(
     "ALMOST TIME!",
-    center: Offset(217.7, 407.5),
+    center: Offset(217.7, 393),
     delayMs: 650,
     onTop: true,
   ),
   art: SetupArt.ducky(
     RewindAssets.almostTimeDucky,
     Rect.fromLTWH(11, 386.5, 315.7, 400.3),
+    ticks: [(RewindTick.forward, Rect.fromLTWH(232, 431, 11, 18))],
     pivot: Offset(158, 762),
     delayMs: 830,
   ),
@@ -248,14 +249,14 @@ const badgeSetupPage = SetupPage(
   ],
   callout: SetupCallout(
     "YOU DESERVE A BADGE!",
-    center: Offset(196.5, 395),
+    center: Offset(196.5, 351),
     size: 29.01,
   ),
   art: SetupArt.ducky(
     RewindAssets.badgeDucky,
     Rect.fromLTWH(-18, 375.5, 375, 415),
     stateMachine: "State Machine",
-    ticks: [(RewindTick.bold, Rect.fromLTWH(209, 424, 16, 23))],
+    ticks: [(RewindTick.bold, Rect.fromLTWH(206, 384, 16, 25))],
     pivot: Offset(154, 746),
   ),
 );
