@@ -17,6 +17,7 @@ import "package:photos/events/sync_finished_event.dart";
 import "package:photos/main.dart" show isIOSBackgroundRefresh, isProcessBg;
 import "package:photos/service_locator.dart";
 import "package:photos/services/app_lifecycle_service.dart";
+import "package:photos/services/memories/memory_music_service.dart";
 import "package:photos/services/notification_service.dart";
 import "package:photos/services/rewind/rewind_asset_store.dart";
 import "package:photos/services/rewind/rewind_edition.dart";
@@ -55,6 +56,10 @@ class RewindService {
   String? _storyError;
   var _hasRefreshed = false;
   final assets = RewindAssetStore();
+  late final music = MemoryMusicService.remote(
+    manifestURL: "https://rewind-assets.ente.com/rewind-2026-music.json",
+    manifestPreferenceKey: "rewind_2026_music_manifest",
+  );
 
   static const _startupDelay = Duration(seconds: 5);
   static const _startupRetryDelay = Duration(seconds: 30);
@@ -317,6 +322,7 @@ class RewindService {
       story.preloadFrom(resumeIndex);
       if (AppLifecycleService.instance.isForeground) {
         unawaited(_cachePhotos(story, resumeIndex));
+        unawaited(music.prepare());
       }
       if (sharpenFaces) unawaited(_sharpenFaces(story));
     } catch (e, s) {
