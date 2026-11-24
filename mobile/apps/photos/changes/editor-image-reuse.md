@@ -1,0 +1,1 @@
+- Reduced repeated image loading when opening the photo editor.
