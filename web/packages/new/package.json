@@ -3,17 +3,17 @@
     "version": "0.0.0",
     "private": true,
     "dependencies": {
-        "@hugeicons/core-free-icons": "4.3.5",
+        "@hugeicons/core-free-icons": "4.4.0",
         "@hugeicons/react": "1.1.10",
-        "@mui/material": "9.4.0",
-        "@mui/x-date-pickers": "9.14.0",
+        "@mui/material": "9.5.0",
+        "@mui/x-date-pickers": "9.18.0",
         "dayjs": "1.11.23",
         "ente-accounts": "*",
         "ente-base": "*",
         "ente-gallery": "*",
         "ente-photos-wasm": "*",
         "ente-utils": "*",
-        "i18next": "26.4.2",
+        "i18next": "27.1.5",
         "react": "19.3.1"
     },
     "devDependencies": {
