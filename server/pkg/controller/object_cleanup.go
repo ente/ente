@@ -192,7 +192,7 @@ func (c *ObjectCleanupController) processClaimedTempObject(t ente.TempObject) er
 		"upload_id":   t.UploadID,
 	})
 
-	if t.IsMultipart {
+	if t.IsMultipart && t.CleanupState != ente.TempObjectDelete {
 		if err := c.abortMultipartUpload(t.ObjectKey, t.UploadID, dc); err != nil {
 			logger.Errorf("Clearing tempObject failed: %v", err)
 			return err

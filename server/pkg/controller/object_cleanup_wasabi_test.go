@@ -107,6 +107,30 @@ func TestWasabiTempCleanupLifecycle(t *testing.T) {
 	}
 }
 
+func TestWasabiTempCleanupDeletesLegacyMultipartObject(t *testing.T) {
+	var deletes atomic.Int32
+	c, _, db := setupWasabiTempCleanupTest(t, func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/wasabi-bucket/1/expired", r.URL.Path)
+		switch {
+		case r.Method == http.MethodDelete && !r.URL.Query().Has("uploadId"):
+			deletes.Add(1)
+			w.WriteHeader(http.StatusNoContent)
+		case r.Method == http.MethodHead:
+			w.WriteHeader(http.StatusNotFound)
+		default:
+			t.Errorf("unexpected request after hold release: %s %s", r.Method, r.URL)
+			w.WriteHeader(http.StatusForbidden)
+		}
+	})
+	_, err := db.Exec(`INSERT INTO temp_objects(object_key, bucket_id, expiration_time, cleanup_state, is_multipart, upload_id)
+		VALUES ('1/expired', $1, 0, 'delete', TRUE, 'upload-id')`, cleanupWasabiDC)
+	require.NoError(t, err)
+
+	require.Equal(t, 1, c.removeUnreportedObjects())
+	require.EqualValues(t, 1, deletes.Load())
+	assertCleanupRowCount(t, db, `SELECT count(*) FROM temp_objects WHERE object_key = '1/expired'`, 0)
+}
+
 func TestWasabiTempCleanupMultipart(t *testing.T) {
 	for _, outcome := range []string{"completed", "abort failed", "parts remain"} {
 		t.Run(outcome, func(t *testing.T) {
