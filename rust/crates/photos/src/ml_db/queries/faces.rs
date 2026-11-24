@@ -453,6 +453,29 @@ impl MlDb {
         )
     }
 
+    pub(crate) fn for_each_unclustered_face_embedding(
+        &self,
+        mut visit: impl FnMut(i64, &[u8]),
+    ) -> Result<()> {
+        self.read_each(
+            r#"
+                SELECT f.file_id, f.embedding
+                FROM faces f
+                LEFT JOIN face_clusters fc
+                    ON f.face_id = fc.face_id
+                WHERE f.score > ?
+                    AND f.blur > ?
+                    AND fc.face_id IS NULL
+                "#,
+            (MINIMUM_QUALITY_FACE_SCORE, LAPLACIAN_HARD_THRESHOLD),
+            |row| {
+                let embedding: Vec<u8> = row.get(1)?;
+                visit(row.get(0)?, &embedding);
+                Ok(())
+            },
+        )
+    }
+
     pub fn get_all_file_ids_of_face_ids_not_in_any_cluster(&self) -> Result<HashSet<i64>> {
         self.read_column(
             r#"

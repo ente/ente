@@ -7,7 +7,6 @@ import "package:path/path.dart" as path;
 import "package:path_provider/path_provider.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/core/event_bus.dart";
-import "package:photos/db/ml/db.dart";
 import "package:photos/db/ml/rust_db.dart";
 import "package:photos/events/app_mode_changed_event.dart";
 import "package:photos/events/diff_sync_complete_event.dart";
@@ -25,6 +24,7 @@ import "package:photos/services/rewind/rewind_progress.dart";
 import "package:photos/services/rewind/rewind_request.dart";
 import "package:photos/services/sync/local_sync_service.dart";
 import "package:photos/services/sync/remote_sync_service.dart";
+import "package:photos/src/rust/api/ml_db_api.dart" show MlStore;
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
 import "package:photos/ui/rewind/story/rewind_rituals.dart";
 import "package:photos/ui/rewind/story/rewind_story.dart";
@@ -65,6 +65,7 @@ class RewindService {
   static const _startupRetryDelay = Duration(seconds: 30);
   static const _refreshInterval = Duration(days: 1);
   static const _notificationId = 20261205;
+  static const _newCardsNotificationId = 20261206;
   static const _notificationPayload = "ente://rewind";
   static const _notificationHour = 20;
   static const _notificationLeadTime = Duration(hours: 1);
@@ -85,6 +86,15 @@ class RewindService {
   bool get revealed => _revealed.value;
 
   RewindProgress get progress => _progress;
+
+  bool get hasPendingMlChapters => switch (_state.value) {
+    final state? =>
+      state.status is rust.RewindStatus_Ready &&
+          !state.isFinal &&
+          (state.mlChaptersPending ||
+              (state.mlCoverage == null && rewindUsesMl)),
+    null => false,
+  };
 
   late final Listenable changes = Listenable.merge([
     _story,
@@ -115,8 +125,10 @@ class RewindService {
     await Future.delayed(_startupRetryDelay, _refreshIfNoReport);
   }
 
-  Future<void> refresh({bool afterMlRun = false}) =>
-      _guarded(() => _refresh(afterMlRun: afterMlRun));
+  Future<void> refresh({bool afterMlRun = false, bool justClustered = false}) =>
+      _guarded(
+        () => _refresh(afterMlRun: afterMlRun, justClustered: justClustered),
+      );
 
   void _refreshIfNoReport() {
     if (isProcessBg || !_hasRefreshed || _state.value != null) return;
@@ -141,14 +153,34 @@ class RewindService {
     await _refresh(afterMlRun: true);
   });
 
+  Future<bool> hasEnoughMl() async {
+    if (!rewindUsesMl) return false;
+    try {
+      return await rust.rewindHasEnoughMl(
+        request: await buildRewindRequest(DateTime.now()),
+        store: await _mlStore,
+      );
+    } catch (e, s) {
+      _logger.warning("Failed to check Rewind's ML coverage", e, s);
+      return false;
+    }
+  }
+
   Future<void> markOpened() async {
     await _progress.markOpened();
-    await _lock.synchronized(
-      () => NotificationService.instance.clearAllScheduledNotifications(
-        containingPayload: _notificationPayload,
-      ),
-    );
+    await _clearScheduledNotifications();
   }
+
+  Future<void> dismiss() async {
+    await _progress.markDismissed();
+    if (_progress.opened) await _clearScheduledNotifications();
+  }
+
+  Future<void> _clearScheduledNotifications() => _lock.synchronized(
+    () => NotificationService.instance.clearAllScheduledNotifications(
+      containingPayload: _notificationPayload,
+    ),
+  );
 
   Future<void> clear() async {
     _reset();
@@ -179,15 +211,26 @@ class RewindService {
     }
   }
 
-  Future<void> _refresh({required bool afterMlRun}) async {
+  Future<void> _refresh({
+    required bool afterMlRun,
+    bool justClustered = false,
+  }) async {
     _hasRefreshed = true;
     final now = DateTime.now();
     final owner = await _shownOwner(now);
     if (owner == null) return;
     final stored = await _load(owner);
     await _publishCached(owner, stored);
-    if (stored == null || !_isFresh(stored, now, afterMlRun: afterMlRun)) {
-      await _publish(owner, await _compute(owner, stored, now), "computed");
+    if (stored == null ||
+        !_isFresh(stored, now) ||
+        (afterMlRun && stored.mlChaptersPending && await hasEnoughMl())) {
+      final computed = await _compute(
+        owner,
+        stored,
+        await buildRewindRequest(now, justClustered: justClustered),
+      );
+      await _publish(owner, computed, "computed");
+      await _notifyNewCards(stored, computed);
     }
     await _updateNotification();
   }
@@ -247,7 +290,6 @@ class RewindService {
     if (state == null) return _missingStateReason;
     final status = switch (state.status) {
       rust.RewindStatus_Ready() => "ready",
-      rust.RewindStatus_WaitingForMl() => "waiting for ML",
       rust.RewindStatus_NothingToShow() => "nothing to show",
     };
     final coverage = state.mlCoverage;
@@ -256,6 +298,7 @@ class RewindService {
       status,
       if (coverage != null)
         "ML coverage ${(coverage * 100).toStringAsFixed(1)}%",
+      if (state.mlChaptersPending) "ML cards pending",
       if (state.isFinal) "final",
       "computed at $computedAt",
     ].join(", ");
@@ -349,26 +392,14 @@ class RewindService {
     await _rebuildStory(sharpenFaces: false);
   }
 
-  Future<rust.RewindState?> _compute(
+  Future<rust.RewindState> _compute(
     int owner,
     rust.RewindState? previous,
-    DateTime now,
+    rust.RewindRequest request,
   ) async {
-    final usesMl = rewindUsesMl;
-    if (usesMl && !MLDataDB.isRustBackend) {
-      _missingStateReason = "ML is on but the Rust ML DB is not";
-      _logger.info("Skipping Rewind: $_missingStateReason");
-      return previous?.mlCoverage != null ? previous : null;
-    }
-    final store = usesMl
-        ? await (isLocalGalleryMode
-                  ? RustMLDataDB.localGalleryInstance
-                  : RustMLDataDB.instance)
-              .store
-        : null;
     final computed = await rust.computeRewind(
-      request: await buildRewindRequest(now),
-      store: store,
+      request: request,
+      store: rewindUsesMl ? await _mlStore : null,
       cities: await locationService.getLocationIndex(),
       previous: previous,
     );
@@ -378,6 +409,12 @@ class RewindService {
     if (owner == _owner) await cache.writeAsBytes(bytes);
     return computed;
   }
+
+  Future<MlStore> get _mlStore =>
+      (isLocalGalleryMode
+              ? RustMLDataDB.localGalleryInstance
+              : RustMLDataDB.instance)
+          .store;
 
   int? get _owner =>
       isLocalGalleryMode ? 0 : Configuration.instance.getUserID();
@@ -406,17 +443,10 @@ class RewindService {
     return stored == null || _madeBeforeLaunch(stored) ? null : stored;
   }
 
-  bool _isFresh(
-    rust.RewindState state,
-    DateTime now, {
-    required bool afterMlRun,
-  }) {
+  bool _isFresh(rust.RewindState state, DateTime now) {
     if (_madeWithDisabledMl(state)) return false;
     if (state.isFinal) return true;
     if ((state.mlCoverage != null) != rewindUsesMl) return false;
-    if (afterMlRun && state.status is rust.RewindStatus_WaitingForMl) {
-      return false;
-    }
     return now.microsecondsSinceEpoch - state.computedAt <
         _refreshInterval.inMicroseconds;
   }
@@ -441,19 +471,74 @@ class RewindService {
         !await NotificationService.instance.hasGrantedPermissions()) {
       return;
     }
-    final scheduledAt = _notificationTime(DateTime.now());
-    if (!scheduledAt.isBefore(RewindEdition.availableUntil)) return;
-    final scheduled = await NotificationService.instance.scheduleNotification(
+    if (await _scheduleNotification(
+      _notificationId,
       "Your ${RewindEdition.year} Rewind is ready",
-      message: "Your year in photos. Ready when you are.",
-      id: _notificationId,
+      "Your year in photos. Ready when you are.",
+      _notificationTime(DateTime.now()),
+    )) {
+      await _progress.markNotificationScheduled();
+    }
+  }
+
+  Future<void> _notifyNewCards(
+    rust.RewindState? before,
+    rust.RewindState after,
+  ) async {
+    if (!_revealed.value ||
+        before?.status is! rust.RewindStatus_Ready ||
+        _showsMlCards(before) ||
+        !_showsMlCards(after)) {
+      return;
+    }
+    if (isProcessBg) await _progress.reload();
+    if (!_progress.opened ||
+        _progress.dismissed ||
+        _progress.newCardsNotified ||
+        !await NotificationService.instance.hasGrantedPermissions()) {
+      return;
+    }
+    final now = DateTime.now();
+    final slot = _notificationTime(now);
+    if (await _scheduleNotification(
+      _newCardsNotificationId,
+      "Your ${RewindEdition.year} Rewind has new cards",
+      "Open it again to see what's new.",
+      slot.isBefore(RewindEdition.availableUntil)
+          ? slot
+          : now.add(_notificationLeadTime),
+    )) {
+      await _progress.markNewCardsNotified();
+    }
+  }
+
+  Future<bool> _scheduleNotification(
+    int id,
+    String title,
+    String message,
+    DateTime scheduledAt,
+  ) {
+    if (!scheduledAt.isBefore(RewindEdition.availableUntil)) {
+      return Future.value(false);
+    }
+    return NotificationService.instance.scheduleNotification(
+      title,
+      message: message,
+      id: id,
       channelID: "rewind",
       channelName: "Ente Rewind",
       payload: _notificationPayload,
       dateTime: scheduledAt,
     );
-    if (scheduled) await _progress.markNotificationScheduled();
   }
+
+  bool _showsMlCards(rust.RewindState? state) => switch (state?.status) {
+    rust.RewindStatus_Ready(:final report) =>
+      report.colour != null ||
+          report.peopleRace != null ||
+          report.newFaces != null,
+    _ => false,
+  };
 
   DateTime _notificationTime(DateTime now) {
     final today = DateTime(now.year, now.month, now.day, _notificationHour);

@@ -5,12 +5,12 @@ pub struct RewindRequest {
     pub year: i32,
     pub now: i64,
     pub utc_offset_seconds: i32,
-    pub season_start: i64,
-    pub installed_at: i64,
     pub local_gallery_mode: bool,
     pub files: Vec<RewindFile>,
     pub people: Vec<RewindPerson>,
     pub me_person_id: Option<String>,
+    #[serde(default)]
+    pub just_clustered: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

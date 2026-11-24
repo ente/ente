@@ -37,7 +37,7 @@ class RewindEntry {
 
   int get pageCount => _story.pages.length;
 
-  Future<void> dismiss() => rewindService.progress.markDismissed();
+  Future<void> dismiss() => rewindService.dismiss();
 
   Future<void> open(BuildContext context) async {
     await rewindService.revalidate();

@@ -31,12 +31,11 @@ pub struct _RewindRequest {
     pub year: i32,
     pub now: i64,
     pub utc_offset_seconds: i32,
-    pub season_start: i64,
-    pub installed_at: i64,
     pub local_gallery_mode: bool,
     pub files: Vec<RewindFile>,
     pub people: Vec<RewindPerson>,
     pub me_person_id: Option<String>,
+    pub just_clustered: bool,
 }
 
 #[frb(mirror(RewindFile))]
@@ -90,13 +89,13 @@ pub struct _RewindState {
     pub computed_at: i64,
     pub local_gallery_mode: bool,
     pub ml_coverage: Option<f32>,
+    pub ml_chapters_pending: bool,
     pub is_final: bool,
     pub status: RewindStatus,
 }
 
 #[frb(mirror(RewindStatus))]
 pub enum _RewindStatus {
-    WaitingForMl,
     NothingToShow,
     Ready { report: Box<RewindReport> },
 }
@@ -346,6 +345,14 @@ pub fn compute_rewind(
         cities.as_deref().map(|cities| &cities.0 as &dyn CityLookup),
         previous.as_ref(),
     )?)
+}
+
+pub fn rewind_has_enough_ml(
+    request: RewindRequest,
+    store: RustAutoOpaque<MlStore>,
+) -> Result<bool, RewindError> {
+    let store = store.blocking_read();
+    Ok(rewind::rewind_has_enough_ml(&request, &store.inner)?)
 }
 
 pub fn encode_rewind_state(state: RewindState) -> Result<Vec<u8>, RewindError> {

@@ -251,6 +251,7 @@ impl RewindReport {
         library: &Library<'_>,
         store: Option<&MlStore>,
         ml_chapters: bool,
+        new_faces_ready: bool,
         cities: Option<&dyn CityLookup>,
     ) -> Result<Self> {
         let people = store
@@ -285,6 +286,7 @@ impl RewindReport {
                 .and_then(|people| chapters::people_race(request, library, people, &ranking)),
             busiest_day: chapters::busiest_day(library, &ranking),
             new_faces: ml_people
+                .filter(|_| new_faces_ready)
                 .and_then(|people| chapters::new_faces(request, library, people, &ranking)),
             favourites: chapters::favourites(library, &ranking),
             weekly_habit: chapters::weekly_habit(library, &ranking),
