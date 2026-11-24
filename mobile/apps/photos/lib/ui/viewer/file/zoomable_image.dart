@@ -27,6 +27,7 @@ import "package:photos/states/detail_page_state.dart";
 import "package:photos/ui/actions/file/file_actions.dart";
 import "package:photos/ui/viewer/file/file_viewer_image_page_readiness.dart";
 import "package:photos/ui/viewer/file/image_zoom/image_zoom_viewer.dart";
+import "package:photos/ui/viewer/file/image_zoom/viewer_jpeg_image.dart";
 import 'package:photos/ui/viewer/file/thumbnail_widget.dart';
 import 'package:photos/ui/viewer/gallery/state/selection_state.dart';
 import 'package:photos/utils/dialog_util.dart';
@@ -42,6 +43,8 @@ class ZoomableImage extends StatefulWidget {
   final bool isGuestView;
   final bool isFromMemories;
   final bool enableVerticalSwipeActions;
+  // Null when the image is displayed outside the paged file viewer.
+  final bool? isSelectedViewerPage;
   final Function({required int memoryDuration})? onFinalFileLoad;
   final ValueChanged<File>? onFinalImageLoaded;
   final FileViewerImagePageReadinessRegistration?
@@ -57,6 +60,7 @@ class ZoomableImage extends StatefulWidget {
     this.isGuestView = false,
     this.isFromMemories = false,
     this.enableVerticalSwipeActions = true,
+    this.isSelectedViewerPage,
     this.onFinalFileLoad,
     this.onFinalImageLoaded,
     this.onImagePageReadinessRegistration,
@@ -70,6 +74,12 @@ class _ZoomableImageState extends State<ZoomableImage> {
   late Logger _logger;
   late EnteFile _photo;
   ImageProvider? _imageProvider;
+  Size? _physicalViewport;
+  Size? _jpegSourceSize;
+  File? _jpegFile;
+  ViewerJpegImage? _jpegFit;
+  ImageProvider? _jpegDetail;
+  ImageProvider? _requestedJpegImage;
   bool _loadedSmallThumbnail = false;
   bool _loadingLargeThumbnail = false;
   bool _loadedLargeThumbnail = false;
@@ -158,6 +168,8 @@ class _ZoomableImageState extends State<ZoomableImage> {
 
   void _onZoomChanged() {
     if (!mounted) return;
+    _updateJpegRequest();
+    if (widget.isSelectedViewerPage == false) return;
     final transform = _imageZoomController.transform;
     final isZooming = _imageZoomController.isZoomed;
     final state = InheritedDetailPageState.maybeOf(context);
@@ -176,6 +188,12 @@ class _ZoomableImageState extends State<ZoomableImage> {
   @override
   void didUpdateWidget(covariant ZoomableImage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.isSelectedViewerPage == true &&
+        widget.isSelectedViewerPage == false &&
+        isViewerJpeg(_photo)) {
+      unawaited(_imageZoomController.reset(animated: false));
+      _updateJpegRequest();
+    }
     if (oldWidget.onImagePageReadinessRegistration !=
         widget.onImagePageReadinessRegistration) {
       oldWidget.onImagePageReadinessRegistration?.call(
@@ -218,6 +236,20 @@ class _ZoomableImageState extends State<ZoomableImage> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.isSelectedViewerPage != null && isViewerJpeg(_photo)) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          _physicalViewport =
+              constraints.biggest * MediaQuery.devicePixelRatioOf(context);
+          _updateJpegRequest();
+          return _buildViewer(context);
+        },
+      );
+    }
+    return _buildViewer(context);
+  }
+
+  Widget _buildViewer(BuildContext context) {
     if (_photo.isRemoteOnlyFile) {
       _loadNetworkImage();
     } else {
@@ -226,6 +258,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
     final content = ImageZoomViewer(
       imageProvider: _imageProvider,
       controller: _imageZoomController,
+      sourceImageSize: _jpegSourceSize,
       imageSizeHint: _photo.width > 0 && _photo.height > 0
           ? Size(_photo.width.toDouble(), _photo.height.toDouble())
           : null,
@@ -291,7 +324,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
               if (mounted) {
                 precacheImage(imageProvider, context)
                     .then((value) {
-                      if (mounted) {
+                      if (mounted && !_loadedFinalImage) {
                         setState(() {
                           _imageProvider = imageProvider;
                           _loadedSmallThumbnail = true;
@@ -430,6 +463,12 @@ class _ZoomableImageState extends State<ZoomableImage> {
   }
 
   void _onFileLoaded(File file) {
+    if (widget.isSelectedViewerPage != null && isViewerJpeg(_photo)) {
+      if (!mounted) return;
+      _jpegFile = file;
+      _updateJpegRequest();
+      return;
+    }
     // Android's HEIC decoder can produce a glitched image without throwing.
     if (_isAndroidHeic()) {
       unawaited(_loadAndroidHeic(file));
@@ -437,6 +476,83 @@ class _ZoomableImageState extends State<ZoomableImage> {
     }
 
     _loadWithPlatformDecoder(file);
+  }
+
+  void _updateJpegRequest() {
+    final file = _jpegFile;
+    final viewport = _physicalViewport;
+    if (file == null ||
+        viewport == null ||
+        !viewport.isFinite ||
+        viewport.isEmpty) {
+      return;
+    }
+    final fit = _jpegFit;
+    if (fit == null ||
+        fit.width != viewport.width.ceil() ||
+        fit.height != viewport.height.ceil()) {
+      _jpegFit = ViewerJpegImage.fit(file, viewport);
+    }
+    final source = _jpegSourceSize;
+    final wantsDetail =
+        widget.isSelectedViewerPage == true &&
+        _imageZoomController.transform.scale > 1.001 &&
+        (!_imageZoomController.isZoomInProgress ||
+            _requestedJpegImage == _jpegDetail) &&
+        source != null &&
+        (source.width > _jpegFit!.width || source.height > _jpegFit!.height);
+    final desired = wantsDetail ? _jpegDetail! : _jpegFit!;
+    if (desired == _requestedJpegImage) return;
+    _requestedJpegImage = desired;
+    if (desired != _imageProvider) {
+      unawaited(_displayJpeg(desired, file));
+    }
+  }
+
+  Future<void> _displayJpeg(ImageProvider provider, File file) async {
+    Size? sourceSize;
+    try {
+      if (provider is ViewerJpegImage) {
+        sourceSize = await provider.prepare(
+          createLocalImageConfiguration(context),
+        );
+      } else {
+        final error = await _precacheImageError(provider);
+        if (error != null) throw error;
+      }
+    } catch (error, stack) {
+      if (!mounted || provider != _requestedJpegImage) return;
+      _logger.warning("Could not decode viewer JPEG", error, stack);
+      if (!_loadedFinalImage) {
+        _jpegFile = null;
+        unawaited(_loadInSupportedFormat(file, error));
+      }
+      return;
+    }
+    if (!mounted || provider != _requestedJpegImage) return;
+    if (sourceSize != null && _jpegSourceSize != sourceSize) {
+      _jpegSourceSize = sourceSize;
+      _jpegDetail = _jpegDetailProvider(file, sourceSize);
+    }
+    if (!_loadedFinalImage) {
+      await _updateViewWithFinalImage(provider, file);
+      if (mounted) _updateJpegRequest();
+    } else {
+      setState(() => _imageProvider = provider);
+    }
+  }
+
+  ImageProvider _jpegDetailProvider(File file, Size sourceSize) {
+    final pixels = sourceSize.width * sourceSize.height;
+    final original = FileImage(file);
+    if (pixels <= _maxImagePixels) return original;
+    final scale = sqrt(min(50000000, _maxImagePixels) / pixels);
+    return ResizeImage(
+      original,
+      width: max(1, (sourceSize.width * scale).floor()),
+      height: max(1, (sourceSize.height * scale).floor()),
+      policy: ResizeImagePolicy.fit,
+    );
   }
 
   Future<void> _loadAndroidHeic(File file) async {

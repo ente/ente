@@ -45,10 +45,12 @@ abstract interface class _ImageZoomControllerDelegate {
 class ImageZoomController extends ChangeNotifier {
   ImageZoomTransform _transform = ImageZoomTransform.identity;
   ImageZoomStage _stage = ImageZoomStage.initial;
+  bool _isZoomInProgress = false;
   _ImageZoomControllerDelegate? _delegate;
 
   ImageZoomTransform get transform => _transform;
   ImageZoomStage get stage => _stage;
+  bool get isZoomInProgress => _isZoomInProgress;
 
   bool get isZoomed =>
       (_transform.scale - 1.0).abs() > _kZoomEpsilon ||
@@ -73,10 +75,22 @@ class ImageZoomController extends ChangeNotifier {
     }
   }
 
-  void _update(ImageZoomTransform transform, ImageZoomStage stage) {
-    if (_transform == transform && _stage == stage) return;
+  void _update(
+    ImageZoomTransform transform,
+    ImageZoomStage stage, {
+    bool interactionActive = false,
+  }) {
+    final zoomInProgress =
+        interactionActive &&
+        (_isZoomInProgress || transform.scale != _transform.scale);
+    if (_transform == transform &&
+        _stage == stage &&
+        _isZoomInProgress == zoomInProgress) {
+      return;
+    }
     _transform = transform;
     _stage = stage;
+    _isZoomInProgress = zoomInProgress;
     notifyListeners();
   }
 }
@@ -85,6 +99,8 @@ class ImageZoomViewer extends StatefulWidget {
   final ImageProvider? imageProvider;
   final ImageZoomController? controller;
   final Size? imageSizeHint;
+  // Use the original dimensions for zoom stops across preview and detail frames.
+  final Size? sourceImageSize;
   final Object? heroTag;
   final Decoration? backgroundDecoration;
   final BoxFit initialFit;
@@ -105,6 +121,7 @@ class ImageZoomViewer extends StatefulWidget {
     required this.imageProvider,
     this.controller,
     this.imageSizeHint,
+    this.sourceImageSize,
     this.heroTag,
     this.backgroundDecoration,
     this.initialFit = BoxFit.contain,
@@ -206,7 +223,10 @@ class _ImageZoomViewerState extends State<ImageZoomViewer>
         _resolvedImageSize = hint;
       }
       _resolveImage();
-      if (_stage != ImageZoomStage.initial) {
+      final sameSourceSize =
+          widget.sourceImageSize != null &&
+          widget.sourceImageSize == oldWidget.sourceImageSize;
+      if (_stage != ImageZoomStage.initial && !sameSourceSize) {
         _stage = ImageZoomStage.gesture;
       }
     } else if (oldWidget.imageSizeHint != widget.imageSizeHint &&
@@ -419,6 +439,10 @@ class _ImageZoomViewerState extends State<ImageZoomViewer>
               offset: matrixState.semanticOffset,
             ),
       _stage,
+      interactionActive:
+          _pointerPositions.isNotEmpty ||
+          _interactiveGestureActive ||
+          _programmaticAnimationActive,
     );
     _updateInteractionLock();
   }
@@ -473,9 +497,10 @@ class _ImageZoomViewerState extends State<ImageZoomViewer>
         _beginManualPinch();
       } else if (_pointerPositions.isEmpty) {
         _endManualPinch();
+        return;
       }
     }
-    _updateInteractionLock();
+    _publishTransform();
   }
 
   void _beginManualPinch() {
@@ -556,6 +581,7 @@ class _ImageZoomViewerState extends State<ImageZoomViewer>
 
   void _onInteractionEnd(ScaleEndDetails _) {
     _interactiveGestureActive = false;
+    _publishTransform();
     _syncInteractiveViewerOwnership();
   }
 
@@ -711,7 +737,10 @@ class _ImageZoomViewerState extends State<ImageZoomViewer>
         if (viewportSize.isEmpty || !viewportSize.isFinite) {
           return const SizedBox.shrink();
         }
-        _updateGeometry(viewportSize, _resolvedImageSize ?? viewportSize);
+        _updateGeometry(
+          viewportSize,
+          widget.sourceImageSize ?? _resolvedImageSize ?? viewportSize,
+        );
         final geometry = _geometry;
         if (geometry == null) return const SizedBox.shrink();
         final fittedSize = geometry.fittedImageSize;

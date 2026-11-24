@@ -28,6 +28,7 @@ class FileWidget extends StatelessWidget {
   final VideoStreamChangeController? streamChangeController;
   final Function({required int memoryDuration})? onFinalFileLoad;
   final ValueChanged<File>? onFinalImageLoaded;
+  final bool? isSelectedViewerPage;
   final FileViewerImagePageReadinessRegistration?
   onImagePageReadinessRegistration;
   final ValueNotifier<QrCodeDetectionResult?>? qrDetectionsNotifier;
@@ -49,6 +50,7 @@ class FileWidget extends StatelessWidget {
     this.streamChangeController,
     this.onFinalFileLoad,
     this.onFinalImageLoaded,
+    this.isSelectedViewerPage,
     this.onImagePageReadinessRegistration,
     this.qrDetectionsNotifier,
     this.onTextSelectionStart,
@@ -70,6 +72,7 @@ class FileWidget extends StatelessWidget {
         key: key ?? ValueKey(fileKey),
         onFinalFileLoad: onFinalFileLoad,
         onFinalImageLoaded: onFinalImageLoaded,
+        isSelectedViewerPage: isSelectedViewerPage,
         onImagePageReadinessRegistration: onImagePageReadinessRegistration,
         qrDetectionsNotifier: qrDetectionsNotifier,
         onTextSelectionStart: onTextSelectionStart,

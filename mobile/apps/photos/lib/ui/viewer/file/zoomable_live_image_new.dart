@@ -31,6 +31,7 @@ class ZoomableLiveImageNew extends StatefulWidget {
   final bool isFromMemories;
   final Function({required int memoryDuration})? onFinalFileLoad;
   final ValueChanged<File>? onFinalImageLoaded;
+  final bool? isSelectedViewerPage;
   final FileViewerImagePageReadinessRegistration?
   onImagePageReadinessRegistration;
   final ValueNotifier<QrCodeDetectionResult?>? qrDetectionsNotifier;
@@ -45,6 +46,7 @@ class ZoomableLiveImageNew extends StatefulWidget {
     this.isFromMemories = false,
     this.onFinalFileLoad,
     this.onFinalImageLoaded,
+    this.isSelectedViewerPage,
     this.onImagePageReadinessRegistration,
     this.qrDetectionsNotifier,
     this.onTextSelectionStart,
@@ -204,6 +206,7 @@ class _ZoomableLiveImageNewState extends State<ZoomableLiveImageNew>
       isFromMemories: widget.isFromMemories,
       onFinalFileLoad: widget.onFinalFileLoad,
       onFinalImageLoaded: widget.onFinalImageLoaded,
+      isSelectedViewerPage: widget.isSelectedViewerPage,
       onImagePageReadinessRegistration: widget.onImagePageReadinessRegistration,
     );
 
