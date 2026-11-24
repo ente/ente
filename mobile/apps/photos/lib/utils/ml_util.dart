@@ -408,6 +408,7 @@ Stream<List<FileMLInstruction>> fetchEmbeddingsAndInstructions(
   int yieldSize, {
   required MLMode mode,
   MlRunControl? control,
+  Future<void> Function()? afterRemoteBatch,
 }) async* {
   if (control?.stopRequested ?? false) return;
   if (mode == MLMode.localGallery) {
@@ -442,6 +443,8 @@ Stream<List<FileMLInstruction>> fetchEmbeddingsAndInstructions(
       chunk,
       mlDataDB: mlDataDB,
     );
+    if (control?.stopRequested ?? false) return;
+    await afterRemoteBatch?.call();
     if (control?.stopRequested ?? false) return;
     for (final instruction in pendingInstructions) {
       if (instruction.pendingML) {

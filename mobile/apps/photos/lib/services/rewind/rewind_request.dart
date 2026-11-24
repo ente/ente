@@ -1,8 +1,8 @@
 import "package:collection/collection.dart";
 import "package:flutter_rust_bridge/flutter_rust_bridge.dart" show Int64List;
-import "package:package_info_plus/package_info_plus.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/db/files_db.dart";
+import "package:photos/db/ml/db.dart";
 import "package:photos/db/social_db.dart";
 import "package:photos/models/collection/collection.dart";
 import "package:photos/models/file/file.dart";
@@ -20,13 +20,17 @@ import "package:photos/src/rust/api/rewind_api.dart" as rust;
 import "package:photos/utils/contact_string_util.dart";
 
 bool get rewindUsesMl =>
-    hasGrantedMLConsent && localSettings.isMLLocalIndexingEnabled;
+    hasGrantedMLConsent &&
+    localSettings.isMLLocalIndexingEnabled &&
+    MLDataDB.isRustBackend;
 
 const _screenshotName = "screenshot";
 const _reactionPageSize = 1000;
 
-Future<rust.RewindRequest> buildRewindRequest(DateTime now) async {
-  final packageInfo = await PackageInfo.fromPlatform();
+Future<rust.RewindRequest> buildRewindRequest(
+  DateTime now, {
+  bool justClustered = false,
+}) async {
   final persons = isLocalGalleryMode || !rewindUsesMl
       ? const <PersonEntity>[]
       : await PersonService.instance.getPersons();
@@ -37,8 +41,6 @@ Future<rust.RewindRequest> buildRewindRequest(DateTime now) async {
     year: RewindEdition.year,
     now: now.microsecondsSinceEpoch,
     utcOffsetSeconds: now.timeZoneOffset.inSeconds,
-    seasonStart: RewindEdition.availableFrom.microsecondsSinceEpoch,
-    installedAt: packageInfo.installTime?.microsecondsSinceEpoch ?? 0,
     localGalleryMode: isLocalGalleryMode,
     files: isLocalGalleryMode ? await _localFiles() : await _ownedFiles(),
     people: [
@@ -57,6 +59,7 @@ Future<rust.RewindRequest> buildRewindRequest(DateTime now) async {
                     normalizeContactLinkEmail(person.data.email) == email,
               )
               ?.remoteID,
+    justClustered: justClustered,
   );
 }
 

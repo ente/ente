@@ -25,6 +25,7 @@ pub use state::{REWIND_VERSION, RewindState, RewindStatus};
 use clip::Clip;
 use library::Library;
 use people::People;
+use state::{MlReadiness, has_enough_ml};
 
 use crate::memories::CityLookup;
 use crate::ml_store::MlStore;
@@ -58,22 +59,13 @@ pub fn compute_rewind(
         return Ok(previous.clone());
     }
     let library = Library::of_year(request)?;
-    let ml_coverage = store.map(|store| library.ml_coverage(store)).transpose()?;
-    let previous_report = previous
-        .filter(|previous| previous.ml_coverage.is_some())
-        .and_then(|previous| match &previous.status {
-            RewindStatus::Ready { report } => Some(report.as_ref()),
-            RewindStatus::WaitingForMl | RewindStatus::NothingToShow => None,
-        });
-    RewindState::evaluate(
-        request,
-        &library,
-        store,
-        cities,
-        ml_coverage,
-        previous_report.is_some(),
-        previous_report.is_some_and(RewindReport::shows_ml_chapters),
-    )
+    let readiness = MlReadiness::of(request, &library, store)?;
+    RewindState::evaluate(request, &library, store, cities, &readiness, previous)
+}
+
+pub fn rewind_has_enough_ml(request: &RewindRequest, store: &MlStore) -> Result<bool> {
+    let library = Library::of_year(request)?;
+    Ok(has_enough_ml(library.ml_coverage(store)?))
 }
 
 pub fn encode_rewind_state(state: &RewindState) -> Result<Vec<u8>> {
@@ -120,13 +112,18 @@ pub fn rewind_badge_signals(request: &RewindRequest, store: Option<&MlStore>) ->
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use tempfile::TempDir;
 
-    use super::fixtures::{BEFORE_NEW_YEAR, NoCities, daily_photos, located, photo, request_at};
+    use super::fixtures::{
+        BEFORE_NEW_YEAR, NoCities, appear, daily_photos, located, photo, request_at,
+    };
+    use super::library::MICROS_PER_DAY;
     use super::{
         Mosaic, REWIND_VERSION, RewindColour, RewindFile, RewindFileType, RewindReport,
         RewindRequest, RewindState, RewindStatus, compute_rewind, decode_rewind_state,
-        encode_rewind_request, encode_rewind_state,
+        encode_rewind_request, encode_rewind_state, rewind_has_enough_ml,
     };
     use crate::ml_db::{
         CLIP_EMBEDDING_DIMENSIONS, CLIP_ML_VERSION, ClipEmbedding, FACE_ML_VERSION, FaceRow,
@@ -134,6 +131,38 @@ mod tests {
     use crate::ml_store::{CLUSTER_CENTROID_DIMENSIONS, MlStore};
 
     const AFTER_NEW_YEAR: &str = "2027-01-02T10:00:00";
+
+    fn a_day_earlier(request: &RewindRequest) -> RewindRequest {
+        let mut earlier = request.clone();
+        earlier.now -= MICROS_PER_DAY;
+        earlier
+    }
+
+    fn unclustered_face(store: &MlStore, file_id: i64, embedding: Vec<f64>) {
+        store
+            .db()
+            .bulk_insert_faces(&[FaceRow {
+                file_id,
+                face_id: format!("{file_id}_unclustered"),
+                detection_json: "{}".to_string(),
+                embedding,
+                score: 0.9,
+                blur: 300.0,
+                is_sideways: false,
+                image_height: 100,
+                image_width: 100,
+                ml_version: FACE_ML_VERSION,
+            }])
+            .unwrap();
+    }
+
+    fn cluster_indexed_faces(store: &MlStore, file_ids: impl IntoIterator<Item = i64>) {
+        let clusters: HashMap<String, String> = file_ids
+            .into_iter()
+            .map(|id| (format!("{id}_face"), format!("cluster_{id}")))
+            .collect();
+        store.db().update_face_id_to_cluster_id(&clusters).unwrap();
+    }
 
     fn photos(count: i64) -> Vec<RewindFile> {
         (1..=count)
@@ -174,14 +203,27 @@ mod tests {
     fn total_files(state: &RewindState) -> Option<u32> {
         match &state.status {
             RewindStatus::Ready { report } => report.totals.as_ref().map(|totals| totals.files),
-            RewindStatus::WaitingForMl | RewindStatus::NothingToShow => None,
+            RewindStatus::NothingToShow => None,
         }
     }
 
     fn colour(state: &RewindState) -> Option<RewindColour> {
         match &state.status {
             RewindStatus::Ready { report } => report.colour.as_ref().map(|colour| colour.colour),
-            RewindStatus::WaitingForMl | RewindStatus::NothingToShow => None,
+            RewindStatus::NothingToShow => None,
+        }
+    }
+
+    fn new_face_clusters(state: &RewindState) -> Option<Vec<String>> {
+        match &state.status {
+            RewindStatus::Ready { report } => report.new_faces.as_ref().map(|new_faces| {
+                new_faces
+                    .faces
+                    .iter()
+                    .filter_map(|face| face.cluster_id.clone())
+                    .collect()
+            }),
+            RewindStatus::NothingToShow => None,
         }
     }
 
@@ -223,16 +265,47 @@ mod tests {
         );
 
         let after_new_year = request_at(AFTER_NEW_YEAR, photos(3));
-        let without_cities = compute_rewind(&after_new_year, None, None, None).unwrap();
+        let first =
+            compute_rewind(&a_day_earlier(&after_new_year), None, Some(&NoCities), None).unwrap();
+        assert!(!first.is_final);
+
+        let without_cities = compute_rewind(&after_new_year, None, None, Some(&first)).unwrap();
         assert_eq!(total_files(&without_cities), Some(3));
         assert!(!without_cities.is_final);
 
-        let after = compute_rewind(&after_new_year, None, Some(&NoCities), None).unwrap();
+        let after = compute_rewind(&after_new_year, None, Some(&NoCities), Some(&first)).unwrap();
         assert!(after.is_final);
     }
 
     #[test]
-    fn with_ml_the_rewind_waits_until_ninety_percent_of_the_year_is_indexed() {
+    fn a_first_report_after_new_year_freezes_only_a_day_later_with_the_same_photos() {
+        let after_new_year = request_at(AFTER_NEW_YEAR, photos(3));
+        let first =
+            compute_rewind(&a_day_earlier(&after_new_year), None, Some(&NoCities), None).unwrap();
+        assert!(matches!(first.status, RewindStatus::Ready { .. }));
+        assert!(!first.is_final);
+
+        let mut an_hour_later = a_day_earlier(&after_new_year);
+        an_hour_later.now += MICROS_PER_DAY / 24;
+        let same_day = compute_rewind(&an_hour_later, None, Some(&NoCities), Some(&first)).unwrap();
+        assert!(!same_day.is_final);
+
+        let filled_in = compute_rewind(
+            &request_at(AFTER_NEW_YEAR, photos(5)),
+            None,
+            Some(&NoCities),
+            Some(&first),
+        )
+        .unwrap();
+        assert_eq!(total_files(&filled_in), Some(5));
+        assert!(!filled_in.is_final);
+
+        let settled = compute_rewind(&after_new_year, None, Some(&NoCities), Some(&first)).unwrap();
+        assert!(settled.is_final);
+    }
+
+    #[test]
+    fn with_ml_the_ml_chapters_wait_until_ninety_percent_of_the_year_is_indexed() {
         let mut files = photos(10);
         let mut document = photo(11, "2026-06-01T12:00:00");
         document.file_type = RewindFileType::Other;
@@ -247,8 +320,9 @@ mod tests {
             None,
         )
         .unwrap();
-        assert_eq!(waiting.status, RewindStatus::WaitingForMl);
+        assert_eq!(total_files(&waiting), Some(11));
         assert_eq!(waiting.ml_coverage, Some(0.8));
+        assert!(waiting.ml_chapters_pending);
         assert!(!waiting.is_final);
 
         let (_directory, store) = indexed_store(1..=9);
@@ -261,38 +335,237 @@ mod tests {
         .unwrap();
         assert_eq!(total_files(&ready), Some(11));
         assert_eq!(ready.ml_coverage, Some(0.9));
+        assert!(!ready.ml_chapters_pending);
         assert!(!ready.is_final);
 
-        let frozen = compute_rewind(
-            &request_at(AFTER_NEW_YEAR, files),
+        let after_new_year = request_at(AFTER_NEW_YEAR, files);
+        let first = compute_rewind(
+            &a_day_earlier(&after_new_year),
             Some(&store),
             Some(&NoCities),
             None,
         )
         .unwrap();
+        let older_unindexed =
+            compute_rewind(&after_new_year, Some(&store), Some(&NoCities), Some(&first)).unwrap();
+        assert!(!older_unindexed.is_final);
+
+        let (_directory, store) = indexed_store((1..=9).chain([12]));
+        cluster_indexed_faces(&store, (1..=9).chain([12]));
+        let frozen =
+            compute_rewind(&after_new_year, Some(&store), Some(&NoCities), Some(&first)).unwrap();
         assert!(frozen.is_final);
     }
 
     #[test]
-    fn after_new_year_unfinished_indexing_shows_the_rewind_unless_installed_this_season() {
-        let (_directory, store) = indexed_store(1..=5);
+    fn enough_ml_means_ninety_percent_of_the_year_is_indexed() {
+        let mut files = photos(10);
+        files.push(photo(11, "2025-06-01T12:00:00"));
+        let request = request_at(BEFORE_NEW_YEAR, files);
 
-        let fallback = compute_rewind(
-            &request_at(AFTER_NEW_YEAR, photos(10)),
+        let (_directory, store) = indexed_store(1..=8);
+        assert!(!rewind_has_enough_ml(&request, &store).unwrap());
+
+        let (_directory, store) = indexed_store(1..=9);
+        assert!(rewind_has_enough_ml(&request, &store).unwrap());
+    }
+
+    #[test]
+    fn new_faces_wait_until_earlier_years_are_indexed() {
+        let mut files = daily_photos(1, "2026-01-01T12:00:00", 240);
+        files.extend(daily_photos(301, "2025-06-01T12:00:00", 10));
+        let request = request_at(AFTER_NEW_YEAR, files);
+
+        let (_directory, store) = indexed_store(1..=240);
+        appear(&store, "partner", None, 1..=120);
+        appear(&store, "baby", None, 121..=240);
+        let first = compute_rewind(
+            &a_day_earlier(&request),
+            Some(&store),
+            Some(&NoCities),
+            None,
+        )
+        .unwrap();
+        let unsure = compute_rewind(&request, Some(&store), Some(&NoCities), Some(&first)).unwrap();
+        assert!(matches!(unsure.status, RewindStatus::Ready { .. }));
+        assert_eq!(new_face_clusters(&unsure), None);
+        assert!(!unsure.is_final);
+
+        let (_directory, store) = indexed_store((1..=240).chain(301..=310));
+        appear(&store, "partner", None, (1..=120).chain(301..=310));
+        appear(&store, "baby", None, 121..=240);
+        cluster_indexed_faces(&store, (1..=240).chain(301..=310));
+        let known = compute_rewind(&request, Some(&store), Some(&NoCities), Some(&first)).unwrap();
+        assert_eq!(new_face_clusters(&known), Some(vec!["baby".to_string()]));
+        assert!(known.is_final);
+    }
+
+    #[test]
+    fn new_faces_wait_for_clustered_faces_after_the_ml_chapters_appear() {
+        let mut files = daily_photos(1, "2026-01-01T12:00:00", 240);
+        files.extend(daily_photos(301, "2025-06-01T12:00:00", 10));
+        let request = request_at(BEFORE_NEW_YEAR, files);
+
+        let (_directory, store) = indexed_store(1..=240);
+        appear(&store, "partner", None, 1..=120);
+        appear(&store, "baby", None, 121..=240);
+        let shown = compute_rewind(&request, Some(&store), None, None).unwrap();
+        assert!(!shown.ml_chapters_pending);
+        assert_eq!(new_face_clusters(&shown), None);
+
+        let (_directory, store) = indexed_store((1..=240).chain(301..=310));
+        appear(&store, "partner", None, (1..=120).chain(301..=310));
+        appear(&store, "baby", None, 121..=240);
+        let mut before_clustering = request.clone();
+        before_clustering.just_clustered = false;
+        let unclustered =
+            compute_rewind(&before_clustering, Some(&store), None, Some(&shown)).unwrap();
+        assert!(!unclustered.ml_chapters_pending);
+        assert_eq!(new_face_clusters(&unclustered), None);
+
+        let clustered = compute_rewind(&request, Some(&store), None, Some(&unclustered)).unwrap();
+        assert_eq!(
+            new_face_clusters(&clustered),
+            Some(vec!["baby".to_string()])
+        );
+    }
+
+    #[test]
+    fn ml_chapters_wait_until_faces_are_clustered() {
+        let files = daily_photos(1, "2026-01-01T12:00:00", 60);
+        let (_directory, store) = indexed_store(1..=60);
+        let mut before_clustering = request_at(AFTER_NEW_YEAR, files.clone());
+        before_clustering.just_clustered = false;
+
+        let waiting = compute_rewind(
+            &a_day_earlier(&before_clustering),
+            Some(&store),
+            Some(&NoCities),
+            None,
+        )
+        .unwrap();
+        assert_eq!(total_files(&waiting), Some(60));
+        assert_eq!(colour(&waiting), None);
+        assert!(waiting.ml_chapters_pending);
+        assert!(!waiting.is_final);
+
+        let just_clustered = compute_rewind(
+            &request_at(AFTER_NEW_YEAR, files),
+            Some(&store),
+            Some(&NoCities),
+            Some(&waiting),
+        )
+        .unwrap();
+        assert_eq!(colour(&just_clustered), Some(RewindColour::CherryBomb));
+        assert!(!just_clustered.ml_chapters_pending);
+        assert!(!just_clustered.is_final);
+
+        cluster_indexed_faces(&store, 1..=60);
+        let already_clustered = compute_rewind(
+            &before_clustering,
+            Some(&store),
+            Some(&NoCities),
+            Some(&waiting),
+        )
+        .unwrap();
+        assert_eq!(colour(&already_clustered), Some(RewindColour::CherryBomb));
+        assert!(!already_clustered.ml_chapters_pending);
+        assert!(already_clustered.is_final);
+    }
+
+    #[test]
+    fn faces_after_the_year_do_not_hold_back_the_report() {
+        let mut files = daily_photos(1, "2026-01-01T12:00:00", 60);
+        files.push(photo(99, "2027-01-01T12:00:00"));
+        let (_directory, store) = indexed_store(1..=60);
+        cluster_indexed_faces(&store, 1..=60);
+        unclustered_face(&store, 99, vec![0.1; CLUSTER_CENTROID_DIMENSIONS]);
+        let mut request = request_at(AFTER_NEW_YEAR, files);
+        request.just_clustered = false;
+
+        let first = compute_rewind(
+            &a_day_earlier(&request),
+            Some(&store),
+            Some(&NoCities),
+            None,
+        )
+        .unwrap();
+        assert_eq!(colour(&first), Some(RewindColour::CherryBomb));
+        assert!(!first.ml_chapters_pending);
+        let settled =
+            compute_rewind(&request, Some(&store), Some(&NoCities), Some(&first)).unwrap();
+        assert!(settled.is_final);
+    }
+
+    #[test]
+    fn faces_the_clustering_skips_do_not_hold_back_the_report() {
+        let files = daily_photos(1, "2026-01-01T12:00:00", 60);
+        let (_directory, store) = indexed_store(1..=60);
+        cluster_indexed_faces(&store, 1..=60);
+        let mut invalid = vec![0.1; CLUSTER_CENTROID_DIMENSIONS];
+        invalid[5] = f64::NAN;
+        unclustered_face(&store, 7, invalid);
+        let mut request = request_at(BEFORE_NEW_YEAR, files);
+        request.just_clustered = false;
+
+        let state = compute_rewind(&request, Some(&store), None, None).unwrap();
+        assert_eq!(colour(&state), Some(RewindColour::CherryBomb));
+        assert!(!state.ml_chapters_pending);
+
+        unclustered_face(&store, 8, vec![0.1; CLUSTER_CENTROID_DIMENSIONS]);
+        let waiting = compute_rewind(&request, Some(&store), None, None).unwrap();
+        assert!(waiting.ml_chapters_pending);
+    }
+
+    #[test]
+    fn new_faces_stay_once_shown_while_new_photos_wait_for_clustering() {
+        let mut files = daily_photos(1, "2026-01-01T12:00:00", 240);
+        files.extend(daily_photos(301, "2025-06-01T12:00:00", 10));
+        let (_directory, store) = indexed_store((1..=240).chain(301..=310));
+        appear(&store, "partner", None, (1..=120).chain(301..=310));
+        appear(&store, "baby", None, 121..=240);
+        let shown = compute_rewind(
+            &request_at(BEFORE_NEW_YEAR, files.clone()),
             Some(&store),
             None,
             None,
         )
         .unwrap();
-        assert_eq!(total_files(&fallback), Some(10));
-        assert_eq!(fallback.ml_coverage, Some(0.5));
-        assert!(!fallback.is_final);
+        assert_eq!(new_face_clusters(&shown), Some(vec!["baby".to_string()]));
 
-        let mut new_install = request_at(AFTER_NEW_YEAR, photos(10));
-        new_install.installed_at = new_install.season_start;
-        let waiting = compute_rewind(&new_install, Some(&store), None, None).unwrap();
-        assert_eq!(waiting.status, RewindStatus::WaitingForMl);
-        assert!(!waiting.is_final);
+        files.push(photo(241, "2026-12-30T12:00:00"));
+        let (_directory, store) = indexed_store((1..=241).chain(301..=310));
+        appear(&store, "partner", None, (1..=120).chain(301..=310));
+        appear(&store, "baby", None, 121..=240);
+        let mut before_clustering = request_at(BEFORE_NEW_YEAR, files);
+        before_clustering.just_clustered = false;
+        let unseen = compute_rewind(&before_clustering, Some(&store), None, None).unwrap();
+        assert_eq!(new_face_clusters(&unseen), None);
+        let still_shown =
+            compute_rewind(&before_clustering, Some(&store), None, Some(&shown)).unwrap();
+        assert_eq!(
+            new_face_clusters(&still_shown),
+            Some(vec!["baby".to_string()])
+        );
+    }
+
+    #[test]
+    fn unfinished_indexing_keeps_the_rewind_from_freezing() {
+        let (_directory, store) = indexed_store(1..=5);
+        let request = request_at(AFTER_NEW_YEAR, photos(10));
+        let first = compute_rewind(
+            &a_day_earlier(&request),
+            Some(&store),
+            Some(&NoCities),
+            None,
+        )
+        .unwrap();
+
+        let state = compute_rewind(&request, Some(&store), Some(&NoCities), Some(&first)).unwrap();
+        assert_eq!(total_files(&state), Some(10));
+        assert_eq!(state.ml_coverage, Some(0.5));
+        assert!(state.ml_chapters_pending);
+        assert!(!state.is_final);
     }
 
     #[test]
@@ -340,59 +613,20 @@ mod tests {
     }
 
     #[test]
-    fn once_ready_with_ml_the_rewind_stays_ready_while_indexing_catches_up() {
+    fn the_rewind_shows_while_indexing_catches_up() {
         let (_directory, store) = indexed_store(1..=9);
-        let ready = compute_rewind(
-            &request_at(BEFORE_NEW_YEAR, photos(10)),
-            Some(&store),
-            None,
-            None,
-        )
-        .unwrap();
-        assert_eq!(total_files(&ready), Some(10));
-
         let more_photos = request_at(BEFORE_NEW_YEAR, photos(15));
-        assert_eq!(
-            compute_rewind(&more_photos, Some(&store), None, None)
-                .unwrap()
-                .status,
-            RewindStatus::WaitingForMl
-        );
-        let still_ready = compute_rewind(&more_photos, Some(&store), None, Some(&ready)).unwrap();
-        assert_eq!(total_files(&still_ready), Some(15));
 
-        let after_new_year = compute_rewind(
-            &request_at(AFTER_NEW_YEAR, photos(15)),
-            Some(&store),
-            None,
-            Some(&still_ready),
-        )
-        .unwrap();
-        assert!(!after_new_year.is_final);
+        let catching_up = compute_rewind(&more_photos, Some(&store), None, None).unwrap();
+        assert_eq!(total_files(&catching_up), Some(15));
+        assert!(catching_up.ml_chapters_pending);
 
-        let nothing = compute_rewind(
-            &request_at(BEFORE_NEW_YEAR, Vec::new()),
-            Some(&store),
-            None,
-            None,
-        )
-        .unwrap();
-        assert_eq!(
-            compute_rewind(&more_photos, Some(&store), None, Some(&nothing))
-                .unwrap()
-                .status,
-            RewindStatus::WaitingForMl
-        );
-
-        let without_ml =
-            compute_rewind(&request_at(BEFORE_NEW_YEAR, photos(10)), None, None, None).unwrap();
-        assert_eq!(total_files(&without_ml), Some(10));
-        assert_eq!(
-            compute_rewind(&more_photos, Some(&store), None, Some(&without_ml))
-                .unwrap()
-                .status,
-            RewindStatus::WaitingForMl
-        );
+        let without_ml = compute_rewind(&more_photos, None, None, None).unwrap();
+        assert!(!without_ml.ml_chapters_pending);
+        let switched_on =
+            compute_rewind(&more_photos, Some(&store), None, Some(&without_ml)).unwrap();
+        assert_eq!(total_files(&switched_on), Some(15));
+        assert!(switched_on.ml_chapters_pending);
     }
 
     #[test]
@@ -408,13 +642,10 @@ mod tests {
         .unwrap();
         assert_eq!(total_files(&next), Some(3));
 
-        let frozen = compute_rewind(
-            &request_at(AFTER_NEW_YEAR, photos(4)),
-            None,
-            Some(&NoCities),
-            None,
-        )
-        .unwrap();
+        let four_photos = request_at(AFTER_NEW_YEAR, photos(4));
+        let first =
+            compute_rewind(&a_day_earlier(&four_photos), None, Some(&NoCities), None).unwrap();
+        let frozen = compute_rewind(&four_photos, None, Some(&NoCities), Some(&first)).unwrap();
         assert!(frozen.is_final);
         let later = request_at("2027-01-10T10:00:00", photos(5));
         assert_eq!(
@@ -468,7 +699,7 @@ mod tests {
     }
 
     #[test]
-    fn older_mosaic_caches_keep_rewind_ready_when_ml_coverage_drops() {
+    fn older_mosaic_caches_keep_the_ml_chapters_when_ml_coverage_drops() {
         let (_directory, store) = indexed_store(1..=200);
         let mut files = daily_photos(1, "2026-01-01T12:00:00", 200);
         let ready = compute_rewind(
@@ -510,16 +741,33 @@ mod tests {
     #[test]
     fn a_final_result_is_kept_unless_ml_was_switched_off() {
         let (_directory, store) = indexed_store(1..=60);
+        cluster_indexed_faces(&store, 1..=60);
         let request = request_at(AFTER_NEW_YEAR, daily_photos(1, "2026-01-01T12:00:00", 60));
 
-        let without_ml = compute_rewind(&request, None, Some(&NoCities), None).unwrap();
+        let earlier_without_ml =
+            compute_rewind(&a_day_earlier(&request), None, Some(&NoCities), None).unwrap();
+        let without_ml =
+            compute_rewind(&request, None, Some(&NoCities), Some(&earlier_without_ml)).unwrap();
         assert!(without_ml.is_final);
         assert_eq!(
             compute_rewind(&request, Some(&store), Some(&NoCities), Some(&without_ml)).unwrap(),
             without_ml
         );
 
-        let with_ml = compute_rewind(&request, Some(&store), Some(&NoCities), None).unwrap();
+        let earlier_with_ml = compute_rewind(
+            &a_day_earlier(&request),
+            Some(&store),
+            Some(&NoCities),
+            None,
+        )
+        .unwrap();
+        let with_ml = compute_rewind(
+            &request,
+            Some(&store),
+            Some(&NoCities),
+            Some(&earlier_with_ml),
+        )
+        .unwrap();
         assert!(with_ml.is_final);
         assert_eq!(colour(&with_ml), Some(RewindColour::CherryBomb));
 
@@ -532,7 +780,7 @@ mod tests {
     }
 
     #[test]
-    fn ml_chapters_stay_once_shown_but_the_new_year_fallback_never_shows_them() {
+    fn ml_chapters_stay_once_shown_and_otherwise_wait_for_ninety_percent() {
         let (_directory, store) = indexed_store(1..=60);
         let indexed = daily_photos(1, "2026-01-01T12:00:00", 60);
         let ready = compute_rewind(
@@ -550,16 +798,18 @@ mod tests {
         let latched = compute_rewind(&after_new_year, Some(&store), None, Some(&ready)).unwrap();
         assert_eq!(latched.ml_coverage, Some(0.6));
         assert_eq!(colour(&latched), Some(RewindColour::CherryBomb));
+        assert!(!latched.ml_chapters_pending);
         let still_latched =
             compute_rewind(&after_new_year, Some(&store), None, Some(&latched)).unwrap();
         assert_eq!(colour(&still_latched), Some(RewindColour::CherryBomb));
 
-        let fallback = compute_rewind(&after_new_year, Some(&store), None, None).unwrap();
-        assert!(matches!(fallback.status, RewindStatus::Ready { .. }));
-        assert_eq!(colour(&fallback), None);
-        let after_fallback =
-            compute_rewind(&after_new_year, Some(&store), None, Some(&fallback)).unwrap();
-        assert_eq!(colour(&after_fallback), None);
+        let unseen = compute_rewind(&after_new_year, Some(&store), None, None).unwrap();
+        assert!(matches!(unseen.status, RewindStatus::Ready { .. }));
+        assert_eq!(colour(&unseen), None);
+        assert!(unseen.ml_chapters_pending);
+        let after_unseen =
+            compute_rewind(&after_new_year, Some(&store), None, Some(&unseen)).unwrap();
+        assert_eq!(colour(&after_unseen), None);
     }
 
     #[test]

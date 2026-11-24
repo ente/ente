@@ -16,6 +16,8 @@ pub(super) struct Library<'r> {
     files: Vec<YearFile<'r>>,
     positions: HashMap<i64, usize>,
     start: i64,
+    end: i64,
+    utc_offset: i64,
     elapsed_days: usize,
     year_has_ended: bool,
 }
@@ -35,7 +37,8 @@ impl<'r> Library<'r> {
     pub(super) fn of_year(request: &'r RewindRequest) -> Result<Self> {
         let start = start_of_year(request.year)?;
         let end = start_of_year(request.year + 1)?;
-        let local_now = request.now + i64::from(request.utc_offset_seconds) * MICROS_PER_SECOND;
+        let utc_offset = i64::from(request.utc_offset_seconds) * MICROS_PER_SECOND;
+        let local_now = request.now + utc_offset;
         let mut seen = HashSet::new();
         let files: Vec<YearFile<'r>> = request
             .files
@@ -53,6 +56,8 @@ impl<'r> Library<'r> {
             files,
             positions,
             start,
+            end,
+            utc_offset,
             elapsed_days: ((local_now.clamp(start, end - 1) - start) / MICROS_PER_DAY) as usize + 1,
             year_has_ended: local_now >= end,
         })
@@ -84,6 +89,19 @@ impl<'r> Library<'r> {
         self.year_has_ended
     }
 
+    pub(super) fn had_ended_at(&self, time: i64) -> bool {
+        time + self.utc_offset >= self.end
+    }
+
+    pub(super) fn file_ids_until_year_end(&self, request: &RewindRequest) -> HashSet<i64> {
+        request
+            .files
+            .iter()
+            .filter(|file| local_time(file) < self.end)
+            .map(|file| file.id)
+            .collect()
+    }
+
     pub(super) fn complete_months(&self) -> usize {
         if self.year_has_ended {
             return 12;
@@ -93,19 +111,36 @@ impl<'r> Library<'r> {
     }
 
     pub(super) fn ml_coverage(&self, store: &MlStore) -> Result<f32> {
-        let mut indexable: Vec<i64> = self
-            .files
-            .iter()
-            .filter(|file| file.file.file_type != RewindFileType::Other)
-            .map(|file| file.file.id)
-            .collect();
-        indexable.sort_unstable();
-        let covered = store.db().count_fully_indexed_files(&indexable)?;
-        if indexable.is_empty() {
-            return Ok(1.0);
-        }
-        Ok(covered as f32 / indexable.len() as f32)
+        coverage(store, self.files.iter().map(|file| file.file))
     }
+
+    pub(super) fn earlier_ml_coverage(
+        &self,
+        request: &RewindRequest,
+        store: &MlStore,
+    ) -> Result<f32> {
+        coverage(
+            store,
+            request
+                .files
+                .iter()
+                .filter(|file| local_time(file) < self.start),
+        )
+    }
+}
+
+fn coverage<'r>(store: &MlStore, files: impl Iterator<Item = &'r RewindFile>) -> Result<f32> {
+    let mut indexable: Vec<i64> = files
+        .filter(|file| file.file_type != RewindFileType::Other)
+        .map(|file| file.id)
+        .collect();
+    indexable.sort_unstable();
+    indexable.dedup();
+    let covered = store.db().count_fully_indexed_files(&indexable)?;
+    if indexable.is_empty() {
+        return Ok(1.0);
+    }
+    Ok(covered as f32 / indexable.len() as f32)
 }
 
 impl<'r> YearFile<'r> {

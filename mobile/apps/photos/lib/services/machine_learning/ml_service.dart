@@ -62,6 +62,7 @@ class MLService {
 
   bool debugIndexingDisabled = false;
   bool _clusteringIsHappening = false;
+  bool _facesClusteredByLastRun = false;
   bool _mlControllerStatus = false;
   final Set<MlRunControl> _runControls = {};
   MlRunControl? _activeRunControl;
@@ -77,6 +78,7 @@ class MLService {
 
   static const _kForceClusteringFaceCount = 8000;
   static const _kForceClusteringFaceCountLocalGallery = 100;
+  static const _rewindCheckInterval = Duration(minutes: 5);
   int _forceClusteringFaceCountForMode(MLMode mode) {
     return mode == MLMode.localGallery
         ? _kForceClusteringFaceCountLocalGallery
@@ -417,7 +419,10 @@ class MLService {
       computeController.releaseCompute(ml: true);
     }
     if (disposition == MlRunDisposition.completed && _mlControllerStatus) {
-      await rewindService.refresh(afterMlRun: true);
+      await rewindService.refresh(
+        afterMlRun: true,
+        justClustered: _facesClusteredByLastRun,
+      );
     }
     return disposition;
   }
@@ -449,6 +454,7 @@ class MLService {
     required MlRunControl control,
   }) async {
     assert(MlProcessLock.instance.isBusy, "ml funnel must be held");
+    _facesClusteredByLastRun = false;
     if (control.stopRequested) {
       _logRunStopped(control, "before sync");
       return MlRunDisposition.stopped;
@@ -509,9 +515,9 @@ class MLService {
         _logRunStopped(control, "before final clustering");
         return MlRunDisposition.stopped;
       }
-      if ((await mlDataDB.getUnclusteredFaceCount()) > 0) {
-        await _clusterAllImages(control: control);
-      }
+      _facesClusteredByLastRun =
+          (await mlDataDB.getUnclusteredFaceCount()) == 0 ||
+          await _clusterAllImages(control: control);
       if (control.stopRequested) {
         _logRunStopped(control, "before post-run cache scheduling");
         return MlRunDisposition.stopped;
@@ -661,11 +667,28 @@ class MLService {
           onlyIndexingModels: true,
         );
       }
+      var nextRewindCheck = DateTime.now();
+      var checkedFirstChunk = false;
+      Future<void> checkRewind() async {
+        if (DateTime.now().isBefore(nextRewindCheck)) return;
+        nextRewindCheck = DateTime.now().add(_rewindCheckInterval);
+        await _addRewindMlCardsOnceIndexed(
+          mode,
+          control,
+          beforeClustering: () async {
+            if (!rustRuntimePrepared) return;
+            await MLIndexingIsolate.instance.releaseRustRuntime();
+            rustRuntimePrepared = false;
+          },
+        );
+      }
+
       final Stream<List<FileMLInstruction>> instructionStream =
           fetchEmbeddingsAndInstructions(
             fileDownloadMlLimit,
             mode: mode,
             control: control,
+            afterRemoteBatch: checkRewind,
           );
 
       int fileAnalyzedCount = 0;
@@ -730,6 +753,11 @@ class MLService {
         if (stopRun) {
           break;
         }
+        if (!checkedFirstChunk) {
+          checkedFirstChunk = true;
+          nextRewindCheck = DateTime.now();
+        }
+        await checkRewind();
       }
       if (fileAnalyzedCount > 0) {
         magicCacheService.queueUpdate('fileIndexed');
@@ -750,6 +778,32 @@ class MLService {
     }
   }
 
+  Future<void> _addRewindMlCardsOnceIndexed(
+    MLMode mode,
+    MlRunControl control, {
+    required Future<void> Function() beforeClustering,
+  }) async {
+    if (control.stopRequested ||
+        !rewindService.hasPendingMlChapters ||
+        !await rewindService.hasEnoughMl()) {
+      return;
+    }
+    _logger.info("Enough files are indexed for Rewind's ML cards");
+    try {
+      if ((await _dbForMode(mode).getUnclusteredFaceCount()) > 0) {
+        await beforeClustering();
+        if (!await _clusterAllImages(control: control)) return;
+      }
+      if (control.stopRequested) return;
+      await PersonService.instance.sync();
+    } catch (e, s) {
+      _logger.warning("Failed to cluster for Rewind's ML cards", e, s);
+      return;
+    }
+    if (control.stopRequested) return;
+    unawaited(rewindService.refresh(afterMlRun: true, justClustered: true));
+  }
+
   Future<MlLockAttempt> clusterAllImages({bool force = false}) async {
     final control = MlRunControl();
     final attempt = await _runExclusiveWithControl(
@@ -765,16 +819,16 @@ class MLService {
     return attempt;
   }
 
-  Future<void> _clusterAllImages({
+  Future<bool> _clusterAllImages({
     required MlRunControl control,
     bool force = false,
   }) async {
     assert(MlProcessLock.instance.isBusy, "ml funnel must be held");
     if (control.stopRequested) {
       _logRunStopped(control, "before clustering started");
-      return;
+      return false;
     }
-    if (!_canRunMLFunction(function: "Clustering") && !force) return;
+    if (!_canRunMLFunction(function: "Clustering") && !force) return false;
     final faceClustering = _faceClustering;
     _logger.info("`clusterAllImages()` called");
     _clusteringIsHappening = true;
@@ -810,8 +864,10 @@ class MLService {
         'clusterAllImages() finished, in '
         '${DateTime.now().difference(clusterAllImagesTime).inSeconds} seconds',
       );
+      return !control.stopRequested;
     } catch (e, s) {
       _logger.severe("`clusterAllImages` failed", e, s);
+      return false;
     } finally {
       _clusteringIsHappening = false;
     }
