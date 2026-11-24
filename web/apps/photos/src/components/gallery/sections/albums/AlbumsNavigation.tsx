@@ -164,12 +164,12 @@ export const AlbumsNavigation = ({
         {
             id: PseudoCollectionID.hiddenItems,
             label: t("section_hidden"),
-            active: mode == "hidden-albums",
+            active: activeCollectionID == PseudoCollectionID.hiddenItems,
         },
         {
             id: PseudoCollectionID.archiveItems,
             label: t("section_archive"),
-            active: mode == "archive-albums",
+            active: activeCollectionID == PseudoCollectionID.archiveItems,
         },
         {
             id: PseudoCollectionID.trash,
