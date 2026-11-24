@@ -13,6 +13,7 @@ import "package:photos/events/app_mode_changed_event.dart";
 import "package:photos/events/diff_sync_complete_event.dart";
 import "package:photos/events/files_updated_event.dart";
 import "package:photos/events/people_changed_event.dart";
+import "package:photos/events/sync_finished_event.dart";
 import "package:photos/main.dart" show isIOSBackgroundRefresh, isProcessBg;
 import "package:photos/service_locator.dart";
 import "package:photos/services/app_lifecycle_service.dart";
@@ -34,6 +35,7 @@ class RewindService {
     Bus.instance.on<AppModeChangedEvent>().listen((_) => _reset());
     Bus.instance.on<PeopleChangedEvent>().listen((_) => _rebuildStory());
     Bus.instance.on<DiffSyncCompleteEvent>().listen((_) => _rebuildStory());
+    Bus.instance.on<SyncFinishedEvent>().listen((_) => _refreshIfNoReport());
     Bus.instance
         .on<FilesUpdatedEvent>()
         .where((event) => _visibilityChanges.contains(event.type))
@@ -51,9 +53,11 @@ class RewindService {
   String? _hiddenReason;
   String _missingStateReason = "no state";
   String? _storyError;
+  var _hasRefreshed = false;
   final assets = RewindAssetStore();
 
   static const _startupDelay = Duration(seconds: 5);
+  static const _startupRetryDelay = Duration(seconds: 30);
   static const _refreshInterval = Duration(days: 1);
   static const _notificationId = 20261205;
   static const _notificationPayload = "ente://rewind";
@@ -98,11 +102,21 @@ class RewindService {
 
   void scheduleRefresh() {
     unawaited(_guarded(_showCached));
-    unawaited(Future.delayed(_startupDelay, refresh));
+    unawaited(_refreshAtStartup());
+  }
+
+  Future<void> _refreshAtStartup() async {
+    await Future.delayed(_startupDelay, refresh);
+    await Future.delayed(_startupRetryDelay, _refreshIfNoReport);
   }
 
   Future<void> refresh({bool afterMlRun = false}) =>
       _guarded(() => _refresh(afterMlRun: afterMlRun));
+
+  void _refreshIfNoReport() {
+    if (isProcessBg || !_hasRefreshed || _state.value != null) return;
+    unawaited(refresh());
+  }
 
   Future<void> _guarded(Future<void> Function() work) async {
     if (isIOSBackgroundRefresh) return;
@@ -161,6 +175,7 @@ class RewindService {
   }
 
   Future<void> _refresh({required bool afterMlRun}) async {
+    _hasRefreshed = true;
     final now = DateTime.now();
     final owner = await _shownOwner(now);
     if (owner == null) return;
@@ -351,9 +366,10 @@ class RewindService {
       cities: await locationService.getLocationIndex(),
       previous: previous,
     );
+    final bytes = await rust.encodeRewindState(state: computed);
     final cache = await _cacheFile(owner);
     await cache.parent.create(recursive: true);
-    await cache.writeAsBytes(await rust.encodeRewindState(state: computed));
+    if (owner == _owner) await cache.writeAsBytes(bytes);
     return computed;
   }
 
