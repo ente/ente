@@ -187,6 +187,8 @@ export const PhotosNavigationShell: React.FC<
                             alignItems: "center",
                             flexShrink: 0,
                             width: "100%",
+                            overflowY: "auto",
+                            scrollbarWidth: "none",
                             px: { xs: "9px", sm: "14px" },
                             // Leave room for the first button's focus outline.
                             pt: "4px",
