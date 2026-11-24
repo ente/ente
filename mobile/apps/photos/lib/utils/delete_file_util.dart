@@ -262,6 +262,20 @@ Future<List<EnteFile>> deleteFilesOnDeviceOnly(
         confirmedDeletedLocalIDs.add(file.localID!);
       }
       deletedFiles.add(file);
+    }
+  }
+  // Cancel pending uploads for confirmed-deleted files before any per-file
+  // database awaits, so no deleted file can start uploading between files.
+  if (confirmedDeletedLocalIDs.isNotEmpty) {
+    FileUploader.instance.removeFromQueueWhere(
+      (f) => f.localID != null && confirmedDeletedLocalIDs.contains(f.localID),
+      SilentlyCancelUploadsError(),
+    );
+  }
+  for (final file in files) {
+    if (removedIDs.contains(file.localID) ||
+        alreadyDeletedIDs.contains(file.localID)) {
+      deletedFiles.add(file);
       if (localOnlyIDs.contains(file.localID)) {
         await FilesDB.instance.deleteLocalFile(file);
       } else {
@@ -274,13 +288,6 @@ Future<List<EnteFile>> deleteFilesOnDeviceOnly(
         }
       }
     }
-  }
-  // Cancel pending uploads for deleted files in one queue pass.
-  if (confirmedDeletedLocalIDs.isNotEmpty) {
-    FileUploader.instance.removeFromQueueWhere(
-      (f) => f.localID != null && confirmedDeletedLocalIDs.contains(f.localID),
-      SilentlyCancelUploadsError(),
-    );
   }
   if (uploadedFileIDsToClear.isNotEmpty) {
     await FilesDB.instance.clearLocalIDsForUploadedFileIDs(
