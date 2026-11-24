@@ -30,10 +30,10 @@ class RewindMedia {
     this._files,
     this._people,
     this._hiddenPeopleFiles, {
-    required bool loadedByID,
+    required Set<int>? reportFileIDs,
     required bool waitsForOriginals,
     _Samples? samples,
-  }) : _loadedByID = loadedByID,
+  }) : _reportFileIDs = reportFileIDs,
        _waitsForOriginals = waitsForOriginals,
        _samples = samples;
 
@@ -54,7 +54,7 @@ class RewindMedia {
       await _showableFiles(hiddenPeopleFiles, uploadedFileIDs: fileIDs),
       people,
       hiddenPeopleFiles,
-      loadedByID: fileIDs != null,
+      reportFileIDs: fileIDs?.toSet(),
       waitsForOriginals: waitsForOriginals,
     );
   }
@@ -73,7 +73,7 @@ class RewindMedia {
       files,
       people,
       hiddenPeopleFiles,
-      loadedByID: false,
+      reportFileIDs: null,
       waitsForOriginals: true,
       samples: _Samples(photos, [
         for (final person in people.values)
@@ -114,7 +114,17 @@ class RewindMedia {
 
   Future<EnteFile?> _file(int fileId) async {
     final file = _files[fileId];
-    if (file != null || !_loadedByID) return file;
+    final reportFileIDs = _reportFileIDs;
+    if (file != null ||
+        reportFileIDs == null ||
+        reportFileIDs.contains(fileId) ||
+        _hiddenPeopleFiles.contains(fileId)) {
+      return file;
+    }
+    return _filesOutsideReport[fileId] ??= _loadOutsideReport(fileId);
+  }
+
+  Future<EnteFile?> _loadOutsideReport(int fileId) async {
     final loaded = await _showableFiles(
       _hiddenPeopleFiles,
       uploadedFileIDs: [fileId],
@@ -136,9 +146,10 @@ class RewindMedia {
   final Map<int, EnteFile> _files;
   final Map<String, PersonEntity> _people;
   final Set<int> _hiddenPeopleFiles;
-  final bool _loadedByID;
+  final Set<int>? _reportFileIDs;
   final bool _waitsForOriginals;
   final _Samples? _samples;
+  final _filesOutsideReport = <int, Future<EnteFile?>>{};
   final _used = <int>{};
   final _handedOut = <EnteFile>[];
   final _galleries = <EnteFile>[];
