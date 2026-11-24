@@ -544,9 +544,7 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage>
   }
 
   Future<MemoryMusicTrack?> _firstTrack() async {
-    final tracks = await MemoryMusicService.instance.prepare().timeout(
-      _musicTimeout,
-    );
+    final tracks = await rewindService.music.prepare().timeout(_musicTimeout);
     return tracks.firstOrNull;
   }
 
