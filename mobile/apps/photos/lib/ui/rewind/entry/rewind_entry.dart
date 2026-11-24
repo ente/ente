@@ -11,7 +11,8 @@ class RewindEntry {
 
   static RewindEntry? current() {
     final story = rewindService.story.value;
-    return story == null ? null : RewindEntry._(story);
+    if (story == null || !rewindService.revealed) return null;
+    return RewindEntry._(story);
   }
 
   static Future<void> openWhenReady(BuildContext context) async {
