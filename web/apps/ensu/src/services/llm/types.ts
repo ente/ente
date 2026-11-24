@@ -1,4 +1,4 @@
-type LlmRole = "system" | "user" | "assistant";
+type LlmRole = "system" | "user" | "assistant" | "tool";
 
 export interface LlmMessage {
     role: LlmRole;
@@ -35,6 +35,7 @@ export interface GenerateSummary {
     prompt_tokens: number | null;
     generated_tokens: number | null;
     total_time_ms: number | null;
+    tools?: { calls: unknown[] } | null;
 }
 
 export type GenerateEvent =

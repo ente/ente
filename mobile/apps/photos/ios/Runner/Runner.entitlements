@@ -13,6 +13,7 @@
 		<string>webcredentials:locker.ente.com</string>
 		<string>applinks:albums.ente.io</string>
 		<string>applinks:albums.ente.com</string>
+		<string>applinks:photos.ente.com</string>
 	</array>
 	<key>com.apple.security.application-groups</key>
 	<array>

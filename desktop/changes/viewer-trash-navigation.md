@@ -1,0 +1,1 @@
+- Fixed the wrong photo appearing after moving an item to Trash.

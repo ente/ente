@@ -90,16 +90,21 @@ const busiestDaySetupPage = SetupPage(
   pattern: Color(0xFFF02525),
   ink: RewindColors.cream,
   headlines: [
-    SetupHeadline("ONE DAY,\nTHINGS GOT", at: Offset(24, 140), size: 59),
+    SetupHeadline(
+      "ONE DAY,\nYOU KEPT\nCLICKING.",
+      at: Offset(24, 100),
+      size: 59,
+    ),
   ],
   callout: SetupCallout(
-    "OUT OF HAND.",
+    "AND CLICKING!",
     center: Offset(201.2, 350),
     onTop: true,
   ),
   art: SetupArt.image(
     RewindAssets.photoHeapDucky,
     Rect.fromLTWH(-75, 281, 540, 540),
+    ticks: [(RewindTick.forward, Rect.fromLTWH(194, 373, 11, 18))],
     preset: RewindPreset.crowd,
     delayMs: 250,
   ),
@@ -131,11 +136,7 @@ const favouritesSetupPage = SetupPage(
   pattern: Color(0xFFFF4D9F),
   ink: RewindColors.cream,
   headlines: [
-    SetupHeadline(
-      "SOME PHOTOS JUST\nHIT DIFFERENT.",
-      at: Offset(24, 140),
-      size: 48,
-    ),
+    SetupHeadline("THE BEST\nOF THE BEST.", at: Offset(24, 140), size: 48),
   ],
   callout: SetupCallout(
     "THEY DESERVE A STAR!",
@@ -167,14 +168,15 @@ const ritualSetupPage = SetupPage(
   ],
   callout: SetupCallout(
     "ALMOST TIME!",
-    center: Offset(217.7, 407.5),
+    center: Offset(217.7, 393),
     delayMs: 650,
     onTop: true,
   ),
   art: SetupArt.ducky(
-    RewindAssets.cameraDucky,
-    Rect.fromLTWH(27, 411, 296.3, 373),
-    pivot: Offset(175, 762),
+    RewindAssets.almostTimeDucky,
+    Rect.fromLTWH(11, 386.5, 315.7, 400.3),
+    ticks: [(RewindTick.forward, Rect.fromLTWH(232, 431, 11, 18))],
+    pivot: Offset(158, 762),
     delayMs: 830,
   ),
 );
@@ -243,18 +245,19 @@ const badgeSetupPage = SetupPage(
   pattern: Color(0xFF11B72A),
   ink: RewindColors.cream,
   headlines: [
-    SetupHeadline("BASED ON\nYOUR GALLERY…", at: Offset(24, 140), size: 45),
+    SetupHeadline("AFTER A YEAR\nLIKE THAT…", at: Offset(24, 140), size: 45),
   ],
   callout: SetupCallout(
-    "I HAVE A THEORY ABOUT YOU",
-    center: Offset(196.5, 395),
-    size: 23.87,
+    "YOU DESERVE A BADGE!",
+    center: Offset(196.5, 351),
+    size: 29.01,
   ),
   art: SetupArt.ducky(
-    RewindAssets.detectiveDucky,
-    Rect.fromLTWH(14.5, 420, 334, 378.4),
-    ticks: [(RewindTick.bold, Rect.fromLTWH(209, 424, 16, 23))],
-    pivot: Offset(182, 777),
+    RewindAssets.badgeDucky,
+    Rect.fromLTWH(-18, 375.5, 375, 415),
+    stateMachine: "State Machine",
+    ticks: [(RewindTick.bold, Rect.fromLTWH(206, 384, 16, 25))],
+    pivot: Offset(154, 746),
   ),
 );
 

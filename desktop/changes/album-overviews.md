@@ -1,0 +1,1 @@
+- Added searchable album overviews with filters, shortcuts, and back navigation.

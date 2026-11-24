@@ -1810,7 +1810,7 @@
   "invalidProtonExportMessage": "O arquivo selecionado não é uma exportação válida do Proton.",
   "invalidProtonExportTitle": "Exportação do Proton inválida",
   "invalidQRCode": "QR Code inválido",
-  "invalidRecoveryKey": "A chave de recuperação que você inseriu não é válida. Certifique-se de conter 24 caracteres, e verifique a ortografia de cada um deles.\n\nSe você inseriu um código de recuperação mais antigo, verifique se ele tem 64 caracteres e verifique cada um deles.",
+  "invalidRecoveryKey": "A chave de recuperação que você inseriu não é válida. Certifique-se de que ela contém 24 palavras e verifique a ortografia de cada uma delas.\n\nSe você inseriu um código de recuperação mais antigo, verifique se ele tem 64 caracteres e verifique cada um deles.",
   "invalidReferralCode": "Código inválido",
   "invite": "Convidar",
   "inviteLimitReached": "Você adicionou 5 convites. Remova um para adicionar outro",

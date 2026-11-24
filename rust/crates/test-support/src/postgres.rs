@@ -48,7 +48,15 @@ impl Postgres {
         Ok(())
     }
 
+    pub fn query_sql(&self, sql: &str) -> TestResult<String> {
+        self.psql(self.database(), &["-t", "-A"], sql)
+    }
+
     fn execute_sql_on(&self, database: &str, sql: &str) -> TestResult {
+        self.psql(database, &[], sql).map(drop)
+    }
+
+    fn psql(&self, database: &str, options: &[&str], sql: &str) -> TestResult<String> {
         let output = Command::new(
             self.inner
                 .settings()
@@ -68,14 +76,14 @@ impl Postgres {
             self.username(),
             "-d",
             database,
-            "-c",
-            sql,
         ])
+        .args(options)
+        .args(["-c", sql])
         .output()?;
         if !output.status.success() {
             return Err(String::from_utf8_lossy(&output.stderr).into_owned().into());
         }
-        Ok(())
+        Ok(String::from_utf8(output.stdout)?.trim().to_owned())
     }
 }
 

@@ -150,14 +150,27 @@ class ColourPage extends RewindPage {
               preset: RewindPreset.fadeIn,
               active: isActive,
               delayMs: 700,
-              child: Text(
-                look.hex,
-                style: const TextStyle(
-                  fontFamily: "Inter",
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
-                  color: Color(0xFF5C5C5C),
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: look.color,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const SizedBox.square(dimension: 10),
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    look.hex,
+                    style: const TextStyle(
+                      fontFamily: "Inter",
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                      color: Color(0xFF5C5C5C),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

@@ -14,6 +14,9 @@ struct MessageListView: View {
     let onEdit: (RenderedChatMessage) -> Void
     let onCopy: (RenderedChatMessage) -> Void
     let onRetry: (RenderedChatMessage) -> Void
+    let todoTurns: [UUID: ToolTurnStatus]
+    let onConfirmTodoTurn: (RenderedChatMessage) -> Void
+    let onUndoTodoTurn: (RenderedChatMessage) -> Void
     let onBranchChange: (RenderedChatMessage, Int) -> Void
     let onDismissKeyboard: () -> Void
 
@@ -206,7 +209,11 @@ struct MessageListView: View {
                             onRetry: { onRetry(message) },
                             onBranchChange: { delta in onBranchChange(message, delta) },
                             onOpenAttachment: openAttachment,
-                            showsMetadata: true
+                            showsMetadata: true,
+                            isGenerating: isGenerating,
+                            todoTurn: todoTurns[message.id],
+                            onConfirmTodoTurn: { onConfirmTodoTurn(message) },
+                            onUndoTodoTurn: { onUndoTodoTurn(message) }
                         )
                         .id(message.id)
                         .transition(messageTransition)

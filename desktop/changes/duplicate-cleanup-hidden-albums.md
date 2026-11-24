@@ -1,0 +1,1 @@
+- Protected photos in hidden albums during duplicate cleanup.

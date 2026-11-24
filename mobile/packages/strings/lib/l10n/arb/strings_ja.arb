@@ -1451,7 +1451,7 @@
   "peopleWidgetDesc": "ホーム画面で表示したい人を選択してください。",
   "period": "期間",
   "permanentlyDelete": "完全に削除",
-  "permDeleteWarning": "ゴミ箱を空にしました\n\nこの操作はもとに戻せません",
+  "permDeleteWarning": "ゴミ箱内のすべてのアイテムが完全に削除されます\n\nこの操作は元に戻せません",
   "personalNote": "メモ",
   "personalNoteDescription": "考えや指示を書き留めます。",
   "personIsAge": "{name}が{age}才！",

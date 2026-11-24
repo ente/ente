@@ -277,8 +277,8 @@ mod tests {
 
         let around_a_drifting_centre = Library::new()
             .photo(1, "2016-07-14T15:00:00", BEACH, 0.0)
-            .photo(2, "2019-07-14T15:00:00", north_of(89.0), 0.0)
-            .photo(3, "2025-08-02T11:00:00", north_of(178.0), 20.0);
+            .photo(2, "2019-07-14T15:00:00", north_of(65.0), 0.0)
+            .photo(3, "2025-08-02T11:00:00", north_of(130.0), 20.0);
         assert_eq!(around_a_drifting_centre.pairs(), [[2, 3]]);
     }
 

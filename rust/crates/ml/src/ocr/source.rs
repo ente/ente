@@ -40,7 +40,12 @@ impl WorkingSizeCap {
             return (width, height);
         }
         let scaled = |side: u32| ((f64::from(side) * scale).round() as u32).max(1);
-        (scaled(width), scaled(height))
+        let (width, height) = (scaled(width), scaled(height));
+        if width > height {
+            (width, height.min(self.max_pixels / width))
+        } else {
+            (width.min(self.max_pixels / height), height)
+        }
     }
 }
 
@@ -150,6 +155,18 @@ mod tests {
         assert!(pixels <= 12_000_000, "{pixels}");
         assert!(pixels > 11_900_000, "{pixels}");
         assert_eq!(source.working.width, source.working.height);
+    }
+
+    #[test]
+    fn near_square_image_does_not_round_past_the_pixel_budget() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = write_png(dir.path(), "near-square.png", 4000, 4001);
+
+        let source = load_source(&path, FULL_TEXT_CAP).unwrap();
+
+        assert_eq!((source.decoded_width, source.decoded_height), (4000, 4001));
+        let pixels = source.working.width as u64 * source.working.height as u64;
+        assert!(pixels <= 12_000_000, "{pixels}");
     }
 
     #[test]

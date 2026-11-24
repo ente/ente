@@ -9,6 +9,7 @@ import "package:logging/logging.dart";
 import "package:photo_manager/photo_manager.dart";
 import "package:photos/core/constants.dart";
 import "package:photos/ente_theme_data.dart";
+import "package:photos/models/selected_files.dart";
 import "package:photos/module/metadata/local_file.dart";
 import "package:photos/ui/components/bottom_action_bar/action_bar_widget.dart";
 import "package:photos/ui/components/collection_share_badge.dart";
@@ -41,6 +42,12 @@ Future<List<AssetEntity>?> showDevicePicker(
   ),
 );
 
+typedef DevicePickerContents = ({
+  DevicePickerController model,
+  Widget Function(SelectedFiles) media,
+  Widget Function(ValueChanged<AssetPathEntity>) albums,
+});
+
 class DevicePickerPage extends StatefulWidget {
   const DevicePickerPage({
     super.key,
@@ -50,8 +57,10 @@ class DevicePickerPage extends StatefulWidget {
     this.allowEmptySelection = false,
     this.initialAlbumID,
     this.initialSelection = const [],
+    this.contentBuilder,
   }) : assert(selectionLimit == null || selectionLimit > 0);
 
+  final Widget Function(DevicePickerContents)? contentBuilder;
   final DeviceMediaLibrary? library;
   final RequestType requestType;
   final int? selectionLimit;
@@ -105,7 +114,13 @@ class _DevicePickerPageState extends State<DevicePickerPage>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && !_starting) _scheduleRefresh();
+    if (state != AppLifecycleState.resumed || _starting) return;
+    if (widget.contentBuilder != null) {
+      _refreshTimer?.cancel();
+      unawaited(_model.refresh());
+    } else {
+      _scheduleRefresh();
+    }
   }
 
   void _onLibraryChange(MethodCall _) => _scheduleRefresh();
@@ -188,9 +203,8 @@ class _DevicePickerPageState extends State<DevicePickerPage>
                   color: previewContext.componentColors.backgroundBase,
                   child: SafeArea(
                     top: false,
-                    child: _DevicePickerAddButton(
-                      model: _model,
-                      onTap: () async => Navigator.pop(previewContext, true),
+                    child: _addButton(
+                      () async => Navigator.pop(previewContext, true),
                     ),
                   ),
                 ),
@@ -226,6 +240,9 @@ class _DevicePickerPageState extends State<DevicePickerPage>
 
   @override
   Widget build(BuildContext context) {
+    if (widget.contentBuilder case final builder?) {
+      return builder((model: _model, media: _grid, albums: _albumList));
+    }
     final colors = context.componentColors;
     return GalleryBoundariesProvider(
       child: AnnotatedRegion<SystemUiOverlayStyle>(
@@ -377,10 +394,7 @@ class _DevicePickerPageState extends State<DevicePickerPage>
                               ),
                               _DevicePickerBoundary(
                                 position: BoundaryPosition.bottom,
-                                child: _DevicePickerAddButton(
-                                  model: _model,
-                                  onTap: _addSelected,
-                                ),
+                                child: _addButton(_addSelected),
                               ),
                             ],
                           ),
@@ -410,35 +424,7 @@ class _DevicePickerPageState extends State<DevicePickerPage>
                                     controller: _albumScroll,
                                     thumbVisibility: true,
                                     radius: const Radius.circular(2),
-                                    child: ListView.separated(
-                                      key: const PageStorageKey('deviceAlbums'),
-                                      controller: _albumScroll,
-                                      shrinkWrap: true,
-                                      padding:
-                                          const EdgeInsetsDirectional.fromSTEB(
-                                            Spacing.md,
-                                            Spacing.sm,
-                                            Spacing.lg,
-                                            Spacing.sm,
-                                          ),
-                                      itemCount: _model.albums.length,
-                                      separatorBuilder: (_, _) =>
-                                          const SizedBox(height: Spacing.sm),
-                                      itemBuilder: (context, index) =>
-                                          _DeviceAlbumRow(
-                                            key: ValueKey(
-                                              _model.albums[index].id,
-                                            ),
-                                            album: _model.albums[index],
-                                            library: _model.library,
-                                            selected:
-                                                _model.albums[index].id ==
-                                                _model.album?.id,
-                                            onTap: () => _switchAlbum(
-                                              _model.albums[index],
-                                            ),
-                                          ),
-                                    ),
+                                    child: _albumList(_switchAlbum, menu: true),
                                   ),
                                 ),
                               ),
@@ -457,7 +443,43 @@ class _DevicePickerPageState extends State<DevicePickerPage>
     );
   }
 
-  Widget _grid() {
+  Widget _albumList(ValueChanged<AssetPathEntity> onOpen, {bool menu = false}) {
+    final folders = menu
+        ? _model.albums
+        : _model.albums.where((album) => !album.isAll).toList();
+    if (!menu && folders.isEmpty) {
+      return _DevicePickerMessage(
+        message: context.strings.noAlbumsOnThisDevice,
+      );
+    }
+    return ListView.separated(
+      key: PageStorageKey(menu ? 'deviceAlbums' : 'localPickerAlbums'),
+      controller: menu ? _albumScroll : null,
+      shrinkWrap: menu,
+      padding: menu
+          ? const EdgeInsetsDirectional.fromSTEB(
+              Spacing.md,
+              Spacing.sm,
+              Spacing.lg,
+              Spacing.sm,
+            )
+          : const EdgeInsets.all(Spacing.md),
+      itemCount: folders.length,
+      separatorBuilder: (_, _) => const SizedBox(height: Spacing.sm),
+      itemBuilder: (context, index) {
+        final album = folders[index];
+        return _DeviceAlbumRow(
+          key: ValueKey(album.id),
+          album: album,
+          library: _model.library,
+          selected: menu && album.id == _model.album?.id,
+          onTap: () => onOpen(album),
+        );
+      },
+    );
+  }
+
+  Widget _grid([SelectedFiles? selectedFiles]) {
     if (!_model.hasAccess && !_model.refreshing) {
       return _DevicePickerMessage(
         message: context.strings.devicePickerPermissionHint,
@@ -498,14 +520,16 @@ class _DevicePickerPageState extends State<DevicePickerPage>
     }
     return DevicePickerGallery(
       model: _model,
+      selectedFiles: selectedFiles,
       header: limitedAccessNotice,
       footer: Column(
         children: [
           SizedBox(
-            height:
-                MediaQuery.textScalerOf(context).scale(20) +
-                Spacing.xxl +
-                Spacing.md,
+            height: selectedFiles == null
+                ? MediaQuery.textScalerOf(context).scale(20) +
+                      Spacing.xxl +
+                      Spacing.md
+                : Spacing.md,
           ),
           if (_model.loadingMore) const LoadingComponent(),
           if (_model.error != null)
@@ -520,13 +544,30 @@ class _DevicePickerPageState extends State<DevicePickerPage>
       ),
     );
   }
+
+  Widget _addButton(Future<void> Function() onTap) => ListenableBuilder(
+    listenable: Listenable.merge([_model, _model.selectionChanges]),
+    builder: (context, _) => PickerAddButton(
+      label: _model.allowEmptySelection && _model.selectionCount == 0
+          ? context.strings.done
+          : null,
+      isDisabled: !_model.canConfirm,
+      onTap: onTap,
+    ),
+  );
 }
 
-class _DevicePickerAddButton extends StatelessWidget {
-  const _DevicePickerAddButton({required this.model, required this.onTap});
+class PickerAddButton extends StatelessWidget {
+  const PickerAddButton({
+    required this.isDisabled,
+    required this.onTap,
+    this.label,
+    super.key,
+  });
 
-  final DevicePickerController model;
+  final bool isDisabled;
   final Future<void> Function() onTap;
+  final String? label;
 
   @override
   Widget build(BuildContext context) => Center(
@@ -540,16 +581,11 @@ class _DevicePickerAddButton extends StatelessWidget {
           Spacing.xl,
           Spacing.sm,
         ),
-        child: ListenableBuilder(
-          listenable: Listenable.merge([model, model.selectionChanges]),
-          builder: (context, _) => ButtonComponent(
-            label: model.allowEmptySelection && model.selectionCount == 0
-                ? context.strings.done
-                : context.strings.addSelected,
-            isDisabled: !model.canConfirm,
-            onTap: onTap,
-            shouldShowSuccessState: false,
-          ),
+        child: ButtonComponent(
+          label: label ?? context.strings.addSelected,
+          isDisabled: isDisabled,
+          onTap: onTap,
+          shouldShowSuccessState: false,
         ),
       ),
     ),
@@ -577,10 +613,9 @@ class _DeviceAlbumRow extends StatefulWidget {
 }
 
 class _DeviceAlbumRowState extends State<_DeviceAlbumRow> {
-  late Future<List<AssetEntity>> _cover = widget.library.read(
+  late Future<List<AssetEntity>> _cover = widget.library.readFirstPage(
     widget.album,
-    start: 0,
-    end: 1,
+    1,
   );
   late Future<int> _count = widget.library.count(widget.album);
 
@@ -588,7 +623,7 @@ class _DeviceAlbumRowState extends State<_DeviceAlbumRow> {
   void didUpdateWidget(covariant _DeviceAlbumRow oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!identical(oldWidget.album, widget.album)) {
-      _cover = widget.library.read(widget.album, start: 0, end: 1);
+      _cover = widget.library.readFirstPage(widget.album, 1);
       _count = widget.library.count(widget.album);
     }
   }

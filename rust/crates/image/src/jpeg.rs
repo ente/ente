@@ -144,6 +144,9 @@ fn decode_bytes(
     if required_bytes(retained_bytes, &source, &target) > options.max_memory_bytes {
         return Err(too_large());
     }
+    if source.height == 0 {
+        return Err(unsupported("height defined by a DNL marker"));
+    }
     let orientation = decoder
         .exif()
         .and_then(|exif| Orientation::from_exif_chunk(exif))
@@ -614,6 +617,21 @@ mod tests {
                 decode_bounded(ImageInput::Bytes(&bytes), options(8)),
                 Err(ImageError::Decode(message)) if message.contains("unsupported JPEG")
             ));
+        }
+    }
+
+    #[test]
+    fn jpegs_with_heights_from_dnl_markers_are_rejected() {
+        let bytes = encode(&rgb(16, 16), 16, 16, ExtendedColorType::Rgb8, None, None);
+        for width in [16, 7000] {
+            let result = decode_bounded(
+                ImageInput::Bytes(&with_dimensions(&bytes, width, 0)),
+                options(6000),
+            );
+            assert!(
+                matches!(&result, Err(ImageError::Decode(message)) if message.contains("DNL")),
+                "{width}: {result:?}"
+            );
         }
     }
 

@@ -10,6 +10,7 @@ import {
 } from "@mui/material";
 import { appName } from "ente-base/app";
 import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
+import { t } from "i18next";
 import React, { useContext } from "react";
 import {
     SidebarDrawerDepthContext,
@@ -169,7 +170,7 @@ export const SidebarDrawerTitlebar: React.FC<SidebarDrawerTitlebarProps> = ({
             >
                 {showBackButton && (
                     <IconButton
-                        aria-label="Back"
+                        aria-label={t("go_back")}
                         onClick={onClose}
                         color="primary"
                         sx={{ ml: "0.5rem" }}
@@ -182,7 +183,7 @@ export const SidebarDrawerTitlebar: React.FC<SidebarDrawerTitlebarProps> = ({
                     {actionButton && actionButton}
                     {showRootCloseButton && (
                         <IconButton
-                            aria-label="Close"
+                            aria-label={t("close")}
                             onClick={onRootClose}
                             color="secondary"
                         >

@@ -96,6 +96,24 @@ ente account totp enable
 
 The CLI prints a secret to add to your authenticator app, asks for a code from it, and prints `Authenticator protection is enabled.` Without prompts, run `ente account totp setup` to get the secret, then `ente account totp enable --input -` with `{"secret": "...", "totp": "..."}`. `ente account totp status` shows the current setting. This protects your account login and is separate from the codes stored in Auth.
 
+`ente account totp disable` turns it off after confirmation (`--yes` skips the prompt).
+
+## Require an email code at login
+
+```sh
+ente account email-mfa enable
+```
+
+Every later login then asks for a code sent to your email. `ente account email-mfa status` shows the setting, and `ente account email-mfa disable` turns it off after confirmation (`--yes` skips the prompt). Disabling needs password login (SRP), which an Ente app sets up the first time you log in there with your password.
+
+## Change your email
+
+```sh
+ente account change-email --email new@example.com
+```
+
+The CLI emails a code to the new address, asks for it, and updates the email saved on this computer; the local account name stays the same. Without prompts, run `ente account request-otp --email new@example.com --app photos --purpose change` first, then `ente account change-email --email new@example.com --input -` with `{"otp": "123456"}`.
+
 ## Share your plan with a family
 
 ```sh

@@ -1,0 +1,1 @@
+- Use the saved People cover face when multiple faces in the same photo are assigned to that person and the Rust ML database is enabled.

@@ -179,7 +179,6 @@ class WeeklyHabitPage extends RewindPage {
                   RewindRevealLayer(
                     left: 28,
                     top: 627,
-                    width: 316,
                     maxWidth: 316,
                     height: 40,
                     position: position,

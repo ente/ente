@@ -6,6 +6,7 @@ import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_svg/flutter_svg.dart";
 import "package:photos/models/file/file.dart";
+import "package:photos/services/rewind/rewind_edition.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
@@ -37,13 +38,13 @@ class PhotoBoothPage extends RewindPage {
     (key: "people_booth", you: "YOUR NO. 1", me: "MY NO. 1"),
     (
       key: "people_booth_2",
-      you: "ALWAYS IN THE PICTURE",
-      me: "ALWAYS IN THE PICTURE",
+      you: "ALWAYS BY YOUR SIDE",
+      me: "ALWAYS BY MY SIDE",
     ),
     (
       key: "people_booth_3",
-      you: "NEVER OUT OF FRAME",
-      me: "NEVER OUT OF FRAME",
+      you: "${RewindEdition.year} WAS BETTER WITH",
+      me: "${RewindEdition.year} WAS BETTER WITH",
     ),
   ];
   static final pageKeys = [for (final billing in _billings) billing.key];

@@ -158,10 +158,10 @@ struct Grid {
 
 impl Grid {
     fn for_ellipses(radius_km: f64) -> Self {
-        let longitude_reach = radius_km / KILOMETERS_PER_DEGREE;
+        let latitude_reach = radius_km / KILOMETERS_PER_DEGREE;
         Self::new(
-            longitude_reach / GRID_MAX_LATITUDE.to_radians().cos(),
-            longitude_reach,
+            latitude_reach,
+            latitude_reach / GRID_MAX_LATITUDE.to_radians().cos(),
         )
     }
 
@@ -369,7 +369,11 @@ mod tests {
 
     #[test]
     fn grid_clustering_and_merging_match_plain_scans_over_every_pair() {
-        let photos = scattered_photos(1500);
+        let mut photos = scattered_photos(1500);
+        photos.extend([
+            photo(1500, Coordinate::new(60.0, 0.2)),
+            photo(1501, Coordinate::new(60.0, 0.6)),
+        ]);
         let members = located(&photos);
         for (radius_km, merge_radius_km) in [(0.6, 1.5), (25.0, 25.0)] {
             let clusters = cluster_by_location(members.iter().copied(), radius_km);

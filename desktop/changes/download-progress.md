@@ -1,0 +1,1 @@
+- File downloads, ZIP downloads, and desktop saves now show progress based on bytes transferred.

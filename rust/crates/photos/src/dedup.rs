@@ -71,7 +71,7 @@ pub fn find_duplicates(user_id: i64, collections: &[Collection], files: &[File])
         }
         let group_index = *by_hash.entry(hash).or_insert_with(|| {
             groups.push(Group {
-                items: Vec::new(),
+                items: Vec::with_capacity(1),
                 item_size: 0,
             });
             groups.len() - 1

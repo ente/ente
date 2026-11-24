@@ -12,6 +12,7 @@ import "package:photos/ui/rewind/widgets/rewind_rive.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_svg.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
+import "package:photos/ui/rewind/widgets/rewind_year_duckies.dart";
 
 const _actionsDelayMs = 700;
 const _headlineWidth = 435.06;
@@ -136,7 +137,7 @@ class _FinaleCardState extends State<FinaleCard>
                         ),
                     ],
                   ),
-                  const _Duckies(),
+                  const RewindYearDuckies(),
                 ],
               ),
             ),
@@ -209,25 +210,6 @@ class _FinaleCardState extends State<FinaleCard>
               textAlign: TextAlign.center,
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Duckies extends StatelessWidget {
-  const _Duckies();
-
-  static const _size = Size(390, 230);
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) => Align(
-        alignment: Alignment.bottomCenter,
-        child: SizedBox.fromSize(
-          size: _size * RewindStage.scaleFor(constraints.biggest),
-          child: const RewindDucky(RewindAssets.yearDuckies),
         ),
       ),
     );

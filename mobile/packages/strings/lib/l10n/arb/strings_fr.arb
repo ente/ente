@@ -339,9 +339,9 @@
   "authToManageLegacy": "Veuillez vous authentifier pour gérer vos contacts de confiance",
   "authToSetBackupPassword": "Authentification pour définir le mot de passe de sauvegarde",
   "authToUpdateBackupPassword": "Authentification pour mettre à jour le mot de passe de sauvegarde",
-  "authToViewPasskey": "Veuillez vous authentifier pour afficher votre clé de récupération",
+  "authToViewPasskey": "Veuillez vous authentifier pour afficher votre clé d'accès",
   "authToViewPasskeyGeneric": "Veuillez vous authentifier pour afficher la clé d'accès",
-  "authToViewSecrets": "Veuillez vous authentifier pour voir vos souvenirs",
+  "authToViewSecrets": "Veuillez vous authentifier pour voir vos secrets",
   "@authToViewSecrets": {
     "description": "Message prompting authentication to view secrets"
   },
@@ -528,8 +528,8 @@
     "description": "Appears in the similar images page, to indicate that the images are close in terms of appearance"
   },
   "closeFamilyConfirmBody": "Tous les membres perdront l'accès au stockage partagé. Cela ne peut pas être annulé.",
-  "closeFamilyConfirmTitle": "Quitter l'abonnement famille ?",
-  "closeFamilyPlan": "Quitter l'abonnement famille",
+  "closeFamilyConfirmTitle": "Fermer l'abonnement famille ?",
+  "closeFamilyPlan": "Fermer l'abonnement famille",
   "closest": "Le plus proche",
   "cloudOnly": "Supprimer hors-ligne",
   "clusteringProgress": "Progression du regroupement",
@@ -3086,7 +3086,7 @@
   "stargazing": "Sous les étoiles",
   "startBackup": "Démarrer la sauvegarde",
   "startRecovery": "Démarrer la récupération",
-  "startRecoveryDesc": "Êtes-vous sûr de vouloir annuler la récupération du compte de {email}?",
+  "startRecoveryDesc": "Êtes-vous sûr de vouloir démarrer la récupération du compte de {email} ?",
   "@startRecoveryDesc": {
     "description": "Description for start recovery confirmation dialog",
     "placeholders": {

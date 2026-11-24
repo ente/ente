@@ -52,6 +52,7 @@ class ThumbnailWidget extends StatefulWidget {
 
   final bool shouldShowVideoDuration;
   final bool shouldShowVideoOverlayIcon;
+  final VoidCallback? onLoadFailed;
 
   ThumbnailWidget(
     this.file, {
@@ -74,6 +75,7 @@ class ThumbnailWidget extends StatefulWidget {
     this.placeholderColor,
     this.shouldShowVideoDuration = false,
     this.shouldShowVideoOverlayIcon = true,
+    this.onLoadFailed,
   }) : super(key: key ?? Key(file.tag));
 
   @override
@@ -417,6 +419,7 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
               "Could not load thumbnail from disk for localID: ${widget.file.localID}",
               e,
             );
+            if (mounted) widget.onLoadFailed?.call();
           }
         });
   }
@@ -549,6 +552,7 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
       } else {
         _logger.severe("Could not load image " + widget.file.toString(), e);
         _errorLoadingRemoteThumbnail = true;
+        if (mounted) widget.onLoadFailed?.call();
       }
     }
   }
