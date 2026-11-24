@@ -8,6 +8,7 @@ import "package:photos/core/event_bus.dart";
 import "package:photos/db/common/base.dart";
 import "package:photos/db/ml/base.dart";
 import "package:photos/db/ml/clip_vector_db.dart";
+import "package:photos/db/ml/db.dart";
 import "package:photos/db/ml/ml_exclusive_operation.dart";
 import "package:photos/db/ml/rust_db_model_mappers.dart" as mappers;
 import "package:photos/db/ml/usearch_clip_vector_db.dart";
@@ -47,7 +48,7 @@ class RustMLDataDB implements IMLDataDB<int> {
   static final RustMLDataDB instance = RustMLDataDB._privateConstructor();
   static final RustMLDataDB localGalleryInstance =
       RustMLDataDB._privateConstructor(
-        databaseName: "ente.ml.offline.db",
+        databaseName: MLDataDB.localGalleryDatabaseName,
         dartClipVectorDB: UsearchClipVectorDB.localGalleryInstance,
         dartClusterCentroidVectorDB:
             UsearchClusterCentroidVectorDB.localGalleryInstance,
@@ -235,6 +236,18 @@ class RustMLDataDB implements IMLDataDB<int> {
     return rows.isEmpty
         ? null
         : rows.map(mappers.toFaceWithoutEmbedding).toList();
+  }
+
+  @override
+  Future<List<Face>> getFacesForFileIDs(
+    List<int> fileIDs, {
+    int minimumMlVersion = faceMlVersion,
+  }) async {
+    final rows = await (await store).getFacesForFileIds(
+      fileIds: Int64List.fromList(fileIDs),
+      minimumMlVersion: minimumMlVersion,
+    );
+    return rows.map(mappers.toFace).toList();
   }
 
   @override
@@ -557,6 +570,18 @@ class RustMLDataDB implements IMLDataDB<int> {
   @override
   Future<Map<int, int>> clipIndexedFileWithVersion() async =>
       (await store).clipIndexedFileWithVersion();
+
+  @override
+  Future<List<ClipEmbedding>> getClipEmbeddingsForFileIDs(
+    List<int> fileIDs, {
+    int minimumMlVersion = clipMlVersion,
+  }) async {
+    final rows = await (await store).getClipEmbeddingsForFileIds(
+      fileIds: Int64List.fromList(fileIDs),
+      minimumMlVersion: minimumMlVersion,
+    );
+    return rows.map(mappers.toClipEmbedding).toList();
+  }
 
   @override
   Future<int> getClipIndexedFileCount({

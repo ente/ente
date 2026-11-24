@@ -218,6 +218,38 @@ impl MlDb {
         )
     }
 
+    pub fn get_faces_for_file_ids(
+        &self,
+        file_ids: &[i64],
+        minimum_ml_version: i64,
+    ) -> Result<Vec<FaceRow>> {
+        let mut faces = Vec::new();
+        for chunk in file_ids.chunks(MAX_SQL_BIND_PARAMS_PER_QUERY - 1) {
+            let sql = format!(
+                r#"
+                SELECT file_id, face_id, detection, embedding, score, blur,
+                    is_sideways, height, width, ml_version
+                FROM faces
+                WHERE file_id IN ({})
+                    AND ml_version >= ?
+                "#,
+                bind_placeholders(chunk.len())
+            );
+            let rows: Vec<(FaceRow, Vec<u8>)> = self.read_all(
+                &sql,
+                params_from_iter(chunk.iter().chain([&minimum_ml_version])),
+                read_face_row_and_encoded_embedding,
+            )?;
+            for (face, embedding) in rows {
+                faces.push(FaceRow {
+                    embedding: decode_evector(&embedding)?,
+                    ..face
+                });
+            }
+        }
+        Ok(faces)
+    }
+
     pub fn get_file_ids_to_faces_without_embedding(
         &self,
     ) -> Result<HashMap<i64, Vec<FaceWithoutEmbedding>>> {
@@ -569,6 +601,24 @@ pub(crate) fn try_file_id_from_face_id(face_id: &str) -> Option<i64> {
         .and_then(|(file_id, _)| file_id.parse().ok())
 }
 
+fn read_face_row_and_encoded_embedding(row: &Row<'_>) -> db::Result<(FaceRow, Vec<u8>)> {
+    Ok((
+        FaceRow {
+            file_id: row.get(0)?,
+            face_id: row.get(1)?,
+            detection_json: row.get(2)?,
+            embedding: Vec::new(),
+            score: row.get(4)?,
+            blur: row.get(5)?,
+            is_sideways: row.get(6)?,
+            image_height: row.get(7)?,
+            image_width: row.get(8)?,
+            ml_version: row.get(9)?,
+        },
+        row.get(3)?,
+    ))
+}
+
 fn read_face_without_embedding(row: &Row<'_>) -> db::Result<FaceWithoutEmbedding> {
     Ok(FaceWithoutEmbedding {
         face_id: row.get(0)?,
@@ -751,6 +801,29 @@ pub(in crate::ml_db) mod tests {
             .unwrap();
         assert_eq!((blurry.file_id, blurry.score, blurry.blur), (6, 0.9, 5.0));
         assert_eq!(blurry.detection_json, "{\"index\":0}");
+    }
+
+    #[test]
+    fn faces_for_file_ids_include_embeddings_at_minimum_version() {
+        let (_directory, db) = seeded();
+        let mut faces = db.get_faces_for_file_ids(&[1, 5, 10, 99], 1).unwrap();
+        faces.sort_by(|left, right| left.face_id.cmp(&right.face_id));
+        assert_eq!(
+            faces,
+            vec![
+                good_face(1, 0),
+                face(1, 1, 0.95, 300.0, false),
+                face(5, 0, -1.0, 300.0, false),
+            ]
+        );
+        assert_eq!(
+            db.get_faces_for_file_ids(&[10], 0).unwrap(),
+            vec![FaceRow {
+                ml_version: 0,
+                ..good_face(10, 0)
+            }]
+        );
+        assert!(db.get_faces_for_file_ids(&[], 1).unwrap().is_empty());
     }
 
     #[test]

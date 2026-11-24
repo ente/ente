@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import "package:photos/db/common/base.dart";
 import "package:photos/db/ml/base.dart";
 import "package:photos/db/ml/clip_vector_db.dart";
+import "package:photos/db/ml/db.dart";
 import "package:photos/db/ml/db_model_mappers.dart";
 import "package:photos/db/ml/ml_data_db_orchestration.dart";
 import 'package:photos/db/ml/schema.dart';
@@ -51,7 +52,7 @@ class DartMLDataDB
   static final DartMLDataDB instance = DartMLDataDB._privateConstructor();
   static final DartMLDataDB localGalleryInstance =
       DartMLDataDB._privateConstructor(
-        databaseName: "ente.ml.offline.db",
+        databaseName: MLDataDB.localGalleryDatabaseName,
         clipVectorDB: UsearchClipVectorDB.localGalleryInstance,
         clusterCentroidVectorDB:
             UsearchClusterCentroidVectorDB.localGalleryInstance,
@@ -521,6 +522,28 @@ class DartMLDataDB
       return null;
     }
     return maps.map((e) => mapRowToFaceWithoutEmbedding(e)).toList();
+  }
+
+  @override
+  Future<List<Face>> getFacesForFileIDs(
+    List<int> fileIDs, {
+    int minimumMlVersion = faceMlVersion,
+  }) async {
+    final db = await asyncDB;
+    final faces = <Face>[];
+    for (final chunk in fileIDs.chunks(_maxSqlBindParamsPerQuery - 1)) {
+      final placeholders = List.filled(chunk.length, '?').join(', ');
+      final rows = await db.getAll(
+        '''
+        SELECT $faceIDColumn, $fileIDColumn, $faceDetectionColumn, $embeddingColumn, $faceScore, $faceBlur, $imageWidth, $imageHeight
+        FROM $facesTable
+        WHERE $fileIDColumn IN ($placeholders) AND $mlVersionColumn >= ?
+        ''',
+        [...chunk, minimumMlVersion],
+      );
+      faces.addAll(rows.map(mapRowToFace));
+    }
+    return faces;
   }
 
   @override
@@ -1562,6 +1585,38 @@ class DartMLDataDB
       result[map[fileIDColumn] as int] = map[mlVersionColumn] as int;
     }
     return result;
+  }
+
+  @override
+  Future<List<ClipEmbedding>> getClipEmbeddingsForFileIDs(
+    List<int> fileIDs, {
+    int minimumMlVersion = clipMlVersion,
+  }) async {
+    final db = await asyncDB;
+    final embeddings = <ClipEmbedding>[];
+    for (final chunk in fileIDs.chunks(_maxSqlBindParamsPerQuery - 1)) {
+      final placeholders = List.filled(chunk.length, '?').join(', ');
+      final rows = await db.getAll(
+        '''
+        SELECT $fileIDColumn, $embeddingColumn, $mlVersionColumn
+        FROM $clipTable
+        WHERE $fileIDColumn IN ($placeholders) AND $mlVersionColumn >= ?
+        ''',
+        [...chunk, minimumMlVersion],
+      );
+      for (final row in rows) {
+        embeddings.add(
+          ClipEmbedding(
+            fileID: row[fileIDColumn] as int,
+            embedding: Float32List.sublistView(
+              row[embeddingColumn] as Uint8List,
+            ),
+            version: row[mlVersionColumn] as int,
+          ),
+        );
+      }
+    }
+    return embeddings;
   }
 
   @override

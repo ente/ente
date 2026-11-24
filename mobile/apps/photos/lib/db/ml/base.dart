@@ -26,6 +26,10 @@ abstract class IMLDataDB<T> {
     String? clusterID,
   });
   Future<List<FaceWithoutEmbedding>?> getFacesForGivenFileID(T fileUploadID);
+  Future<List<Face>> getFacesForFileIDs(
+    List<T> fileIDs, {
+    int minimumMlVersion,
+  });
   Future<Map<int, List<FaceWithoutEmbedding>>>
   getFileIDsToFacesWithoutEmbedding();
   Future<Map<String, Iterable<String>>> getClusterToFaceIDs(
@@ -95,6 +99,10 @@ abstract class IMLDataDB<T> {
 
   Future<List<EmbeddingVector>> getAllClipVectors();
   Future<Map<int, int>> clipIndexedFileWithVersion();
+  Future<List<ClipEmbedding>> getClipEmbeddingsForFileIDs(
+    List<T> fileIDs, {
+    int minimumMlVersion,
+  });
   Future<int> getClipIndexedFileCount({int minimumMlVersion});
   Future<void> putClip(List<ClipEmbedding> embeddings);
   Future<void> deleteClipEmbeddings(List<T> fileIDs);

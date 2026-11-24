@@ -28,6 +28,7 @@ import "package:photos/services/filedata/model/file_data.dart";
 import "package:photos/services/filedata/model/response.dart";
 import "package:photos/services/machine_learning/face_ml/face_alignment/alignment_result.dart";
 import "package:photos/services/machine_learning/face_ml/face_detection/detection.dart";
+import "package:photos/services/machine_learning/local_gallery_ml_carry_over.dart";
 import "package:photos/services/machine_learning/ml_exceptions.dart";
 import "package:photos/services/machine_learning/ml_file_retrieval.dart";
 import "package:photos/services/machine_learning/ml_result.dart";
@@ -301,6 +302,9 @@ Future<List<FileMLInstruction>> getFilesForMlIndexing() async {
   _logger.info('getFilesForMlIndexing called');
   final candidateSplit = await _getOnlineFilesForMlIndexingCandidates();
   if (!localSettings.isMLLocalIndexingEnabled) {
+    final carryOverCandidates = await getLocalGalleryCarryOverCandidates(
+      candidateSplit.unmatched,
+    );
     final time = DateTime.now().millisecondsSinceEpoch;
     if ((time - _lastFetchTimeForOthersIndexed) > 1000 * 60 * 60 * 24) {
       final filesOwnedByOthers = [];
@@ -315,9 +319,13 @@ Future<List<FileMLInstruction>> getFilesForMlIndexing() async {
       _logger.info(
         'Checking index for ${filesOwnedByOthers.length} owned by others',
       );
-      return [...candidateSplit.matched, ...filesOwnedByOthers];
+      return [
+        ...candidateSplit.matched,
+        ...filesOwnedByOthers,
+        ...carryOverCandidates,
+      ];
     }
-    return candidateSplit.matched;
+    return [...candidateSplit.matched, ...carryOverCandidates];
   }
   return [...candidateSplit.matched, ...candidateSplit.unmatched];
 }
@@ -407,6 +415,7 @@ Future<List<FileMLInstruction>> getLocalGalleryFilesForMlIndexing() async {
 Stream<List<FileMLInstruction>> fetchEmbeddingsAndInstructions(
   int yieldSize, {
   required MLMode mode,
+  required String client,
   MlRunControl? control,
   Future<void> Function()? afterRemoteBatch,
 }) async* {
@@ -439,11 +448,16 @@ Stream<List<FileMLInstruction>> fetchEmbeddingsAndInstructions(
       }
       continue;
     }
-    final pendingInstructions = await hydrateRemoteMLDataForInstructions(
+    final hydratedInstructions = await hydrateRemoteMLDataForInstructions(
       chunk,
       mlDataDB: mlDataDB,
     );
     if (control?.stopRequested ?? false) return;
+    final pendingInstructions = await carryOverLocalGalleryMLData(
+      hydratedInstructions,
+      client: client,
+      control: control,
+    );
     await afterRemoteBatch?.call();
     if (control?.stopRequested ?? false) return;
     for (final instruction in pendingInstructions) {
