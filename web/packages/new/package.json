@@ -3,6 +3,8 @@
     "version": "0.0.0",
     "private": true,
     "dependencies": {
+        "@hugeicons/core-free-icons": "4.3.5",
+        "@hugeicons/react": "1.1.10",
         "@mui/material": "9.4.0",
         "@mui/x-date-pickers": "9.14.0",
         "dayjs": "1.11.23",

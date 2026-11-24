@@ -70,3 +70,20 @@ export const collectionDialogNoResultsSx = {
     alignItems: "center",
     minHeight: 154,
 };
+
+export const collectionDialogPeopleGridSx = {
+    display: "grid",
+    gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+    "@media (width < 600px)": {
+        gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+    },
+    "@media (width < 360px)": {
+        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    },
+    columnGap: "22px",
+    rowGap: "24px",
+    alignContent: "start",
+    overflowY: "auto",
+    p: "24px 20px 20px",
+    minHeight: 0,
+};
