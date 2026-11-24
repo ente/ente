@@ -13,6 +13,7 @@ pub enum NotesDocumentContent {
 pub struct NotesFreshness {
     pub changed: bool,
     pub forced_document_ids: Vec<String>,
+    pub source_revision: Option<String>,
 }
 
 pub fn inspect_notes_freshness<E>(
@@ -25,11 +26,14 @@ pub fn inspect_notes_freshness<E>(
     let plan = writer.plan_reconciliation(inventory, &[], false)?;
     let mut changed = !plan.deleted_document_ids.is_empty() || !writer.initial_inventory_complete();
     let mut forced_document_ids = Vec::new();
+    let mut revisions = std::collections::BTreeMap::new();
+    let mut stable = true;
     for document in inventory {
         check_for_cancellation().map_err(NotesIndexingError::Adapter)?;
         match read_document(&document.document_id).map_err(NotesIndexingError::Adapter)? {
             NotesDocumentContent::Bytes(bytes) => {
                 let revision = notes_content_revision(&bytes);
+                revisions.insert(&document.document_id, revision.clone());
                 if let Some(saved) = writer.indexed_revision(&document.document_id) {
                     if revision != saved {
                         forced_document_ids.push(document.document_id.clone());
@@ -40,6 +44,7 @@ pub fn inspect_notes_freshness<E>(
                 }
             }
             NotesDocumentContent::Changed => {
+                stable = false;
                 changed = true;
                 forced_document_ids.push(document.document_id.clone());
             }
@@ -48,6 +53,15 @@ pub fn inspect_notes_freshness<E>(
     Ok(NotesFreshness {
         changed,
         forced_document_ids,
+        source_revision: stable.then(|| {
+            let mut bytes = Vec::new();
+            for (id, revision) in revisions {
+                bytes.extend_from_slice(&(id.len() as u64).to_le_bytes());
+                bytes.extend_from_slice(id.as_bytes());
+                bytes.extend_from_slice(revision.as_bytes());
+            }
+            notes_content_revision(&bytes)
+        }),
     })
 }
 
@@ -118,6 +132,49 @@ mod tests {
         let changed = inspect(b"other", Some(1));
         assert!(changed.changed);
         assert_eq!(changed.forced_document_ids, ["note.md"]);
+        assert_eq!(
+            inspect(b"first", None).source_revision,
+            inspect(b"first", Some(2)).source_revision
+        );
+        assert_ne!(
+            inspect(b"first", None).source_revision,
+            changed.source_revision
+        );
+    }
+
+    #[test]
+    fn source_revision_survives_checkpoint_changes_and_detects_new_work() {
+        let root = tempfile::tempdir().unwrap();
+        let source_root = tempfile::tempdir().unwrap();
+        let path = source_root.path().join("note.md");
+        std::fs::write(&path, b"first").unwrap();
+        let inspect = |writer: &NotesIndexWriter| {
+            let bytes = std::fs::read(&path).unwrap();
+            inspect_notes_freshness(
+                writer,
+                &[source(&bytes, None)],
+                || Ok::<_, std::io::Error>(()),
+                |_| std::fs::read(&path).map(NotesDocumentContent::Bytes),
+            )
+            .unwrap()
+        };
+        let writer = fixture(root.path(), None, false);
+        let first = inspect(&writer);
+        assert!(first.changed);
+        assert_eq!(first.source_revision, inspect(&writer).source_revision);
+        drop(writer);
+        let writer = fixture(root.path(), Some(b"first"), true);
+        assert!(!inspect(&writer).changed);
+        assert_eq!(first.source_revision, inspect(&writer).source_revision);
+        std::fs::write(&path, b"newer").unwrap();
+        let newer = inspect(&writer);
+        assert!(newer.changed);
+        assert_ne!(first.source_revision, newer.source_revision);
+        assert_eq!(newer.source_revision, inspect(&writer).source_revision);
+        let empty =
+            inspect_notes_freshness(&writer, &[], || Ok::<_, ()>(()), |_| unreachable!()).unwrap();
+        assert!(empty.changed);
+        assert_ne!(newer.source_revision, empty.source_revision);
     }
 
     #[test]
@@ -148,6 +205,7 @@ mod tests {
         .unwrap();
         assert!(changed.changed);
         assert_eq!(changed.forced_document_ids, ["note.md"]);
+        assert_eq!(changed.source_revision, None);
     }
 
     #[test]

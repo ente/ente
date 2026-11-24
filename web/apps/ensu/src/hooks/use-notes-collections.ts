@@ -44,6 +44,8 @@ export const useNotesCollections = ({
     confirmRemoval,
 }: UseNotesCollectionsOptions) => {
     const [collections, setCollections] = useState<NotesCollection[]>([]);
+    const collectionsRef = useRef(collections);
+    collectionsRef.current = collections;
     const [loading, setLoading] = useState(false);
     const [loaded, setLoaded] = useState(false);
     const [operationError, setOperationError] = useState<string | null>(null);
@@ -135,9 +137,14 @@ export const useNotesCollections = ({
 
     const startIndex = useCallback(
         (collectionId: string, force = false, automatic = false) => {
+            const latestRequestKey = () =>
+                collectionsRef.current.find(
+                    (collection) => collection.id === collectionId,
+                )?.updateDueAtMs ?? undefined;
+            let requestKey = latestRequestKey();
             const blocked = !modelReady || isIndexingBlocked(force);
             const request = automatic
-                ? controller.ensureIndex(collectionId, blocked)
+                ? controller.ensureIndex(collectionId, blocked, requestKey)
                 : controller.requestIndex(collectionId, force, blocked);
             if (request === "ignored") return;
             lifecycleChanged();
@@ -166,6 +173,7 @@ export const useNotesCollections = ({
                                 lifecycleChanged();
                                 return;
                             }
+                            requestKey = latestRequestKey();
                             const result = await indexNotesCollection(
                                 collectionId,
                                 bypassQuietPeriod,
@@ -198,7 +206,7 @@ export const useNotesCollections = ({
                             { collectionId },
                         );
                     } else if (name !== "not_due") {
-                        controller.failIndex(collectionId);
+                        controller.failIndex(collectionId, requestKey);
                         setOperationError(notesErrorMessage(error));
                         log.error("Failed to index Your Notes", error);
                     }
@@ -284,14 +292,29 @@ export const useNotesCollections = ({
     }, [controller, isTauriRuntime, refresh, syncAttempt, updateCollection]);
 
     useEffect(() => {
-        if (!isTauriRuntime || !modelReady) return;
+        if (!isTauriRuntime) return;
+        if (
+            collections.some((collection) =>
+                controller.hasNewerUpdate(
+                    collection.id,
+                    collection.updateDueAtMs ?? undefined,
+                ),
+            )
+        ) {
+            setOperationError(null);
+        }
+        if (!modelReady) return;
         const timeouts: number[] = [];
         const now = Date.now();
         for (const collection of collections) {
             if (
                 collection.updateDueAtMs != null &&
                 (collection.status === "ready" ||
-                    collection.status === "pending")
+                    collection.status === "pending" ||
+                    controller.hasNewerUpdate(
+                        collection.id,
+                        collection.updateDueAtMs,
+                    ))
             ) {
                 timeouts.push(
                     window.setTimeout(
@@ -304,7 +327,14 @@ export const useNotesCollections = ({
         return () => {
             for (const timeout of timeouts) window.clearTimeout(timeout);
         };
-    }, [collections, isTauriRuntime, modelReady, startIndex]);
+    }, [
+        collections,
+        controller,
+        isTauriRuntime,
+        lifecycleRevision,
+        modelReady,
+        startIndex,
+    ]);
 
     useEffect(() => {
         if (!isTauriRuntime || !modelReady) return;

@@ -99,6 +99,7 @@ class NotesStore(
     private val pending = NotesIndexQueue()
     private val scans = linkedSetOf<String>()
     private val failed = mutableSetOf<String>()
+    private val sourceRevisions = mutableMapOf<String, String>()
     private val maintenance = NotesMaintenanceGate<Run>()
     private var scope: CoroutineScope? = null
     private var bootstrapJob: Job? = null
@@ -260,6 +261,7 @@ class NotesStore(
                     pending.remove(id)
                     scans.remove(id)
                     failed.remove(id)
+                    sourceRevisions.remove(id)
                     _state.update {
                         it.copy(
                             collections = it.collections.filter { row -> row.id != id },
@@ -430,7 +432,7 @@ class NotesStore(
             if (embeddingReady) {
                 pending.next(failed)
             } else null
-        val id = request?.key ?: scans.firstOrNull { it !in pending && it !in failed }
+        val id = request?.key ?: scans.firstOrNull { it !in pending || it in failed }
         if (id == null) {
             val due =
                 if (embeddingReady) {
@@ -443,14 +445,7 @@ class NotesStore(
                         due?.minus(now)?.coerceAtLeast(1) ?: NOTES_SCAN_INTERVAL_MS,
                     )
                 )
-                scans.addAll(
-                    _state.value.collections
-                        .filter {
-                            it.status != NotesStatus.Unavailable &&
-                                (it.status != NotesStatus.Error || it.completedEmpty)
-                        }
-                        .map { it.id }
-                )
+                scans.addAll(_state.value.collections.map { it.id })
                 pump()
             }
             return
@@ -475,6 +470,16 @@ class NotesStore(
                     cancel.check()
                     if (snapshot == null) {
                         val result = provider.inspectFreshness(id, cancel)
+                        if (id in failed) {
+                            val revision = result.sourceRevision
+                            if (revision == null || revision == sourceRevisions[id]) {
+                                completed = true
+                                return@launch
+                            }
+                            failed.remove(id)
+                            pending.remove(id)
+                        }
+                        result.sourceRevision?.let { sourceRevisions[id] = it }
                         update(id) {
                             fromSummary(record, result.summary)
                                 .copy(
@@ -499,6 +504,12 @@ class NotesStore(
                                 error = null,
                             )
                         }
+                        val forced = snapshot.forced.toMutableSet()
+                        try {
+                            val freshness = provider.inspectFreshness(id, cancel)
+                            freshness.sourceRevision?.let { sourceRevisions[id] = it }
+                            forced.addAll(freshness.forcedDocumentIds)
+                        } catch (_: NotesException.RebuildRequired) {}
                         val result =
                             llm.withEmbeddingContext(
                                 use =
@@ -527,7 +538,7 @@ class NotesStore(
                                             }
                                         }
                                     },
-                                    NotesIndexOptions(snapshot.forced.toList(), snapshot.rebuild),
+                                    NotesIndexOptions(forced.toList(), snapshot.rebuild),
                                 )
                             }
                         val changedId = result.changedDocumentId
@@ -565,7 +576,7 @@ class NotesStore(
                     failure = error
                     throw error
                 } finally {
-                    if (!completed) {
+                    if (!completed && !(snapshot == null && id in failed)) {
                         when (failure) {
                             is ModelMemoryDeferred -> {
                                 pending.defer(id)

@@ -9,6 +9,19 @@ import org.junit.Test
 
 class NotesIndexQueueTest {
     @Test
+    fun retryPromotesAutomaticAndInitialFailuresToManualWork() {
+        val queue = NotesIndexQueue { 100 }
+        queue.enqueue("automatic", changesDetected = true)
+        for (id in listOf("automatic", "initial")) {
+            queue.retry(id)
+            val retry = requireNotNull(queue.next(emptySet()))
+            assertEquals(id, retry.key)
+            assertEquals(NotesIndexTrigger.Manual, retry.value.trigger)
+            queue.finish(id, retry.value)
+        }
+    }
+
+    @Test
     fun editsDiscoveredAfterCompletionNeedANewManualRequest() {
         var now = 100L
         val queue = NotesIndexQueue { now }

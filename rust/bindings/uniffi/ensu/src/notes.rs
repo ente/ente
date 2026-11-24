@@ -144,6 +144,7 @@ pub struct NotesFreshness {
     pub summary: NotesSummary,
     pub changed: bool,
     pub forced_document_ids: Vec<String>,
+    pub source_revision: Option<String>,
 }
 
 #[derive(Clone, Debug, uniffi::Record)]
@@ -303,6 +304,7 @@ impl NotesCollection {
             summary: (&writer).into(),
             changed: freshness.changed,
             forced_document_ids: freshness.forced_document_ids,
+            source_revision: freshness.source_revision,
         })
     }
 

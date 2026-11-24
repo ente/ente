@@ -82,14 +82,18 @@ void test("cancellation preserves manual intent without starting a duplicate", (
     assert.deepEqual(controller.takeNextQueued(true, false), [folder.id, true]);
 });
 
-void test("failure requires a retry and retry can still bypass the idle delay", () => {
+void test("an unchanged failure requires a retry that can bypass the idle delay", () => {
     for (const manual of [false, true]) {
         const controller = new NotesLifecycleController();
         if (manual) controller.requestIndex(folder.id, true, false);
-        else controller.ensureIndex(folder.id, false);
-        controller.failIndex(folder.id);
+        else controller.ensureIndex(folder.id, false, folder.updateDueAtMs!);
+        controller.failIndex(folder.id, folder.updateDueAtMs!);
         controller.finishIndex(folder.id);
         assert.equal(controller.ensureIndex(folder.id, false), "ignored");
+        assert.equal(
+            controller.ensureIndex(folder.id, false, folder.updateDueAtMs!),
+            "ignored",
+        );
         assert.equal(
             notesCollectionActivity(folder, controller, true, true, false),
             "failed",
@@ -109,6 +113,55 @@ void test("failure requires a retry and retry can still bypass the idle delay", 
             folder.id,
             true,
         ]);
+    }
+});
+
+void test("newer changes recover from manual and automatic failures without losing queue controls", () => {
+    for (const manual of [false, true]) {
+        const controller = new NotesLifecycleController();
+        const key = folder.updateDueAtMs!;
+        if (manual) controller.requestIndex(folder.id, true, false);
+        else controller.ensureIndex(folder.id, false, key);
+        controller.failIndex(folder.id, key);
+        controller.finishIndex(folder.id);
+        const newer = {
+            ...folder,
+            status: "error" as const,
+            updateDueAtMs: key + 1,
+        };
+        assert.equal(
+            notesCollectionActivity(newer, controller, true, true, true),
+            "updateScheduled",
+        );
+        assert.equal(
+            controller.ensureIndex(folder.id, true, key + 1),
+            "queued",
+        );
+        assert.equal(
+            notesCollectionActivity(newer, controller, true, true, true),
+            "updateScheduled",
+        );
+        assert.equal(controller.takeNextQueued(true, false), undefined);
+        assert.equal(controller.requestIndex(folder.id, true, true), "queued");
+        assert.equal(
+            notesCollectionActivity(newer, controller, true, true, true),
+            "updateRequested",
+        );
+        assert.deepEqual(controller.takeNextQueued(true, false), [
+            folder.id,
+            true,
+        ]);
+        assert.equal(controller.requestIndex(folder.id, true, false), "start");
+        controller.failIndex(folder.id, key + 1);
+        controller.finishIndex(folder.id);
+        assert.equal(
+            controller.ensureIndex(folder.id, false, key + 1),
+            "ignored",
+        );
+        assert.equal(
+            controller.ensureIndex(folder.id, false, key + 2),
+            "start",
+        );
     }
 });
 

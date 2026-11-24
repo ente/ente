@@ -62,7 +62,8 @@ internal class NotesIndexQueue(private val now: () -> Long = System::currentTime
     }
 
     fun retry(id: String) {
-        requests[id]?.let { requests[id] = it.copy(due = 0) }
+        if (id !in requests) enqueue(id)
+        requests[id]?.let { requests[id] = it.copy(due = 0, trigger = NotesIndexTrigger.Manual) }
     }
 
     fun defer(id: String) {

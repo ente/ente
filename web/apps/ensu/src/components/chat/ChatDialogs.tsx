@@ -892,6 +892,8 @@ export const ChatDialogs = memo(
                                     collection.activity === "failed" ||
                                     (collection.activity !==
                                         "updateRequested" &&
+                                        collection.activity !==
+                                            "updateScheduled" &&
                                         (collection.status === "error" ||
                                             collection.status ===
                                                 "unavailable"));

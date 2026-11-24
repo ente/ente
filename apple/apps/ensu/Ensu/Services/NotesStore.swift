@@ -61,6 +61,7 @@ final class NotesStore: ObservableObject, ModelMaintenance {
     private var pending: [String: Pending] = [:]
     private var scans = Set<String>()
     private var failed = Set<String>()
+    private var sourceRevisions: [String: String] = [:]
     private var generation: UInt64 = 0
     private var active: Run?
     private var scopes = 0
@@ -189,6 +190,7 @@ final class NotesStore: ObservableObject, ModelMaintenance {
                     pending.removeValue(forKey: id)
                     scans.remove(id)
                     failed.remove(id)
+                    sourceRevisions.removeValue(forKey: id)
                     operationError = nil
                 }
             } catch {
@@ -217,10 +219,8 @@ final class NotesStore: ObservableObject, ModelMaintenance {
             return
         }
         failed.remove(id)
-        scans.insert(id)
-        if pending[id] != nil {
-            enqueue(id, due: .distantPast)
-        }
+        enqueue(id, due: .distantPast)
+        pending[id]?.trigger = .manual
         update(id) {
             $0.status = pending[id]?.waitingStatus ?? .pending
             $0.error = nil
@@ -360,7 +360,7 @@ final class NotesStore: ObservableObject, ModelMaintenance {
             } : nil
         guard
             let id = request?.key
-                ?? scans.filter({ pending[$0] == nil && !failed.contains($0) }).min(),
+                ?? scans.filter({ pending[$0] == nil || failed.contains($0) }).min(),
             let collection = collections.first(where: { $0.id == id })
         else {
             let due =
@@ -374,10 +374,7 @@ final class NotesStore: ObservableObject, ModelMaintenance {
                     return
                 }
                 guard let self else { return }
-                self.scans.formUnion(
-                    self.collections.filter {
-                        $0.status != .unavailable && ($0.status != .error || $0.completedEmpty)
-                    }.map(\.id))
+                self.scans.formUnion(self.collections.map(\.id))
                 self.pump()
             }
             return
@@ -398,6 +395,13 @@ final class NotesStore: ObservableObject, ModelMaintenance {
             do {
                 try cancellation.check()
                 if let snapshot {
+                    var forced = snapshot.forced
+                    do {
+                        let freshness = try await provider.inspectFreshness(id, operation: operation)
+                        if let revision = freshness.sourceRevision { sourceRevisions[id] = revision }
+                        forced.formUnion(freshness.forcedDocumentIds)
+                    } catch NotesError.RebuildRequired {}
+                    let forcedDocumentIDs = Array(forced)
                     let result = try await modelProvider.withEmbeddingContext(
                         for: snapshot.trigger == .manual ? .manualIndexing : .automaticIndexing,
                         checkCancellation: cancellation.check
@@ -407,7 +411,7 @@ final class NotesStore: ObservableObject, ModelMaintenance {
                             context: context,
                             operation: operation,
                             options: NotesIndexOptions(
-                                forcedDocumentIds: Array(snapshot.forced),
+                                forcedDocumentIds: forcedDocumentIDs,
                                 rebuild: snapshot.rebuild
                             )
                         ) { [weak self] progress in
@@ -447,6 +451,14 @@ final class NotesStore: ObservableObject, ModelMaintenance {
                     }
                 } else {
                     let result = try await provider.inspectFreshness(id, operation: operation)
+                    if failed.contains(id) {
+                        guard let revision = result.sourceRevision,
+                            revision != sourceRevisions[id]
+                        else { return }
+                        failed.remove(id)
+                        pending.removeValue(forKey: id)
+                    }
+                    if let revision = result.sourceRevision { sourceRevisions[id] = revision }
                     update(id) {
                         $0 = Self.state(record, result.summary, progress: $0.progress)
                     }
@@ -469,6 +481,7 @@ final class NotesStore: ObservableObject, ModelMaintenance {
                 }
             } catch NotesError.Cancelled {
                 if snapshot == nil { scans.insert(id) }
+                if failed.contains(id) { return }
                 let saved = try? await provider.inspect(id)
                 update(id) {
                     $0.status = pending[id]?.waitingStatus ?? .pending
@@ -479,12 +492,14 @@ final class NotesStore: ObservableObject, ModelMaintenance {
                         && (saved?.documentCount ?? 0) > 0
                 }
             } catch NotesError.RebuildRequired {
+                if failed.contains(id) { return }
                 if snapshot == nil {
                     requestRebuild(id)
                 } else {
                     fail(id, NotesError.RebuildRequired)
                 }
             } catch {
+                if snapshot == nil && failed.contains(id) { return }
                 fail(id, error)
             }
         }

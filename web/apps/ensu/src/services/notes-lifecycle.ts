@@ -28,7 +28,7 @@ type NotesRemovalStart =
 export class NotesLifecycleController {
     private activeCollectionId: string | null = null;
     private readonly queued = new Map<string, boolean>();
-    private readonly failed = new Set<string>();
+    private readonly failed = new Map<string, number | undefined>();
     private readonly removing = new Set<string>();
     private removalWaitCollection: string | null = null;
     private mutation = 0;
@@ -50,16 +50,22 @@ export class NotesLifecycleController {
         return "start";
     }
 
-    ensureIndex(collectionId: string, blocked: boolean): NotesIndexRequest {
+    ensureIndex(
+        collectionId: string,
+        blocked: boolean,
+        requestKey?: number,
+    ): NotesIndexRequest {
         if (
             this.disposed ||
             this.removing.has(collectionId) ||
-            this.failed.has(collectionId) ||
+            (this.failed.has(collectionId) &&
+                !this.hasNewerUpdate(collectionId, requestKey)) ||
             this.activeCollectionId === collectionId ||
             this.queued.has(collectionId)
         ) {
             return "ignored";
         }
+        this.failed.delete(collectionId);
         if (blocked || this.hasActiveJobs() || this.queued.size > 0) {
             this.queueIndex(collectionId, false);
             return "queued";
@@ -93,13 +99,28 @@ export class NotesLifecycleController {
         return { clearedRemovalWait };
     }
 
-    failIndex(collectionId: string) {
+    failIndex(collectionId: string, requestKey?: number) {
         this.queued.delete(collectionId);
-        this.failed.add(collectionId);
+        this.failed.set(collectionId, requestKey);
     }
 
-    indexActivity(collectionId: string): NotesIndexActivity {
-        if (this.failed.has(collectionId)) return "failed";
+    hasNewerUpdate(collectionId: string, requestKey?: number) {
+        return (
+            this.failed.has(collectionId) &&
+            requestKey !== undefined &&
+            requestKey !== this.failed.get(collectionId)
+        );
+    }
+
+    indexActivity(
+        collectionId: string,
+        requestKey?: number,
+    ): NotesIndexActivity {
+        if (
+            this.failed.has(collectionId) &&
+            !this.hasNewerUpdate(collectionId, requestKey)
+        )
+            return "failed";
         if (this.queued.has(collectionId)) return "queued";
         return this.activeCollectionId === collectionId ? "starting" : null;
     }
@@ -209,7 +230,8 @@ export const notesCollectionActivity = (
     if (collection.status === "indexing" || collection.status === "updating") {
         return null;
     }
-    const activity = controller.indexActivity(collection.id);
+    const requestKey = collection.updateDueAtMs ?? undefined;
+    const activity = controller.indexActivity(collection.id, requestKey);
     if (activity === "failed" || activity === "starting") return activity;
     if (controller.isManualUpdateRequested(collection.id)) {
         return "updateRequested";
@@ -218,6 +240,9 @@ export const notesCollectionActivity = (
         collection.updateDueAtMs != null &&
         (collection.status === "ready" ||
             (collection.status === "pending" &&
+                collection.lastUpdatedAtMs != null) ||
+            ((activity === "queued" ||
+                controller.hasNewerUpdate(collection.id, requestKey)) &&
                 collection.lastUpdatedAtMs != null))
     ) {
         return "updateScheduled";
