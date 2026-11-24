@@ -1388,6 +1388,10 @@
       ]
     },
     {
+      "title": "KeyHelp",
+      "slug": "keyhelp"
+    }
+    {
       "title": "Kick"
     },
     {
@@ -2741,6 +2745,16 @@
       ]
     },
     {
+      "title": "TU Dortmund",
+      "slug": "tu-dortmund",
+      "hex": "639A00",
+      "altNames": [
+        "Technische Universität Dortmund",
+        "Technical University Dortmund",
+        "TUDO"
+      ]
+    },
+    {
       "title": "TU Dresden",
       "slug": "tu_dresden",
       "altNames": [
@@ -3096,20 +3110,6 @@
     {
       "title": "Zyxel Nebula",
       "slug": "zyxel-nebula"
-    },
-    {
-      "title": "TU-Dortmund",
-      "slug": "tu-dortmund",
-      "hex": "639A00",
-      "altNames": [
-        "Technische Universität Dortmund",
-        "Technical University Dortmund",
-        "TUDO"
-      ]
-    },
-    {
-      "title": "KeyHelp",
-      "slug": "keyhelp"
     }
   ]
 }
