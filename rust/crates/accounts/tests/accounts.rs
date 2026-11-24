@@ -10,10 +10,11 @@ use ente_accounts::{
     },
     login::{LoginFlow, LoginStep},
     models::TwoFactorType,
+    security::{EmailMfaStatus, change_email, get_email_mfa_status, set_email_mfa},
     signup::Signup,
 };
 use ente_core::{b64, crypto::SecretVec};
-use ente_test_support::account_fixture::current_totp;
+use ente_test_support::account_fixture::{TestAccount, create_account, current_totp};
 use ente_test_support::{HARDCODED_OTT, HARDCODED_OTT_EMAIL_SUFFIX, Museum, TestResult};
 use uuid::Uuid;
 use zeroize::Zeroizing;
@@ -283,6 +284,138 @@ async fn run(museum: &Museum) -> TestResult {
     let challenge = ente_accounts::deletion::get_delete_challenge(&session).await?;
     ente_accounts::deletion::delete_account(&session, &challenge, "not_listed", None).await?;
     Ok(())
+}
+
+#[test]
+fn security_settings() -> TestResult {
+    Museum::run(|museum| tokio::runtime::Runtime::new()?.block_on(run_security_settings(museum)))
+}
+
+async fn run_security_settings(museum: &Museum) -> TestResult {
+    let endpoint = museum.endpoint();
+    let account = create_account(endpoint, "security").await?;
+    let session = fixture_session(endpoint, &account)?;
+    let client = accounts_client(endpoint).with_auth_token(account.auth_token.clone());
+    let first_step = |email: String| async move {
+        LoginFlow::prepare(&accounts_client(endpoint), email)
+            .await
+            .map(|(_, step)| step)
+    };
+    assert_eq!(
+        get_email_mfa_status(&session).await?,
+        EmailMfaStatus {
+            enabled: false,
+            can_disable: true
+        }
+    );
+    assert!(matches!(
+        first_step(account.email.clone()).await?,
+        LoginStep::Password
+    ));
+    set_email_mfa(&session, true).await?;
+    assert!(get_email_mfa_status(&session).await?.enabled);
+    assert!(matches!(
+        first_step(account.email.clone()).await?,
+        LoginStep::EmailCode
+    ));
+    set_email_mfa(&session, false).await?;
+    assert!(!get_email_mfa_status(&session).await?.enabled);
+    assert!(matches!(
+        first_step(account.email.clone()).await?,
+        LoginStep::Password
+    ));
+
+    let unconfigured_email = format!(
+        "security-no-srp-{}{HARDCODED_OTT_EMAIL_SUFFIX}",
+        Uuid::new_v4()
+    );
+    let unconfigured = accounts_client(endpoint);
+    unconfigured
+        .send_otp(&unconfigured_email, "signup", false)
+        .await?;
+    let verified = unconfigured
+        .verify_email(&unconfigured_email, HARDCODED_OTT, None)
+        .await?;
+    let unconfigured = fixture_session(
+        endpoint,
+        &TestAccount {
+            user_id: verified.id,
+            auth_token: verified.token.ok_or("signup should return a token")?,
+            ..account.clone()
+        },
+    )?;
+    assert!(!get_email_mfa_status(&unconfigured).await?.can_disable);
+    assert!(matches!(
+        set_email_mfa(&unconfigured, false).await,
+        Err(Error::SrpNotConfigured)
+    ));
+
+    let setup =
+        TwoFactorSetup::start(&client, &account.master_key, &account.key_attributes).await?;
+    setup
+        .enable(&client, &current_totp(&setup.secret_code)?)
+        .await?;
+    assert!(client.get_two_factor_status().await?);
+    client.disable_two_factor().await?;
+    assert!(!client.get_two_factor_status().await?);
+
+    assert!(matches!(
+        client.send_otp(&unconfigured_email, "change", false).await,
+        Err(Error::EmailAlreadyInUse)
+    ));
+    let new_email = format!(
+        "security-changed-{}{HARDCODED_OTT_EMAIL_SUFFIX}",
+        Uuid::new_v4()
+    );
+    client.send_otp(&new_email, "change", false).await?;
+    let ott = museum.query_sql("SELECT ott FROM otts")?;
+    let wrong = format!("{:06}", (ott.parse::<u32>()? + 1) % 1_000_000);
+    assert!(matches!(
+        change_email(&session, &new_email, &wrong).await,
+        Err(Error::IncorrectEmailVerificationCode)
+    ));
+    change_email(&session, &new_email, &ott).await?;
+    assert!(matches!(
+        change_email(&session, &new_email, &ott).await,
+        Err(Error::EmailVerificationCodeExpired)
+    ));
+    assert_eq!(client.email().await?, new_email);
+    assert!(matches!(
+        client.get_srp_attributes(&account.email).await,
+        Err(Error::SrpNotConfigured)
+    ));
+    let login_client = accounts_client(endpoint);
+    let (mut flow, step) = LoginFlow::prepare(&login_client, new_email).await?;
+    assert!(matches!(step, LoginStep::Password));
+    let LoginStep::Complete(login) = flow
+        .submit_password(&login_client, &account.password)
+        .await?
+    else {
+        panic!("login with the new email should not need a second factor");
+    };
+    assert_eq!(login.user_id, account.user_id);
+    assert_eq!(login.secrets.master_key, account.master_key);
+
+    client.logout().await?;
+    assert!(matches!(
+        change_email(&session, &account.email, HARDCODED_OTT).await,
+        Err(Error::SessionInvalid)
+    ));
+    Ok(())
+}
+
+fn fixture_session(endpoint: &str, account: &TestAccount) -> TestResult<ente_core::Session> {
+    Ok(ente_core::Session::new(
+        ente_core::http::ApiConfig {
+            auth: Some(ente_core::http::Auth::User(account.auth_token.clone())),
+            client_package: Some("io.ente.photos".into()),
+            ..ente_core::http::ApiConfig::new(endpoint.into())
+        },
+        account.user_id,
+        ente_core::crypto::Key::try_from_slice(&account.master_key)?,
+        ente_core::crypto::Key::try_from_slice(&account.recovery_key)?,
+        ente_core::crypto::SecretKey::try_from_slice(&account.secret_key)?,
+    )?)
 }
 
 fn accounts_client(endpoint: &str) -> AccountsClient {

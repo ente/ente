@@ -1,0 +1,1 @@
+- Added `account totp disable`, `account email-mfa` and `account change-email`, and `--purpose change` for `account request-otp`.

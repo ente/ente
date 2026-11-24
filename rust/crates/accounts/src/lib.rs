@@ -7,6 +7,7 @@ pub mod error;
 pub mod lifecycle;
 pub mod login;
 pub mod models;
+pub mod security;
 pub mod sessions;
 pub mod signup;
 pub mod types;
