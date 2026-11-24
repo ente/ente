@@ -261,7 +261,6 @@ Future<List<EnteFile>> deleteFilesOnDeviceOnly(
       if (file.localID != null) {
         confirmedDeletedLocalIDs.add(file.localID!);
       }
-      deletedFiles.add(file);
     }
   }
   // Cancel pending uploads for confirmed-deleted files before any per-file
