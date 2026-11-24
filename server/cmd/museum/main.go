@@ -5,11 +5,13 @@ import (
 	"database/sql"
 	b64 "encoding/base64"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"path"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -1198,7 +1200,7 @@ func runServer(server *gin.Engine) *http.Server {
 		if server.TrustedPlatform != "" {
 			log.Infof("trusted platform header: %s", server.TrustedPlatform)
 		}
-		httpServer.Addr = fmt.Sprintf(":%d", port)
+		httpServer.Addr = net.JoinHostPort(viper.GetString("http.host"), strconv.Itoa(port))
 		go func() {
 			if err := httpServer.ListenAndServe(); err != http.ErrServerClosed {
 				log.Error(err)

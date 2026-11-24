@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 	"time"
+
+	"github.com/spf13/viper"
 )
 
 func TestOTTSendLimiterAllowsRepeatedIPBelowElevatedThreshold(t *testing.T) {
@@ -114,4 +116,48 @@ func TestOTTSendLimiterPrunesExpiredAttemptsAndIPCooldowns(t *testing.T) {
 	if _, ok := limiter.ipNextAllowed["198.51.100.10"]; !ok {
 		t.Fatal("fresh IP cooldown should remain")
 	}
+}
+
+func TestOTTSendLimiterDisabledOnlyInLocalEnvironment(t *testing.T) {
+	t.Run("local", func(t *testing.T) {
+		t.Setenv("ENVIRONMENT", "local")
+		viper.Set("internal.disable-rate-limit", true)
+		t.Cleanup(func() {
+			viper.Set("internal.disable-rate-limit", false)
+		})
+
+		limiter := NewOTTSendLimiter()
+		if limiter.IsGloballyBlocked() {
+			t.Fatal("disabled limiter should not report global block")
+		}
+		for i := range ottSendElevatedThreshold + 5 {
+			decision := limiter.Allow("127.0.0.1")
+			if !decision.allowed || decision.alert != "" {
+				t.Fatalf("request %d decision=%+v, want allowed without alert", i, decision)
+			}
+		}
+		if limiter.IsGloballyBlocked() {
+			t.Fatal("disabled limiter should remain unblocked")
+		}
+	})
+
+	t.Run("production", func(t *testing.T) {
+		t.Setenv("ENVIRONMENT", "production")
+		viper.Set("internal.disable-rate-limit", true)
+		t.Cleanup(func() {
+			viper.Set("internal.disable-rate-limit", false)
+		})
+
+		limiter := NewOTTSendLimiter()
+		for i := range ottSendElevatedThreshold - 1 {
+			decision := limiter.Allow("127.0.0.1")
+			if !decision.allowed {
+				t.Fatalf("request %d unexpectedly rejected", i)
+			}
+		}
+		decision := limiter.Allow("127.0.0.1")
+		if decision.allowed {
+			t.Fatal("production limiter should enforce cooldown once elevated threshold is reached")
+		}
+	})
 }

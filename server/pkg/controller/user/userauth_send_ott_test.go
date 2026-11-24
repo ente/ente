@@ -19,6 +19,7 @@ import (
 	"github.com/ente/museum/pkg/utils/crypto"
 	timeUtil "github.com/ente/museum/pkg/utils/time"
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
 )
 
 func TestShouldSwallowSendOTTDisclosureErrorAfterLimiter(t *testing.T) {
@@ -376,6 +377,54 @@ func TestSendEmailOTTGlobalBlockShortCircuits(t *testing.T) {
 	err := controller.SendEmailOTT(newSendOTTTestContext(), "global-block@example.com", ente.SignUpOTTPurpose, false)
 	if !errors.Is(err, ente.ErrTooManyBadRequest) {
 		t.Fatalf("SendEmailOTT error = %v, want %v", err, ente.ErrTooManyBadRequest)
+	}
+}
+
+func TestSendEmailOTTBypassesSendLimiterWhenDisabledLocally(t *testing.T) {
+	testutil.WithServerRoot(t)
+	db := testutil.RequireTestDB(t)
+	testutil.ResetTables(t, db)
+	t.Cleanup(func() {
+		testutil.ResetTables(t, db)
+	})
+
+	t.Setenv("ENVIRONMENT", "local")
+	viper.Set("internal.disable-rate-limit", true)
+	t.Cleanup(func() {
+		viper.Set("internal.disable-rate-limit", false)
+	})
+
+	controller := &UserController{
+		UserRepo: &repo.UserRepository{
+			DB:                  db,
+			SecretEncryptionKey: testutil.SecretEncryptionKey(),
+			HashingKey:          testutil.HashingKey(),
+		},
+		UserAuthRepo:      &repo.UserAuthRepository{DB: db},
+		HashingKey:        testutil.HashingKey(),
+		DiscordController: newSendOTTTestDiscordController(),
+		OTTSendLimiter:    NewOTTSendLimiter(),
+		HardCodedOTT: HardCodedOTT{
+			LocalDomainSuffix: "@example.org",
+			LocalDomainValue:  "123456",
+		},
+	}
+
+	for i := range ottSendElevatedThreshold + 5 {
+		email := fmt.Sprintf("user-%d@example.org", i)
+		if err := controller.SendEmailOTT(newSendOTTTestContextWithIP("127.0.0.1"), email, ente.SignUpOTTPurpose, false); err != nil {
+			t.Fatalf("SendEmailOTT(%q) failed on iteration %d: %v", email, i, err)
+		}
+		if i >= ottSendElevatedThreshold {
+			emailHash, err := crypto.GetHash(email, controller.HashingKey)
+			if err != nil {
+				t.Fatalf("failed to hash email %q: %v", email, err)
+			}
+			otts, err := controller.UserAuthRepo.GetValidOTTs(emailHash, ente.Photos)
+			if err != nil || len(otts) != 1 || otts[0] != "123456" {
+				t.Fatalf("GetValidOTTs(%q) = (%v, %v), want ([123456], nil)", email, otts, err)
+			}
+		}
 	}
 }
 

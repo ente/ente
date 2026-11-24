@@ -11,6 +11,7 @@ import (
 	"github.com/ente/museum/pkg/controller/discord"
 	util "github.com/ente/museum/pkg/utils"
 	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/museum/pkg/utils/config"
 	"github.com/ente/museum/pkg/utils/network"
 
 	"github.com/gin-contrib/requestid"
@@ -59,6 +60,7 @@ type RateLimitMiddleware struct {
 	limit10ReqPerHour  *limiter.Limiter
 	limit60ReqPerHour  *limiter.Limiter
 	discordCtrl        *discord.DiscordController
+	disabled           bool
 }
 
 func NewRateLimitMiddleware(discordCtrl *discord.DiscordController, limit, thumbnailLimit int64, reset time.Duration) *RateLimitMiddleware {
@@ -76,6 +78,7 @@ func NewRateLimitMiddleware(discordCtrl *discord.DiscordController, limit, thumb
 		limit10ReqPerHour:  util.NewRateLimiter("10-H"),
 		limit60ReqPerHour:  util.NewRateLimiter("60-H"),
 		discordCtrl:        discordCtrl,
+		disabled:           config.IsRateLimitDisabled(),
 		limit:              limit,
 		thumbnailLimit:     thumbnailLimit,
 		reset:              reset,
@@ -96,6 +99,10 @@ func (r *RateLimitMiddleware) Stop() {
 
 func (r *RateLimitMiddleware) GlobalRateLimiter() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if r.disabled {
+			c.Next()
+			return
+		}
 		counter, limit := &r.count, r.limit
 		metricURL, name := processGlobalRateLimitURL, "Global"
 		if c.Request.Method == http.MethodGet && isThumbnailReadURLPath(c.FullPath()) {
@@ -174,6 +181,9 @@ func (r *RateLimitMiddleware) APIRateLimitForUserMiddleware(urlSanitizer func(_ 
 }
 
 func (r *RateLimitMiddleware) isRateLimited(c *gin.Context, rateLimiter *limiter.Limiter, key string, requestPath string, scope rateLimitScope, message string) bool {
+	if r.disabled {
+		return false
+	}
 	limitContext, err := rateLimiter.Get(c, key)
 	if err != nil {
 		log.Error("Failed to check rate limit", err)

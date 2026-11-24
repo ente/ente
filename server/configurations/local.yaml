@@ -374,6 +374,9 @@ internal:
     # During sign up, the client will get an unauthorized error and
     # thus cannot create new accounts.
     disable-registration: false
+    # When running in a local environment, disable API rate limiting
+    # (used by local E2E runs against with-museum).
+    disable-rate-limit: false
 
 # Replication config
 #
