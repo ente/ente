@@ -229,17 +229,6 @@ Future<List<EnteFile>> deleteFilesOnDeviceOnly(
   List<EnteFile> files,
 ) async {
   _logger.info("Trying to deleteFilesOnDeviceOnly" + files.toString());
-  // Cancel any pending uploads so deleted files don't reach Ente later.
-  final deletingLocalIDs = files
-      .map((f) => f.localID)
-      .whereType<String>()
-      .toSet();
-  if (deletingLocalIDs.isNotEmpty) {
-    FileUploader.instance.removeFromQueueWhere(
-      (f) => f.localID != null && deletingLocalIDs.contains(f.localID),
-      SilentlyCancelUploadsError(),
-    );
-  }
   final List<String> localAssetIDs = [];
   final List<String> localSharedMediaIDs = [];
   final List<String> alreadyDeletedIDs = [];
@@ -268,6 +257,11 @@ Future<List<EnteFile>> deleteFilesOnDeviceOnly(
   for (final file in files) {
     if (removedIDs.contains(file.localID) ||
         alreadyDeletedIDs.contains(file.localID)) {
+      // Cancel any pending upload only for files confirmed deleted.
+      FileUploader.instance.removeFromQueueWhere(
+        (f) => f.localID == file.localID,
+        SilentlyCancelUploadsError(),
+      );
       deletedFiles.add(file);
       if (localOnlyIDs.contains(file.localID)) {
         await FilesDB.instance.deleteLocalFile(file);
