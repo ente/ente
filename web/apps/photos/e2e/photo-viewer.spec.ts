@@ -169,20 +169,27 @@ testWithPhotos(
 
         const viewer = page.locator(".pswp");
         const counter = viewer.locator(".pswp__counter");
-        const favorite = viewer.getByRole("button", {
-            name: "Favorite",
-            exact: true,
-        });
+        const activeImage = viewer.locator(
+            '[aria-hidden="false"] img.pswp__img:not(.pswp__img--placeholder)',
+        );
+        // Zoom precedes Favorite when the current photo can be zoomed.
+        const firstControl = viewer
+            .getByRole("button", { name: /^(Zoom|Favorite)$/ })
+            .first();
         const next = viewer.getByRole("button", { name: "Next", exact: true });
         await expect(counter).toHaveText("1 / 4");
+        await expect(activeImage).toHaveJSProperty(
+            "naturalWidth",
+            photos[0].width,
+        );
         await expect(viewer.locator(".pswp__top-bar")).toHaveCSS(
             "opacity",
             "1",
         );
 
-        await test.step("wraps from Next to Favorite and back", async () => {
+        await test.step("wraps between the first control and Next", async () => {
             await page.keyboard.press("Tab");
-            await expect(favorite).toBeFocused();
+            await expect(firstControl).toBeFocused();
 
             const focused = viewer.locator(":focus");
             for (let tab = 0; tab < 12; tab++) {
@@ -194,7 +201,7 @@ testWithPhotos(
             await expect(next).toBeFocused();
 
             await page.keyboard.press("Tab");
-            await expect(favorite).toBeFocused();
+            await expect(firstControl).toBeFocused();
             await page.keyboard.press("Shift+Tab");
             await expect(next).toBeFocused();
         });
@@ -205,6 +212,10 @@ testWithPhotos(
             await expect(next).toBeFocused();
             await page.keyboard.press("Space");
             await expect(counter).toHaveText("3 / 4");
+            await expect(activeImage).toHaveJSProperty(
+                "naturalWidth",
+                photos[2].width,
+            );
         });
 
         await test.step("recovers focus from Feed when controls are hidden", async () => {
@@ -221,7 +232,7 @@ testWithPhotos(
 
             await page.keyboard.press("Tab");
             await expect(viewer).toHaveClass(/pswp--ui-visible/);
-            await expect(favorite).toBeFocused();
+            await expect(firstControl).toBeFocused();
         });
     },
 );
