@@ -177,16 +177,21 @@ void main() {
     final viewerFinder = find.byType(ImageZoomViewer);
     ImageZoomViewer viewer() => tester.widget<ImageZoomViewer>(viewerFinder);
     Future<void> waitFor(ImageProvider expected) async {
-      for (var i = 0; i < 100 && viewer().imageProvider != expected; i++) {
+      final image = find.descendant(
+        of: viewerFinder,
+        matching: find.image(expected),
+      );
+      for (var i = 0; i < 100 && image.evaluate().isEmpty; i++) {
         await tester.runAsync(
           () => Future<void>.delayed(const Duration(milliseconds: 10)),
         );
         await tester.pump(const Duration(milliseconds: 16));
       }
-      expect(viewer().imageProvider, expected);
+      expect(image, findsOneWidget);
     }
 
     await openMemory(tester, isActive: false);
+    await waitFor(MemoryImage(imageBytes));
     expect(imageCache.statusForKey(fit).untracked, isTrue);
     expect(imageCache.statusForKey(detail).untracked, isTrue);
     final interactionLocks = <bool>[];
