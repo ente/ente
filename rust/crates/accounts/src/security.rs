@@ -1,4 +1,4 @@
-use ente_core::Session;
+use ente_core::{Session, http};
 use serde::{Deserialize, Serialize};
 
 use crate::{Error, Result};
@@ -62,7 +62,7 @@ pub async fn change_email(session: &Session, email: &str, ott: &str) -> Result<(
         ott: &'a str,
     }
 
-    let Err(error) = session
+    session
         .api
         .post("/users/change-email")
         .json(&Request { email, ott })
@@ -70,27 +70,19 @@ pub async fn change_email(session: &Session, email: &str, ott: &str) -> Result<(
         .await?
         .error_for_code()
         .await
-    else {
-        return Ok(());
-    };
-    Err(match error.status_code() {
-        Some(401) => match session
-            .api
-            .get("/users/session-validity/v2")
-            .send()
-            .await?
-            .error_for_code()
-            .await
-        {
-            Ok(_) => Error::IncorrectEmailVerificationCode,
-            Err(probe) if probe.status_code() == Some(401) => Error::SessionInvalid,
-            Err(_) => error.into(),
-        },
-        Some(403) => Error::EmailAlreadyInUse,
-        Some(410) => Error::EmailVerificationCodeExpired,
-        Some(429) => Error::EmailVerificationRateLimited,
-        _ => error.into(),
-    })
+        .map_err(|error| match error {
+            http::Error::Api {
+                status: 401,
+                ref code,
+                ..
+            } if code == "INCORRECT_OTT" => Error::IncorrectEmailVerificationCode,
+            error if error.status_code() == Some(401) => Error::SessionInvalid,
+            error if error.status_code() == Some(403) => Error::EmailAlreadyInUse,
+            error if error.status_code() == Some(410) => Error::EmailVerificationCodeExpired,
+            error if error.status_code() == Some(429) => Error::EmailVerificationRateLimited,
+            error => error.into(),
+        })?;
+    Ok(())
 }
 
 #[cfg(test)]
@@ -157,27 +149,24 @@ mod tests {
     #[tokio::test]
     async fn change_email_classifies_verification_failures() {
         type Expected = fn(&Error) -> bool;
-        let cases: [(usize, Option<usize>, Expected); 6] = [
-            (401, Some(200), |error| {
-                matches!(error, Error::IncorrectEmailVerificationCode)
-            }),
-            (401, Some(401), |error| {
-                matches!(error, Error::SessionInvalid)
-            }),
+        let cases: [(usize, &str, Expected); 5] = [
             (
                 401,
-                Some(500),
-                |error| matches!(error, Error::Http(error) if error.status_code() == Some(401)),
+                r#"{"code":"INCORRECT_OTT","message":"Incorrect OTT"}"#,
+                |error| matches!(error, Error::IncorrectEmailVerificationCode),
             ),
-            (403, None, |error| matches!(error, Error::EmailAlreadyInUse)),
-            (410, None, |error| {
+            (401, r#"{"error":"invalid token"}"#, |error| {
+                matches!(error, Error::SessionInvalid)
+            }),
+            (403, "{}", |error| matches!(error, Error::EmailAlreadyInUse)),
+            (410, "{}", |error| {
                 matches!(error, Error::EmailVerificationCodeExpired)
             }),
-            (429, None, |error| {
+            (429, "{}", |error| {
                 matches!(error, Error::EmailVerificationRateLimited)
             }),
         ];
-        for (status, validity, expected) in cases {
+        for (status, body, expected) in cases {
             let mut server = Server::new_async().await;
             let change = server
                 .mock("POST", "/users/change-email")
@@ -185,24 +174,15 @@ mod tests {
                     json!({"email": "b@example.org", "ott": "123456"}),
                 ))
                 .with_status(status)
-                .with_body("{}")
+                .with_body(body)
                 .expect(1)
-                .create_async()
-                .await;
-            let session_validity = server
-                .mock("GET", "/users/session-validity/v2")
-                .match_header("x-auth-token", "token")
-                .with_status(validity.unwrap_or(200))
-                .with_body(r#"{"hasSetKeys": false}"#)
-                .expect(usize::from(validity.is_some()))
                 .create_async()
                 .await;
             let error = change_email(&session(server.url()), "b@example.org", "123456")
                 .await
                 .unwrap_err();
-            assert!(expected(&error), "{status} {validity:?}: {error:?}");
+            assert!(expected(&error), "{status} {body}: {error:?}");
             change.assert_async().await;
-            session_validity.assert_async().await;
         }
     }
 }
