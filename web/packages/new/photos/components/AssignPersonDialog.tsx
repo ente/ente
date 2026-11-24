@@ -1,23 +1,34 @@
-import SearchIcon from "@mui/icons-material/Search";
+import { Cancel01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
+    Box,
     Dialog,
-    DialogContent,
-    DialogTitle,
-    Divider,
-    InputAdornment,
+    IconButton,
     Stack,
-    styled,
-    TextField,
     Typography,
     useMediaQuery,
 } from "@mui/material";
-import { SpacedRow } from "ente-base/components/containers";
-import { DialogCloseIconButton } from "ente-base/components/mui/DialogCloseIconButton";
 import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
+import { isSxArray } from "ente-base/components/utils/sx";
 import type { Person } from "ente-new/photos/services/ml/people";
 import { t } from "i18next";
-import React, { useState } from "react";
-import { ItemCard, LargeTileButton, LargeTileTextOverlay } from "./Tiles";
+import React, { useId, useState } from "react";
+import {
+    CollectionDialogSearchField,
+    CollectionDialogTileButton,
+    CollectionDialogTileCover,
+} from "./CollectionDialog/Primitives";
+import {
+    collectionDialogFullScreenQuery,
+    collectionDialogHeaderRowSx,
+    collectionDialogHeaderSx,
+    collectionDialogIconButtonSx,
+    collectionDialogNoResultsSx,
+    collectionDialogPaperSx,
+    collectionDialogPeopleGridSx,
+    collectionDialogTitleSx,
+} from "./CollectionDialog/styles";
+import { ItemCard } from "./Tiles";
 
 export type AssignPersonDialogProps = ModalVisibilityProps & {
     people: Person[];
@@ -32,7 +43,8 @@ export const AssignPersonDialog: React.FC<AssignPersonDialogProps> = ({
     title,
     onSelectPerson,
 }) => {
-    const isFullScreen = useMediaQuery("(max-width: 490px)");
+    const titleID = useId();
+    const isFullScreen = useMediaQuery(collectionDialogFullScreenQuery);
     const [searchTerm, setSearchTerm] = useState("");
     const query = searchTerm.trim().toLowerCase();
     const filteredPeople = query
@@ -40,112 +52,96 @@ export const AssignPersonDialog: React.FC<AssignPersonDialogProps> = ({
         : people;
 
     return (
-        <StyledDialog
+        <Dialog
             {...{ open, onClose }}
-            fullWidth
+            aria-labelledby={titleID}
             fullScreen={isFullScreen}
+            maxWidth={false}
             slotProps={{
-                paper: { sx: { maxWidth: "505px", minHeight: "80%" } },
+                paper: {
+                    sx: [
+                        ...(isSxArray(collectionDialogPaperSx)
+                            ? collectionDialogPaperSx
+                            : [collectionDialogPaperSx]),
+                        {
+                            boxSizing: "border-box",
+                            maxHeight: isFullScreen
+                                ? "100%"
+                                : "min(600px, calc(100% - 64px))",
+                        },
+                    ],
+                },
                 transition: { onExited: () => setSearchTerm("") },
             }}
         >
-            <DialogTitle>
-                <Stack sx={{ gap: 1.5 }}>
-                    <SpacedRow>
-                        <Typography variant="h3">{title}</Typography>
-                        <DialogCloseIconButton {...{ onClose }} />
-                    </SpacedRow>
-                    <TextField
-                        fullWidth
-                        type="search"
-                        size="small"
-                        placeholder={`${t("people_search_hint")}...`}
-                        value={searchTerm}
-                        onChange={(event) => setSearchTerm(event.target.value)}
-                        autoFocus
-                        slotProps={{
-                            htmlInput: {
-                                "aria-label": t("people_search_hint"),
-                            },
-                            input: {
-                                startAdornment: (
-                                    <InputAdornment position="start">
-                                        <SearchIcon />
-                                    </InputAdornment>
-                                ),
-                            },
+            <Stack sx={{ ...collectionDialogHeaderSx, pb: 0, flexShrink: 0 }}>
+                <Stack
+                    direction="row"
+                    sx={{
+                        ...collectionDialogHeaderRowSx,
+                        alignItems: "center",
+                    }}
+                >
+                    <Typography
+                        id={titleID}
+                        component="h2"
+                        sx={{
+                            ...collectionDialogTitleSx,
+                            fontFamily: '"Outfit Variable", Outfit, sans-serif',
+                            whiteSpace: "normal",
+                            overflowWrap: "anywhere",
                         }}
-                        sx={searchFieldSx}
-                    />
+                    >
+                        {title}
+                    </Typography>
+                    <IconButton
+                        aria-label={t("close")}
+                        onClick={onClose}
+                        sx={[collectionDialogIconButtonSx, { flexShrink: 0 }]}
+                    >
+                        <HugeiconsIcon icon={Cancel01Icon} size={18} />
+                    </IconButton>
                 </Stack>
-            </DialogTitle>
-            <Divider />
+                <CollectionDialogSearchField
+                    placeholder={`${t("people_search_hint")}...`}
+                    value={searchTerm}
+                    onChange={setSearchTerm}
+                />
+            </Stack>
             {filteredPeople.length ? (
-                <DialogContent_>
+                <Box sx={collectionDialogPeopleGridSx}>
                     {filteredPeople.map((person) => (
-                        <ItemCard
+                        <CollectionDialogTileButton
                             key={person.id}
-                            TileComponent={LargeTileButton}
-                            coverFile={person.displayFaceFile}
-                            coverFaceID={person.displayFaceID}
+                            title={person.name}
                             onClick={() => onSelectPerson(person.id)}
                         >
-                            <LargeTileTextOverlay>
-                                <Typography>{person.name ?? ""}</Typography>
-                            </LargeTileTextOverlay>
-                        </ItemCard>
+                            <ItemCard
+                                TileComponent={CollectionDialogTileCover}
+                                coverFile={person.displayFaceFile}
+                                coverFaceID={person.displayFaceID}
+                            />
+                            <Typography component="span" noWrap sx={nameSx}>
+                                {person.name ?? ""}
+                            </Typography>
+                        </CollectionDialogTileButton>
                     ))}
-                </DialogContent_>
+                </Box>
             ) : (
-                <NoResultsContent>
-                    <Typography sx={{ color: "text.muted" }}>
-                        {t("no_results")}
-                    </Typography>
-                </NoResultsContent>
+                <Typography
+                    role="status"
+                    sx={{ ...collectionDialogNoResultsSx, color: "text.muted" }}
+                >
+                    {t("no_results")}
+                </Typography>
             )}
-        </StyledDialog>
+        </Dialog>
     );
 };
 
-const StyledDialog = styled(Dialog)(({ theme }) => ({
-    "& .MuiDialogTitle-root": { padding: theme.spacing(2) },
-    "& .MuiDialogContent-root": { padding: theme.spacing(2) },
-}));
-
-const DialogContent_ = styled(DialogContent)`
-    display: grid;
-    grid-template-columns: repeat(auto-fill, 150px);
-    gap: 4px;
-    align-content: start;
-
-    @media (min-width: 491px) {
-        justify-content: center;
-    }
-`;
-
-const NoResultsContent = styled(DialogContent)`
-    display: flex;
-    justify-content: center;
-    align-items: center;
-`;
-
-const searchFieldSx = {
-    "& .MuiOutlinedInput-root": {
-        backgroundColor: "background.searchInput",
-        borderColor: "transparent",
-        "&:hover": { borderColor: "accent.light" },
-        "&.Mui-focused": { borderColor: "accent.main", boxShadow: "none" },
-    },
-    "& .MuiInputBase-input": {
-        color: "text.base",
-        paddingTop: "8.5px !important",
-        paddingBottom: "8.5px !important",
-    },
-    "& .MuiInputAdornment-root": {
-        color: "stroke.muted",
-        marginTop: "0 !important",
-        marginRight: "8px",
-    },
-    "& .MuiOutlinedInput-notchedOutline": { borderColor: "transparent" },
-    "& .MuiInputBase-input::placeholder": { color: "text.muted", opacity: 1 },
+const nameSx = {
+    fontSize: 14,
+    lineHeight: "20px",
+    fontWeight: 500,
+    maxWidth: "100%",
 };

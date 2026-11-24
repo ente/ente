@@ -2,9 +2,9 @@ import { Search01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import CloseIcon from "@mui/icons-material/Close";
 import { InputBase, Stack, styled, type Theme } from "@mui/material";
-import { UnstyledButton } from "ente-new/photos/components/UnstyledButton";
 import { t } from "i18next";
 import React, { useRef } from "react";
+import { UnstyledButton } from "../UnstyledButton";
 
 export const CollectionDialogSearchField: React.FC<{
     placeholder?: string;

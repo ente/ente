@@ -1,16 +1,3 @@
-import {
-    CollectionDialogSearchField,
-    CollectionDialogTileButton,
-    CollectionDialogTileCover,
-} from "@/components/CollectionDialog/Primitives";
-import {
-    collectionDialogFullScreenQuery,
-    collectionDialogHeaderRowSx,
-    collectionDialogHeaderSx,
-    collectionDialogIconButtonSx,
-    collectionDialogPaperSx,
-    collectionDialogTitleSx,
-} from "@/components/CollectionDialog/styles";
 import { GalleryActionMenu } from "@/components/gallery/GalleryActionMenu";
 import { useWrapAsyncOperation } from "@/components/utils/use-wrap-async";
 import {
@@ -64,6 +51,20 @@ import {
 import { isSxArray } from "ente-base/components/utils/sx";
 import { useBaseContext } from "ente-base/context";
 import log from "ente-base/log";
+import {
+    CollectionDialogSearchField,
+    CollectionDialogTileButton,
+    CollectionDialogTileCover,
+} from "ente-new/photos/components/CollectionDialog/Primitives";
+import {
+    collectionDialogFullScreenQuery,
+    collectionDialogHeaderRowSx,
+    collectionDialogHeaderSx,
+    collectionDialogIconButtonSx,
+    collectionDialogPaperSx,
+    collectionDialogPeopleGridSx,
+    collectionDialogTitleSx,
+} from "ente-new/photos/components/CollectionDialog/styles";
 import {
     GalleryItemsCoverTile,
     GalleryItemsHeaderAdapter,
@@ -490,24 +491,7 @@ const AddPersonDialog: React.FC<AddPersonDialogProps> = ({
                         onChange={setSearchTerm}
                     />
                 </Stack>
-                <Box
-                    sx={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-                        "@media (width < 600px)": {
-                            gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-                        },
-                        "@media (width < 360px)": {
-                            gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-                        },
-                        columnGap: "22px",
-                        rowGap: "24px",
-                        alignContent: "start",
-                        overflowY: "auto",
-                        p: "24px 20px 20px",
-                        minHeight: 0,
-                    }}
-                >
+                <Box sx={collectionDialogPeopleGridSx}>
                     <CollectionDialogTileButton onClick={handleAddPerson}>
                         <CollectionDialogTileCover>
                             <CenteredFill
