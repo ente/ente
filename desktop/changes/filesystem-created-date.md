@@ -1,1 +1,0 @@
-- Use earlier file creation dates as a fallback for desktop imports.

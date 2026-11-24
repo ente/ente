@@ -1,1 +1,0 @@
-- Added a prompt to enable machine learning when opening People.

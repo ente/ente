@@ -1,1 +1,0 @@
-- Create albums directly from the sidebar. New albums open automatically.

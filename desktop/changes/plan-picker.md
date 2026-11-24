@@ -1,1 +1,0 @@
-- Redesigned the plan picker in sign-up and Settings, with clearer monthly and yearly pricing.

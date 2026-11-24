@@ -1,1 +1,0 @@
-- Fixed Shift selection getting stuck after switching windows. - @adnanadil377

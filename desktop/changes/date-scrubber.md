@@ -1,1 +1,0 @@
-- Added a date scrubber to jump through the All view.
