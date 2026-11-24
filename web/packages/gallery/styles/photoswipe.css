@@ -366,10 +366,24 @@ media-fullscreen-button[mediafullscreenunavailable] {
     display: none;
 }
 
-media-settings-menu {
-    --media-control-background: var(--mui-palette-fixed-dark-background-paper);
+.pswp-ente media-settings-menu {
+    --media-settings-menu-background: var(
+        --mui-palette-background-elevatedPaper
+    );
+    --media-text-color: var(--mui-palette-text-base);
+    --media-icon-color: var(--mui-palette-text-base);
+    --media-menu-item-hover-background: var(--mui-palette-fill-faintHover);
+    --media-menu-item-checked-background: var(--mui-palette-fill-faint);
     --media-font-weight: 500;
+    border-radius: 12px;
+    box-shadow: var(--mui-palette-boxShadow-menu);
     z-index: 1;
+}
+
+.pswp-ente media-settings-menu-item,
+.pswp-ente media-settings-menu media-chrome-menu-item {
+    margin-inline: 8px;
+    border-radius: 10px;
 }
 
 body:has(
