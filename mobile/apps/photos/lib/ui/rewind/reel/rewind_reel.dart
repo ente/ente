@@ -2,7 +2,7 @@ import "dart:math";
 
 import "package:flutter/foundation.dart";
 import "package:flutter/widgets.dart";
-import "package:photos/ui/rewind/pages/outro_page.dart";
+import "package:photos/ui/rewind/reel/rewind_end_card.dart";
 import "package:photos/ui/rewind/shell/rewind_chrome.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
@@ -28,7 +28,7 @@ class RewindReel {
   }) {
     final pages = <RewindPage>[];
     final holds = <Duration>[];
-    for (final page in [...story, const OutroPage()]) {
+    for (final page in story) {
       final hold = holdOf(page);
       if (hold == null) continue;
       pages.add(page);
@@ -46,21 +46,21 @@ class RewindReel {
   final bool clip;
   final List<Duration> _holds;
 
-  Duration get duration =>
+  Duration get storyEnd =>
       _holds.fold(Duration.zero, (total, hold) => total + hold) +
       _turn * (_holds.length - 1);
 
-  Duration get videoDuration => duration + timeOf(1);
+  Duration get duration => storyEnd + RewindEndCard.duration;
 
-  Duration get _storyEnd => duration - _holds.last - _turn;
+  Duration get videoDuration => duration + timeOf(1);
 
   int get frameCount =>
       (duration.inMicroseconds * frameRate / Duration.microsecondsPerSecond)
           .ceil();
 
-  int get coverFrame => _frameAt(clip ? _storyEnd : _holds.first);
+  int get coverFrame => _frameAt(clip ? storyEnd : _holds.first);
 
-  int get storyEndFrame => _frameAt(_storyEnd);
+  int get storyEndFrame => _frameAt(storyEnd);
 
   int _frameAt(Duration time) => min(
     frameCount - 1,
@@ -125,32 +125,45 @@ class RewindReelView extends StatelessWidget {
               valueListenable: time,
               builder: (context, time, _) {
                 final scroll = reel.scrollAt(time);
+                final ending = time - reel.storyEnd;
                 final wordmark =
                     reel.pageAt(scroll).chrome.wordmark ??
                     (reel.clip ? RewindColors.white : null);
                 return Stack(
                   fit: StackFit.expand,
                   children: [
-                    RewindPageStack(
-                      pages: reel.pages,
-                      starts: reel.starts,
-                      scroll: scroll,
-                      navigator: _navigator,
-                      reel: true,
-                      clip: reel.clip,
+                    Offstage(
+                      offstage: ending.isNegative,
+                      child: RewindEndCard(elapsed: ending),
                     ),
-                    if (wordmark != null)
-                      Positioned.fromRect(
-                        rect: layout.wordmark,
-                        child: TweenAnimationBuilder<Color?>(
-                          tween: ColorTween(end: wordmark),
-                          duration: const Duration(milliseconds: 300),
-                          builder: (context, color, _) => RewindWordmark(
-                            color: color ?? wordmark,
-                            width: RewindChromeLayout.wordmarkSize.width,
+                    RewindCardExit(
+                      elapsed: ending,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          RewindPageStack(
+                            pages: reel.pages,
+                            starts: reel.starts,
+                            scroll: scroll,
+                            navigator: _navigator,
+                            reel: true,
+                            clip: reel.clip,
                           ),
-                        ),
+                          if (wordmark != null)
+                            Positioned.fromRect(
+                              rect: layout.wordmark,
+                              child: TweenAnimationBuilder<Color?>(
+                                tween: ColorTween(end: wordmark),
+                                duration: const Duration(milliseconds: 300),
+                                builder: (context, color, _) => RewindWordmark(
+                                  color: color ?? wordmark,
+                                  width: RewindChromeLayout.wordmarkSize.width,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
+                    ),
                   ],
                 );
               },
