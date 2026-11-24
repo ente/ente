@@ -212,6 +212,16 @@ class UploadQueue {
     _notifyBackupItemsChanged(upserts: {localID: updatedItem});
   }
 
+  void resetBackupProgress(String localID) {
+    final item = _backupItems[localID];
+    if (item == null || item.status != BackupItemStatus.uploading) {
+      return;
+    }
+    final updatedItem = item.withUploadProgress(0);
+    _backupItems[localID] = updatedItem;
+    _notifyBackupItemsChanged(upserts: {localID: updatedItem});
+  }
+
   List<UploadQueueItem> get backgroundItems => _items.values
       .where((item) => item._status == _UploadStatus.inBackground)
       .toList();

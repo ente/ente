@@ -623,6 +623,7 @@ class FileUploader {
             _logger.info(
               "Multipart upload returned 404 for $lockKey; starting fresh multipart upload reusing existing encrypted file",
             );
+            _queue.resetBackupProgress(lockKey);
             fileObjectKey = await _startFreshMultipartUpload(
               lockKey: lockKey,
               fileHash: mediaUploadData.fileHash,
