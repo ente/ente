@@ -1,1 +1,0 @@
-- Added a searchable People overview with more detected faces and refreshed face-naming and suggestion dialogs.

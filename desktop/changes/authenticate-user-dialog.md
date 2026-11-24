@@ -1,1 +1,0 @@
-- Updated the password authentication dialog to match the new album dialog.

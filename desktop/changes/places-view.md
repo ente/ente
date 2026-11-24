@@ -1,1 +1,0 @@
-- Added a searchable Places view with photo covers for locations and refreshed the map tools.

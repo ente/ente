@@ -1,1 +1,0 @@
-- Added support for Tatar translations.

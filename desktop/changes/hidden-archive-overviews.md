@@ -1,1 +1,0 @@
-- Simplified the Hidden and Archive overviews.

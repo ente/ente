@@ -1,1 +1,0 @@
-- Redesigned the photo editor with a larger preview and updated controls.

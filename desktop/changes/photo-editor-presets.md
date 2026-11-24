@@ -1,1 +1,0 @@
-- Added photo editor filter presets with thumbnail previews and full-resolution exports.

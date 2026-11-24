@@ -1,1 +1,0 @@
-- Improved date detection in filenames with sequence numbers. (@laurenspriem)

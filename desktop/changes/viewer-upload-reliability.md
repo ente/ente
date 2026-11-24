@@ -1,1 +1,0 @@
-- Fixed viewer crashes when uploads change the gallery.

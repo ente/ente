@@ -1,1 +1,0 @@
-- Fixed caption compatibility when importing and exporting photos.

@@ -1,1 +1,0 @@
-- Manage public links in the new Links view, including passwords, sharing settings, and covers.
