@@ -1,0 +1,1 @@
+- Redesigned photo search with a keyboard shortcut and suggestions and results grouped by category.

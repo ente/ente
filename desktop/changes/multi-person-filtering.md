@@ -1,0 +1,1 @@
+- Filter photos by multiple people.

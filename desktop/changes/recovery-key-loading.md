@@ -1,0 +1,1 @@
+- Prevented saving recovery keys before they finish loading.

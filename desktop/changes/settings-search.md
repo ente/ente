@@ -1,0 +1,1 @@
+- Added search to Settings.

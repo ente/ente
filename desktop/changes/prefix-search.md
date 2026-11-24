@@ -1,0 +1,1 @@
+- Fixed prefix searches matching inside words.
