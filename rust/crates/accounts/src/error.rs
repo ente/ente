@@ -100,6 +100,36 @@ pub enum Error {
     )]
     AccountAlreadyExists,
 
+    #[error("A paid plan is required")]
+    PaidPlanRequired,
+
+    #[error("Account is already in another family")]
+    InAnotherFamily,
+
+    #[error("Account is not a family admin")]
+    NotFamilyAdmin,
+
+    #[error("Invitee is already in a family")]
+    InviteeInFamily,
+
+    #[error("Invitee has an active paid plan")]
+    InviteeHasPaidPlan,
+
+    #[error("Family has the maximum number of members")]
+    FamilyFull,
+
+    #[error("Family member not found")]
+    FamilyMemberNotFound,
+
+    #[error("Storage limit exceeds the family's storage")]
+    StorageLimitAboveFamilyStorage,
+
+    #[error("Storage limit is below the member's usage")]
+    StorageLimitBelowUsage,
+
+    #[error("The family admin cannot leave the family")]
+    FamilyAdminCannotLeave,
+
     #[error("{0}")]
     Protocol(String),
 }

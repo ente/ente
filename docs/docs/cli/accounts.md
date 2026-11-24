@@ -114,6 +114,15 @@ ente account change-email --email new@example.com
 
 The CLI emails a code to the new address, asks for it, and updates the email saved on this computer; the local account name stays the same. Without prompts, run `ente account request-otp --email new@example.com --app photos --purpose change` first, then `ente account change-email --email new@example.com --input -` with `{"otp": "123456"}`.
 
+## Share your plan with a family
+
+```sh
+ente account family create
+ente account family member add bob@example.com
+```
+
+On a paid plan, this starts a family and emails Bob an invite; up to five other accounts can join and share its storage. `ente account family view` shows members, usage and IDs. `ente account family member set-storage bob@example.com 100GB` caps what a member can use (`--no-limit` removes the cap), `ente account family member remove bob@example.com` removes a member or cancels an invite, and a member leaves with `ente account family leave`; both ask for confirmation unless given `--yes`.
+
 ## Get a token
 
 ```sh

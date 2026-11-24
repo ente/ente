@@ -1044,6 +1044,23 @@ Without --app, logs out of all this account's saved app logins on this device.
         command: TotpCommand,
     },
     #[command(
+        about = "Manage your family plan",
+        after_long_help = FAMILY_HELP
+    )]
+    Family {
+        #[command(flatten)]
+        selector: AccountSelector,
+        #[arg(
+            long,
+            global = true,
+            value_enum,
+            help = "Saved app login; defaults to the only app, otherwise Photos"
+        )]
+        app: Option<App>,
+        #[command(subcommand)]
+        command: FamilyCommand,
+    },
+    #[command(
         about = "Require an email code at login",
         after_long_help = "Email verification asks for a code sent to your email each time you log in.
 Disabling it requires password login (SRP) to be set up for the account.
@@ -1190,6 +1207,93 @@ pub struct ChangeEmailArgs {
         help = "Read the otp string as JSON from a file or stdin"
     )]
     pub input: Option<PathBuf>,
+}
+
+const FAMILY_HELP: &str = "A family shares the admin's paid plan with up to five other Ente accounts.
+All family commands require network access. MEMBER is an ID or email from family view.
+Every command except leave prints the family afterwards, like family view.
+Removing a member or leaving asks for confirmation; --yes approves it and --no-input only disables prompts.";
+
+const FAMILY_VIEW_HELP: &str =
+    "JSON: storageBytes, usedBytes, expiresAt (RFC3339) and members, or null outside a family.
+Each member has id, email, status (SELF for the admin, ACCEPTED or INVITED), admin,
+usedBytes and storageLimitBytes (null without a limit). Byte counts are integers.
+
+Examples:
+  ente account family create
+  ente account family member add bob@example.com
+  ente account family member set-storage bob@example.com 100GB
+  ente account family member remove bob@example.com --yes";
+
+#[derive(Subcommand)]
+pub enum FamilyCommand {
+    #[command(about = "Show the family's storage and members", after_long_help = FAMILY_VIEW_HELP)]
+    View,
+    #[command(
+        about = "Start a family on your paid plan",
+        after_long_help = "Makes this account the family admin. Running it again changes nothing."
+    )]
+    Create,
+    #[command(
+        about = "Leave the family you joined",
+        after_long_help = "Your account returns to its own plan. The admin cannot leave their family.
+JSON: {\"left\": true}."
+    )]
+    Leave {
+        #[arg(long, help = "Approve leaving without a confirmation prompt")]
+        yes: bool,
+    },
+    #[command(about = "Invite, remove and limit members")]
+    Member {
+        #[command(subcommand)]
+        command: FamilyMemberCommand,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum FamilyMemberCommand {
+    #[command(
+        about = "Invite an Ente account to the family",
+        after_long_help = "Ente emails the invite; the member joins by accepting it.
+The account must already exist and must not have a paid plan or another family.
+Inviting a pending member again keeps the original invite."
+    )]
+    Add {
+        #[arg(help = "Email address of the account to invite")]
+        email: String,
+    },
+    #[command(
+        about = "Remove a member or cancel a pending invite",
+        after_long_help = "A removed member's account returns to its own plan; their data stays."
+    )]
+    Remove {
+        #[arg(help = "Member ID or email from family view")]
+        member: String,
+        #[arg(long, help = "Approve removal without a confirmation prompt")]
+        yes: bool,
+    },
+    #[command(
+        about = "Limit how much of the family storage a member can use",
+        after_long_help = "Sizes accept MB, GB and TB, case-insensitive, using powers of 1024; fractions are allowed.
+The limit cannot exceed the family storage or be below what the member already uses.
+--no-limit lets the member use any free family storage. Applies to members who have joined.
+
+Example:
+  ente account family member set-storage bob@example.com 1.5TB"
+    )]
+    SetStorage {
+        #[arg(help = "Member ID or email from family view")]
+        member: String,
+        #[arg(
+            value_name = "SIZE",
+            value_parser = crate::admin::parse_storage,
+            required_unless_present = "no_limit",
+            help = "Storage limit, e.g. 500GB or 1.5TB"
+        )]
+        size: Option<i64>,
+        #[arg(long, conflicts_with = "size", help = "Remove the member's limit")]
+        no_limit: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -1401,6 +1505,7 @@ mod tests {
                 "ente auth ",
                 "ente admin ",
                 "ente account totp ",
+                "ente account family ",
                 "ente account session ",
                 "ente account email-mfa ",
                 "ente account change-email",
