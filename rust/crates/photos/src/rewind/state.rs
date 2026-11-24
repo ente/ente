@@ -113,15 +113,18 @@ impl RewindState {
             cities,
         )?;
         let year_files = |report: &RewindReport| report.totals.as_ref().map(|totals| totals.files);
-        let settled = previous
-            .filter(|previous| {
-                previous.is_final
-                    || (library.had_ended_at(previous.computed_at)
-                        && request.now - previous.computed_at >= MICROS_PER_DAY)
-            })
-            .and_then(RewindState::report)
-            .and_then(year_files)
-            .is_some_and(|files| year_files(&report) == Some(files));
+        let settled = previous.is_some_and(|previous| {
+            let Some(previous_report) = previous.report() else {
+                return false;
+            };
+            if previous.is_final {
+                return year_files(previous_report)
+                    .is_some_and(|files| year_files(&report) == Some(files));
+            }
+            library.had_ended_at(previous.computed_at)
+                && request.now - previous.computed_at >= MICROS_PER_DAY
+                && previous_report == &report
+        });
         let status = if report.is_empty() {
             RewindStatus::NothingToShow
         } else {

@@ -1,0 +1,1 @@
+- Fixed Rewind finalizing in January while its cards or photos were still changing.
