@@ -29,7 +29,7 @@ class RewindMedia {
   RewindMedia._(
     this._files,
     this._people,
-    this._hiddenFiles, {
+    this._hiddenPeopleFiles, {
     required bool loadedByID,
     required bool waitsForOriginals,
     _Samples? samples,
@@ -46,14 +46,14 @@ class RewindMedia {
     bool waitsForOriginals = false,
   }) async {
     final people = await _namedPeople();
-    final hiddenFiles = await _filesHiddenFromMemories(people.values);
+    final hiddenPeopleFiles = await _filesHiddenFromMemories(people.values);
     final fileIDs = isLocalGalleryMode
         ? null
         : (await rust.rewindReportFileIds(report: report)).inner;
     return RewindMedia._(
-      await _showableFiles(hiddenFiles, uploadedFileIDs: fileIDs),
+      await _showableFiles(hiddenPeopleFiles, uploadedFileIDs: fileIDs),
       people,
-      hiddenFiles,
+      hiddenPeopleFiles,
       loadedByID: fileIDs != null,
       waitsForOriginals: waitsForOriginals,
     );
@@ -61,8 +61,8 @@ class RewindMedia {
 
   static Future<RewindMedia> sampled() async {
     final people = await _namedPeople();
-    final hiddenFiles = await _filesHiddenFromMemories(people.values);
-    final files = await _showableFiles(hiddenFiles);
+    final hiddenPeopleFiles = await _filesHiddenFromMemories(people.values);
+    final files = await _showableFiles(hiddenPeopleFiles);
     final photos = files.entries
         .where((entry) => entry.value.fileType != FileType.video)
         .sortedBy<num>((entry) => -(entry.value.creationTime ?? 0))
@@ -72,7 +72,7 @@ class RewindMedia {
     return RewindMedia._(
       files,
       people,
-      hiddenFiles,
+      hiddenPeopleFiles,
       loadedByID: false,
       waitsForOriginals: true,
       samples: _Samples(photos, [
@@ -83,7 +83,7 @@ class RewindMedia {
   }
 
   static Future<Map<int, EnteFile>> _showableFiles(
-    Set<int> hiddenFiles, {
+    Set<int> hiddenPeopleFiles, {
     List<int>? uploadedFileIDs,
   }) async {
     final files = await getFilesAndMapForMemories(
@@ -91,7 +91,7 @@ class RewindMedia {
       requireLocalId: isLocalGalleryMode,
       uploadedFileIDs: uploadedFileIDs,
     );
-    files.removeWhere((fileId, _) => hiddenFiles.contains(fileId));
+    files.removeWhere((fileId, _) => hiddenPeopleFiles.contains(fileId));
     return files;
   }
 
@@ -116,7 +116,7 @@ class RewindMedia {
     final file = _files[fileId];
     if (file != null || !_loadedByID) return file;
     final loaded = await _showableFiles(
-      _hiddenFiles,
+      _hiddenPeopleFiles,
       uploadedFileIDs: [fileId],
     );
     _files.addAll(loaded);
@@ -135,7 +135,7 @@ class RewindMedia {
 
   final Map<int, EnteFile> _files;
   final Map<String, PersonEntity> _people;
-  final Set<int> _hiddenFiles;
+  final Set<int> _hiddenPeopleFiles;
   final bool _loadedByID;
   final bool _waitsForOriginals;
   final _Samples? _samples;

@@ -1,3 +1,4 @@
+import "package:collection/collection.dart";
 import "package:photos/db/files_db.dart";
 import "package:photos/db/memories_db.dart";
 import "package:photos/db/offline_files_db.dart";
@@ -5,6 +6,7 @@ import "package:photos/models/file/file.dart";
 import "package:photos/models/metadata/common_keys.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
+import "package:photos/services/filter/db_filters.dart";
 import "package:photos/services/search_service.dart";
 
 MemoriesDB get memoriesDB =>
@@ -16,18 +18,24 @@ Future<Map<int, EnteFile>> getFilesAndMapForMemories({
   bool useLocalIntIds = false,
   List<int>? uploadedFileIDs,
 }) async {
-  final sourceFiles = uploadedFileIDs == null
-      ? await SearchService.instance.getAllFilesForSearch()
+  final uploadRows = uploadedFileIDs == null
+      ? null
       : await FilesDB.instance.getFilesFromIDs(uploadedFileIDs);
+  final sourceFiles = uploadRows == null
+      ? await SearchService.instance.getAllFilesForSearch()
+      : await applyDBFilters(
+          uploadRows.sorted(_newestFirst),
+          DBFilterOptions(dedupeUploadID: true),
+        );
   final archivedOrHiddenCollectionIDs = CollectionsService.instance
       .archivedOrHiddenCollectionIds();
   final excludedUploadFileIDs = <int>{};
   if (archivedOrHiddenCollectionIDs.isNotEmpty) {
-    final filesInArchivedCollections = uploadedFileIDs == null
+    final filesInArchivedCollections = uploadRows == null
         ? await FilesDB.instance.getAllFilesFromCollections(
             archivedOrHiddenCollectionIDs,
           )
-        : sourceFiles.where(
+        : uploadRows.where(
             (file) => archivedOrHiddenCollectionIDs.contains(file.collectionID),
           );
     for (final archivedFile in filesInArchivedCollections) {
@@ -90,6 +98,17 @@ Future<Map<int, EnteFile>> getFilesAndMapForMemories({
     }
   }
   return allFileIdsToFile;
+}
+
+int _newestFirst(EnteFile a, EnteFile b) {
+  final aTime = a.creationTime;
+  final bTime = b.creationTime;
+  if (aTime != bTime) {
+    if (aTime == null) return 1;
+    if (bTime == null) return -1;
+    return bTime.compareTo(aTime);
+  }
+  return (b.generatedID ?? 0).compareTo(a.generatedID ?? 0);
 }
 
 Future<Set<int>> getCollectionIDsToExclude() async {
