@@ -247,6 +247,9 @@ testWithPhotos(
             "1",
         );
 
+        // PhotoSwipe binds keyboard shortcuts after the opening transition.
+        await expect(viewer).toHaveCSS("transition-property", "none");
+
         await page.clock.install();
         await page.keyboard.press("f");
         await expect
