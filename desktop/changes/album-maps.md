@@ -1,1 +1,0 @@
-- Open maps from albums and click a place to see its photos.

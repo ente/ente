@@ -22,6 +22,9 @@ const testWithPhotos = test.extend<{
             })
             .click();
 
+        await page
+            .getByRole("button", { name: "Show navigation panel" })
+            .click();
         const albums = page.getByRole("navigation", { name: "Albums" });
         await albums.getByRole("button", { name: "New album" }).click();
         const newAlbum = page.getByRole("dialog", { name: "New album" });
@@ -156,6 +159,152 @@ testWithPhotos(
 );
 
 testWithPhotos(
+    "wraps keyboard focus inside the Home photo viewer",
+    async ({ photoAlbum: { page, thumbnails } }) => {
+        await page.setViewportSize({ width: 1280, height: 800 });
+        await page.getByRole("button", { name: "Home", exact: true }).click();
+        const feed = page.getByRole("button", { name: "Feed", exact: true });
+        await expect(feed).toBeVisible();
+        await thumbnails.first().click();
+
+        const viewer = page.locator(".pswp");
+        const counter = viewer.locator(".pswp__counter");
+        const activeImage = viewer.locator(
+            '[aria-hidden="false"] img.pswp__img:not(.pswp__img--placeholder)',
+        );
+        // Zoom precedes Favorite when the current photo can be zoomed.
+        const firstControl = viewer
+            .getByRole("button", { name: /^(Zoom|Favorite)$/ })
+            .first();
+        const next = viewer.getByRole("button", { name: "Next", exact: true });
+        await expect(counter).toHaveText("1 / 4");
+        await expect(activeImage).toHaveJSProperty(
+            "naturalWidth",
+            photos[0].width,
+        );
+        await expect(viewer.locator(".pswp__top-bar")).toHaveCSS(
+            "opacity",
+            "1",
+        );
+
+        await test.step("wraps between the first control and Next", async () => {
+            await page.keyboard.press("Tab");
+            await expect(firstControl).toBeFocused();
+
+            const focused = viewer.locator(":focus");
+            for (let tab = 0; tab < 12; tab++) {
+                await page.keyboard.press("Tab");
+                await expect(focused).toHaveCount(1);
+                if (await next.evaluate((el) => el === document.activeElement))
+                    break;
+            }
+            await expect(next).toBeFocused();
+
+            await page.keyboard.press("Tab");
+            await expect(firstControl).toBeFocused();
+            await page.keyboard.press("Shift+Tab");
+            await expect(next).toBeFocused();
+        });
+
+        await test.step("activates the focused Next button with Enter and Space", async () => {
+            await page.keyboard.press("Enter");
+            await expect(counter).toHaveText("2 / 4");
+            await expect(next).toBeFocused();
+            await page.keyboard.press("Space");
+            await expect(counter).toHaveText("3 / 4");
+            await expect(activeImage).toHaveJSProperty(
+                "naturalWidth",
+                photos[2].width,
+            );
+        });
+
+        await test.step("recovers focus from Feed when controls are hidden", async () => {
+            await page.keyboard.press("h");
+            await expect(viewer).not.toHaveClass(/pswp--ui-visible/);
+            await feed.focus();
+            for (const key of ["Enter", "Space"]) {
+                await expect(feed).toBeFocused();
+                await page.keyboard.press(key);
+                await expect(viewer).toBeVisible();
+                await expect(feed).toHaveAttribute("aria-pressed", "false");
+            }
+            await expect(viewer).not.toHaveClass(/pswp--ui-visible/);
+
+            await page.keyboard.press("Tab");
+            await expect(viewer).toHaveClass(/pswp--ui-visible/);
+            await expect(firstControl).toBeFocused();
+        });
+    },
+);
+
+testWithPhotos(
+    "keeps fullscreen viewer controls visible after Tab navigation",
+    async ({ photoAlbum: { page, thumbnails } }) => {
+        await thumbnails.first().click();
+        const viewer = page.locator(".pswp");
+        await expect(viewer.locator(".pswp__top-bar")).toHaveCSS(
+            "opacity",
+            "1",
+        );
+
+        // PhotoSwipe binds keyboard shortcuts after the opening transition.
+        await expect(viewer).toHaveCSS("transition-property", "none");
+
+        await page.clock.install();
+        await page.keyboard.press("f");
+        await expect
+            .poll(() => page.evaluate(() => !!document.fullscreenElement))
+            .toBe(true);
+
+        // Confirm the controls normally hide after the fullscreen timeout.
+        await page.clock.fastForward(3_100);
+        await expect(viewer).not.toHaveClass(/pswp--ui-visible/);
+
+        // Mouse movement reveals the controls and starts a fresh hide timer.
+        await page.mouse.move(80, 200);
+        await expect(viewer).toHaveClass(/pswp--ui-visible/);
+        await page.keyboard.press("Tab");
+        const focusedButton = viewer
+            .getByRole("button")
+            .and(page.locator(":focus"));
+        await expect(focusedButton).toHaveCount(1);
+
+        await page.clock.fastForward(3_100);
+        await expect(viewer).toHaveClass(/pswp--ui-visible/);
+        await expect(focusedButton).toHaveCount(1);
+    },
+);
+
+testWithPhotos(
+    "keeps Tab navigation in Search when opened over the photo viewer",
+    async ({ photoAlbum: { page, thumbnails } }) => {
+        await thumbnails.first().click();
+        const viewer = page.locator(".pswp");
+        await expect(viewer).toBeVisible();
+
+        await page.keyboard.press("ControlOrMeta+k");
+        const search = page.getByRole("dialog", {
+            name: "Search",
+            exact: true,
+        });
+        const input = search.getByRole("combobox", {
+            name: "Search",
+            exact: true,
+        });
+        await expect(input).toBeFocused();
+        await input.fill(albumName);
+        const allResults = search.getByRole("tab", { name: /^All\b/ });
+        await expect(allResults).toBeVisible();
+
+        await page.keyboard.press("Tab");
+        await expect(allResults).toBeFocused();
+        await page.keyboard.press("Shift+Tab");
+        await expect(input).toBeFocused();
+        await expect(viewer).toBeVisible();
+    },
+);
+
+testWithPhotos(
     "keeps viewer shortcuts inactive while Add to album is open",
     async ({ photoAlbum: { page, thumbnails } }) => {
         const albums = page.getByRole("navigation", { name: "Albums" });
@@ -181,7 +330,10 @@ testWithPhotos(
             .getByRole("menuitem", { name: "Add to album", exact: true })
             .click();
 
-        const tabs = page.getByRole("tablist", { name: "Filter albums" });
+        const tabs = page.getByRole("tablist", {
+            name: "Filter albums",
+            includeHidden: true,
+        });
         await tabs.getByRole("tab", { name: "All", exact: true }).click();
         await page.keyboard.press("ArrowRight");
         await expect(tabs.getByRole("tab", { name: "Ente" })).toBeFocused();
@@ -193,7 +345,7 @@ testWithPhotos(
         await expect(tabs.getByRole("tab", { name: "Ente" })).toBeFocused();
 
         await page.keyboard.press("Escape");
-        await expect(tabs).toBeHidden();
+        await expect(tabs).toHaveCount(0);
         await page.keyboard.press("ArrowRight");
         await expect(counter).toHaveText("2 / 4");
         await page.keyboard.press("Delete");

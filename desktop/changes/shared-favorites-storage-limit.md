@@ -1,1 +1,0 @@
-- Clarified the storage-limit error when favoriting a shared photo.

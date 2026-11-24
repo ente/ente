@@ -502,11 +502,9 @@ Future<RemoteMLHydrationSummary> hydrateOwnedRemoteMLData({
       mlDataDB: mlDataDB,
     );
     hydratedFaces +=
-        facePendingBefore -
-        pendingAfterHydration.where((i) => i.shouldRunFaces).length;
+        facePendingBefore - chunk.where((i) => i.shouldRunFaces).length;
     hydratedClips +=
-        clipPendingBefore -
-        pendingAfterHydration.where((i) => i.shouldRunClip).length;
+        clipPendingBefore - chunk.where((i) => i.shouldRunClip).length;
     remainingLocalMl += pendingAfterHydration.length;
   }
 
@@ -646,6 +644,9 @@ Future<List<FileMLInstruction>> hydrateRemoteMLDataForInstructions(
 
   await mlDataDB.bulkInsertFaces(faces);
   await mlDataDB.putClip(clipEmbeddings);
+  pendingIndex.removeWhere(
+    (fileID, _) => res.fetchErrorFileIDs.contains(fileID),
+  );
   return pendingIndex.values
       .where((instruction) => instruction.pendingML)
       .toList();

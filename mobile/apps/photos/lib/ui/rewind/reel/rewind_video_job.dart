@@ -8,6 +8,7 @@ import "package:flutter/widgets.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/models/memories/memory_music_track.dart";
+import "package:photos/service_locator.dart";
 import "package:photos/services/memories/memory_music_service.dart";
 import "package:photos/services/remote_assets_service.dart";
 import "package:photos/services/video_preview_service.dart";
@@ -454,9 +455,7 @@ class RewindVideoJob with WidgetsBindingObserver {
   }
 
   Future<MemoryMusicTrack?> _firstTrack() async {
-    final tracks = await MemoryMusicService.instance.prepare().timeout(
-      _musicTimeout,
-    );
+    final tracks = await rewindService.music.prepare().timeout(_musicTimeout);
     return tracks.firstOrNull;
   }
 

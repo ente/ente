@@ -14,6 +14,7 @@ import { ItemCard, PreviewItemTile } from "ente-new/photos/components/Tiles";
 import { t } from "i18next";
 import { useEffect, useRef, useState } from "react";
 import { listPlaces } from "../../../../services/places";
+import { NavigationEmptyState } from "../../navigation/NavigationPrimitives";
 
 export interface PlaceSelection {
     latitude: number;
@@ -96,9 +97,7 @@ export const PlacesList = ({
                 </Stack>
             ) : !currentResult.groups ? (
                 <Typography role="alert">{t("generic_error_retry")}</Typography>
-            ) : !matchingGroups?.length ? (
-                <Typography role="status">{t("no_results")}</Typography>
-            ) : (
+            ) : matchingGroups?.length ? (
                 <List
                     ref={listRef}
                     disablePadding
@@ -151,7 +150,9 @@ export const PlacesList = ({
                         </ListItem>
                     ))}
                 </List>
-            )}
+            ) : query ? (
+                <NavigationEmptyState />
+            ) : null}
         </Stack>
     );
 };

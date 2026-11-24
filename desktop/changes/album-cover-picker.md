@@ -1,1 +1,0 @@
-- Refreshed the album cover picker and added covers to album and person headers.

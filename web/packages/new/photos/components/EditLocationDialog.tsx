@@ -15,6 +15,7 @@ import {
     styled,
     Typography,
 } from "@mui/material";
+import { contextMenuPaperStyles } from "ente-base/components/ContextMenu.styles";
 import { InlineErrorIndicator } from "ente-base/components/ErrorIndicator";
 import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
 import { LoadingButton } from "ente-base/components/mui/LoadingButton";
@@ -643,7 +644,9 @@ const EditableMap: React.FC<EditableMapProps> = ({
                                     onClick={() => handleSelectResult(result)}
                                     sx={{
                                         width: "100%",
-                                        p: "16px",
+                                        py: 1.5,
+                                        px: 2,
+                                        borderRadius: "10px",
                                         justifyContent: "flex-start",
                                         textAlign: "left",
                                         "&:hover, &.Mui-focusVisible": {
@@ -651,7 +654,7 @@ const EditableMap: React.FC<EditableMapProps> = ({
                                         },
                                     }}
                                 >
-                                    <Typography variant="small">
+                                    <Typography sx={{ fontSize: 15 }}>
                                         {result.display_name}
                                     </Typography>
                                 </ButtonBase>
@@ -814,15 +817,12 @@ const ZoomButton = styled(IconButton)(({ theme }) => ({
 }));
 
 const SearchResultsList = styled("div")(({ theme }) => ({
+    ...contextMenuPaperStyles(theme),
     position: "absolute",
     top: "100%",
     left: 0,
     right: 0,
-    marginTop: theme.spacing(1),
-    backgroundColor: theme.vars.palette.background.paper,
-    borderRadius: "16px",
-    overflow: "hidden",
+    padding: theme.spacing(1),
     maxHeight: 250,
     overflowY: "auto",
-    boxShadow: theme.shadows[4],
 }));

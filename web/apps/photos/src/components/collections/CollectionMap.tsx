@@ -1,4 +1,5 @@
 import type { RemotePullOpts } from "@/components/gallery";
+import { AlbumEmptyState } from "@/components/gallery/sections/albums/AlbumEmptyState";
 import type { PlaceSelection } from "@/components/gallery/sections/places/PlacesList";
 import type { SelectedState } from "@/utils/file";
 import AddIcon from "@mui/icons-material/Add";
@@ -1133,9 +1134,7 @@ export const CollectionMap: React.FC<CollectionMapProps> = ({
     } else if (!mapPoints.length || !mapCenter || !mapIndex) {
         body = (
             <CenteredBox>
-                <Typography variant="body" sx={{ color: "text.secondary" }}>
-                    {t("no_geotagged_photos")}
-                </Typography>
+                <AlbumEmptyState />
             </CenteredBox>
         );
     } else {

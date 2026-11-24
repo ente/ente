@@ -5,13 +5,12 @@ import {
     CircularProgress,
     Drawer,
     IconButton,
-    Menu,
-    MenuItem,
     Stack,
     styled,
     TextField,
     Typography,
 } from "@mui/material";
+import { ContextMenu, ContextMenuItem } from "ente-base/components/ContextMenu";
 import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
 import log from "ente-base/log";
 import {
@@ -41,6 +40,7 @@ import React, {
     useRef,
     useState,
 } from "react";
+import { ActivityAlbumMenu } from "./ActivityAlbumMenu";
 
 const SendIcon: React.FC = () => (
     <svg
@@ -111,22 +111,6 @@ const DeleteIcon: React.FC = () => (
             d="M11.5 2.83203L11.0869 9.51543C10.9813 11.223 10.9285 12.0768 10.5005 12.6906C10.2889 12.9941 10.0165 13.2502 9.70047 13.4427C9.0614 13.832 8.206 13.832 6.49513 13.832C4.78208 13.832 3.92553 13.832 3.28603 13.442C2.96987 13.2492 2.69733 12.9926 2.48579 12.6886C2.05792 12.0738 2.0063 11.2188 1.90307 9.50883L1.5 2.83203M0.5 2.83333H12.5M9.2038 2.83333L8.74873 1.89449C8.4464 1.27084 8.2952 0.959013 8.03447 0.76454C7.97667 0.7214 7.9154 0.683027 7.85133 0.6498C7.5626 0.5 7.21607 0.5 6.523 0.5C5.81253 0.5 5.45733 0.5 5.16379 0.65608C5.09873 0.690673 5.03665 0.7306 4.97819 0.775447C4.71443 0.9778 4.56709 1.30103 4.27241 1.94751L3.86861 2.83333M4.83203 10.166V6.16602M8.16797 10.166V6.16602"
             stroke="currentColor"
             strokeLinecap="round"
-        />
-    </svg>
-);
-
-const ChevronDownIcon: React.FC = () => (
-    <svg
-        width="22"
-        height="22"
-        viewBox="0 0 20 20"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        style={{ marginLeft: -6, transform: "translateY(-2px)" }}
-    >
-        <path
-            d="M10.0007 12.5004L6.46484 8.96544L7.64401 7.78711L10.0007 10.1438L12.3573 7.78711L13.5365 8.96544L10.0007 12.5004Z"
-            fill="currentColor"
         />
     </svg>
 );
@@ -405,7 +389,6 @@ export const CommentsSidebar: React.FC<CommentsSidebarProps> = ({
     const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(
         null,
     );
-    const [collectionDropdownOpen, setCollectionDropdownOpen] = useState(false);
     const [comments, setComments] = useState<Comment[]>([]);
     const [loading, setLoading] = useState(false);
     const [sending, setSending] = useState(false);
@@ -864,11 +847,6 @@ export const CommentsSidebar: React.FC<CommentsSidebarProps> = ({
         }
     };
 
-    const handleCollectionSelect = (collectionID: number) => {
-        setSelectedCollectionID(collectionID);
-        setCollectionDropdownOpen(false);
-    };
-
     const handleContextMenu = (
         e: React.MouseEvent,
         targetComment: Comment,
@@ -1009,19 +987,10 @@ export const CommentsSidebar: React.FC<CommentsSidebarProps> = ({
         .filter((c) => !c.isDeleted)
         .sort((a, b) => b.createdAt - a.createdAt);
 
-    const showOverlay = contextMenu || collectionDropdownOpen;
-
     return (
         <SidebarDrawer open={open} onClose={onClose} anchor="right">
             <DrawerContentWrapper>
-                {showOverlay && (
-                    <ContextMenuOverlay
-                        onClick={() => {
-                            handleCloseContextMenu();
-                            setCollectionDropdownOpen(false);
-                        }}
-                    />
-                )}
+                {contextMenu && <ContextMenuOverlay aria-hidden />}
                 <Header>
                     {hasCollectionContext ? (
                         <Typography
@@ -1036,102 +1005,13 @@ export const CommentsSidebar: React.FC<CommentsSidebarProps> = ({
                                 : `${sortedComments.length} ${t("comments")}`}
                         </Typography>
                     ) : collectionsInfo.length > 1 ? (
-                        <Box
-                            sx={{
-                                position: "relative",
-                                zIndex: collectionDropdownOpen ? 12 : "auto",
-                            }}
-                        >
-                            <CollectionDropdownButton
-                                onClick={() =>
-                                    setCollectionDropdownOpen(
-                                        !collectionDropdownOpen,
-                                    )
-                                }
-                            >
-                                <Box sx={{ position: "relative" }}>
-                                    {selectedCollectionInfo &&
-                                    thumbnailURLs.get(
-                                        selectedCollectionInfo.id,
-                                    ) ? (
-                                        <CollectionThumbnail
-                                            src={thumbnailURLs.get(
-                                                selectedCollectionInfo.id,
-                                            )}
-                                            alt=""
-                                        />
-                                    ) : (
-                                        <CollectionThumbnailPlaceholder />
-                                    )}
-                                    <CollectionBadge>
-                                        {selectedCollectionInfo?.commentCount ??
-                                            0}
-                                    </CollectionBadge>
-                                </Box>
-                                <Typography
-                                    sx={(theme) => ({
-                                        color: "#000",
-                                        fontWeight: 600,
-                                        fontSize: 14,
-                                        lineHeight: "20px",
-                                        marginBottom: "4px",
-                                        ...theme.applyStyles("dark", {
-                                            color: "#fff",
-                                        }),
-                                    })}
-                                >
-                                    {selectedCollectionInfo?.name ?? "Album"}
-                                </Typography>
-                                <ChevronDownIcon />
-                            </CollectionDropdownButton>
-                            {collectionDropdownOpen && (
-                                <CollectionDropdownMenu>
-                                    {sortedCollectionsInfo.map((collection) => (
-                                        <CollectionDropdownItem
-                                            key={collection.id}
-                                            onClick={() =>
-                                                handleCollectionSelect(
-                                                    collection.id,
-                                                )
-                                            }
-                                        >
-                                            <Box sx={{ position: "relative" }}>
-                                                {thumbnailURLs.get(
-                                                    collection.id,
-                                                ) ? (
-                                                    <CollectionThumbnail
-                                                        src={thumbnailURLs.get(
-                                                            collection.id,
-                                                        )}
-                                                        alt=""
-                                                    />
-                                                ) : (
-                                                    <CollectionThumbnailPlaceholder />
-                                                )}
-                                                <CollectionBadge>
-                                                    {collection.commentCount}
-                                                </CollectionBadge>
-                                            </Box>
-                                            <Typography
-                                                sx={(theme) => ({
-                                                    color: "#000",
-                                                    fontWeight: 600,
-                                                    fontSize: 14,
-                                                    lineHeight: "20px",
-                                                    marginBottom: "4px",
-                                                    ...theme.applyStyles(
-                                                        "dark",
-                                                        { color: "#fff" },
-                                                    ),
-                                                })}
-                                            >
-                                                {collection.name}
-                                            </Typography>
-                                        </CollectionDropdownItem>
-                                    ))}
-                                </CollectionDropdownMenu>
-                            )}
-                        </Box>
+                        <ActivityAlbumMenu
+                            albums={sortedCollectionsInfo}
+                            selected={selectedCollectionInfo}
+                            thumbnailURLs={thumbnailURLs}
+                            getCount={(album) => album.commentCount}
+                            onSelect={setSelectedCollectionID}
+                        />
                     ) : (
                         <Typography
                             sx={(theme) => ({
@@ -1332,7 +1212,7 @@ export const CommentsSidebar: React.FC<CommentsSidebarProps> = ({
                             );
                         })
                     )}
-                    <StyledMenu
+                    <ContextMenu
                         anchorEl={contextMenu?.anchorEl}
                         open={Boolean(contextMenu)}
                         onClose={handleCloseContextMenu}
@@ -1345,7 +1225,7 @@ export const CommentsSidebar: React.FC<CommentsSidebarProps> = ({
                             horizontal: "right",
                         }}
                     >
-                        <StyledMenuItem
+                        <ContextMenuItem
                             onClick={() => handleContextMenuAction("like")}
                         >
                             <HeartIcon small />
@@ -1354,37 +1234,26 @@ export const CommentsSidebar: React.FC<CommentsSidebarProps> = ({
                                     ? t("unlike")
                                     : t("like")}
                             </span>
-                        </StyledMenuItem>
-                        <StyledMenuItem
+                        </ContextMenuItem>
+                        <ContextMenuItem
                             onClick={() => handleContextMenuAction("reply")}
                         >
                             <ReplyIcon />
                             <span>{t("reply")}</span>
-                        </StyledMenuItem>
+                        </ContextMenuItem>
                         {contextMenu &&
                             canDeleteComment(contextMenu.comment) && (
-                                <StyledMenuItem
+                                <ContextMenuItem
                                     onClick={() =>
                                         handleContextMenuAction("delete")
                                     }
-                                    sx={(theme) => ({
-                                        "&:hover": {
-                                            backgroundColor: "#F24F4F",
-                                            color: "#fff",
-                                        },
-                                        ...theme.applyStyles("dark", {
-                                            "&:hover": {
-                                                backgroundColor: "#C53030",
-                                                color: "#fff",
-                                            },
-                                        }),
-                                    })}
+                                    destructive
                                 >
                                     <DeleteIcon />
                                     <span>{t("delete")}</span>
-                                </StyledMenuItem>
+                                </ContextMenuItem>
                             )}
-                    </StyledMenu>
+                    </ContextMenu>
                 </CommentsContainer>
 
                 <InputContainer>
@@ -1548,55 +1417,6 @@ const CloseButton = styled(IconButton)(({ theme }) => ({
     }),
 }));
 
-const CollectionDropdownButton = styled(Box)(({ theme }) => ({
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 14,
-    padding: "5px 6px 0px 6px",
-    borderRadius: 12,
-    backgroundColor: "#F0F0F0",
-    cursor: "pointer",
-    "&:hover": { backgroundColor: "#E8E8E8" },
-    ...theme.applyStyles("dark", {
-        backgroundColor: "#363636",
-        "&:hover": { backgroundColor: "#404040" },
-    }),
-}));
-
-const CollectionThumbnail = styled("img")(() => ({
-    width: 24,
-    height: 24,
-    borderRadius: 5,
-    objectFit: "cover",
-    backgroundColor: "#08C225",
-}));
-
-const CollectionBadge = styled(Box)(({ theme }) => ({
-    position: "absolute",
-    bottom: 4,
-    right: -4,
-    display: "inline-flex",
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: "50%",
-    backgroundColor: "#FFF",
-    color: "#000",
-    fontSize: 10,
-    fontWeight: 600,
-    lineHeight: 1,
-    minWidth: 16,
-    minHeight: 16,
-    ...theme.applyStyles("dark", { backgroundColor: "#fff", color: "#000" }),
-}));
-
-const CollectionThumbnailPlaceholder = styled(Box)(() => ({
-    width: 24,
-    height: 24,
-    borderRadius: 5,
-    backgroundColor: "#08C225",
-}));
-
 const LoadingContainer = styled(Box)(() => ({
     display: "flex",
     justifyContent: "center",
@@ -1615,41 +1435,6 @@ const EmptyMessage = styled(Typography)(({ theme }) => ({
     marginTop: -28,
     color: "#666",
     ...theme.applyStyles("dark", { color: "rgba(255, 255, 255, 0.5)" }),
-}));
-
-const CollectionDropdownMenu = styled(Box)(({ theme }) => ({
-    position: "absolute",
-    top: "calc(100% + 8px)",
-    left: 0,
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    alignItems: "flex-start",
-    width: 184,
-    padding: 4,
-    gap: 4,
-    borderRadius: 12,
-    border: "1px solid rgba(0, 0, 0, 0.08)",
-    backgroundColor: "#F0F0F0",
-    zIndex: 12,
-    ...theme.applyStyles("dark", {
-        border: "1px solid rgba(0, 0, 0, 0.08)",
-        backgroundColor: "#363636",
-    }),
-}));
-
-const CollectionDropdownItem = styled(Box)(({ theme }) => ({
-    display: "flex",
-    alignItems: "center",
-    gap: 14,
-    padding: "5px 6px 0px 6px",
-    borderRadius: 8,
-    cursor: "pointer",
-    width: "100%",
-    "&:hover": { backgroundColor: "#E8E8E8" },
-    ...theme.applyStyles("dark", {
-        "&:hover": { backgroundColor: "rgba(255, 255, 255, 0.16)" },
-    }),
 }));
 
 const CommentsContainer = styled(Box)(({ theme }) => ({
@@ -1861,36 +1646,4 @@ const ContextMenuOverlay = styled(Box)(() => ({
     zIndex: 10,
     borderRadius: "36px",
     "@media (max-width: 450px)": { borderRadius: 0 },
-}));
-
-const StyledMenu = styled(Menu)(({ theme }) => ({
-    "& .MuiPaper-root": {
-        backgroundColor: "#fff",
-        borderRadius: "12px",
-        boxShadow: "0 4px 16px rgba(0, 0, 0, 0.15)",
-        minWidth: "140px",
-        marginTop: "4px",
-    },
-    "& .MuiList-root": { padding: "6px" },
-    ...theme.applyStyles("dark", {
-        "& .MuiPaper-root": {
-            backgroundColor: "#2b2b2b",
-            boxShadow: "0 4px 16px rgba(0, 0, 0, 0.5)",
-        },
-    }),
-}));
-
-const StyledMenuItem = styled(MenuItem)(({ theme }) => ({
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    padding: "8px 12px",
-    borderRadius: 8,
-    color: "#131313",
-    fontSize: 14,
-    "&:hover": { backgroundColor: "#F5F5F5" },
-    ...theme.applyStyles("dark", {
-        color: "#fff",
-        "&:hover": { backgroundColor: "rgba(255, 255, 255, 0.12)" },
-    }),
 }));
