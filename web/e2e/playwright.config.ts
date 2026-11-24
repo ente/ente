@@ -11,7 +11,7 @@ const servers = appServersFor(selected.map(([name]) => name));
 export default defineConfig({
     outputDir: "./test-results",
     forbidOnly: !!process.env.CI,
-    workers: 1,
+    workers: 2,
     retries: 0,
     timeout: 120_000,
     expect: { timeout: 30_000 },
