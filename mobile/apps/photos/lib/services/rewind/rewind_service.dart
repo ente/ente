@@ -77,6 +77,7 @@ class RewindService {
   String _missingStateReason = "no state";
   String? _storyError;
   var _hasRefreshed = false;
+  var _videoGeneration = 0;
   Timer? _localMetadataTimer;
   final assets = RewindAssetStore();
   late final music = MemoryMusicService.remote(
@@ -344,10 +345,20 @@ class RewindService {
     return await video.exists() ? video : null;
   }
 
-  Future<void> keepVideo(String fingerprint, File video) => _prefs
-      .setStringList(_keptVideoKey, [fingerprint, path.basename(video.path)]);
+  int get videoGeneration => _videoGeneration;
 
-  Future<void> _forgetVideo() => _prefs.remove(_keptVideoKey);
+  Future<void> keepVideo(String fingerprint, int generation, File video) async {
+    if (generation != _videoGeneration) return;
+    await _prefs.setStringList(_keptVideoKey, [
+      fingerprint,
+      path.basename(video.path),
+    ]);
+  }
+
+  Future<void> _forgetVideo() {
+    _videoGeneration++;
+    return _prefs.remove(_keptVideoKey);
+  }
 
   Future<String> videoDirectory() async {
     final directory = await _videoDirectory();
