@@ -55,7 +55,8 @@ pub use indexing::{
     NotesRevisionStatus, index_notes_collection,
 };
 pub use maintenance::{
-    NotesDocumentContent, NotesFreshness, inspect_notes_freshness, notes_index_needs_rebuild,
+    NotesDocumentContent, NotesFreshness, inspect_notes_freshness, inspect_notes_source_revision,
+    notes_index_needs_rebuild,
 };
 pub use reconcile::NotesReconciliationPlan;
 pub use source::NoteSourceReference;

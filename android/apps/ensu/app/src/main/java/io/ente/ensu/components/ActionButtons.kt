@@ -105,13 +105,14 @@ fun TextActionButton(
 fun CompactButton(
     label: String,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     prominent: Boolean = false,
     enabled: Boolean = true,
 ) {
     Button(
         onClick = onClick,
         enabled = enabled,
-        modifier = Modifier.heightIn(min = if (prominent) 48.dp else 0.dp),
+        modifier = modifier.heightIn(min = if (prominent) 48.dp else 0.dp),
         colors = ButtonDefaults.buttonColors(containerColor = EnsuColor.accent()),
         contentPadding =
             PaddingValues(

@@ -5,6 +5,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -25,7 +26,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.ente.ensu.components.CompactButton
@@ -62,7 +65,7 @@ fun NotesSettingsScreen(
             )
         }
         items(state.collections, key = { it.id }) { collection ->
-            KnowledgeCard(spacing = EnsuSpacing.sm.dp) {
+            KnowledgeCard(spacing = EnsuSpacing.md.dp) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(
                         modifier = Modifier.weight(1f),
@@ -124,7 +127,8 @@ fun NotesSettingsScreen(
                             )
                         }
                 }
-                collection.progress?.let { progress ->
+                val progress = collection.progress
+                if (progress != null) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(EnsuSpacing.sm.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -141,12 +145,44 @@ fun NotesSettingsScreen(
                             color = EnsuColor.textMuted(),
                         )
                     }
+                } else if (
+                    collection.status == NotesStatus.Indexing ||
+                        collection.status == NotesStatus.Updating
+                ) {
+                    LinearProgressIndicator(
+                        modifier =
+                            Modifier.fillMaxWidth().semantics {
+                                contentDescription = "Updating ${collection.label}"
+                            },
+                        color = EnsuColor.action(),
+                        trackColor = EnsuColor.border(),
+                    )
                 }
-                if (collection.status == NotesStatus.Pending) {
+                if (collection.canRequestUpdate) {
+                    Column(verticalArrangement = Arrangement.spacedBy(EnsuSpacing.sm.dp)) {
+                        Text(
+                            if (collection.status == NotesStatus.UpdateRequested)
+                                "Update queued. Keep Ensu open."
+                            else "Changes detected in this folder.",
+                            style = EnsuTypography.small,
+                            color = EnsuColor.textPrimary(),
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                        )
+                        CompactButton(
+                            label = "Update now",
+                            onClick = { store.updateNow(collection.id) },
+                            modifier =
+                                Modifier.semantics {
+                                    contentDescription = "Update ${collection.label} now"
+                                },
+                        )
+                    }
+                } else if (collection.status == NotesStatus.Pending) {
                     Text(
                         "Indexing will continue when the app and model are ready.",
                         style = EnsuTypography.small,
                         color = EnsuColor.textMuted(),
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                     )
                 }
                 collection.error?.let {
