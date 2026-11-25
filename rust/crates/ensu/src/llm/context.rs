@@ -10,7 +10,7 @@ use std::num::NonZeroU32;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::Path;
 use std::sync::mpsc;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Instant;
 
 use super::ExecutionControl;
@@ -361,6 +361,7 @@ struct ContextState {
 }
 
 pub(super) struct LocalContext {
+    pub(super) specials: OnceLock<super::tools::Specials>,
     mtmd_context: Mutex<Option<CachedMtmdContext>>,
     state: Mutex<ContextState>,
     embedding_params: Option<EmbeddingContextParams>,
@@ -388,6 +389,7 @@ impl LocalContext {
             })
         })
         .map(|cell| LocalContext {
+            specials: OnceLock::new(),
             state: Mutex::new(ContextState {
                 cell,
                 cached_tokens: Vec::new(),

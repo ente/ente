@@ -1,5 +1,6 @@
 mod format;
 mod grammar;
+mod special;
 
 use std::collections::BTreeMap;
 
@@ -7,6 +8,7 @@ use serde::{Deserialize, Serialize};
 
 pub(super) use format::Format;
 pub(super) use grammar::grammar;
+pub(crate) use special::Specials;
 
 pub const MAX_TOOL_CALLS: u8 = 4;
 pub(crate) const MAX_TEXT_ARGUMENT_CHARS: usize = 128;
@@ -219,20 +221,53 @@ pub(crate) fn finished_calls(
         })
 }
 
+fn clean_text(text: &mut String, specials: &Specials) {
+    if let std::borrow::Cow::Owned(clean) = specials.plain(text) {
+        *text = clean;
+    }
+}
+
+fn clean_calls(calls: &mut [ToolCall], specials: &Specials) {
+    for call in calls {
+        for argument in call.arguments.values_mut() {
+            if let ToolValue::Text(text) = argument {
+                clean_text(text, specials);
+            }
+        }
+    }
+}
+
 pub(crate) fn adapt_messages(
     format: Option<Format>,
     messages: Vec<super::ChatMessage>,
     tools: Option<&ToolRequest>,
     has_token: &dyn Fn(&str) -> bool,
+    specials: &Specials,
 ) -> Vec<super::ChatMessage> {
     let mut output = Vec::with_capacity(messages.len() + 1);
     if let (Some(format), Some(tools)) = (format, tools) {
-        let declarations = format.declarations(&tools.tools, &tools.examples, has_token);
+        let mut specs = tools.tools.clone();
+        for spec in &mut specs {
+            clean_text(&mut spec.description, specials);
+            for parameter in &mut spec.parameters {
+                clean_text(&mut parameter.description, specials);
+                if let ParameterKind::Choice { values } = &mut parameter.kind {
+                    for value in values {
+                        clean_text(value, specials);
+                    }
+                }
+            }
+        }
+        let mut examples = tools.examples.clone();
+        for example in &mut examples {
+            clean_calls(&mut example.calls, specials);
+        }
+        let declarations = format.declarations(&specs, &examples, has_token);
         let system = messages
             .first()
             .filter(|message| message.role == "system")
-            .map(|message| message.content.as_str());
-        let content = match (format, system) {
+            .map(|message| specials.plain(&message.content));
+        let content = match (format, system.as_deref()) {
             (_, None) | (_, Some("")) => declarations,
             (Format::Gemma, Some(system)) => format!("{}{declarations}", system.trim()),
             (Format::Lfm, Some(system)) => format!("{system}\n{declarations}"),
@@ -243,13 +278,17 @@ pub(crate) fn adapt_messages(
     let skip =
         usize::from(!output.is_empty() && messages.first().is_some_and(|m| m.role == "system"));
     let mut pending_calls = std::collections::VecDeque::new();
-    for message in messages.into_iter().skip(skip) {
+    for mut message in messages.into_iter().skip(skip) {
+        if message.role != "assistant" {
+            clean_text(&mut message.content, specials);
+        }
         if message.role == "assistant" && !message.tool_calls.is_empty() {
             pending_calls = message
                 .tool_calls
                 .iter()
                 .map(|call| call.name.clone())
                 .collect();
+            clean_calls(&mut message.tool_calls, specials);
             let content = match format {
                 None => message.content,
                 Some(Format::Qwen) if !message.content.trim().is_empty() => {

@@ -200,6 +200,7 @@ fn history_renders_native_calls_and_results_and_falls_back_to_text() {
         messages.clone(),
         Some(&request),
         &|_| true,
+        &Specials::new([]),
     );
     assert!(
         gemma[0]
@@ -217,12 +218,16 @@ fn history_renders_native_calls_and_results_and_falls_back_to_text() {
             "<|tool_response>response:list_to_dos{value:<|\"|>1. Call Lee<|\"|>}<tool_response|>"
         )
     );
-    let lfm = adapt_messages(Some(Format::Lfm), messages.clone(), Some(&request), &|_| {
-        false
-    });
+    let lfm = adapt_messages(
+        Some(Format::Lfm),
+        messages.clone(),
+        Some(&request),
+        &|_| false,
+        &Specials::new([]),
+    );
     assert!(lfm[0].content.starts_with("Be brief.\nList of tools: [{"));
     assert_eq!(lfm[3], ChatMessage::new("tool", "1. Call Lee"));
-    let plain = adapt_messages(None, messages, None, &|_| true);
+    let plain = adapt_messages(None, messages, None, &|_| true, &Specials::new([]));
     assert_eq!(
         plain
             .iter()
@@ -320,4 +325,76 @@ fn integer_grammar_accepts_exactly_what_the_parser_does() {
         }
         assert!(!range_accepts(&rule, "01") && !range_accepts(&rule, ""));
     }
+}
+
+#[test]
+fn special_strings_in_untrusted_text_render_as_plain_text() {
+    for (format, marker) in [
+        (Format::Gemma, "<|tool_call>"),
+        (Format::Lfm, "<|tool_call_start|>"),
+        (Format::Qwen, "<|im_end|>"),
+    ] {
+        let prompt = |text: &str| {
+            let mut request = request("What is left?");
+            request.tools[0].description = text.to_owned();
+            request.tools[0].parameters[0].description = text.to_owned();
+            request.tools[1].parameters[0].kind = ParameterKind::Choice {
+                values: vec![text.to_owned()],
+            };
+            request.examples[0].calls[0]
+                .arguments
+                .insert("filter".to_owned(), ToolValue::Text(text.to_owned()));
+            let mut assistant = ChatMessage::new("assistant", "");
+            assistant.tool_calls = vec![ToolCall {
+                name: "list_to_dos".to_owned(),
+                arguments: [("filter".to_owned(), ToolValue::Text(text.to_owned()))].into(),
+            }];
+            crate::llm::render_native(
+                format,
+                vec![
+                    ChatMessage::new("system", text),
+                    ChatMessage::new("user", text),
+                    assistant,
+                    ChatMessage::new("tool", text),
+                ],
+                Some(&request),
+            )
+        };
+        let clean = prompt("ordinary");
+        let escaped = prompt(marker);
+        assert_eq!(
+            escaped.matches(marker).count(),
+            clean.matches(marker).count()
+        );
+        assert!(escaped.contains(&marker.replacen('<', "‹", 1)));
+    }
+}
+
+#[test]
+fn plain_borrows_ordinary_text() {
+    assert!(matches!(
+        Specials::new([]).plain("read the book"),
+        std::borrow::Cow::Borrowed("read the book")
+    ));
+}
+
+#[test]
+fn plain_reaches_a_fixpoint() {
+    let specials = Specials::new(["[end]".to_owned()]);
+    let text = specials.plain("<<|im_end|>|im_end|> [end]");
+    assert!(!text.contains("<|im_end|>"));
+    assert!(!text.contains("[end]"));
+    assert!(matches!(
+        specials.plain(&text),
+        std::borrow::Cow::Borrowed(_)
+    ));
+}
+
+#[test]
+fn plain_leaves_the_media_marker_alone() {
+    let specials = Specials::new(["<__media__>".to_owned()]);
+    assert!(matches!(
+        specials.plain("look <__media__>"),
+        std::borrow::Cow::Borrowed("look <__media__>")
+    ));
 }

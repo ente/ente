@@ -1,6 +1,6 @@
 use llama_cpp_2::model::{LlamaChatMessage, LlamaChatTemplate, LlamaModel};
 
-use super::tools::{Format, ToolRequest};
+use super::tools::{Format, Specials, ToolRequest};
 use super::{ChatMessage, Error, format_error};
 
 const LFM_SHA256: [u8; 32] = [
@@ -22,8 +22,15 @@ pub(super) struct Prompt {
 }
 
 pub(super) fn supports_tools(model: &LlamaModel) -> bool {
-    build_prompt(model, vec![ChatMessage::new("user", "")], None, true, None)
-        .is_ok_and(|prompt| prompt.native_format.is_some())
+    build_prompt(
+        model,
+        vec![ChatMessage::new("user", "")],
+        None,
+        true,
+        None,
+        &Specials::default(),
+    )
+    .is_ok_and(|prompt| prompt.native_format.is_some())
 }
 
 pub(super) fn build_prompt(
@@ -32,6 +39,7 @@ pub(super) fn build_prompt(
     template_override: Option<String>,
     add_assistant: bool,
     tools: Option<&ToolRequest>,
+    specials: &Specials,
 ) -> Result<Prompt, Error> {
     let source = match template_override {
         Some(template) => template,
@@ -50,7 +58,8 @@ pub(super) fn build_prompt(
     {
         let template = LlamaChatTemplate::new(&source)
             .map_err(|err| Error::InvalidInput(format_error("Invalid template", err)))?;
-        let plain = super::tools::adapt_messages(None, messages.clone(), None, &has_token);
+        let plain =
+            super::tools::adapt_messages(None, messages.clone(), None, &has_token, specials);
         let chat = plain
             .iter()
             .map(|message| LlamaChatMessage::new(message.role.clone(), message.content.clone()))
@@ -73,6 +82,7 @@ pub(super) fn build_prompt(
         messages,
         tools.filter(|_| format.is_some()),
         &has_token,
+        specials,
     );
     let vocab = model.vocab();
     let special_token = |token: llama_cpp_2::token::LlamaToken| {
@@ -93,6 +103,21 @@ pub(super) fn build_prompt(
         text,
         native_format: format,
     })
+}
+
+#[cfg(test)]
+pub(crate) fn render_native(
+    format: Format,
+    messages: Vec<ChatMessage>,
+    tools: Option<&ToolRequest>,
+) -> String {
+    let adapted =
+        super::tools::adapt_messages(Some(format), messages, tools, &|_| true, &Specials::new([]));
+    match format {
+        Format::Lfm => render_lfm("<bos>", &adapted, true),
+        Format::Gemma => render_gemma("<bos>", &adapted, true),
+        Format::Qwen => render_qwen(&adapted, true).unwrap(),
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -529,7 +554,15 @@ mod tests {
         template_override: Option<String>,
         add_assistant: bool,
     ) -> Result<String, Error> {
-        Ok(build_prompt(model, messages, template_override, add_assistant, None)?.text)
+        Ok(build_prompt(
+            model,
+            messages,
+            template_override,
+            add_assistant,
+            None,
+            &Specials::default(),
+        )?
+        .text)
     }
 
     #[test]

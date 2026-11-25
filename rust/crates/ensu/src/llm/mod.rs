@@ -17,6 +17,8 @@ pub use execution::{ExecutionControl, ExecutionParams};
 pub use generate::*;
 pub use history::*;
 pub use model::*;
+#[cfg(test)]
+pub(crate) use template::render_native;
 pub use tools::{
     MAX_TOOL_CALLS, ParameterKind, ToolCall, ToolExample, ToolExchange, ToolOutcome, ToolParameter,
     ToolRequest, ToolSpec, ToolValue,

@@ -601,6 +601,7 @@ impl LocalContext {
                 request.template_override.clone(),
                 request.add_assistant.unwrap_or(true),
                 request.tools.as_ref(),
+                self.specials.get_or_init(|| vocab::specials(model)),
             )?;
             Ok(tokenize_text_prompt(model, &prompt.text)?.len())
         })
@@ -772,6 +773,7 @@ fn generate_chat_stream(
                 template_override,
                 add_assistant,
                 tool_request.as_ref(),
+                context.specials.get_or_init(|| vocab::specials(ctx.model)),
             )?;
             let prompt = built.text;
             let mut banned = Vec::new();
