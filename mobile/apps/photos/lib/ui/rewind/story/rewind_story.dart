@@ -20,6 +20,7 @@ class RewindStory {
     this._outline,
     this.rituals,
     this._blurryFaces,
+    this.hiddenPeopleFiles,
   );
 
   static const _lookahead = 3;
@@ -60,11 +61,13 @@ class RewindStory {
       [for (final chapter in chapters) ...chapter.keys],
       rituals,
       media.blurryFaces,
+      media.hiddenPeopleFiles,
     );
   }
 
   final List<RewindPage> pages;
   final RewindRituals? rituals;
+  final Set<int> hiddenPeopleFiles;
   final List<List<EnteFile>> _photos;
   final List<List<EnteFile>> _galleries;
   final List<String> _outline;

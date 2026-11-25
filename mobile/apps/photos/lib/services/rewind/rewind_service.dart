@@ -1,7 +1,9 @@
 import "dart:async";
+import "dart:convert";
 import "dart:io";
 import "dart:ui" show Locale;
 
+import "package:crypto/crypto.dart";
 import "package:flutter/foundation.dart";
 import "package:logging/logging.dart";
 import "package:path/path.dart" as path;
@@ -20,6 +22,7 @@ import "package:photos/events/sync_status_update_event.dart";
 import "package:photos/main.dart" show isIOSBackgroundRefresh, isProcessBg;
 import "package:photos/service_locator.dart";
 import "package:photos/services/app_lifecycle_service.dart";
+import "package:photos/services/collections_service.dart";
 import "package:photos/services/memories/memory_music_service.dart";
 import "package:photos/services/notification_service.dart";
 import "package:photos/services/rewind/rewind_asset_store.dart";
@@ -316,12 +319,20 @@ class RewindService {
   }
 
   String? videoFingerprint(List<RewindPage> pages, Locale locale) {
-    if (!identical(_story.value?.pages, pages)) return null;
+    final story = _story.value;
+    if (story == null || !identical(story.pages, pages)) return null;
+    final hiddenPeopleFiles = story.hiddenPeopleFiles.toList()..sort();
+    final hiddenAlbums =
+        CollectionsService.instance.archivedOrHiddenCollectionIds().toList()
+          ..sort();
     return [
       _owner,
       locale.toLanguageTag(),
       ServiceLocator.instance.packageInfo.buildNumber,
       DateTime.now().year > RewindEdition.year,
+      sha256.convert(
+        utf8.encode("${hiddenPeopleFiles.join(",")};${hiddenAlbums.join(",")}"),
+      ),
       for (final page in pages) page.key,
     ].join("|");
   }
