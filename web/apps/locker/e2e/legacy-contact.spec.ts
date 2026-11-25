@@ -1,3 +1,5 @@
+import type { Page } from "@playwright/test";
+import type { LegacyInfo } from "ente-contacts/legacy/types";
 import { createAccount, signUp } from "../../../e2e/fixtures/account";
 import { expect, test } from "../../../e2e/fixtures/test";
 
@@ -10,7 +12,6 @@ test("adds a trusted contact using the key shown during verification", async ({
     const contact = createAccount();
     const contactPage = await browser.newPage({ baseURL });
     await signUp(contactPage, contact);
-    await contactPage.close();
     await signUp(page, owner);
 
     let keyLookups = 0;
@@ -24,19 +25,7 @@ test("adds a trusted contact using the key shown during verification", async ({
             keyLookups++;
     });
 
-    await page
-        .getByAltText("Locker", { exact: true })
-        .locator("..")
-        .getByRole("button")
-        .click();
-    await page.getByText("Legacy", { exact: true }).click();
-    await page
-        .getByRole("dialog")
-        .getByLabel("Password", { exact: true })
-        .fill(owner.password);
-    await page
-        .getByRole("button", { name: "Authenticate", exact: true })
-        .click();
+    await openLegacy(page, owner.password);
     const add = page.getByRole("button", {
         name: "Add trusted contact",
         exact: true,
@@ -60,6 +49,81 @@ test("adds a trusted contact using the key shown during verification", async ({
     await confirmation
         .getByRole("button", { name: "Add trusted contact" })
         .click();
-    expect((await added).ok()).toBe(true);
+    const invitation = await added;
+    expect(invitation.ok()).toBe(true);
     expect(keyLookups).toBe(1);
+
+    await openLegacy(contactPage, contact.password);
+    const ownerRow = contactPage
+        .getByText(owner.email, { exact: true })
+        .and(contactPage.getByRole("paragraph"));
+    await ownerRow.click();
+    const accepted = contactPage.waitForResponse((response) =>
+        response.url().endsWith("/emergency-contacts/info"),
+    );
+    const accept = contactPage.getByRole("button", { name: "Accept invite" });
+    await accept.click();
+    await accepted;
+    await expect(accept).toBeHidden();
+    await ownerRow.click();
+    await contactPage.getByRole("button", { name: "Start recovery" }).click();
+    const recoveryInfo = contactPage.waitForResponse((response) =>
+        response.url().endsWith("/emergency-contacts/info"),
+    );
+    await contactPage
+        .getByRole("dialog", { name: "Start recovery" })
+        .getByRole("button", { name: "Start recovery" })
+        .click();
+    const info = (await (await recoveryInfo).json()) as LegacyInfo;
+    const [session] = info.othersRecoverySession;
+    if (!session) throw new Error("Expected a recovery session for the owner");
+
+    // Locker Web has no owner approval button. Approve through the owner's API.
+    const ownerHeaders = invitation.request().headers();
+    const approved = await page.request.post(
+        new URL("approve-recovery", invitation.url()).href,
+        {
+            headers: {
+                "X-Auth-Token": ownerHeaders["x-auth-token"]!,
+                "X-Client-Package": ownerHeaders["x-client-package"]!,
+            },
+            data: {
+                id: session.id,
+                userID: session.user.id,
+                emergencyContactID: session.emergencyContact.id,
+            },
+        },
+    );
+    await expect(approved).toBeOK();
+
+    await contactPage.reload();
+    await openLegacy(contactPage, contact.password);
+    await ownerRow.click();
+    await contactPage.getByRole("button", { name: "Recover account" }).click();
+    const newPassword = owner.password + "-recovered";
+    await contactPage.getByLabel("Password", { exact: true }).fill(newPassword);
+    await contactPage
+        .getByLabel("Confirm password", { exact: true })
+        .fill(newPassword);
+    await contactPage.getByRole("button", { name: "Reset password" }).click();
+    await expect(
+        contactPage.getByText("Account recovered", { exact: true }),
+    ).toBeVisible();
+    await contactPage.close();
 });
+
+const openLegacy = async (page: Page, password: string) => {
+    await page
+        .getByAltText("Locker", { exact: true })
+        .locator("..")
+        .getByRole("button")
+        .click();
+    await page.getByText("Legacy", { exact: true }).click();
+    await page
+        .getByRole("dialog")
+        .getByLabel("Password", { exact: true })
+        .fill(password);
+    await page
+        .getByRole("button", { name: "Authenticate", exact: true })
+        .click();
+};
