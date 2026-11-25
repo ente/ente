@@ -1,0 +1,1 @@
+- Adding a trusted contact now uses the same key shown during ID verification.

@@ -9,11 +9,17 @@ pub async fn info(session: &Session) -> Result<LegacyInfo, LegacyError> {
 pub async fn add_contact(
     session: &Session,
     email: String,
+    public_key: String,
     recovery_notice_in_days: i32,
 ) -> Result<(), LegacyError> {
-    ente_legacy::add_contact(session.as_ref(), &email, Some(recovery_notice_in_days))
-        .await
-        .map_err(Into::into)
+    ente_legacy::add_contact(
+        session.as_ref(),
+        &email,
+        &public_key,
+        Some(recovery_notice_in_days),
+    )
+    .await
+    .map_err(Into::into)
 }
 
 pub async fn update_contact(
