@@ -126,3 +126,49 @@ fn cached_generation_matches_fresh_after_retry_edit_branch_and_cancellation() ->
     }
     Ok(())
 }
+
+#[test]
+#[ignore = "requires ENSU_TEST_MODEL pointing to a tool-capable GGUF model"]
+fn tool_follow_up_decodes_only_the_suffix() -> Result<(), Error> {
+    let model = Model::load(ModelLoadParams {
+        model_path: std::env::var("ENSU_TEST_MODEL").unwrap(),
+        n_gpu_layers: Some(99),
+        use_mmap: Some(true),
+        use_mlock: Some(false),
+    })?;
+    let context = context(&model)?;
+    assert!(context.supports_tools());
+    let mut tools = ente_ensu::todo::chat_tools("List my tasks.", &[]);
+    tools
+        .tools
+        .retain(|tool| tool.name == ente_ensu::todo::LIST_TOOL);
+    tools.examples.clear();
+    tools.max_calls = 1;
+    tools.min_call_probability = 0.0;
+    let mut first = request(vec![message("user", "List my tasks.")]);
+    first.max_tokens = Some(96);
+    first.tools = Some(tools);
+    let mut generation = context.begin(&mut |_| {});
+    let summary = generation.pass(first.clone(), &mut |_| {})?;
+    let mut call = message("assistant", "");
+    call.tool_calls = summary.tools.unwrap().calls;
+    assert_eq!(call.tool_calls.len(), 1);
+    let mut next = first;
+    next.messages.push(call);
+    next.messages.push(message("tool", "1. Buy milk"));
+    next.tools.as_mut().unwrap().allowed = Some(vec![]);
+    next.max_tokens = Some(16);
+    let mut reused = None;
+    generation.pass(next, &mut |event| {
+        if let GenerationEvent::PromptProgress {
+            processed_tokens, ..
+        } = event
+        {
+            reused.get_or_insert(processed_tokens);
+        }
+    })?;
+    assert!(
+        reused.unwrap() >= summary.prompt_tokens.unwrap() + summary.generated_tokens.unwrap() - 2
+    );
+    Ok(())
+}

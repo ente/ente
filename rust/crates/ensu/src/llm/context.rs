@@ -16,7 +16,7 @@ use std::time::Instant;
 
 use super::ExecutionControl;
 use super::execution::ExecutionContext;
-use super::generate::{JobGuard, register_job};
+use super::generate::{JobGuard, Tail, generate_pass, register_job};
 use super::model::ModelRef;
 use super::worker::Worker;
 use super::{
@@ -252,6 +252,7 @@ impl Context {
             job_id,
             cancel_flag,
             start: Instant::now(),
+            tail: None,
             _guard: JobGuard(job_id),
         };
         sink.add(GenerationEvent::Text {
@@ -268,6 +269,7 @@ pub struct Generation<'a> {
     job_id: super::JobId,
     cancel_flag: Arc<AtomicBool>,
     start: Instant,
+    tail: Option<Tail>,
     _guard: JobGuard,
 }
 
@@ -291,6 +293,7 @@ impl Generation<'_> {
         let job_id = self.job_id;
         let cancel_flag = self.cancel_flag.clone();
         let start = self.start;
+        let tail = self.tail.take();
         let (events, received_events) = mpsc::sync_channel(0);
         let (acknowledge, acknowledgements) = mpsc::sync_channel(0);
         let completed = self.context.worker.submit(move |context| {
@@ -301,8 +304,10 @@ impl Generation<'_> {
                     cancel(job_id);
                 }
             };
-            let result = context.generate_chat_stream(
+            let result = generate_pass(
+                context,
                 request,
+                tail,
                 &mut emit,
                 job_id,
                 cancel_flag.clone(),
@@ -325,7 +330,9 @@ impl Generation<'_> {
             }
             let _ = acknowledge.send(!callback_failed);
         }
-        completed.recv().map_err(|_| Error::Panicked)?
+        let (summary, tail) = completed.recv().map_err(|_| Error::Panicked)??;
+        self.tail = tail;
+        Ok(summary)
     }
 
     pub fn done(self, summary: GenerationSummary, sink: &mut dyn EventSink) -> GenerationSummary {

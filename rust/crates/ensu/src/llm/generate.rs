@@ -343,6 +343,7 @@ struct ToolDecode {
     rejected_steps: u32,
     state: ToolState,
     raw: Vec<u8>,
+    tokens: Vec<LlamaToken>,
     probability: Option<f32>,
 }
 
@@ -494,6 +495,7 @@ impl GenerationJob<'_> {
             let step = match self.tool.as_mut() {
                 Some(tool) if tool.state == ToolState::Call => {
                     tool.raw.extend_from_slice(&bytes);
+                    tool.tokens.push(token);
                     DecodeStep {
                         text: None,
                         stop: false,
@@ -663,17 +665,6 @@ impl LocalContext {
         })
     }
 
-    pub fn generate_chat_stream(
-        &self,
-        request: ChatRequest,
-        sink: &mut dyn EventSink,
-        job_id: JobId,
-        cancel_flag: Arc<AtomicBool>,
-        start: Instant,
-    ) -> Result<GenerationSummary, Error> {
-        generate_chat_stream(self, request, sink, job_id, cancel_flag, start)
-    }
-
     pub fn truncate_text_chat_messages(
         &self,
         messages: Vec<ChatMessage>,
@@ -728,14 +719,20 @@ impl LocalContext {
     }
 }
 
-fn generate_chat_stream(
+pub(super) struct Tail {
+    text: String,
+    tokens: Vec<LlamaToken>,
+}
+
+pub(super) fn generate_pass(
     context: &LocalContext,
     request: ChatRequest,
+    tail: Option<Tail>,
     sink: &mut dyn EventSink,
     job_id: JobId,
     cancel_flag: Arc<AtomicBool>,
     start: Instant,
-) -> Result<GenerationSummary, Error> {
+) -> Result<(GenerationSummary, Option<Tail>), Error> {
     let ChatRequest {
         messages,
         template_override,
@@ -785,7 +782,7 @@ fn generate_chat_stream(
     };
 
     let result = match catch_unwind(AssertUnwindSafe(|| {
-        context.with_context_and_cache_mut(|ctx, cached_tokens| -> Result<(), Error> {
+        context.with_context_and_cache_mut(|ctx, cached_tokens| {
             let add_assistant = add_assistant.unwrap_or(true);
             let mut messages = messages;
             let image_paths = image_paths.unwrap_or_default();
@@ -867,6 +864,7 @@ fn generate_chat_stream(
                         rejected_steps: 0,
                         state: ToolState::Undecided,
                         raw: Vec::new(),
+                        tokens: Vec::new(),
                         probability: None,
                     });
                 }
@@ -884,7 +882,17 @@ fn generate_chat_stream(
             };
 
             if image_paths.is_empty() {
-                let prompt_tokens = tokenize_text_prompt(ctx.model, &prompt)?;
+                let prompt_tokens = if let Some((tail, suffix)) = tail
+                    .as_ref()
+                    .and_then(|tail| prompt.strip_prefix(&tail.text).map(|suffix| (tail, suffix)))
+                    .filter(|(_, suffix)| !suffix.is_empty())
+                {
+                    let mut tokens = tail.tokens.clone();
+                    tokens.extend(ctx.model.vocab().tokenize(suffix.as_bytes(), false, true));
+                    tokens
+                } else {
+                    tokenize_text_prompt(ctx.model, &prompt)?
+                };
 
                 let n_ctx = ctx.n_ctx();
                 if prompt_tokens.len() as u32 > n_ctx {
@@ -978,7 +986,7 @@ fn generate_chat_stream(
                     logits_index,
                 )?;
 
-                return Ok(());
+                return Ok(Some((prompt, prompt_tokens)));
             }
 
             let mmproj_path = mmproj_path.ok_or_else(|| {
@@ -1094,7 +1102,7 @@ fn generate_chat_stream(
                 -1,
             )?;
 
-            Ok(())
+            Ok(None)
         })
     })) {
         Ok(inner) => inner,
@@ -1103,10 +1111,23 @@ fn generate_chat_stream(
             Err(Error::Panicked)
         }
     };
-    result?;
+    let prompt = result?;
+    let mut next_tail = None;
 
     let tools = match job.tool.take() {
-        Some(tool) => Some(tool.finish(job.finish_reason)?),
+        Some(mut tool) => {
+            let sampled = std::mem::take(&mut tool.tokens);
+            let raw = String::from_utf8(tool.raw.clone()).ok();
+            let outcome = tool.finish(job.finish_reason)?;
+            if !outcome.calls.is_empty()
+                && let (Some((mut text, mut tokens)), Some(raw)) = (prompt, raw)
+            {
+                text.push_str(&raw);
+                tokens.extend(sampled);
+                next_tail = Some(Tail { text, tokens });
+            }
+            Some(outcome)
+        }
         None if tools_requested => Some(ToolOutcome::default()),
         None => None,
     };
@@ -1119,7 +1140,7 @@ fn generate_chat_stream(
         tools,
     };
 
-    Ok(summary)
+    Ok((summary, next_tail))
 }
 
 fn prepare_prompt_cache(
