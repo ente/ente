@@ -34,13 +34,13 @@ class PeopleRacePage extends RewindPage {
   final List<RaceRunner> runners;
   final List<int> _start;
   int? _pick;
-  var _clipKey = Object();
+  final _clipKeys = <int?, Object>{};
 
   @override
   String get key => pageKey;
 
   @override
-  Object get clipKey => _clipKey;
+  Object get clipKey => _clipKeys.putIfAbsent(_pick, Object.new);
 
   @override
   Duration? get reelHold =>
@@ -63,12 +63,7 @@ class PeopleRacePage extends RewindPage {
   RewindChrome get chrome => const RewindChrome(foreground: RewindColors.cream);
 
   @override
-  void resetAnswer() => _answer(null);
-
-  void _answer(int? pick) {
-    _pick = pick;
-    _clipKey = Object();
-  }
+  void resetAnswer() => _pick = null;
 
   static List<int> _startOrder(List<RaceRunner> runners) {
     final seed = runners.map((runner) => runner.person.personId).join("|");
@@ -209,7 +204,7 @@ class _PeopleRaceState extends State<_PeopleRace>
   void _choose(int runner) {
     if (_phase != _Phase.pick) return;
     unawaited(HapticFeedback.selectionClick());
-    widget.page._answer(runner);
+    widget.page._pick = runner;
     setState(() {
       _phase = _Phase.picked;
       _cueDetail = "${_runners[runner].face.name}? bold choice";
