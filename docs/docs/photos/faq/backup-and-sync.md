@@ -332,7 +332,7 @@ Open `Settings > Backup > Backup status` to see:
 - Files pending upload
 - Any errors or issues
 
-The list shows files from the current session. To clear finished items, fully close the app and open it again.
+The list can include files that have finished uploading. Check their status to tell completed uploads from files still pending.
 
 **On desktop:**
 

@@ -38,7 +38,7 @@ Not currently. You can change the order of the albums list, but not by the dates
 - **On mobile:** open the **Albums** tab, tap the menu button at the top and choose **Name** (A to Z or Z to A) or **Last updated**.
 - **On web and desktop:** open the sort menu above your albums and choose **Name**, **Created** or **Updated**, then oldest or newest first.
 
-**Last updated** and **Updated** put the albums you changed most recently at the top. To change the order of photos inside an album, see [Sort albums](/photos/features/albums-and-organization/albums#sort-albums).
+Choose newest first under **Last updated** or **Updated** to put the albums you changed most recently at the top. To change the order of photos inside an album, see [Sort albums](/photos/features/albums-and-organization/albums#sort-albums).
 
 ### Can Ente albums be nested? {#nested-albums}
 
