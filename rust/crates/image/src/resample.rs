@@ -14,8 +14,7 @@ pub(crate) struct Downsampler {
 struct BufferLengths {
     rgb: u64,
     column_sums: u64,
-    tap_starts: u64,
-    tap_weights: u64,
+    taps: TapLayout,
 }
 
 impl BufferLengths {
@@ -30,9 +29,28 @@ impl BufferLengths {
         Self {
             rgb,
             column_sums: u64::from(source.width) * 3 * 2,
-            tap_starts: u64::from(target.width),
-            tap_weights: u64::from(target.width) * Taps::count(source.width, target.width),
+            taps: TapLayout::new(source.width, target.width),
         }
+    }
+}
+
+#[derive(Default)]
+struct TapLayout {
+    target_width: u64,
+    taps_per_column: u64,
+}
+
+impl TapLayout {
+    fn new(source_width: u32, target_width: u32) -> Self {
+        Self {
+            target_width: u64::from(target_width),
+            taps_per_column: u64::from(source_width.div_ceil(target_width) + 1)
+                .min(u64::from(source_width)),
+        }
+    }
+
+    fn weight_count(&self) -> u64 {
+        self.target_width * self.taps_per_column
     }
 }
 
@@ -44,15 +62,12 @@ struct Taps {
 }
 
 impl Taps {
-    fn count(source_width: u32, target_width: u32) -> u64 {
-        u64::from(source_width.div_ceil(target_width) + 1).min(u64::from(source_width))
-    }
-
-    fn new(source_width: u32, target_width: u32) -> ImageResult<Self> {
-        let count = Self::count(source_width, target_width);
-        let mut starts = reserved(u64::from(target_width))?;
-        let mut weights = reserved(u64::from(target_width) * count)?;
-        let (source_width, target_width) = (u64::from(source_width), u64::from(target_width));
+    fn new(source_width: u32, layout: TapLayout) -> ImageResult<Self> {
+        let mut starts = reserved(layout.target_width)?;
+        let mut weights = reserved(layout.weight_count())?;
+        let source_width = u64::from(source_width);
+        let target_width = layout.target_width;
+        let count = layout.taps_per_column;
         for target_x in 0..target_width {
             let begin = target_x * source_width;
             let end = begin + source_width;
@@ -132,8 +147,8 @@ impl Downsampler {
         lengths.rgb.saturating_add(
             lengths
                 .column_sums
-                .saturating_add(lengths.tap_starts)
-                .saturating_add(lengths.tap_weights)
+                .saturating_add(lengths.taps.target_width)
+                .saturating_add(lengths.taps.weight_count())
                 .saturating_mul(size_of::<u32>() as u64),
         )
     }
@@ -149,7 +164,7 @@ impl Downsampler {
             taps: if source == target {
                 Taps::default()
             } else {
-                Taps::new(source.width, target.width)?
+                Taps::new(source.width, lengths.taps)?
             },
             mean: AreaMean::new(&source),
             source,
