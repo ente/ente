@@ -389,7 +389,7 @@
   "authToInitiateAccountDeletion": "Lås upp för att radera ditt konto",
   "authToInitiateSignIn": "Vänligen autentisera för att initiera inloggning för säkerhetskopiering.",
   "authToManageLegacy": "Autentisera foer att hantera dina betrodda kontakter",
-  "authToManageLegacyKit": "Autentisera dig för att hantera äldre återställningsuppsättningar",
+  "authToManageLegacyKit": "Autentisera dig för att hantera Legacy-återställningsuppsättningar",
   "authToSetBackupPassword": "Autentisera för att ange lösenord för säkerhetskopia",
   "authToUpdateBackupPassword": "Autentisera för att uppdatera lösenord för säkerhetskopiering",
   "authToViewPasskey": "Autentisera dig för att visa din passkey",
@@ -1043,7 +1043,7 @@
   "deleteSuggestions": "Radera förslag",
   "deleteSuggestionsDesc": "Visa objekt som föreslås för borttagning",
   "deleteSuggestionSent": "Förslag om borttagning har skickats",
-  "deleteTagMessage": "Vill du ta bort den här koden? Det går inte att ångra den här åtgärden.",
+  "deleteTagMessage": "Vill du ta bort den här taggen? Det går inte att ångra den här åtgärden.",
   "deleteTagTitle": "Radera tagg?",
   "deleteUnparseableCodeMessage": "Detta tar bort koden permanent från Auth. Den flyttas inte till papperskorgen.",
   "deleteUnparseableCodeTitle": "Ta bort kod som inte kan tolkas?",
@@ -2230,7 +2230,7 @@
   "legacyKitEmptyDescription": "Låt personer du litar på samarbeta för att återställa ditt konto",
   "legacyKitMaxReached": "Du kan skapa högst 5 Legacy-återställningsuppsättningar.",
   "legacyKitRecoveryAttemptInProgress": "Återställningsförsök pågår",
-  "legacyKitRecoveryAttemptMessage": "En återställning har påbörjats med den här äldre återställningsuppsättningen och kontot blir tillgängligt {availableAt}.\n\nDu kan avvisa återställningen när som helst innan dess.",
+  "legacyKitRecoveryAttemptMessage": "En återställning har påbörjats med den här Legacy-återställningsuppsättningen och kontot blir tillgängligt {availableAt}.\n\nDu kan avvisa återställningen när som helst innan dess.",
   "@legacyKitRecoveryAttemptMessage": {
     "placeholders": {
       "availableAt": {
@@ -2240,7 +2240,7 @@
     }
   },
   "legacyKitRecoveryInProgress": "Återställning pågår",
-  "legacyKitRecoveryWarning": "Någon försöker återställa ditt konto med en äldre återställningsuppsättning",
+  "legacyKitRecoveryWarning": "Någon försöker återställa ditt konto med en Legacy-återställningsuppsättning",
   "legacyKits": "Legacy-återställningsuppsättningar",
   "legacyPageDesc": "Legacy låter betrodda kontakter få åtkomst till ditt konto om du inte kan göra det.",
   "legacyPageDesc2": "Betrodda kontakter kan påbörja kontoåterställning och, om den inte blockeras inom 30 dagar, återställa lösenordet och få åtkomst till kontot.",
@@ -3424,7 +3424,7 @@
   },
   "recoveryWaitTime": "Väntetid för återställning",
   "recoveryWaitTimeChangeWarning": "Att ändra det här kommer att avbryta alla pågående försök.",
-  "recoveryWaitTimeDescription": "Hur snart kan kontot återställas efter att den äldre återställningsuppsättningen har skannats?",
+  "recoveryWaitTimeDescription": "Hur snart kan kontot återställas efter att Legacy-återställningsuppsättningen har skannats?",
   "recoveryWarning": "En betrodd kontakt försöker få åtkomst till ditt konto",
   "recoveryWarningBody": "{email} försöker återställa ditt konto.",
   "@recoveryWarningBody": {
@@ -4864,7 +4864,7 @@
   "viewAddOnButton": "Visa tillägg",
   "viewAllExifData": "Visa all EXIF-data",
   "viewAllHelpTopics": "Visa alla hjälpavsnitt",
-  "viewer": "Bildvy",
+  "viewer": "Visare",
   "viewLargeFiles": "Stora filer",
   "viewLargeFilesDesc": "Identifiera objekt som använder mest utrymme",
   "viewLogs": "Visa loggar",
@@ -4959,7 +4959,7 @@
   },
   "yes": "Ja",
   "yesCancel": "Ja, avbryt",
-  "yesConvertToViewer": "Ja, konvertera till bildvy",
+  "yesConvertToViewer": "Ja, konvertera till visare",
   "yesDelete": "Ja, radera",
   "yesDeleteCollections": "Ja, radera {count, plural, one{samling} other{samlingar}}",
   "@yesDeleteCollections": {

@@ -343,7 +343,7 @@
   "authToSetBackupPassword": "Authenticate to set backup password",
   "authToUpdateBackupPassword": "Authenticate to update backup password",
   "authToViewPasskey": "Please authenticate to view your passkey",
-  "authToViewPasskeyGeneric": "Моля, удостоверете се, за да видите Вашите ключове за парола",
+  "authToViewPasskeyGeneric": "Моля, удостоверете се, за да видите Вашия ключ за достъп",
   "authToViewSecrets": "Моля, удостоверете се, за да видите Вашите кодове",
   "@authToViewSecrets": {
     "description": "Message prompting authentication to view secrets"
@@ -2580,7 +2580,7 @@
     }
   },
   "passkey": "Ключ за достъп (Passkey)",
-  "passkeyAuthTitle": "Удостоверяване с ключ за парола",
+  "passkeyAuthTitle": "Удостоверяване с ключ за достъп",
   "@passkeyAuthTitle": {
     "description": "Passkey authentication title"
   },

@@ -1022,7 +1022,7 @@
     }
   },
   "legacyPageDesc": "A Revivência permite que contactos de confiança acessem a sua conta na sua inatividade.",
-  "legacyPageDesc2": "Contactos de confiança podem restaurar a sua conta, e se não lhes impedir em 30 dias, redefine a sua palavra-passe e acesse a sua conta.",
+  "legacyPageDesc2": "Contactos de confiança podem iniciar a recuperação da sua conta e, se não os impedir em 30 dias, redefinir a sua palavra-passe e aceder à sua conta.",
   "lightTheme": "Claro",
   "linkCopiedToClipboard": "Link copiado para a área de transferência",
   "linkDeletedSuccessfully": "Link excluído com sucesso",
@@ -1035,7 +1035,7 @@
       "expiryTime": {}
     }
   },
-  "linkExpiry": "Link expirado",
+  "linkExpiry": "Expiração do link",
   "linkHasExpired": "O link expirou",
   "linkNeverExpires": "Nunca",
   "linkRequestLimitExceeded": "Este álbum já foi visto em demasiados dispositivos",
@@ -1048,7 +1048,7 @@
   "loadMessage3": "Mantemos 3 cópias dos seus dados, uma em um abrigo subterrâneo",
   "loadMessage4": "Todos os nossos aplicativos são de código aberto",
   "loadMessage5": "Nosso código-fonte e criptografia foram auditadas externamente",
-  "loadMessage6": "Deixar o álbum partilhado?",
+  "loadMessage6": "Pode partilhar links para os seus álbuns com os seus entes queridos",
   "loadMessage7": "Nossos aplicativos móveis são executados em segundo plano para criptografar e fazer backup de quaisquer novas fotos que você clique",
   "loadMessage8": "{webUrl} tem um envio mais rápido",
   "@loadMessage8": {
@@ -1451,7 +1451,7 @@
     }
   },
   "rawCodeData": "Dados do código bruto",
-  "readyToBackupSubtitle": "As suas fotos sincronizaram no fundo. A primeira cópia de segurança poderá levar algum tempo.",
+  "readyToBackupSubtitle": "As suas fotos serão sincronizadas em segundo plano. A primeira cópia de segurança poderá levar algum tempo.",
   "readyToBackupTitle": "Pronto para cópia de segurança",
   "reassignedToName": "Retribuiu tu a {name}",
   "@reassignedToName": {
@@ -1834,7 +1834,7 @@
   "sharing": "Partilhar...",
   "shiftDatesAndTime": "Mude as Datas e Horas",
   "shouldHideCode": "Ocultar códigos",
-  "shouldRemoveFilesSmartAlbumsDesc": "Deve eliminar os ficheiros relacionados à pessoa selecionada anteriormente nos álbuns inteligentes?",
+  "shouldRemoveFilesSmartAlbumsDesc": "Deve remover os ficheiros relacionados à pessoa selecionada anteriormente nos álbuns inteligentes?",
   "showLargeIcons": "Mostrar ícones largos",
   "showMemories": "Mostrar memórias",
   "showMoreFaces": "Mostrar mais rostos",

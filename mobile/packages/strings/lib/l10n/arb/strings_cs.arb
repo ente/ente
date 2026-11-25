@@ -2223,7 +2223,7 @@
       }
     }
   },
-  "recoverAccountDesc": "Účet {email} můžete obnovit do {days} dnů od zahájení procesu obnovy.",
+  "recoverAccountDesc": "Účet {email} můžete obnovit po uplynutí {days} dnů od zahájení procesu obnovy.",
   "@recoverAccountDesc": {
     "description": "Description for recover account page when recovery not started",
     "placeholders": {

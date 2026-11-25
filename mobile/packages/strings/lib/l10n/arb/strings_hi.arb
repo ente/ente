@@ -308,9 +308,9 @@
   "@toResetVerifyEmail": {
     "description": "Message asking user to verify email before password reset"
   },
-  "trash": "नष्ट करें",
-  "trashCode": "?",
-  "trashCodeMessage": "क्या आप वाकई {account} के लिए कोड नष्ट करना चाहते हैं?",
+  "trash": "ट्रैश",
+  "trashCode": "कोड ट्रैश करें?",
+  "trashCodeMessage": "क्या आप वाकई {account} के लिए कोड को ट्रैश में ले जाना चाहते हैं?",
   "@trashCodeMessage": {
     "placeholders": {
       "account": {}
