@@ -301,6 +301,7 @@ impl<B: Backend> ChatDb<B> {
                     &ToolOutcome {
                         calls: calls.to_vec(),
                         call_probability,
+                        ..Default::default()
                     },
                     created_at / 1000,
                 )

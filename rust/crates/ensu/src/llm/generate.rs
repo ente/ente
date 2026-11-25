@@ -304,11 +304,43 @@ enum ToolState {
     Call,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Pick {
+    Token(LlamaToken),
+    Abstain,
+}
+
+fn constrained_choice(
+    preferred: LlamaToken,
+    legal: impl FnOnce() -> Result<LlamaToken, Error>,
+    masked: impl FnOnce(LlamaToken) -> bool,
+) -> Result<(Pick, bool), Error> {
+    let token = legal()?;
+    let rejected = token != preferred;
+    Ok((
+        if masked(token) {
+            Pick::Abstain
+        } else {
+            Pick::Token(token)
+        },
+        rejected,
+    ))
+}
+
+fn accepts(grammar: &mut LlamaSampler, token: LlamaToken, logit: f32) -> bool {
+    let mut single = LlamaTokenDataArray::new(vec![LlamaTokenData::new(token, logit, 0.0)], false);
+    grammar.apply(&mut single);
+    single.data[0].logit().is_finite()
+}
+
 struct ToolDecode {
     format: Format,
     request: ToolRequest,
     open: LlamaToken,
     grammar: LlamaSampler,
+    veto: Option<LlamaSampler>,
+    abstained: bool,
+    rejected_steps: u32,
     state: ToolState,
     raw: Vec<u8>,
     probability: Option<f32>,
@@ -332,7 +364,7 @@ impl ToolDecode {
         ctx: &LlamaContext,
         index: i32,
         reply: &mut LlamaSampler,
-    ) -> Result<LlamaToken, Error> {
+    ) -> Result<Pick, Error> {
         match self.state {
             ToolState::Undecided => {
                 let probability = token_probability(ctx.get_logits_ith(index), self.open);
@@ -340,18 +372,21 @@ impl ToolDecode {
                 if probability >= self.request.min_call_probability {
                     self.state = ToolState::Call;
                     self.grammar.accept(self.open);
-                    Ok(self.open)
+                    if let Some(veto) = &mut self.veto {
+                        veto.accept(self.open);
+                    }
+                    Ok(Pick::Token(self.open))
                 } else {
                     self.state = ToolState::Reply;
-                    Ok(reply.sample(ctx, index))
+                    Ok(Pick::Token(reply.sample(ctx, index)))
                 }
             }
-            ToolState::Reply => Ok(reply.sample(ctx, index)),
+            ToolState::Reply => Ok(Pick::Token(reply.sample(ctx, index))),
             ToolState::Call => self.constrained(ctx, index),
         }
     }
 
-    fn constrained(&mut self, ctx: &LlamaContext, index: i32) -> Result<LlamaToken, Error> {
+    fn constrained(&mut self, ctx: &LlamaContext, index: i32) -> Result<Pick, Error> {
         let logits = ctx.get_logits_ith(index);
         let best = logits
             .iter()
@@ -359,31 +394,44 @@ impl ToolDecode {
             .max_by(|a, b| a.1.total_cmp(b.1))
             .map(|(i, logit)| (i as i32, *logit))
             .ok_or(super::ToolCallFailure::Invalid)?;
-        let mut single = LlamaTokenDataArray::new(
-            vec![LlamaTokenData::new(LlamaToken(best.0), best.1, 0.0)],
-            false,
-        );
-        self.grammar.apply(&mut single);
-        let token = if single.data[0].logit().is_finite() {
-            LlamaToken(best.0)
-        } else {
-            let mut all = ctx.token_data_array_ith(index);
-            self.grammar.apply(&mut all);
-            all.data
-                .iter()
-                .filter(|candidate| candidate.logit().is_finite())
-                .max_by(|a, b| a.logit().total_cmp(&b.logit()))
-                .map(LlamaTokenData::id)
-                .ok_or(super::ToolCallFailure::Invalid)?
-        };
-        if !ctx.model.vocab().is_eog(token) {
-            self.grammar.accept(token);
+        let preferred = LlamaToken(best.0);
+        let (pick, rejected) = constrained_choice(
+            preferred,
+            || {
+                if accepts(&mut self.grammar, preferred, best.1) {
+                    return Ok(preferred);
+                }
+                let mut all = ctx.token_data_array_ith(index);
+                self.grammar.apply(&mut all);
+                all.data
+                    .iter()
+                    .filter(|candidate| candidate.logit().is_finite())
+                    .max_by(|a, b| a.logit().total_cmp(&b.logit()))
+                    .map(LlamaTokenData::id)
+                    .ok_or_else(|| super::ToolCallFailure::Invalid.into())
+            },
+            |token| {
+                self.veto
+                    .as_mut()
+                    .is_some_and(|veto| !accepts(veto, token, logits[token.0 as usize]))
+            },
+        )?;
+        self.rejected_steps += u32::from(rejected);
+        match pick {
+            Pick::Abstain => self.abstained = true,
+            Pick::Token(token) if !ctx.model.vocab().is_eog(token) => {
+                self.grammar.accept(token);
+                if let Some(veto) = &mut self.veto {
+                    veto.accept(token);
+                }
+            }
+            Pick::Token(_) => {}
         }
-        Ok(token)
+        Ok(pick)
     }
 
     fn finish(self, reason: FinishReason) -> Result<ToolOutcome, Error> {
-        let calls = if self.state == ToolState::Call {
+        let calls = if self.state == ToolState::Call && !self.abstained {
             tools::finished_calls(
                 self.format,
                 &self.raw,
@@ -396,6 +444,8 @@ impl ToolDecode {
         Ok(ToolOutcome {
             calls,
             call_probability: self.probability,
+            abstained: self.abstained,
+            rejected_steps: self.rejected_steps,
         })
     }
 }
@@ -418,7 +468,13 @@ impl GenerationJob<'_> {
             check_cancelled(self.cancel_flag)?;
 
             let token = match self.tool.as_mut() {
-                Some(tool) => tool.pick(ctx.get()?, logits_index, sampler)?,
+                Some(tool) => match tool.pick(ctx.get()?, logits_index, sampler)? {
+                    Pick::Token(token) => token,
+                    Pick::Abstain => {
+                        self.finish_reason = FinishReason::StopSequence;
+                        break;
+                    }
+                },
                 None => sampler.sample(ctx.get()?, logits_index),
             };
             check_cancelled(self.cancel_flag)?;
@@ -787,18 +843,28 @@ fn generate_chat_stream(
                         .as_ref()
                         .is_none_or(|allowed| !allowed.is_empty())
                 {
-                    let grammar = tools::grammar(format, &request, true, &|text| {
-                        vocab::single_token(ctx.model, text).map(|token| token.0)
-                    })?;
-                    let grammar =
+                    let sampler = |narrowed| {
+                        let grammar = tools::grammar(format, &request, narrowed, &|text| {
+                            vocab::single_token(ctx.model, text).map(|token| token.0)
+                        })?;
                         LlamaSampler::grammar(ctx.model, &grammar, "root").map_err(|err| {
                             Error::InvalidInput(format_error("Invalid tool grammar", err))
-                        })?;
+                        })
+                    };
+                    let grammar = sampler(false)?;
+                    let veto = request
+                        .allowed
+                        .as_ref()
+                        .map(|_| sampler(true))
+                        .transpose()?;
                     job.tool = Some(ToolDecode {
                         format,
                         request,
                         open,
                         grammar,
+                        veto,
+                        abstained: false,
+                        rejected_steps: 0,
                         state: ToolState::Undecided,
                         raw: Vec::new(),
                         probability: None,
@@ -1334,5 +1400,43 @@ mod tests {
                 );
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod constrained_tests {
+    use super::*;
+
+    #[test]
+    fn masked_preference_abstains() {
+        let preferred = LlamaToken(1);
+        assert_eq!(
+            constrained_choice(preferred, || Ok(preferred), |_| true).unwrap(),
+            (Pick::Abstain, false)
+        );
+    }
+
+    #[test]
+    fn illegal_everywhere_then_masked_best_abstains() {
+        let preferred = LlamaToken(1);
+        let fallback = LlamaToken(2);
+        assert_eq!(
+            constrained_choice(preferred, || Ok(fallback), |token| token == fallback).unwrap(),
+            (Pick::Abstain, true)
+        );
+    }
+
+    #[test]
+    fn legal_preference_passes_and_counts_fallbacks() {
+        let preferred = LlamaToken(1);
+        let fallback = LlamaToken(2);
+        assert_eq!(
+            constrained_choice(preferred, || Ok(preferred), |_| false).unwrap(),
+            (Pick::Token(preferred), false)
+        );
+        assert_eq!(
+            constrained_choice(preferred, || Ok(fallback), |_| false).unwrap(),
+            (Pick::Token(fallback), true)
+        );
     }
 }

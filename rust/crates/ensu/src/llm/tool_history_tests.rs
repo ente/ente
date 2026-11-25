@@ -67,6 +67,7 @@ fn stored_multi_call_turns_render_each_gemma_response_with_its_own_call() {
                     Some(&ToolOutcome {
                         calls: calls.clone(),
                         call_probability: Some(confidence),
+                        ..Default::default()
                     }),
                 )
                 .unwrap()
@@ -266,6 +267,7 @@ fn prompt_pair(
             arguments: [("title".to_owned(), ToolValue::Text("Buy milk".into()))].into(),
         }],
         call_probability: Some(1.0),
+        ..Default::default()
     });
     let reply = db
         .finish_reply(&snapshot, "Hello.", vec![], outcome.as_ref())

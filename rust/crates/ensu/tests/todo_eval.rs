@@ -342,10 +342,18 @@ struct Recorded {
     call_probability: Option<f32>,
     calls: Vec<ToolCall>,
     unsure: bool,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    abstained: bool,
+    #[serde(default, skip_serializing_if = "is_zero")]
+    rejected_steps: u32,
     text: String,
     #[serde(default, skip_serializing_if = "String::is_empty")]
     reply: String,
     state: StateResult,
+}
+
+fn is_zero(value: &u32) -> bool {
+    *value == 0
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, Deserialize)]
@@ -458,6 +466,7 @@ impl ConversationCase {
                         Some(&llm::ToolOutcome {
                             calls: message.tool_calls.clone(),
                             call_probability: Some(1.0),
+                            ..Default::default()
                         }),
                     )
                     .unwrap()
@@ -559,6 +568,8 @@ impl ConversationCase {
             call_probability: outcome.call_probability,
             calls,
             unsure: confirmation,
+            abstained: outcome.abstained,
+            rejected_steps: outcome.rejected_steps,
             text: finished.message.text,
             reply: reply.to_owned(),
             state: StateResult {
@@ -607,6 +618,9 @@ struct Tally {
     wrong_offers: usize,
     applied_false_changes: usize,
     offered_false_changes: usize,
+    forced_turns: usize,
+    abstained_turns: usize,
+    abstained_changes: usize,
 }
 
 impl Tally {
@@ -617,6 +631,10 @@ impl Tally {
         record: &Recorded,
         completion: &CompletionContext,
     ) -> bool {
+        self.forced_turns += usize::from(record.rejected_steps > 0);
+        self.abstained_turns += usize::from(record.abstained);
+        self.abstained_changes +=
+            usize::from(record.abstained && (record.unsure || record.state.changed));
         self.probabilities.push((
             (case.expect != "safe").then_some(case.expect == "tool"),
             outcome.call_probability.unwrap_or_default(),
@@ -717,6 +735,9 @@ impl Tally {
             "wrong_offer_rate": self.wrong_offers as f64 / cases.len().max(1) as f64,
             "offers": self.offers,
             "wrong_offers": self.wrong_offers,
+            "forced_turns": self.forced_turns,
+            "abstained_turns": self.abstained_turns,
+            "abstained_changes": self.abstained_changes,
             "false_call_rate_by_tool": self.false_by_tool
                 .iter()
                 .map(|(name, count)| ((*name).to_owned(), json!(*count as f64 / reply_cases)))
@@ -784,6 +805,7 @@ fn todo_tool_calls_meet_accuracy_targets() {
                 &llm::ToolOutcome {
                     calls: case.probe.clone(),
                     call_probability: Some(1.0),
+                    ..Default::default()
                 },
                 "",
             );
@@ -845,6 +867,9 @@ fn todo_tool_calls_meet_accuracy_targets() {
         threshold("ENSU_EVAL_MIN_CALL", MIN_CALL_ACCURACY),
         threshold("ENSU_EVAL_MAX_FALSE_CHANGE", MAX_FALSE_CHANGE_RATE),
     );
+    if tally.abstained_changes != 0 {
+        failures.push(format!("abstained changes: {}", tally.abstained_changes));
+    }
     if state_ok != state_cases {
         failures.push(format!("persisted state: {state_ok}/{state_cases}"));
     }
@@ -1095,6 +1120,7 @@ fn offers_and_applied_changes_are_tallied_apart() {
             ]))
             .unwrap(),
             call_probability: Some(probability),
+            ..Default::default()
         };
         let record = conversation.finish(case, &outcome, "");
         assert_eq!(
@@ -1157,6 +1183,7 @@ fn labelled_cases_parse_and_their_deadlines_resolve() {
                 &llm::ToolOutcome {
                     calls: case.probe.clone(),
                     call_probability: Some(1.0),
+                    ..Default::default()
                 },
                 "",
             );
@@ -1207,6 +1234,7 @@ fn recorded_model_calls_plan_the_same() {
         let outcome = llm::ToolOutcome {
             calls: record.raw_calls.clone(),
             call_probability: record.call_probability,
+            ..Default::default()
         };
         let result = conversation.finish(case, &outcome, &record.reply);
         tally.add(case, &outcome, &result, &completion);

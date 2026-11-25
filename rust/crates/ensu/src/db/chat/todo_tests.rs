@@ -91,6 +91,7 @@ fn finish(
     let outcome = ToolOutcome {
         calls: calls.to_vec(),
         call_probability: confidence,
+        ..Default::default()
     };
     let finished = db.finish_reply(snapshot, "", vec![], Some(&outcome))?;
     Ok(ToolTurn {
@@ -764,6 +765,7 @@ fn several_calls_in_one_message_each_use_the_list_in_effect() {
         let listed = ToolOutcome {
             calls: vec![call(LIST_TOOL, &[("query", text("bank"))])],
             call_probability: SURE,
+            ..Default::default()
         };
         let continuation = exchange.continuation.as_ref().unwrap();
         let next = continuation.follow_up(&request, &listed).unwrap();
@@ -856,6 +858,7 @@ fn several_calls_in_one_message_each_use_the_list_in_effect() {
                     &ToolOutcome {
                         calls: vec![listed.calls[0].clone(), complete.clone()],
                         call_probability: SURE,
+                        ..Default::default()
                     }
                 )
                 .is_none()
@@ -869,6 +872,7 @@ fn several_calls_in_one_message_each_use_the_list_in_effect() {
         exchange.record(Some(ToolOutcome {
             calls: vec![listed.calls[0].clone(), complete],
             call_probability: SURE,
+            ..Default::default()
         }));
         let finished = db.finish_exchange(&snapshot, "", vec![], Some(&exchange));
         if changed {
@@ -906,6 +910,7 @@ fn several_calls_in_one_message_each_use_the_list_in_effect() {
                 call(COMPLETE_TOOL, &[("number", ToolValue::Integer(1))]),
             ],
             call_probability: SURE,
+            ..Default::default()
         }));
         assert!(matches!(
             db.finish_exchange(&snapshot, "", vec![], Some(&exchange)),
@@ -1603,6 +1608,7 @@ fn a_refused_finish_keeps_the_calls_and_a_saved_one_clears_them() {
     let outcome = ToolOutcome {
         calls: save.to_vec(),
         call_probability: SURE,
+        ..Default::default()
     };
     exchange.record(Some(outcome.clone()));
     let reply = || Reply {
@@ -1627,6 +1633,7 @@ fn a_refused_finish_keeps_the_calls_and_a_saved_one_clears_them() {
     exchange.record(Some(ToolOutcome {
         calls: vec![call(LIST_TOOL, &[])],
         call_probability: SURE,
+        ..Default::default()
     }));
     let finished = finish_turn(
         &db,

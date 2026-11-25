@@ -164,6 +164,10 @@ impl ToolCall {
 pub struct ToolOutcome {
     pub calls: Vec<ToolCall>,
     pub call_probability: Option<f32>,
+    #[serde(default)]
+    pub abstained: bool,
+    #[serde(default)]
+    pub rejected_steps: u32,
 }
 
 #[derive(Debug)]
