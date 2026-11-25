@@ -347,7 +347,7 @@ struct Recorded {
     unsure: bool,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     abstained: bool,
-    #[serde(default, skip_serializing_if = "is_zero")]
+    #[serde(default, skip_serializing_if = "is_default")]
     rejected_steps: u32,
     text: String,
     #[serde(default, skip_serializing_if = "String::is_empty")]
@@ -355,8 +355,8 @@ struct Recorded {
     state: StateResult,
 }
 
-fn is_zero(value: &u32) -> bool {
-    *value == 0
+fn is_default<T: Default + PartialEq>(value: &T) -> bool {
+    *value == T::default()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, Deserialize)]

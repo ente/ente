@@ -370,7 +370,12 @@ fn a_list_changed_before_commit_is_refused() {
             turn.finish(&db, &snapshot, "", vec![], &zone()),
             Err(db::Error::ConversationChanged)
         ));
-        assert!(db.list_todos().unwrap().iter().all(|todo| todo.is_open()));
+        assert!(
+            db.list_todos()
+                .unwrap()
+                .iter()
+                .all(crate::todo::Todo::is_open)
+        );
     }
 }
 
@@ -413,7 +418,7 @@ fn a_time_qualified_save_after_a_title_is_kept() {
         .list_todos()
         .unwrap()
         .into_iter()
-        .find(|todo| todo.is_open())
+        .find(crate::todo::Todo::is_open)
         .unwrap();
     assert_eq!(open.title, "Save passwords");
     let today = local_ms("2026-11-12 00:00")..local_ms("2026-11-13 00:00");

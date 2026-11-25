@@ -645,7 +645,7 @@ fn follow_up_only_runs_for_a_remaining_action() {
     let next = follow_up.next(&request, &listed, &zone()).unwrap();
     assert_eq!(
         db.list_todos().unwrap(),
-        [bank.clone(), bread.clone(), research, groceries, sequenced]
+        [bank, bread, research, groceries, sequenced]
     );
     assert!(
         next.messages
