@@ -11,7 +11,7 @@ class RewindMusic extends ChangeNotifier {
 
   JustAudioMemoryMusicPlayer? _player;
   MemoryMusicTrack? _track;
-  var _muted = false;
+  var _muted = localSettings.isRewindMusicMuted();
   var _appActive = true;
   var _disposed = false;
 
@@ -50,6 +50,7 @@ class RewindMusic extends ChangeNotifier {
   void toggleMuted() {
     _muted = !_muted;
     notifyListeners();
+    unawaited(localSettings.setRewindMusicMuted(_muted));
     unawaited(_sync());
   }
 

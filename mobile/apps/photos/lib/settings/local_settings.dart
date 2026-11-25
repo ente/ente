@@ -74,6 +74,7 @@ class LocalSettings {
   static const isMutedKey = "video.is_muted";
   static const _memoriesMusicMutedKey = "memories.audio_muted";
   static const _memoriesVideoMutedKey = "memories.video_muted";
+  static const _rewindMusicMutedKey = "rewind.music_muted";
   static const _albumSlideshowDurationSecondsKey =
       "album_slideshow.duration_seconds";
   static const _albumSlideshowBlurredBackgroundKey =
@@ -516,6 +517,14 @@ class LocalSettings {
 
   bool isMemoriesVideoMuted() {
     return _prefs.getBool(_memoriesVideoMutedKey) ?? false;
+  }
+
+  Future<void> setRewindMusicMuted(bool value) async {
+    await _prefs.setBool(_rewindMusicMutedKey, value);
+  }
+
+  bool isRewindMusicMuted() {
+    return _prefs.getBool(_rewindMusicMutedKey) ?? false;
   }
 
   int get albumSlideshowDurationSeconds =>
