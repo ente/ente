@@ -35,16 +35,26 @@ You can view your 2FA codes at [auth.ente.com](https://auth.ente.com). For addin
 
 ## 🧑‍💻 Build from source
 
-1. [Install Flutter v3.47.8](https://flutter.dev/docs/get-started/install).
+1. Install [Flutter v3.47.8](https://flutter.dev/docs/get-started/install) and [Rust](https://www.rust-lang.org/tools/install).
 
 2. Pull in submodules with `git submodule update --init --recursive`
 
-3. From any folder inside `mobile/`, install the workspace dependencies with `flutter pub get --enforce-lockfile`.
+3. From any folder inside `mobile/`, install the workspace dependencies with `flutter pub get --enforce-lockfile`. Then, from `rust/`, generate the Rust bindings with `cargo codegen frb auth`.
 
 4. Run the app:
    - Android: `flutter run --flavor independent`
    - iOS: `flutter run`
    - macOS: `flutter run -d macos`
+
+> [!NOTE]
+>
+> Re-run `cargo codegen frb auth` whenever the FRB-exported surface under `rust/bindings/frb/` changes. Internal Rust changes (function bodies, private helpers) are picked up by the normal Flutter build.
+>
+> From anywhere in the repo:
+>
+> ```sh
+> (cd "$(git rev-parse --show-toplevel)/rust" && cargo codegen frb auth)
+> ```
 
 To build a release APK, [setup your keystore](https://docs.flutter.dev/deployment/android#create-an-upload-keystore) and run `flutter build apk --release --flavor independent`. For iOS, use `flutter build ios`.
 
