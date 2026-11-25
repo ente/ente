@@ -565,7 +565,7 @@ class _BodyState extends State<_Body> {
                   files: _files!,
                   previewIndex: _filmstripCoordinator.previewIndex,
                 ),
-              if (widget.config.mode == DetailPageMode.full)
+              if (widget.config.mode == DetailPageMode.full && !isGuestView)
                 ValueListenableBuilder<int?>(
                   valueListenable: _filmstripCoordinator.previewIndex,
                   builder: (context, previewIndex, child) => AbsorbPointer(
