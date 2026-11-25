@@ -160,6 +160,9 @@ func (c *CollectionLinkController) UpdateSharedUrl(ctx *gin.Context, req ente.Up
 	if req.EnableJoin != nil {
 		publicCollectionToken.EnableJoin = *req.EnableJoin
 	}
+	if req.RequireApproval != nil {
+		publicCollectionToken.RequireApproval = *req.RequireApproval
+	}
 	if req.MinRole != nil {
 		role := *req.MinRole
 		rolePtr := role
@@ -178,6 +181,7 @@ func (c *CollectionLinkController) UpdateSharedUrl(ctx *gin.Context, req ente.Up
 		EnableCollect:   publicCollectionToken.EnableCollect,
 		EnableComment:   publicCollectionToken.EnableComment,
 		EnableJoin:      publicCollectionToken.EnableJoin,
+		RequireApproval: publicCollectionToken.RequireApproval,
 		MinRole:         publicCollectionToken.MinRole,
 		PasswordEnabled: publicCollectionToken.PassHash != nil && *publicCollectionToken.PassHash != "",
 		Nonce:           publicCollectionToken.Nonce,
@@ -243,6 +247,7 @@ func (c *CollectionLinkController) GetPublicCollection(ctx *gin.Context, mustAll
 			MemLimit:        publicUrl.MemLimit,
 			OpsLimit:        publicUrl.OpsLimit,
 			EnableJoin:      publicUrl.EnableJoin,
+			RequireApproval: publicUrl.RequireApproval,
 		})
 	}
 	collection.PublicURLs = publicURLsWithLimitedInfo

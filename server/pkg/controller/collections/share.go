@@ -619,6 +619,9 @@ func (c *CollectionController) UpdateShareURL(
 	if err := c.verifyOwnership(ctx, req.CollectionID, userID); err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
+	if app, _ := auth.GetAuthenticatedApp(ctx); req.RequireApproval != nil && app != ente.Photos {
+		return nil, stacktrace.Propagate(ente.ErrBadRequest, "approval is only supported for Photos albums")
+	}
 	err := c.BillingCtrl.HasActiveSelfOrFamilySubscription(userID, true)
 	if err != nil {
 		if errors.Is(err, ente.ErrSharingDisabledForFreeAccounts) {

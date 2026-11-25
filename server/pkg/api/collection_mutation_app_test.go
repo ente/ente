@@ -17,10 +17,12 @@ import (
 	"github.com/ente/museum/pkg/controller/collections"
 	"github.com/ente/museum/pkg/controller/email"
 	"github.com/ente/museum/pkg/controller/public"
+	"github.com/ente/museum/pkg/controller/storagebonus"
 	"github.com/ente/museum/pkg/middleware"
 	"github.com/ente/museum/pkg/repo"
 	castrepo "github.com/ente/museum/pkg/repo/cast"
 	publicrepo "github.com/ente/museum/pkg/repo/public"
+	bonusrepo "github.com/ente/museum/pkg/repo/storagebonus"
 	"github.com/gin-gonic/gin"
 	"github.com/patrickmn/go-cache"
 	"github.com/spf13/viper"
@@ -44,7 +46,7 @@ func TestCollectionMutationAppIsolation(t *testing.T) {
 	collectionRepo := &repo.CollectionRepository{DB: db, CollectionLinkRepo: linkRepo, SecretEncryptionKey: testutil.SecretEncryptionKey()}
 	h := &CollectionHandler{Controller: &collections.CollectionController{
 		AccessCtrl: access.NewAccessController(collectionRepo, nil), CollectionRepo: collectionRepo,
-		CastRepo: &castrepo.Repository{DB: db}, CollectionLinkCtrl: &public.CollectionLinkController{CollectionLinkRepo: linkRepo},
+		CastRepo: &castrepo.Repository{DB: db}, CollectionLinkCtrl: &public.CollectionLinkController{CollectionLinkRepo: linkRepo, CollectionRepo: collectionRepo, JwtSecret: []byte("collection-link-test-secret")},
 		BillingCtrl: &controller.BillingController{UserRepo: userRepo, BillingRepo: &repo.BillingRepository{DB: db}},
 		UserLookup:  controller.NewUserLookupController(userRepo, nil), PushCtrl: &controller.PushController{},
 		EmailCtrl: &email.EmailNotificationController{UserRepo: userRepo},
@@ -53,6 +55,16 @@ func TestCollectionMutationAppIsolation(t *testing.T) {
 	authMiddleware := &middleware.AuthMiddleware{UserAuthRepo: userAuthRepo, Cache: cache.New(time.Minute, time.Minute)}
 	router := gin.New()
 	storage := router.Group("/collections", authMiddleware.TokenAuthMiddleware(nil), middleware.RejectAuthApp())
+	linkAuth := &middleware.CollectionLinkMiddleware{
+		CollectionLinkRepo: linkRepo, CollectionRepo: collectionRepo,
+		BillingCtrl: h.Controller.BillingCtrl, PublicCollectionCtrl: h.Controller.CollectionLinkCtrl,
+	}
+	publicHandler := &PublicCollectionHandler{
+		Controller:             h.Controller.CollectionLinkCtrl,
+		StorageBonusController: &storagebonus.Controller{StorageBonus: &bonusrepo.Repository{DB: db}},
+	}
+	router.GET("/public-collection/info", linkAuth.Authenticate(func(c *gin.Context) string { return c.FullPath() }), publicHandler.GetCollection)
+	storage.GET("/v2", h.GetV2)
 	storage.POST("/share-url", h.ShareURL)
 	storage.PUT("/share-url", h.UpdateShareURL)
 	storage.DELETE("/share-url/:collectionID", h.UnShareURL)
@@ -108,6 +120,54 @@ func TestCollectionMutationAppIsolation(t *testing.T) {
 		for _, userID := range []int64{ownerID, memberID, adminID} {
 			require.NoError(t, userAuthRepo.AddToken(userID, app, fmt.Sprintf("%s-%d", app, userID), "127.0.0.1", "test"))
 		}
+		t.Run(string(app)+"/approval_setting", func(t *testing.T) {
+			album, err := collectionRepo.Create(ente.Collection{Owner: ente.CollectionUser{ID: ownerID}, App: string(app), Type: "album", Name: "album", EncryptedKey: "key", KeyDecryptionNonce: "nonce", UpdationTime: 1})
+			require.NoError(t, err)
+			require.NoError(t, collectionRepo.Share(album.ID, ownerID, adminID, "admin-key", ente.ADMIN, 1))
+			linkRequest := func(method string, actor int64, fields string, wantStatus int) string {
+				t.Helper()
+				req := httptest.NewRequest(method, "/collections/share-url", strings.NewReader(fmt.Sprintf(`{"collectionID":%d,%s}`, album.ID, fields)))
+				req.Header.Set("Content-Type", "application/json")
+				req.Header.Set("X-Auth-Token", fmt.Sprintf("%s-%d", app, actor))
+				req.Header.Set("X-Client-Package", "io.ente."+string(app))
+				response := httptest.NewRecorder()
+				router.ServeHTTP(response, req)
+				require.Equal(t, wantStatus, response.Code, response.Body.String())
+				return response.Body.String()
+			}
+
+			created := linkRequest(http.MethodPost, ownerID, `"enableCollect":true,"requireApproval":true`, http.StatusOK)
+			require.Contains(t, created, `"requireApproval":false`)
+			linkRequest(http.MethodPut, adminID, `"requireApproval":true`, http.StatusForbidden)
+			if app == ente.Locker {
+				linkRequest(http.MethodPut, ownerID, `"requireApproval":true`, http.StatusBadRequest)
+				return
+			}
+
+			enabled := linkRequest(http.MethodPut, ownerID, `"requireApproval":true`, http.StatusOK)
+			require.Contains(t, enabled, `"requireApproval":true`)
+			updated := linkRequest(http.MethodPut, ownerID, `"enableJoin":false`, http.StatusOK)
+			require.Contains(t, updated, `"requireApproval":true`)
+
+			link, err := linkRepo.GetActiveCollectionLinkRow(t.Context(), album.ID)
+			require.NoError(t, err)
+			req := httptest.NewRequest(http.MethodGet, "/public-collection/info", nil)
+			req.Header.Set("X-Auth-Access-Token", link.Token)
+			response := httptest.NewRecorder()
+			router.ServeHTTP(response, req)
+			require.Equal(t, http.StatusOK, response.Code, response.Body.String())
+			require.Contains(t, response.Body.String(), `"requireApproval":true`)
+
+			req = httptest.NewRequest(http.MethodGet, "/collections/v2", nil)
+			req.Header.Set("X-Auth-Token", fmt.Sprintf("%s-%d", app, ownerID))
+			response = httptest.NewRecorder()
+			router.ServeHTTP(response, req)
+			require.Equal(t, http.StatusOK, response.Code, response.Body.String())
+			require.Contains(t, response.Body.String(), `"requireApproval":true`)
+
+			disabled := linkRequest(http.MethodPut, ownerID, `"requireApproval":false`, http.StatusOK)
+			require.Contains(t, disabled, `"requireApproval":false`)
+		})
 		for _, tc := range cases {
 			actors := []int64{ownerID}
 			if tc.member {

@@ -35,12 +35,13 @@ type UpdatePublicAccessTokenRequest struct {
 	EnableComment   *bool                      `json:"enableComment"`
 	DisablePassword *bool                      `json:"disablePassword"`
 	EnableJoin      *bool                      `json:"enableJoin"`
+	RequireApproval *bool                      `json:"requireApproval"`
 	MinRole         *CollectionParticipantRole `json:"minRole"`
 }
 
 func (ut *UpdatePublicAccessTokenRequest) Validate() error {
 	if ut.DeviceLimit == nil && ut.ValidTill == nil && ut.DisablePassword == nil &&
-		ut.Nonce == nil && ut.PassHash == nil && ut.EnableDownload == nil && ut.EnableCollect == nil && ut.EnableComment == nil && ut.EnableJoin == nil && ut.MinRole == nil {
+		ut.Nonce == nil && ut.PassHash == nil && ut.EnableDownload == nil && ut.EnableCollect == nil && ut.EnableComment == nil && ut.EnableJoin == nil && ut.RequireApproval == nil && ut.MinRole == nil {
 		return NewBadRequestWithMessage("all parameters are missing")
 	}
 
@@ -100,21 +101,22 @@ type VerifyPasswordResponse struct {
 }
 
 type CollectionLinkRow struct {
-	ID             int64
-	CollectionID   int64
-	Token          string
-	DeviceLimit    int
-	ValidTill      int64
-	IsDisabled     bool
-	PassHash       *string
-	Nonce          *string
-	MemLimit       *int64
-	OpsLimit       *int64
-	EnableDownload bool
-	EnableCollect  bool
-	EnableComment  bool
-	EnableJoin     bool
-	MinRole        *CollectionParticipantRole
+	ID              int64
+	CollectionID    int64
+	Token           string
+	DeviceLimit     int
+	ValidTill       int64
+	IsDisabled      bool
+	PassHash        *string
+	Nonce           *string
+	MemLimit        *int64
+	OpsLimit        *int64
+	EnableDownload  bool
+	EnableCollect   bool
+	EnableComment   bool
+	EnableJoin      bool
+	RequireApproval bool
+	MinRole         *CollectionParticipantRole
 }
 
 func (p CollectionLinkRow) CanJoin() error {
@@ -145,15 +147,17 @@ type PublicURL struct {
 	MemLimit        *int64                     `json:"memLimit,omitempty"`
 	OpsLimit        *int64                     `json:"opsLimit,omitempty"`
 	EnableJoin      bool                       `json:"enableJoin"`
+	RequireApproval bool                       `json:"requireApproval"`
 	MinRole         *CollectionParticipantRole `json:"minRole,omitempty"`
 }
 
 type PublicAccessContext struct {
-	ID            int64
-	IP            string
-	UserAgent     string
-	CollectionID  int64
-	EnableComment bool
+	ID              int64
+	IP              string
+	UserAgent       string
+	CollectionID    int64
+	EnableComment   bool
+	RequireApproval bool
 }
 
 func FilterPublicURLsForRole(urls []PublicURL, role CollectionParticipantRole) []PublicURL {
@@ -180,6 +184,7 @@ type PublicCollectionSummary struct {
 	DeviceAccessCount int
 	PassHash          *string
 	EnableComment     bool
+	RequireApproval   bool
 }
 
 type AbuseReportRequest struct {
