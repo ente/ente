@@ -608,18 +608,18 @@ pub async fn llm_generate_chat_stream(
     state: TauriState<'_, State>,
     conversation_state: TauriState<'_, super::conversation::State>,
     window: WebviewWindow,
-    request: llm::ChatRequest,
+    mut request: llm::ChatRequest,
     preparation_token: Option<String>,
 ) -> Result<llm::GenerationSummary, ApiError> {
     let _lifecycle = state.lifecycle.lock().await;
-    let exchange = match preparation_token.as_deref() {
-        Some(token) => conversation_state.validate_answer(
+    let turn = match preparation_token.as_deref() {
+        Some(token) => Some(conversation_state.validate_answer(
             window.app_handle(),
             window.label(),
             token,
             state.model_state_epoch(),
             state.retrieval_epoch.load(Ordering::Relaxed),
-        )?,
+        )?),
         None => None,
     };
 
@@ -633,7 +633,13 @@ pub async fn llm_generate_chat_stream(
     async_runtime::spawn_blocking(move || {
         match catch_unwind(AssertUnwindSafe(|| {
             let mut sink = EventSink::new(window.clone());
-            context.generate_with_tools(request, exchange.as_deref(), &mut sink)
+            if let Some(turn) = turn {
+                let mut runner = ente_ensu::conversation::ContextRunner::begin(&context, &mut sink);
+                turn.generate(&mut runner, request, &mut sink)
+            } else {
+                request.tools = None;
+                context.generate_chat_stream(request, &mut sink)
+            }
         })) {
             Ok(Ok(summary)) => Ok(summary),
             Ok(Err(err)) => Err(llm_api_error(err)),

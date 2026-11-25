@@ -419,24 +419,10 @@ pub async fn chat_db_finish_reply(
     input: FinishReplyInput,
 ) -> Result<FinishedReplyDto, ApiError> {
     let app = window.app_handle();
-    let super::conversation::Answer {
-        snapshot,
-        sources,
-        passages,
-        tools,
-    } = conversation_state.take_answer(app, window.label(), &input.preparation_token)?;
+    let super::conversation::Answer { snapshot, turn } =
+        conversation_state.take_answer(app, window.label(), &input.preparation_token)?;
     let finished = with_chat_db_async(&state, move |db| {
-        ente_ensu::conversation::finish_turn(
-            db,
-            &snapshot,
-            ente_ensu::conversation::Reply {
-                text: &input.text,
-                sources: &sources,
-                passages,
-                attachments: Vec::new(),
-                tools: tools.as_deref(),
-            },
-        )
+        turn.finish(db, &snapshot, &input.text, Vec::new())
     })
     .await?;
     for warning in &finished.warnings {
