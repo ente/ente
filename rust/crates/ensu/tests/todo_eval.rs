@@ -2,15 +2,16 @@
 #![cfg(feature = "sqlite")]
 
 use std::sync::Arc;
-use std::time::Instant;
 
-use ente_ensu::conversation::{self, Effects, PrepareError};
-use ente_ensu::db::chat::{Confirm, ConversationSnapshot};
+use ente_ensu::conversation::GroundingCache;
+use ente_ensu::db::chat::{Confirm, ConversationSnapshot, FinishedReply};
 use ente_ensu::db::{ChatDb, Clock, RandomUuidGen, SqliteBackend};
-use ente_ensu::llm::{self, ChatMessage, ChatRequest, Context, ContextParams, ToolCall};
+use ente_ensu::llm::{self, ChatMessage, ToolCall};
 use ente_ensu::todo;
 use serde::Deserialize;
 use serde_json::{Value, json};
+
+mod support;
 
 #[derive(Deserialize)]
 struct Case {
@@ -509,61 +510,24 @@ impl ConversationCase {
         CompletionContext::capture(self.db.list_todos().unwrap(), &shown)
     }
 
-    fn request(&self, case: &Case, system: &str, context: &Context) -> ChatRequest {
-        let mut effects = EvalEffects(context);
-        let mut prepared = conversation::prepare_turn(
-            conversation::TurnInput {
-                session: self.snapshot.session_uuid(),
-                messages: self.snapshot.messages().to_vec(),
-                expected_user_text: case.user.clone(),
-                system: system.to_owned(),
-                current: case.user.clone(),
-                history_query: None,
-                context: 4096,
-                output: Some(160),
-                state: None,
-                candidates: conversation::GroundingCandidates {
-                    referenced: Vec::new(),
-                    searched: Vec::new(),
-                    max_utf8_bytes: 0,
-                },
-                tools: self.db.turn_tools(&self.snapshot, &case.user).unwrap(),
-            },
-            &mut effects,
-        )
-        .unwrap();
-        ChatRequest {
-            messages: prepared.preparation.run(&mut effects).unwrap().messages,
-            tools: prepared.tools,
-            temperature: Some(0.0),
-            max_tokens: Some(160),
-            ..Default::default()
-        }
-    }
-
     fn finish(&self, case: &Case, outcome: &llm::ToolOutcome, reply: &str) -> Recorded {
-        self.finish_with_exchange(case, outcome, reply, None)
+        let before = self.db.list_todos().unwrap();
+        let finished = self
+            .db
+            .finish_reply(&self.snapshot, reply, vec![], Some(outcome))
+            .unwrap();
+        let changed = self.db.list_todos().unwrap() != before;
+        self.record(case, outcome, reply, finished, changed)
     }
 
-    fn finish_with_exchange(
+    fn record(
         &self,
         case: &Case,
         outcome: &llm::ToolOutcome,
         reply: &str,
-        exchange: Option<&llm::ToolExchange>,
+        finished: FinishedReply,
+        changed: bool,
     ) -> Recorded {
-        let before = self.db.list_todos().unwrap();
-        let finished = match exchange {
-            Some(exchange) => {
-                self.db
-                    .finish_exchange(&self.snapshot, reply, vec![], Some(exchange))
-            }
-            None => self
-                .db
-                .finish_reply(&self.snapshot, reply, vec![], Some(outcome)),
-        }
-        .unwrap();
-        let changed = self.db.list_todos().unwrap() != before;
         let confirmation = finished
             .tool_turn
             .is_some_and(|turn| turn.confirm == Confirm::Offered);
@@ -767,63 +731,10 @@ impl Tally {
     }
 }
 
-struct EvalEffects<'a>(&'a Context);
-
-impl Effects for EvalEffects<'_> {
-    fn check_current(&mut self) -> Result<(), PrepareError> {
-        Ok(())
-    }
-
-    fn measure(
-        &mut self,
-        messages: &[ChatMessage],
-        tools: Option<&llm::ToolRequest>,
-    ) -> Result<usize, PrepareError> {
-        self.0
-            .measure_text_chat_prompt(&ChatRequest {
-                messages: messages.to_vec(),
-                tools: tools.cloned(),
-                ..Default::default()
-            })
-            .map_err(|error| PrepareError::Backend(error.to_string()))
-    }
-
-    fn summarize(
-        &mut self,
-        _: Vec<ChatMessage>,
-        _: usize,
-    ) -> Result<(String, llm::FinishReason), PrepareError> {
-        panic!("eval history must fit without summarization")
-    }
-
-    fn checkpoint(&mut self, _: &conversation::ConversationState) -> Result<(), PrepareError> {
-        panic!("eval history must fit without checkpoints")
-    }
-}
-
 #[test]
 #[ignore = "requires ENSU_TEST_MODEL"]
 fn todo_tool_calls_meet_accuracy_targets() {
-    if let Ok(directory) = std::env::var("ENSU_TEST_BACKEND_DIR") {
-        llm::init_backend_from_directory(&directory).unwrap();
-    }
-    let model = llm::Model::load(llm::ModelLoadParams {
-        model_path: std::env::var("ENSU_TEST_MODEL").unwrap(),
-        n_gpu_layers: Some(99),
-        use_mmap: None,
-        use_mlock: None,
-    })
-    .unwrap();
-    let context = Context::new(
-        &model,
-        ContextParams {
-            context_size: Some(4096),
-            n_threads: Some(4),
-            n_threads_generation: None,
-            n_batch: Some(256),
-        },
-    )
-    .unwrap();
+    let context = support::model_context(4096);
     let path = std::env::var("ENSU_EVAL_CASES").unwrap_or_else(|_| {
         concat!(env!("CARGO_MANIFEST_DIR"), "/tests/data/todo_eval.jsonl").into()
     });
@@ -833,10 +744,7 @@ fn todo_tool_calls_meet_accuracy_targets() {
         .filter(|line| !line.trim().is_empty())
         .map(|line| serde_json::from_str(line).unwrap_or_else(|err| panic!("{err}: {line}")))
         .collect();
-    let defaults = ente_ensu::config::defaults();
-    let system = defaults
-        .mobile_system_prompt_body
-        .replace(&defaults.system_prompt_date_placeholder, "2026-11-12");
+    let system = support::system_prompt();
     let probability = std::env::var("ENSU_EVAL_CALL_PROBABILITY")
         .ok()
         .map(|value| value.parse::<f32>().unwrap());
@@ -848,29 +756,27 @@ fn todo_tool_calls_meet_accuracy_targets() {
     for case in &cases {
         let conversation = ConversationCase::new(case);
         let completion_context = conversation.completion_context();
-        let mut request = conversation.request(case, &system, &context);
-        if let Some(probability) = probability
-            && let Some(tools) = request.tools.as_mut()
-        {
-            tools.min_call_probability = probability;
-        }
-        let started = Instant::now();
-        let mut reply = String::new();
-        let exchange = request
-            .tools
-            .clone()
-            .map(|tools| conversation.db.tool_exchange(&conversation.snapshot, tools));
-        let summary = context
-            .generate_with_tools(request, exchange.as_ref(), &mut |event| {
-                if let llm::GenerationEvent::Text { text, .. } = event {
-                    reply.push_str(&text);
+        let before = conversation.db.list_todos().unwrap();
+        let run = support::run_turn(
+            &conversation.db,
+            &context,
+            &GroundingCache::default(),
+            &conversation.snapshot,
+            &system,
+            160,
+            |request| {
+                if let Some(probability) = probability
+                    && let Some(tools) = request.tools.as_mut()
+                {
+                    tools.min_call_probability = probability;
                 }
-            })
-            .unwrap_or_else(|err| panic!("{}: {err}", case.id));
-        elapsed_ms += started.elapsed().as_millis();
-        prompt_tokens += i64::from(summary.prompt_tokens.unwrap_or_default());
-        let outcome = summary.tools.unwrap_or_default();
-        let record = conversation.finish_with_exchange(case, &outcome, &reply, exchange.as_ref());
+            },
+        );
+        elapsed_ms += run.events.last().unwrap().0.as_millis();
+        prompt_tokens += i64::from(run.summary.prompt_tokens.unwrap_or_default());
+        let outcome = run.summary.tools.unwrap_or_default();
+        let changed = conversation.db.list_todos().unwrap() != before;
+        let record = conversation.record(case, &outcome, &run.reply, run.finished, changed);
         tally.add(case, &outcome, &record, &completion_context);
         if !case.probe.is_empty() {
             let probe = ConversationCase::new(case).finish(
