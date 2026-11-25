@@ -15,6 +15,7 @@ import "package:photos/events/files_updated_event.dart";
 import "package:photos/events/local_photos_updated_event.dart";
 import "package:photos/events/people_changed_event.dart";
 import "package:photos/events/sync_finished_event.dart";
+import "package:photos/events/sync_status_update_event.dart";
 import "package:photos/main.dart" show isIOSBackgroundRefresh, isProcessBg;
 import "package:photos/service_locator.dart";
 import "package:photos/services/app_lifecycle_service.dart";
@@ -40,6 +41,10 @@ class RewindService {
     Bus.instance.on<PeopleChangedEvent>().listen((_) => _rebuildStory());
     Bus.instance.on<DiffSyncCompleteEvent>().listen((_) => _rebuildStory());
     Bus.instance.on<SyncFinishedEvent>().listen((_) => _refreshIfOutdated());
+    Bus.instance
+        .on<SyncStatusUpdate>()
+        .where((event) => event.status == SyncStatus.completedBackup)
+        .listen((_) => _refreshIfOutdated());
     Bus.instance
         .on<LocalPhotosUpdatedEvent>()
         .where((event) => event.source == _localMetadataSource)
@@ -73,11 +78,14 @@ class RewindService {
   static const _startupDelay = Duration(seconds: 5);
   static const _startupRetryDelay = Duration(seconds: 30);
   static const _refreshInterval = Duration(days: 1);
-  static const _changedShareForRecompute = 0.1;
+  static const _toleratedShare = 0.1;
   static const _mostChangesBeforeRecompute = 50;
   static const _uploadLookback = Duration(minutes: 5);
-  static const _offlineMetadataKey =
-      "ls.rewind_${RewindEdition.year}_offline_metadata";
+  static const _longestOfflineMetadataWait = Duration(days: 1);
+  static const _libraryCountKey =
+      "ls.rewind_${RewindEdition.year}_library_count";
+  static const _offlineMetadataWaitKey =
+      "ls.rewind_${RewindEdition.year}_offline_metadata_wait";
   static const _localMetadataSource = "offlineImportMetadata";
   static const _localMetadataQuietPeriod = Duration(seconds: 30);
   static const _notificationId = 20261205;
@@ -165,36 +173,58 @@ class RewindService {
 
   Future<bool> _libraryChanged(rust.RewindState state) async {
     if (state.isFinal) return false;
-    return await _changedFiles(state) >= _changesForRecompute(state);
+    final changed =
+        await _libraryCount(state.computedAt) - _libraryCountWhen(state);
+    return changed >= _changesForRecompute(state);
   }
 
-  Future<int> _changedFiles(rust.RewindState state) async {
+  Future<int> _libraryCount(int computedAt) async {
     if (!isLocalGalleryMode) {
       return _ownedFilesUpdatedSince(
-        state.computedAt - _uploadLookback.inMicroseconds,
+        computedAt - _uploadLookback.inMicroseconds,
       );
     }
-    if (!_tracksOfflineMetadata) return 0;
-    return await _processedOfflineFiles() - _processedOfflineFilesFor(state);
+    return _tracksOfflineMetadata ? _processedOfflineFiles() : 0;
   }
 
-  bool get _tracksOfflineMetadata => isLocalGalleryMode && Platform.isAndroid;
-
-  int _processedOfflineFilesFor(rust.RewindState state) {
-    final saved = _prefs.getStringList(_offlineMetadataKey);
+  int _libraryCountWhen(rust.RewindState state) {
+    final saved = _prefs.getStringList(_libraryCountKey);
     if (saved == null || saved.first != "${state.computedAt}") return 0;
     return int.tryParse(saved.last) ?? 0;
   }
+
+  bool get _tracksOfflineMetadata => isLocalGalleryMode && Platform.isAndroid;
 
   int _changesForRecompute(rust.RewindState state) {
     final files = switch (state.status) {
       rust.RewindStatus_Ready(:final report) => report.totals?.files ?? 0,
       rust.RewindStatus_NothingToShow() => 0,
     };
-    return (files * _changedShareForRecompute).ceil().clamp(
+    return (files * _toleratedShare).ceil().clamp(
       1,
       _mostChangesBeforeRecompute,
     );
+  }
+
+  Future<bool> _waitsForOfflineMetadata(DateTime now) async {
+    if (!_tracksOfflineMetadata || _progress.opened) return false;
+    final waitingSince = _prefs.getInt(_offlineMetadataWaitKey);
+    if (waitingSince != null &&
+        now.microsecondsSinceEpoch - waitingSince >=
+            _longestOfflineMetadataWait.inMicroseconds) {
+      return false;
+    }
+    final (:total, :unread) = await FilesDB.instance
+        .countOfflineFilesCapturedBetween(
+          OfflineImportMetadataService.kProcessingVersion,
+          capturedFrom: _yearCaptureStart,
+          capturedBefore: _yearCaptureCutoff,
+        );
+    if (unread <= total * _toleratedShare) return false;
+    if (waitingSince == null) {
+      await _prefs.setInt(_offlineMetadataWaitKey, now.microsecondsSinceEpoch);
+    }
+    return true;
   }
 
   Future<int> _ownedFilesUpdatedSince(int time) async {
@@ -212,6 +242,9 @@ class RewindService {
         OfflineImportMetadataService.kProcessingVersion,
         capturedBefore: _yearCaptureCutoff,
       );
+
+  int get _yearCaptureStart =>
+      DateTime.utc(RewindEdition.year - 1, 12, 31).microsecondsSinceEpoch;
 
   int get _yearCaptureCutoff =>
       DateTime.utc(RewindEdition.year + 1, 1, 2).microsecondsSinceEpoch;
@@ -303,24 +336,25 @@ class RewindService {
     if (owner == null) return;
     final stored = await _load(owner);
     await _publishCached(owner, stored);
+    if (stored == null && await _waitsForOfflineMetadata(now)) {
+      _missingStateReason = "waiting for this year's photo details";
+      _logger.info("Rewind $diagnosis");
+      return;
+    }
     if (stored == null ||
         !_isFresh(stored, now) ||
         await _libraryChanged(stored) ||
         (afterMlRun && stored.mlChaptersPending && await hasEnoughMl())) {
-      final processedOfflineFiles = _tracksOfflineMetadata
-          ? await _processedOfflineFiles()
-          : null;
+      final libraryCount = await _libraryCount(now.microsecondsSinceEpoch);
       final computed = await _compute(
         owner,
         stored,
         await buildRewindRequest(now, justClustered: justClustered),
       );
-      if (processedOfflineFiles != null) {
-        await _prefs.setStringList(_offlineMetadataKey, [
-          "${computed.computedAt}",
-          "$processedOfflineFiles",
-        ]);
-      }
+      await _prefs.setStringList(_libraryCountKey, [
+        "${computed.computedAt}",
+        "$libraryCount",
+      ]);
       await _publish(owner, computed, "computed");
       await _notifyNewCards(stored, computed);
     }

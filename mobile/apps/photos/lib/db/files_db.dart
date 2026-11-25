@@ -2238,6 +2238,25 @@ class FilesDB with SqlDbBase {
     return row['count'] as int;
   }
 
+  Future<({int total, int unread})> countOfflineFilesCapturedBetween(
+    int processingVersion, {
+    required int capturedFrom,
+    required int capturedBefore,
+  }) async {
+    final db = await instance.sqliteAsyncDB;
+    final row = await db.get(
+      'SELECT COUNT(DISTINCT $columnLocalID) AS total, '
+      'COUNT(DISTINCT CASE WHEN $columnMetadataVersion IS NULL OR '
+      '$columnMetadataVersion < ? THEN $columnLocalID END) AS unread '
+      'FROM $filesTable '
+      'WHERE ($columnUploadedFileID IS NULL OR $columnUploadedFileID IS -1) '
+      'AND $columnLocalID IS NOT NULL AND $columnLocalID IS NOT -1 '
+      'AND $columnCreationTime >= ? AND $columnCreationTime < ?',
+      [processingVersion, capturedFrom, capturedBefore],
+    );
+    return (total: row['total'] as int, unread: row['unread'] as int);
+  }
+
   Future<int> remoteFileCount() async {
     final db = await instance.sqliteAsyncDB;
     final results = await db.getAll('''
