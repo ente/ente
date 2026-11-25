@@ -1524,6 +1524,30 @@ fn manual_edits_check_versions_and_titles() {
 }
 
 #[test]
+fn an_unchanged_update_keeps_its_version() {
+    let db = db();
+    let todo = db.create_todo("Read book", Some(5)).unwrap();
+    let changes = Arc::new(AtomicI64::new(0));
+    let seen = changes.clone();
+    db.observe_tools(Arc::new(move || {
+        seen.fetch_add(1, Ordering::Relaxed);
+    }));
+
+    let update = |version| db.update_todo(todo.id, version, "  read   book ", Some(5));
+    assert_eq!(update(todo.version).unwrap(), todo);
+    assert_eq!(db.get_todo(todo.id).unwrap(), Some(todo.clone()));
+    assert_eq!(changes.load(Ordering::Relaxed), 0);
+    assert!(matches!(
+        update(todo.version + 1),
+        Err(Error::Refused(Refusal::TodoChanged))
+    ));
+    let renamed = db
+        .update_todo(todo.id, todo.version, "Read the book", Some(5))
+        .unwrap();
+    assert_eq!(renamed.version, todo.version + 1);
+}
+
+#[test]
 fn version_six_databases_gain_to_do_tables_and_keep_chats() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("chat.db");
