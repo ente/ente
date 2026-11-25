@@ -307,6 +307,7 @@ jobs:
             RELEASE_BODY: ${{ needs.build-metadata.outputs.release_body }}
             PLAY_STORE_RELEASE_NOTES: ${{ needs.build-metadata.outputs.play_store_release_notes }}
             ANDROID_APK_NAME: ${{ needs.build-metadata.outputs.android_apk_name }}
+            RUSTUP_TOOLCHAIN: "1.99.1"
 
         defaults:
             run:
