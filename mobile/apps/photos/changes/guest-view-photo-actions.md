@@ -1,0 +1,1 @@
+- Fixed photo actions remaining available when Guest view is enabled from an open photo.
