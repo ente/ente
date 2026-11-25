@@ -305,6 +305,31 @@ mod tests {
     }
 
     #[test]
+    fn a_changed_report_with_the_same_photo_count_does_not_freeze() {
+        let request = request_at(AFTER_NEW_YEAR, daily_photos(1, "2026-06-01T12:00:00", 3));
+        let mut earlier = a_day_earlier(&request);
+        earlier.files[2].id = 4;
+        let first = compute_rewind(&earlier, None, Some(&NoCities), None).unwrap();
+        let cache = encode_rewind_state(&first).unwrap();
+        let previous =
+            decode_rewind_state(&cache, request.year, request.local_gallery_mode).unwrap();
+
+        let changed = compute_rewind(&request, None, Some(&NoCities), Some(&previous)).unwrap();
+        assert_eq!(total_files(&changed), total_files(&previous));
+        assert_ne!(changed.status, previous.status);
+        assert!(
+            !changed.is_final,
+            "the report changed without changing its photo count"
+        );
+
+        let mut next_day = request;
+        next_day.now += MICROS_PER_DAY;
+        let settled = compute_rewind(&next_day, None, Some(&NoCities), Some(&changed)).unwrap();
+        assert_eq!(settled.status, changed.status);
+        assert!(settled.is_final);
+    }
+
+    #[test]
     fn with_ml_the_ml_chapters_wait_until_ninety_percent_of_the_year_is_indexed() {
         let mut files = photos(10);
         let mut document = photo(11, "2026-06-01T12:00:00");
@@ -374,7 +399,7 @@ mod tests {
     fn new_faces_wait_until_earlier_years_are_indexed() {
         let mut files = daily_photos(1, "2026-01-01T12:00:00", 240);
         files.extend(daily_photos(301, "2025-06-01T12:00:00", 10));
-        let request = request_at(AFTER_NEW_YEAR, files);
+        let mut request = request_at(AFTER_NEW_YEAR, files);
 
         let (_directory, store) = indexed_store(1..=240);
         appear(&store, "partner", None, 1..=120);
@@ -397,7 +422,12 @@ mod tests {
         cluster_indexed_faces(&store, (1..=240).chain(301..=310));
         let known = compute_rewind(&request, Some(&store), Some(&NoCities), Some(&first)).unwrap();
         assert_eq!(new_face_clusters(&known), Some(vec!["baby".to_string()]));
-        assert!(known.is_final);
+        assert!(!known.is_final);
+
+        request.now += MICROS_PER_DAY;
+        let settled =
+            compute_rewind(&request, Some(&store), Some(&NoCities), Some(&known)).unwrap();
+        assert!(settled.is_final);
     }
 
     #[test]
@@ -470,7 +500,17 @@ mod tests {
         .unwrap();
         assert_eq!(colour(&already_clustered), Some(RewindColour::CherryBomb));
         assert!(!already_clustered.ml_chapters_pending);
-        assert!(already_clustered.is_final);
+        assert!(!already_clustered.is_final);
+
+        before_clustering.now += MICROS_PER_DAY;
+        let settled = compute_rewind(
+            &before_clustering,
+            Some(&store),
+            Some(&NoCities),
+            Some(&already_clustered),
+        )
+        .unwrap();
+        assert!(settled.is_final);
     }
 
     #[test]
