@@ -50,6 +50,7 @@ func (h *FileHandler) CreateOrUpdate(c *gin.Context) {
 	if file.ID == 0 {
 		file.OwnerID = userID
 		file.IsDeleted = false
+		file.ModerationStatus, file.AnonUserID = nil, nil
 		file, err := h.Controller.Create(c, userID, file, c.Request.UserAgent(), enteApp)
 		if err != nil {
 			handler.Error(c, stacktrace.Propagate(err, ""))

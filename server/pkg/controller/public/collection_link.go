@@ -110,6 +110,12 @@ func (c *CollectionLinkController) CreateFile(ctx *gin.Context, file ente.File, 
 	file.OwnerID = collectionOwnerID
 	file.UpdationTime = time.Microseconds()
 	file.IsDeleted = false
+	file.ModerationStatus, file.AnonUserID = nil, nil
+	if collection.PublicURLs[0].RequireApproval {
+		pending := ente.ModerationPending
+		file.ModerationStatus = &pending
+		file.AnonUserID, _ = auth.GetPublicAnonUserID(ctx)
+	}
 	createdFile, err := c.FileController.Create(ctx, collectionOwnerID, file, ctx.Request.UserAgent(), app)
 	if err != nil {
 		return ente.File{}, stacktrace.Propagate(err, "")
