@@ -14,10 +14,24 @@ use tauri::{AppHandle, Emitter, Manager, State as TauriState, WebviewWindow};
 use crate::commands::common::{ApiError, log_command_panic, panic_message};
 use crate::logging;
 
+struct LoadedContext {
+    handle: llm::ContextRef,
+    grounding: Arc<ente_ensu::conversation::GroundingCache>,
+}
+
+impl LoadedContext {
+    fn new(handle: llm::ContextRef) -> Self {
+        Self {
+            handle,
+            grounding: Arc::default(),
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct State {
     model: Mutex<Option<llm::ModelRef>>,
-    context: Mutex<Option<llm::ContextRef>>,
+    context: Mutex<Option<LoadedContext>>,
     lifecycle: async_runtime::Mutex<()>,
     retrieval_epoch: Arc<AtomicU64>,
     model_state_epoch: AtomicU64,
@@ -40,11 +54,20 @@ impl State {
         self.model_state_epoch.load(Ordering::SeqCst)
     }
 
-    pub(crate) fn context_ref(&self) -> Result<llm::ContextRef, ApiError> {
+    pub(crate) fn conversation_context(
+        &self,
+    ) -> Result<
+        (
+            llm::ContextRef,
+            Arc<ente_ensu::conversation::GroundingCache>,
+        ),
+        ApiError,
+    > {
         self.context
             .lock()
             .map_err(|_| ApiError::new("lock", "Failed to lock model context"))?
-            .clone()
+            .as_ref()
+            .map(|loaded| (loaded.handle.clone(), loaded.grounding.clone()))
             .ok_or_else(|| ApiError::new("llm_not_ready", "Model context not loaded"))
     }
 
@@ -167,7 +190,7 @@ pub(crate) fn replace_state(
         .map_err(|_| ApiError::new("lock", "Failed to lock LLM context store"))?;
 
     *model_guard = model;
-    *context_guard = context;
+    *context_guard = context.map(LoadedContext::new);
     state.mark_model_state_changed();
     drop(context_guard);
     drop(model_guard);
@@ -531,7 +554,7 @@ pub async fn llm_create_context(
         .context
         .lock()
         .map_err(|_| ApiError::new("lock", "Failed to lock LLM context store"))?;
-    *context_guard = Some(context);
+    *context_guard = Some(LoadedContext::new(context));
     state.mark_model_state_changed();
     drop(context_guard);
 
@@ -572,7 +595,8 @@ pub async fn llm_prewarm_multimodal_context(
         .context
         .lock()
         .map_err(|_| ApiError::new("lock", "Failed to lock LLM context store"))?
-        .clone()
+        .as_ref()
+        .map(|loaded| loaded.handle.clone())
         .ok_or_else(|| ApiError::new("llm_not_ready", "Model context not loaded"))?;
 
     logging::log(
@@ -627,7 +651,8 @@ pub async fn llm_generate_chat_stream(
         .context
         .lock()
         .map_err(|_| ApiError::new("lock", "Failed to lock LLM context store"))?
-        .clone()
+        .as_ref()
+        .map(|loaded| loaded.handle.clone())
         .ok_or_else(|| ApiError::new("llm_not_ready", "Model context not loaded"))?;
 
     async_runtime::spawn_blocking(move || {

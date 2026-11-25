@@ -136,6 +136,10 @@ struct NativeEffects<'a> {
     expected_epoch: u64,
 }
 impl Effects for NativeEffects<'_> {
+    fn supports_partial_prompt_reuse(&self) -> bool {
+        self.context.supports_partial_prompt_reuse()
+    }
+
     fn supports_tools(&self) -> bool {
         self.context.supports_tools()
     }
@@ -249,7 +253,7 @@ pub async fn conversation_prepare(
         return Err(error("Invalid preparation request"));
     }
     let _lifecycle = llm_state.lifecycle().lock().await;
-    let context = llm_state.context_ref()?;
+    let (context, grounding_cache) = llm_state.conversation_context()?;
     let db = db_state.database()?;
     let epoch = llm_state.retrieval_epoch();
     let expected_epoch = epoch.load(Ordering::Relaxed);
@@ -307,7 +311,7 @@ pub async fn conversation_prepare(
             epoch,
             expected_epoch,
         };
-        let turn = Arc::new(draft.prepare(None, &mut effects).map_err(preparation_error)?);
+        let turn = Arc::new(draft.prepare(Some(grounding_cache), &mut effects).map_err(preparation_error)?);
         let budget = turn.budget();
         let grounding = turn.grounding();
         crate::logging::log("Conversation", format!(
