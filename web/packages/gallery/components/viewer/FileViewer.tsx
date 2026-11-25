@@ -2068,6 +2068,10 @@ const Shortcuts: React.FC<ShortcutsProps> = ({
                 shortcut={ut("Space")}
             />
             <Shortcut action={t("toggle_live")} shortcut={ut("Space")} />
+            <Shortcut
+                action={t("audio")}
+                shortcut={formattedListJoin([ut("↑"), ut("↓")])}
+            />
             <Shortcut action={t("toggle_audio")} shortcut={ut("M")} />
             {haveUser && (
                 <Shortcut action={t("toggle_favorite")} shortcut={ut("L")} />
