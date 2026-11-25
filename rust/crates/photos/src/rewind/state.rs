@@ -33,18 +33,10 @@ pub enum RewindStatus {
     Ready { report: Box<RewindReport> },
 }
 
-fn nothing_to_cluster(
-    request: &RewindRequest,
-    library: &Library<'_>,
-    store: &MlStore,
-) -> Result<bool> {
-    Ok(!store.has_faces_to_cluster(&library.file_ids_until_year_end(request))?)
-}
-
 pub(super) struct MlReadiness {
     coverage: Option<f32>,
-    faces_clustered: bool,
     earlier_years_indexed: bool,
+    earlier_years_clustered: bool,
 }
 
 impl MlReadiness {
@@ -56,23 +48,26 @@ impl MlReadiness {
         let Some(store) = store else {
             return Ok(Self {
                 coverage: None,
-                faces_clustered: true,
                 earlier_years_indexed: true,
+                earlier_years_clustered: true,
             });
         };
+        let earlier_years_indexed = has_enough_ml(library.earlier_ml_coverage(request, store)?);
         Ok(Self {
             coverage: Some(library.ml_coverage(store)?),
-            faces_clustered: request.just_clustered || nothing_to_cluster(request, library, store)?,
-            earlier_years_indexed: has_enough_ml(library.earlier_ml_coverage(request, store)?),
+            earlier_years_indexed,
+            earlier_years_clustered: earlier_years_indexed
+                && (request.just_clustered
+                    || !store.has_faces_to_cluster(&library.file_ids_before_year(request))?),
         })
     }
 
-    fn chapters_ready(&self) -> bool {
-        self.coverage.is_none_or(has_enough_ml) && self.faces_clustered
+    fn year_indexed(&self) -> bool {
+        self.coverage.is_none_or(has_enough_ml)
     }
 
     fn new_faces_ready(&self, showed_new_faces: bool) -> bool {
-        self.earlier_years_indexed && (self.faces_clustered || showed_new_faces)
+        self.earlier_years_indexed && (self.earlier_years_clustered || showed_new_faces)
     }
 }
 
@@ -98,18 +93,15 @@ impl RewindState {
         readiness: &MlReadiness,
         previous: Option<&RewindState>,
     ) -> Result<Self> {
-        let shown_with_ml = previous
+        let showed_new_faces = previous
             .filter(|previous| previous.ml_coverage.is_some())
-            .and_then(RewindState::report);
-        let ml_ready = readiness.chapters_ready();
-        let ml_chapters = ml_ready || shown_with_ml.is_some_and(RewindReport::shows_ml_chapters);
+            .and_then(RewindState::report)
+            .is_some_and(|report| report.new_faces.is_some());
         let report = RewindReport::of(
             request,
             library,
             store,
-            ml_chapters,
-            readiness
-                .new_faces_ready(shown_with_ml.is_some_and(|report| report.new_faces.is_some())),
+            readiness.new_faces_ready(showed_new_faces),
             cities,
         )?;
         let year_files = |report: &RewindReport| report.totals.as_ref().map(|totals| totals.files);
@@ -132,24 +124,25 @@ impl RewindState {
                 report: Box::new(report),
             }
         };
-        let would_freeze = ml_ready
+        let would_freeze = readiness.year_indexed()
             && readiness.earlier_years_indexed
             && cities.is_some()
             && library.year_has_ended()
             && settled
             && matches!(status, RewindStatus::Ready { .. });
         let is_final = would_freeze
-            && (!request.just_clustered
-                || store.map_or(Ok(true), |store| {
-                    nothing_to_cluster(request, library, store)
-                })?);
+            && store.map_or(Ok(true), |store| {
+                store
+                    .has_faces_to_cluster(&library.file_ids_until_year_end(request))
+                    .map(|found| !found)
+            })?;
         Ok(Self {
             year: request.year,
             version: REWIND_VERSION,
             computed_at: request.now,
             local_gallery_mode: request.local_gallery_mode,
             ml_coverage: readiness.coverage,
-            ml_chapters_pending: !ml_chapters,
+            ml_chapters_pending: !readiness.year_indexed(),
             is_final,
             status,
         })

@@ -97,12 +97,11 @@ impl<'r> Library<'r> {
     }
 
     pub(super) fn file_ids_until_year_end(&self, request: &RewindRequest) -> HashSet<i64> {
-        request
-            .files
-            .iter()
-            .filter(|file| local_time(file) < self.end)
-            .map(|file| file.id)
-            .collect()
+        file_ids_before(request, self.end)
+    }
+
+    pub(super) fn file_ids_before_year(&self, request: &RewindRequest) -> HashSet<i64> {
+        file_ids_before(request, self.start)
     }
 
     pub(super) fn complete_months(&self) -> usize {
@@ -172,6 +171,15 @@ fn files_in_year<T>(
         let time = time(&file);
         year.contains(&time).then_some((file, time))
     })
+}
+
+fn file_ids_before(request: &RewindRequest, time: i64) -> HashSet<i64> {
+    request
+        .files
+        .iter()
+        .filter(|file| local_time(file) < time)
+        .map(|file| file.id)
+        .collect()
 }
 
 fn coverage(store: &MlStore, files: impl Iterator<Item = (i64, RewindFileType)>) -> Result<f32> {
