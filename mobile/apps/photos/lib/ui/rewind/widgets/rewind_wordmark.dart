@@ -7,15 +7,18 @@ class RewindWordmark extends StatelessWidget {
 
   static const aspectRatio = 50 / 15;
 
+  static final _loaders = <String, SvgFileLoader>{};
+
   final Color color;
   final double width;
 
   @override
   Widget build(BuildContext context) {
+    final file = RewindAssets.file(RewindAssets.wordmark);
     return Semantics(
       label: "ente",
-      child: SvgPicture.file(
-        RewindAssets.file(RewindAssets.wordmark),
+      child: SvgPicture(
+        _loaders.putIfAbsent(file.path, () => SvgFileLoader(file)),
         width: width,
         height: width / aspectRatio,
         colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
