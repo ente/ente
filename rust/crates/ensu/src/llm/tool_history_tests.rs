@@ -3,6 +3,7 @@ use crate::conversation::{ConversationState, Effects, PrepareError, TurnInput, p
 use crate::db::ChatDb;
 use crate::llm::{FinishReason, ToolCall, ToolOutcome, ToolValue};
 use crate::todo::{LIST_TOOL, SAVE_TOOL};
+use crate::tools::test_support::zone;
 use crate::tools::turn as tool_turn;
 
 struct NoGeneration;
@@ -70,6 +71,7 @@ fn stored_multi_call_turns_render_each_gemma_response_with_its_own_call() {
                     call_probability: Some(confidence),
                     ..Default::default()
                 }),
+                &zone(),
             )
             .unwrap()
             .message;
@@ -86,7 +88,7 @@ fn stored_multi_call_turns_render_each_gemma_response_with_its_own_call() {
                 tool_turn::undo(&db, reply).unwrap();
             }
             let snapshot = db.conversation_snapshot(session, &ids).unwrap();
-            let tools = tool_turn::turn_tools(&db, &snapshot, "Thanks").unwrap();
+            let tools = tool_turn::turn_tools(&db, &snapshot, "Thanks", &zone()).unwrap();
             let input = TurnInput {
                 session,
                 messages: snapshot.messages().to_vec(),
@@ -217,7 +219,7 @@ fn turn(
             output: Some(128),
             state: None,
             candidates: crate::conversation::GroundingCandidates::new(vec![], vec![], 0).unwrap(),
-            tools: tool_turn::turn_tools(db, &snapshot, user).unwrap(),
+            tools: tool_turn::turn_tools(db, &snapshot, user, &zone()).unwrap(),
         },
         &mut effects,
     )
@@ -270,9 +272,10 @@ fn prompt_pair(
         call_probability: Some(1.0),
         ..Default::default()
     });
-    let reply = tool_turn::finish_reply(&db, &snapshot, "Hello.", vec![], outcome.as_ref())
-        .unwrap()
-        .message;
+    let reply =
+        tool_turn::finish_reply(&db, &snapshot, "Hello.", vec![], outcome.as_ref(), &zone())
+            .unwrap()
+            .message;
     if undo == Some(true) {
         tool_turn::undo(&db, reply.uuid).unwrap();
     }
@@ -385,7 +388,7 @@ fn the_follow_up_pass_extends_the_first_pass() {
     };
     let follow_up =
         crate::todo::follow_up::FollowUp::new(db.list_todos().unwrap(), db.now_ms(), user.into());
-    let second = follow_up.next(&first, &outcome).unwrap();
+    let second = follow_up.next(&first, &outcome, &zone()).unwrap();
     for format in FORMATS {
         let first_prompt =
             crate::llm::render_native(format, first.messages.clone(), first.tools.as_ref());

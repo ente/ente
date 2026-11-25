@@ -50,7 +50,12 @@ impl FollowUp {
 }
 
 impl FollowUp {
-    pub(crate) fn next(&self, request: &ChatRequest, outcome: &ToolOutcome) -> Option<ChatRequest> {
+    pub(crate) fn next(
+        &self,
+        request: &ChatRequest,
+        outcome: &ToolOutcome,
+        zone: &impl chrono::TimeZone,
+    ) -> Option<ChatRequest> {
         let tools = request.tools.as_ref()?;
         let actions = remaining_actions(&tools.quote_source, &self.todos);
         if outcome.calls.is_empty()
@@ -69,7 +74,7 @@ impl FollowUp {
             &tools.quote_source,
             &[],
             self.todos.clone(),
-            (self.now_ms, &chrono::Local),
+            (self.now_ms, zone),
             outcome.call_probability,
             &mut uuid::Uuid::nil,
         )
@@ -92,7 +97,7 @@ impl FollowUp {
             return None;
         }
         next_tools.allowed = Some(allowed);
-        let mut responses = plan.responses(false, &chrono::Local);
+        let mut responses = plan.responses(false, zone);
         let mut assistant = ChatMessage::new("assistant", "");
         assistant.tool_calls = if responses.len() == outcome.calls.len() {
             outcome.calls.clone()
@@ -110,7 +115,12 @@ impl FollowUp {
         Some(next)
     }
 
-    pub(crate) fn can_finish(&self, outcome: &ToolOutcome, now_ms: i64) -> bool {
+    pub(crate) fn can_finish(
+        &self,
+        outcome: &ToolOutcome,
+        now_ms: i64,
+        zone: &impl chrono::TimeZone,
+    ) -> bool {
         if !outcome.calls.iter().any(|call| call.name == LIST_TOOL)
             || !outcome.calls.iter().any(|call| call.name == COMPLETE_TOOL)
         {
@@ -122,7 +132,7 @@ impl FollowUp {
                 &self.user_text,
                 &[],
                 self.todos.clone(),
-                (at, &chrono::Local),
+                (at, zone),
                 outcome.call_probability,
                 &mut uuid::Uuid::nil,
             )

@@ -29,6 +29,7 @@ fn prepare(
             output: Some(128),
             candidates: GroundingCandidates::new(vec![], vec![], 0).unwrap(),
         },
+        &zone(),
     )
     .unwrap()
     .prepare(None, &mut effects)
@@ -50,6 +51,7 @@ fn execute(
             ..Default::default()
         },
         &mut |event| events.push(event),
+        &zone(),
     );
     runner.assert_done();
     (result, events)
@@ -90,7 +92,9 @@ fn a_plain_reply_is_saved_as_text() {
     )
     .0
     .unwrap();
-    let finished = turn.finish(&db, &snapshot, "Client reply", vec![]).unwrap();
+    let finished = turn
+        .finish(&db, &snapshot, "Client reply", vec![], &zone())
+        .unwrap();
     assert_eq!(finished.reply.message.text, "Client reply");
     assert!(finished.reply.tool_turn.is_none());
     assert!(db.list_todos().unwrap().is_empty());
@@ -107,7 +111,9 @@ fn save_is_applied_or_offered_at_the_recorded_probability() {
         execute(&turn, &mut ScriptedRunner::new([save(probability)]), 128)
             .0
             .unwrap();
-        let finished = turn.finish(&db, &snapshot, "Client reply", vec![]).unwrap();
+        let finished = turn
+            .finish(&db, &snapshot, "Client reply", vec![], &zone())
+            .unwrap();
         let state = finished.reply.tool_turn.unwrap();
         if probability == SURE {
             assert_eq!(finished.reply.message.text, "Saved “Buy milk”.");
@@ -134,7 +140,7 @@ fn a_list_only_turn_runs_one_pass() {
         .0
         .unwrap();
     assert!(
-        turn.finish(&db, &snapshot, "Ignored", vec![])
+        turn.finish(&db, &snapshot, "Ignored", vec![], &zone())
             .unwrap()
             .reply
             .message
@@ -187,7 +193,10 @@ fn list_then_save_merges_both_passes() {
         assert_eq!(tool_message.role, "tool");
         assert!(tool_message.content.contains("1. Call Ana"));
         assert!(tool_message.content.contains("The listing is complete."));
-        let finished = turn.finish(&db, &snapshot, "", vec![]).unwrap().reply;
+        let finished = turn
+            .finish(&db, &snapshot, "", vec![], &zone())
+            .unwrap()
+            .reply;
         assert_eq!(
             finished.tool_turn.unwrap().confirm == Confirm::Offered,
             probability == UNSURE
@@ -217,7 +226,10 @@ fn list_then_reply_keeps_probability_and_stores_streamed_text() {
         events.as_slice(),
         [GenerationEvent::Text { .. }, GenerationEvent::Done { .. }]
     ));
-    let reply = turn.finish(&db, &snapshot, "", vec![]).unwrap().reply;
+    let reply = turn
+        .finish(&db, &snapshot, "", vec![], &zone())
+        .unwrap()
+        .reply;
     assert_eq!(reply.tool_turn.unwrap().confirm, Confirm::None);
     assert!(reply.message.text.ends_with("\n\nWhat else?"));
 }
@@ -297,7 +309,7 @@ fn an_abstained_follow_up_changes_nothing() {
     let outcome = execute(&turn, &mut runner, 128).0.unwrap().tools.unwrap();
     assert!(outcome.abstained);
     assert_eq!(outcome.calls, list().calls);
-    turn.finish(&db, &snapshot, "", vec![]).unwrap();
+    turn.finish(&db, &snapshot, "", vec![], &zone()).unwrap();
     assert_eq!(db.list_todos().unwrap(), before);
 }
 
@@ -313,12 +325,13 @@ fn a_refused_finish_keeps_the_outcome() {
         .0
         .unwrap();
     assert!(matches!(
-        turn.finish(&db, &snapshot, "", vec![]),
+        turn.finish(&db, &snapshot, "", vec![], &zone()),
         Err(db::Error::Refused(crate::todo::Refusal::EarlierReplyStands))
     ));
     assert!(turn.has_outcome());
     tool_turn::undo(&db, first.reply.uuid).unwrap();
-    turn.finish(&db, &chat.snapshot(), "", vec![]).unwrap();
+    turn.finish(&db, &chat.snapshot(), "", vec![], &zone())
+        .unwrap();
     assert!(turn.is_saved() && !turn.has_outcome());
 }
 
@@ -354,7 +367,7 @@ fn a_list_changed_before_commit_is_refused() {
                 .unwrap();
         }
         assert!(matches!(
-            turn.finish(&db, &snapshot, "", vec![]),
+            turn.finish(&db, &snapshot, "", vec![], &zone()),
             Err(db::Error::ConversationChanged)
         ));
         assert!(db.list_todos().unwrap().iter().all(|todo| todo.is_open()));
@@ -395,7 +408,7 @@ fn a_time_qualified_save_after_a_title_is_kept() {
     execute(&turn, &mut ScriptedRunner::new([first, second]), 128)
         .0
         .unwrap();
-    let finished = turn.finish(&db, &snapshot, "", vec![]).unwrap();
+    let finished = turn.finish(&db, &snapshot, "", vec![], &zone()).unwrap();
     let open = db
         .list_todos()
         .unwrap()

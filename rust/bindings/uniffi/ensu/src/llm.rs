@@ -324,7 +324,9 @@ impl LlmContext {
             Some(tools) => {
                 let mut runner =
                     ente_ensu::conversation::ContextRunner::begin(&self.handle, &mut sink);
-                tools.0.generate(&mut runner, request.into(), &mut sink)
+                tools
+                    .0
+                    .generate(&mut runner, request.into(), &mut sink, &chrono::Local)
             }
             None => self.handle.generate_chat_stream(request.into(), &mut sink),
         }

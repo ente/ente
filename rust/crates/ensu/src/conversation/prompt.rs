@@ -72,13 +72,14 @@ pub(super) fn save_prepared_reply<B: Backend>(
     prepared: &mut PreparationResult,
     reply: Answer<'_>,
     can_finish: &dyn Fn(&crate::llm::ToolOutcome, i64) -> bool,
+    zone: &impl chrono::TimeZone,
 ) -> db::Result<FinishedTurn> {
     if prepared.is_saved() {
         return Err(db::Error::UnsupportedOperation(
             "Answer already saved".into(),
         ));
     }
-    let finished = save_reply(db, snapshot, reply, can_finish)?;
+    let finished = save_reply(db, snapshot, reply, can_finish, zone)?;
     prepared.saved = true;
     if finished.reply.tool_turn.is_none()
         && let Some(cache) = cache
@@ -94,6 +95,7 @@ fn save_reply<B: Backend>(
     snapshot: &ConversationSnapshot,
     reply: Answer<'_>,
     can_finish: &dyn Fn(&crate::llm::ToolOutcome, i64) -> bool,
+    zone: &impl chrono::TimeZone,
 ) -> db::Result<FinishedTurn> {
     let mut warnings = Vec::new();
     let text = if reply.outcome.is_some_and(|outcome| {
@@ -121,6 +123,7 @@ fn save_reply<B: Backend>(
         reply.attachments,
         reply.outcome,
         can_finish,
+        zone,
     )?;
     if finished.tool_turn.is_none() && !reply.passages.is_empty() {
         match db.save_answer_evidence(snapshot, finished.message.uuid, reply.passages) {

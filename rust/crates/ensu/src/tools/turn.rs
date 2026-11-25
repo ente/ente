@@ -147,10 +147,11 @@ pub(crate) fn turn_tools<B: Backend>(
     db: &ChatDb<B>,
     snapshot: &ConversationSnapshot,
     user_text: &str,
+    zone: &impl chrono::TimeZone,
 ) -> Result<TurnTools> {
     let messages = snapshot.messages();
     let (request, applied) = request_text(db, db.reader(), messages, user_text)?;
-    let mut tools = tool::request(db, snapshot.todos(), request);
+    let mut tools = tool::request(db, snapshot.todos(), request, zone);
     if applied {
         tools.allowed = Some(Vec::new());
     }
@@ -184,8 +185,9 @@ pub fn finish_reply<B: Backend>(
     text: &str,
     attachments: Vec<AttachmentMeta>,
     tools: Option<&ToolOutcome>,
+    zone: &impl chrono::TimeZone,
 ) -> Result<FinishedReply> {
-    finish_reply_inner(db, snapshot, text, attachments, tools, &|_, _| true)
+    finish_reply_inner(db, snapshot, text, attachments, tools, &|_, _| true, zone)
 }
 
 pub(crate) fn finish_reply_inner<B: Backend>(
@@ -195,6 +197,7 @@ pub(crate) fn finish_reply_inner<B: Backend>(
     attachments: Vec<AttachmentMeta>,
     tools: Option<&ToolOutcome>,
     can_finish: &dyn Fn(&ToolOutcome, i64) -> bool,
+    zone: &impl chrono::TimeZone,
 ) -> Result<FinishedReply> {
     let user_text = snapshot
         .messages()
@@ -202,7 +205,7 @@ pub(crate) fn finish_reply_inner<B: Backend>(
         .map_or("", |message| message.text.as_str());
     let (_, applied) = request_text(db, db.reader(), snapshot.messages(), user_text)?;
     if applied || tools.is_some_and(|tools| !tools.calls.is_empty()) {
-        let finished = apply_tool_calls(db, snapshot, tools, text, can_finish)?;
+        let finished = apply_tool_calls(db, snapshot, tools, text, can_finish, zone)?;
         db.tools_changed();
         return Ok(finished);
     }
@@ -226,6 +229,7 @@ fn apply_tool_calls<B: Backend>(
     tools: Option<&ToolOutcome>,
     reply_text: &str,
     can_finish: &dyn Fn(&ToolOutcome, i64) -> bool,
+    zone: &impl chrono::TimeZone,
 ) -> Result<FinishedReply> {
     let created_at = db.now_us();
     let request = snapshot
@@ -267,7 +271,7 @@ fn apply_tool_calls<B: Backend>(
                 tools.map_or(&[], |tools| &tools.calls),
                 (snapshot.todos(), user_text),
                 shown,
-                created_at / 1000,
+                (created_at / 1000, zone),
                 tools.and_then(|tools| tools.call_probability),
             )?
         };

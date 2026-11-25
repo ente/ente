@@ -196,6 +196,7 @@ impl ConversationPreparation {
                 output: input.max_tokens.map(|value| value as usize),
                 candidates,
             },
+            &chrono::Local,
         )
         .map_err(error)?;
         let mut effects = NativeEffects {
@@ -269,6 +270,7 @@ impl ConversationPreparation {
                 &work.snapshot,
                 &text,
                 attachments.into_iter().map(Into::into).collect(),
+                &chrono::Local,
             )
             .map_err(|cause| match cause {
                 db::Error::Refused(refusal) => ConversationError::Refused {

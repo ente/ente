@@ -175,8 +175,15 @@ fn chat_calls_save_list_and_complete_tasks_with_one_reply_each() {
         )
         .unwrap();
     chat.path.push(thanks.uuid);
-    let welcome =
-        tool_turn::finish_reply(&db, &chat.snapshot(), "You're welcome.", vec![], None).unwrap();
+    let welcome = tool_turn::finish_reply(
+        &db,
+        &chat.snapshot(),
+        "You're welcome.",
+        vec![],
+        None,
+        &zone(),
+    )
+    .unwrap();
     chat.path.push(welcome.message.uuid);
     let later = chat.send(
         "Mark the first one done",
@@ -514,7 +521,7 @@ fn prepared_completions_keep_their_original_targets() {
         let snapshot = db
             .conversation_snapshot(chat.session, &[user.uuid])
             .unwrap();
-        let tools = tool_turn::turn_tools(&db, &snapshot, &user.text)
+        let tools = tool_turn::turn_tools(&db, &snapshot, &user.text, &zone())
             .unwrap()
             .tools;
         match change {
@@ -544,7 +551,7 @@ fn prepared_completions_keep_their_original_targets() {
         }
         assert_eq!(
             tools,
-            tool_turn::turn_tools(&db, &snapshot, &user.text)
+            tool_turn::turn_tools(&db, &snapshot, &user.text, &zone())
                 .unwrap()
                 .tools
         );
@@ -583,7 +590,8 @@ fn prepared_completions_keep_their_original_targets() {
             );
             assert_eq!(db.list_todos().unwrap(), before, "{change}");
             assert!(tool_turn::states(&db, chat.session).unwrap().is_empty());
-            tool_turn::finish_reply(&db, &snapshot, "You're welcome.", vec![], None).unwrap();
+            tool_turn::finish_reply(&db, &snapshot, "You're welcome.", vec![], None, &zone())
+                .unwrap();
         }
     }
     let db = db();
@@ -615,7 +623,7 @@ fn follow_up_only_runs_for_a_remaining_action() {
     let mut chat = Chat::new(&db);
     chat.user(user);
     let snapshot = chat.snapshot();
-    let tools = tool_turn::turn_tools(&db, &snapshot, user)
+    let tools = tool_turn::turn_tools(&db, &snapshot, user, &zone())
         .unwrap()
         .tools
         .unwrap();
@@ -634,7 +642,7 @@ fn follow_up_only_runs_for_a_remaining_action() {
         call_probability: SURE,
         ..Default::default()
     };
-    let next = follow_up.next(&request, &listed).unwrap();
+    let next = follow_up.next(&request, &listed, &zone()).unwrap();
     assert_eq!(
         db.list_todos().unwrap(),
         [bank.clone(), bread.clone(), research, groceries, sequenced]
@@ -667,7 +675,7 @@ fn follow_up_only_runs_for_a_remaining_action() {
         "List tasks about \"draft and mark complete\"",
     ] {
         request.tools.as_mut().unwrap().quote_source = user.to_owned();
-        assert!(follow_up.next(&request, &listed).is_none());
+        assert!(follow_up.next(&request, &listed, &zone()).is_none());
     }
     for separator in COMMAND_SEPARATORS {
         for user in [
@@ -676,12 +684,18 @@ fn follow_up_only_runs_for_a_remaining_action() {
             format!("List tasks about milk{separator}mark bread done"),
         ] {
             request.tools.as_mut().unwrap().quote_source = user.clone();
-            assert!(follow_up.next(&request, &listed).is_some(), "{user}");
+            assert!(
+                follow_up.next(&request, &listed, &zone()).is_some(),
+                "{user}"
+            );
         }
         for (open, close) in [("'", "'"), ("\"", "\""), ("“", "”"), ("‘", "’")] {
             let user = format!("List tasks about {open}Research{separator}save passwords{close}");
             request.tools.as_mut().unwrap().quote_source = user.clone();
-            assert!(follow_up.next(&request, &listed).is_none(), "{user}");
+            assert!(
+                follow_up.next(&request, &listed, &zone()).is_none(),
+                "{user}"
+            );
         }
     }
     for user in [
@@ -694,11 +708,14 @@ fn follow_up_only_runs_for_a_remaining_action() {
         "List research and save passwords today",
     ] {
         request.tools.as_mut().unwrap().quote_source = user.to_owned();
-        assert!(follow_up.next(&request, &listed).is_some(), "{user}");
+        assert!(
+            follow_up.next(&request, &listed, &zone()).is_some(),
+            "{user}"
+        );
     }
     request.tools.as_mut().unwrap().quote_source =
         "List Read reports and save files then mark notes done".to_owned();
-    let next = follow_up.next(&request, &listed).unwrap();
+    let next = follow_up.next(&request, &listed, &zone()).unwrap();
     assert_eq!(
         next.tools.as_ref().unwrap().allowed,
         Some(vec![SAVE_TOOL.into(), COMPLETE_TOOL.into()])
@@ -713,12 +730,13 @@ fn follow_up_only_runs_for_a_remaining_action() {
                     calls: vec![listed.calls[0].clone(), complete],
                     call_probability: SURE,
                     ..Default::default()
-                }
+                },
+                &zone()
             )
             .is_none()
     );
     request.tools.as_mut().unwrap().max_calls = 1;
-    assert!(follow_up.next(&request, &listed).is_none());
+    assert!(follow_up.next(&request, &listed, &zone()).is_none());
 }
 
 #[test]
@@ -1096,7 +1114,7 @@ fn unsure_calls_offer_changes_and_make_them_once_confirmed() {
         UNSURE,
     );
     chat.back();
-    tool_turn::finish_reply(&db, &chat.snapshot(), "Tea is nice.", vec![], None).unwrap();
+    tool_turn::finish_reply(&db, &chat.snapshot(), "Tea is nice.", vec![], None, &zone()).unwrap();
     assert!(tool_turn::confirm(&db, replaced.reply.uuid).is_err());
     chat.back();
 

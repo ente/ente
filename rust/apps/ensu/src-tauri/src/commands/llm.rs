@@ -660,7 +660,7 @@ pub async fn llm_generate_chat_stream(
             let mut sink = EventSink::new(window.clone());
             if let Some(turn) = turn {
                 let mut runner = ente_ensu::conversation::ContextRunner::begin(&context, &mut sink);
-                turn.generate(&mut runner, request, &mut sink)
+                turn.generate(&mut runner, request, &mut sink, &chrono::Local)
             } else {
                 request.tools = None;
                 context.generate_chat_stream(request, &mut sink)

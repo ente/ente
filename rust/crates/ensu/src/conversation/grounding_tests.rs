@@ -789,6 +789,7 @@ fn grounding_cache_publishes_only_saved_answers_and_preserves_evidence_positions
                 outcome: None,
             },
             &|_, _| true,
+            &crate::tools::test_support::zone(),
         )
     };
     let snapshot = |history: &[Message]| {

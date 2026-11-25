@@ -119,6 +119,7 @@ pub fn run_turn(
                 max_utf8_bytes: 0,
             },
         },
+        &zone(),
     )
     .unwrap()
     .prepare(Some(cache.clone()), &mut ModelEffects(context))
@@ -144,13 +145,20 @@ pub fn run_turn(
     };
     let mut runner = ContextRunner::begin(context, &mut sink);
     let summary = turn
-        .generate(&mut runner, request, &mut sink)
+        .generate(&mut runner, request, &mut sink, &zone())
         .unwrap_or_else(|error| panic!("generation failed for {:?}: {error}", user.text));
-    let finished = turn.finish(db, snapshot, &reply, vec![]).unwrap().reply;
+    let finished = turn
+        .finish(db, snapshot, &reply, vec![], &zone())
+        .unwrap()
+        .reply;
     TurnRun {
         summary,
         reply,
         finished,
         events,
     }
+}
+
+pub fn zone() -> chrono::FixedOffset {
+    chrono::FixedOffset::east_opt(5 * 3600 + 30 * 60).unwrap()
 }

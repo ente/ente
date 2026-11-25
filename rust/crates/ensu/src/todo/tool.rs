@@ -20,8 +20,13 @@ fn same_task(current: &Todo, left: &Todo) -> bool {
         && current.completed_at_ms == left.completed_at_ms
 }
 
-pub(crate) fn request<B: Backend>(db: &ChatDb<B>, todos: &[Todo], user_text: &str) -> ToolRequest {
-    let open = todo::select_tasks(todos, ListFilter::Open, None, db.now_ms(), &chrono::Local);
+pub(crate) fn request<B: Backend>(
+    db: &ChatDb<B>,
+    todos: &[Todo],
+    user_text: &str,
+    zone: &impl chrono::TimeZone,
+) -> ToolRequest {
+    let open = todo::select_tasks(todos, ListFilter::Open, None, db.now_ms(), zone);
     let titles: Vec<&str> = open.iter().map(|todo| todo.title.as_str()).collect();
     todo::chat_tools(user_text, &titles)
 }
@@ -32,7 +37,7 @@ pub(crate) fn apply<B: Backend, T: BackendTx>(
     calls: &[ToolCall],
     (captured, user_text): (&[Todo], &str),
     shown: Vec<Uuid>,
-    now_ms: i64,
+    (now_ms, zone): (i64, &impl chrono::TimeZone),
     call_probability: Option<f32>,
 ) -> Result<(Vec<ToolCall>, String, TodoTurnData)> {
     let mut new_ids = Vec::new();
@@ -43,7 +48,7 @@ pub(crate) fn apply<B: Backend, T: BackendTx>(
             user_text,
             &shown,
             todos,
-            (now_ms, &chrono::Local),
+            (now_ms, zone),
             call_probability,
             &mut || {
                 if next == new_ids.len() {
@@ -63,9 +68,9 @@ pub(crate) fn apply<B: Backend, T: BackendTx>(
             return Err(Error::ConversationChanged);
         }
     }
-    let text = plan.text(plan.unsure, &chrono::Local);
+    let text = plan.text(plan.unsure, zone);
     let mut data = TodoTurnData {
-        responses: plan.responses(plan.unsure, &chrono::Local),
+        responses: plan.responses(plan.unsure, zone),
         shown: plan.shown.unwrap_or(shown),
         ..Default::default()
     };

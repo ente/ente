@@ -221,8 +221,9 @@ impl Turn {
         db: &'a ChatDb<B>,
         snapshot: &ConversationSnapshot,
         request: TurnRequest,
+        zone: &impl chrono::TimeZone,
     ) -> db::Result<TurnDraft<'a, B>> {
-        let tools = tool_turn::turn_tools(db, snapshot, &request.expected_user_text)?;
+        let tools = tool_turn::turn_tools(db, snapshot, &request.expected_user_text, zone)?;
         Ok(TurnDraft {
             db,
             input: TurnInput {
@@ -286,6 +287,7 @@ impl Turn {
         runner: &mut dyn PassRunner,
         mut request: ChatRequest,
         sink: &mut dyn EventSink,
+        zone: &impl chrono::TimeZone,
     ) -> Result<GenerationSummary, llm::Error> {
         {
             let mut state = self.state();
@@ -305,7 +307,7 @@ impl Turn {
             first
                 .tools
                 .as_ref()
-                .and_then(|outcome| session.follow_up.next(&request, outcome))
+                .and_then(|outcome| session.follow_up.next(&request, outcome, zone))
         }) {
             let output = request
                 .max_tokens
@@ -343,6 +345,7 @@ impl Turn {
         snapshot: &ConversationSnapshot,
         text: &str,
         attachments: Vec<AttachmentMeta>,
+        zone: &impl chrono::TimeZone,
     ) -> db::Result<FinishedTurn> {
         let mut state = self.state();
         let TurnState {
@@ -378,8 +381,9 @@ impl Turn {
             &|outcome, now| {
                 self.tools
                     .as_ref()
-                    .is_none_or(|tools| tools.follow_up.can_finish(outcome, now))
+                    .is_none_or(|tools| tools.follow_up.can_finish(outcome, now, zone))
             },
+            zone,
         )?;
         *outcome = None;
         Ok(finished)

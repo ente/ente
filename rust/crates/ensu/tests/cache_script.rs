@@ -111,7 +111,7 @@ fn scripted_conversation_reports_prompt_reuse_per_turn() {
         .unwrap()
         .and_hms_opt(14, 30, 0)
         .unwrap();
-    let now_us = todo::timing::local_millis(now, &chrono::Local).unwrap() * 1_000;
+    let now_us = todo::timing::local_millis(now, &support::zone()).unwrap() * 1_000;
     let db = ChatDb::new(
         SqliteBackend::open(temp.path().join("chat.sqlite")).unwrap(),
         vec![7; 32],

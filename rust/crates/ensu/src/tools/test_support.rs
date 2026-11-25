@@ -25,10 +25,14 @@ impl Clock for TestClock {
     }
 }
 
+pub(crate) fn zone() -> chrono::FixedOffset {
+    chrono::FixedOffset::east_opt(5 * 3600 + 30 * 60).unwrap()
+}
+
 pub(crate) fn local_ms(text: &str) -> i64 {
     timing::local_millis(
         NaiveDateTime::parse_from_str(text, "%Y-%m-%d %H:%M").unwrap(),
-        &chrono::Local,
+        &zone(),
     )
     .unwrap()
 }
@@ -90,7 +94,7 @@ pub(crate) fn finish(
         call_probability: confidence,
         ..Default::default()
     };
-    let finished = tool_turn::finish_reply(db, snapshot, "", vec![], Some(&outcome))?;
+    let finished = tool_turn::finish_reply(db, snapshot, "", vec![], Some(&outcome), &zone())?;
     Ok(ToolTurn {
         reply: finished.message,
         state: finished.tool_turn.unwrap(),

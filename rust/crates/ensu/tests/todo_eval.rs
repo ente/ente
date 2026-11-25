@@ -408,7 +408,7 @@ struct EvalClock;
 
 impl Clock for EvalClock {
     fn now_us(&self) -> i64 {
-        todo::timing::local_millis(now(), &chrono::Local).unwrap() * 1000
+        todo::timing::local_millis(now(), &support::zone()).unwrap() * 1000
     }
 }
 
@@ -431,7 +431,7 @@ impl ConversationCase {
                 let due_at = task.due_at.as_ref().map(|at| {
                     let local =
                         chrono::NaiveDateTime::parse_from_str(at, "%Y-%m-%d %H:%M").unwrap();
-                    todo::timing::local_millis(local, &chrono::Local).unwrap()
+                    todo::timing::local_millis(local, &support::zone()).unwrap()
                 });
                 let stored = db.create_todo(&task.title, due_at).unwrap();
                 if task.completed {
@@ -472,6 +472,7 @@ impl ConversationCase {
                             call_probability: Some(1.0),
                             ..Default::default()
                         }),
+                        &support::zone(),
                     )
                     .unwrap()
                     .message
@@ -524,9 +525,15 @@ impl ConversationCase {
 
     fn finish(&self, case: &Case, outcome: &llm::ToolOutcome, reply: &str) -> Recorded {
         let before = self.db.list_todos().unwrap();
-        let finished =
-            tool_turn::finish_reply(&self.db, &self.snapshot, reply, vec![], Some(outcome))
-                .unwrap();
+        let finished = tool_turn::finish_reply(
+            &self.db,
+            &self.snapshot,
+            reply,
+            vec![],
+            Some(outcome),
+            &support::zone(),
+        )
+        .unwrap();
         let changed = self.db.list_todos().unwrap() != before;
         self.record(case, outcome, reply, finished, changed)
     }
@@ -581,7 +588,7 @@ impl ConversationCase {
                     .map(|task| TaskState {
                         completed: !task.is_open(),
                         due_at: task.due_at_ms.map(|at| {
-                            todo::timing::local_time(at, &chrono::Local)
+                            todo::timing::local_time(at, &support::zone())
                                 .unwrap()
                                 .format("%Y-%m-%d %H:%M")
                                 .to_string()
@@ -1322,6 +1329,7 @@ fn recorded_model_calls_plan_the_same() {
                 output: Some(160),
                 candidates: GroundingCandidates::new(vec![], vec![], 0).unwrap(),
             },
+            &support::zone(),
         )
         .unwrap()
         .prepare(None, &mut ReplayEffects)
@@ -1335,10 +1343,11 @@ fn recorded_model_calls_plan_the_same() {
             &mut Replay(Some((outcome.clone(), &record.reply))),
             request,
             &mut |_| {},
+            &support::zone(),
         )
         .unwrap();
         let finished = turn
-            .finish(db, snapshot, &record.reply, vec![])
+            .finish(db, snapshot, &record.reply, vec![], &support::zone())
             .unwrap()
             .reply;
         let changed = db.list_todos().unwrap() != before;
