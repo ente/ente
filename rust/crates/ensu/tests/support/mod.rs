@@ -1,7 +1,9 @@
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use ente_ensu::conversation::{
-    ConversationState, Effects, GroundingCache, GroundingCandidates, PrepareError, Reply, TurnInput,
+    ContextRunner, ConversationState, Effects, GroundingCache, GroundingCandidates, PrepareError,
+    Turn, TurnRequest,
 };
 use ente_ensu::db::chat::{ConversationSnapshot, FinishedReply};
 use ente_ensu::db::{ChatDb, SqliteBackend};
@@ -92,77 +94,58 @@ pub struct TurnRun {
 pub fn run_turn(
     db: &ChatDb<SqliteBackend>,
     context: &Context,
-    cache: &GroundingCache,
+    cache: &Arc<GroundingCache>,
     snapshot: &ConversationSnapshot,
     system: &str,
     output: usize,
-    tune: impl FnOnce(&mut ChatRequest),
+    tune: impl FnOnce(&mut ToolRequest),
 ) -> TurnRun {
     let user = snapshot.messages().last().unwrap();
-    let mut effects = ModelEffects(context);
-    let mut prepared = cache
-        .prepare_turn(
-            TurnInput {
-                session: snapshot.session_uuid(),
-                messages: snapshot.messages().to_vec(),
-                expected_user_text: user.text.clone(),
-                system: system.to_owned(),
-                current: user.text.clone(),
-                history_query: None,
-                context: context.context_size() as usize,
-                output: Some(output),
-                state: snapshot.state().cloned(),
-                candidates: GroundingCandidates {
-                    referenced: Vec::new(),
-                    searched: Vec::new(),
-                    max_utf8_bytes: 0,
-                },
-                tools: db.turn_tools(snapshot, &user.text).unwrap(),
+    let mut turn = Turn::begin(
+        db,
+        snapshot,
+        TurnRequest {
+            session: snapshot.session_uuid(),
+            expected_user_text: user.text.clone(),
+            system: system.to_owned(),
+            current: user.text.clone(),
+            history_query: None,
+            context: context.context_size() as usize,
+            output: Some(output),
+            candidates: GroundingCandidates {
+                referenced: Vec::new(),
+                searched: Vec::new(),
+                max_utf8_bytes: 0,
             },
-            &mut effects,
-        )
-        .unwrap();
-    let mut result = prepared.preparation.run(&mut effects).unwrap();
-    effects.check_current().unwrap();
-    let mut request = ChatRequest {
-        messages: result.messages.clone(),
-        tools: prepared.tools,
+        },
+    )
+    .unwrap()
+    .prepare(Some(cache.clone()), &mut ModelEffects(context))
+    .unwrap();
+    if let Some(tools) = turn.tools_mut() {
+        tune(tools);
+    }
+    let request = ChatRequest {
+        messages: turn.messages(),
         temperature: Some(0.0),
-        max_tokens: Some(prepared.budget.output.try_into().unwrap()),
+        max_tokens: Some(turn.max_tokens().try_into().unwrap()),
         ..Default::default()
     };
-    tune(&mut request);
-    let exchange = request
-        .tools
-        .clone()
-        .map(|tools| db.tool_exchange(snapshot, tools));
     let mut events = Vec::new();
     let mut reply = String::new();
     let started = Instant::now();
-    let summary = context
-        .generate_with_tools(request, exchange.as_ref(), &mut |event| {
-            let elapsed = started.elapsed();
-            if let GenerationEvent::Text { text, .. } = &event {
-                reply.push_str(text);
-            }
-            events.push((elapsed, event));
-        })
+    let mut sink = |event| {
+        let elapsed = started.elapsed();
+        if let GenerationEvent::Text { text, .. } = &event {
+            reply.push_str(text);
+        }
+        events.push((elapsed, event));
+    };
+    let mut runner = ContextRunner::begin(context, &mut sink);
+    let summary = turn
+        .generate(&mut runner, request, &mut sink)
         .unwrap_or_else(|error| panic!("generation failed for {:?}: {error}", user.text));
-    let finished = cache
-        .finish(
-            db,
-            snapshot,
-            &mut result,
-            Reply {
-                text: &reply,
-                sources: &[],
-                passages: vec![],
-                attachments: vec![],
-                tools: exchange.as_ref(),
-            },
-        )
-        .unwrap()
-        .reply;
+    let finished = turn.finish(db, snapshot, &reply, vec![]).unwrap().reply;
     TurnRun {
         summary,
         reply,

@@ -3,10 +3,12 @@
 
 use std::sync::Arc;
 
-use ente_ensu::conversation::GroundingCache;
+use ente_ensu::conversation::{
+    self, GroundingCache, GroundingCandidates, PrepareError, Turn, TurnRequest,
+};
 use ente_ensu::db::chat::{Confirm, ConversationSnapshot, FinishedReply};
 use ente_ensu::db::{ChatDb, Clock, RandomUuidGen, SqliteBackend};
-use ente_ensu::llm::{self, ChatMessage, ToolCall};
+use ente_ensu::llm::{self, ChatMessage, ChatRequest, ToolCall, ToolRequest};
 use ente_ensu::todo;
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -781,14 +783,12 @@ fn todo_tool_calls_meet_accuracy_targets() {
         let run = support::run_turn(
             &conversation.db,
             &context,
-            &GroundingCache::default(),
+            &Arc::<GroundingCache>::default(),
             &conversation.snapshot,
             &system,
             160,
-            |request| {
-                if let Some(probability) = probability
-                    && let Some(tools) = request.tools.as_mut()
-                {
+            |tools| {
+                if let Some(probability) = probability {
                     tools.min_call_probability = probability;
                 }
             },
@@ -1208,6 +1208,77 @@ fn labelled_cases_parse_and_their_deadlines_resolve() {
     }
 }
 
+struct ReplayEffects;
+
+impl conversation::Effects for ReplayEffects {
+    fn check_current(&mut self) -> Result<(), PrepareError> {
+        Ok(())
+    }
+
+    fn measure(
+        &mut self,
+        messages: &[ChatMessage],
+        _: Option<&ToolRequest>,
+    ) -> Result<usize, PrepareError> {
+        Ok(messages.iter().map(|message| message.content.len()).sum())
+    }
+
+    fn summarize(
+        &mut self,
+        _: Vec<ChatMessage>,
+        _: usize,
+    ) -> Result<(String, llm::FinishReason), PrepareError> {
+        panic!("replay history must fit without summarization")
+    }
+
+    fn checkpoint(&mut self, _: &conversation::ConversationState) -> Result<(), PrepareError> {
+        panic!("replay history must fit without checkpoints")
+    }
+}
+
+struct Replay<'a>(Option<(llm::ToolOutcome, &'a str)>);
+
+impl conversation::PassRunner for Replay<'_> {
+    fn context_size(&self) -> usize {
+        4096
+    }
+
+    fn measure(&mut self, request: &ChatRequest) -> Result<usize, llm::Error> {
+        Ok(request
+            .messages
+            .iter()
+            .map(|message| message.content.len())
+            .sum())
+    }
+
+    fn pass(
+        &mut self,
+        _: ChatRequest,
+        sink: &mut dyn llm::EventSink,
+    ) -> Result<llm::GenerationSummary, llm::Error> {
+        let (outcome, reply) = self.0.take().unzip();
+        if let Some(reply) = reply.filter(|text| !text.is_empty()) {
+            sink.add(llm::GenerationEvent::Text {
+                job_id: 1,
+                text: reply.into(),
+                token_id: None,
+            });
+        }
+        Ok(llm::GenerationSummary {
+            job_id: 1,
+            prompt_tokens: None,
+            generated_tokens: Some(0),
+            total_time_ms: None,
+            finish_reason: llm::FinishReason::Eog,
+            tools: outcome,
+        })
+    }
+
+    fn cancelled(&self) -> bool {
+        false
+    }
+}
+
 #[test]
 fn recorded_model_calls_plan_the_same() {
     let cases: std::collections::BTreeMap<String, Case> = include_str!("data/todo_eval.jsonl")
@@ -1234,9 +1305,46 @@ fn recorded_model_calls_plan_the_same() {
         let outcome = llm::ToolOutcome {
             calls: record.raw_calls.clone(),
             call_probability: record.call_probability,
+            abstained: record.abstained,
+            rejected_steps: record.rejected_steps,
+        };
+        let db = &conversation.db;
+        let snapshot = &conversation.snapshot;
+        let before = db.list_todos().unwrap();
+        let turn = Turn::begin(
+            db,
+            snapshot,
+            TurnRequest {
+                session: snapshot.session_uuid(),
+                system: support::system_prompt(),
+                current: case.user.clone(),
+                expected_user_text: case.user.clone(),
+                history_query: None,
+                context: 4096,
+                output: Some(160),
+                candidates: GroundingCandidates::new(vec![], vec![], 0).unwrap(),
+            },
+        )
+        .unwrap()
+        .prepare(None, &mut ReplayEffects)
+        .unwrap();
+        let request = ChatRequest {
+            messages: turn.messages(),
+            max_tokens: Some(160),
             ..Default::default()
         };
-        let result = conversation.finish(case, &outcome, &record.reply);
+        turn.generate(
+            &mut Replay(Some((outcome.clone(), &record.reply))),
+            request,
+            &mut |_| {},
+        )
+        .unwrap();
+        let finished = turn
+            .finish(db, snapshot, &record.reply, vec![])
+            .unwrap()
+            .reply;
+        let changed = db.list_todos().unwrap() != before;
+        let result = conversation.record(case, &outcome, &record.reply, finished, changed);
         tally.add(case, &outcome, &result, &completion);
         assert_eq!(
             (result.calls, result.unsure, result.text, result.state),

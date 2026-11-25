@@ -104,7 +104,7 @@ fn write_line(output: &mut impl Write, value: &Value) {
 #[ignore = "requires ENSU_TEST_MODEL"]
 fn scripted_conversation_reports_prompt_reuse_per_turn() {
     let context = support::model_context(CONTEXT_SIZE);
-    let cache = GroundingCache::default();
+    let cache = Arc::<GroundingCache>::default();
     let system = support::system_prompt();
     let temp = tempfile::tempdir().unwrap();
     let now = chrono::NaiveDate::from_ymd_opt(2026, 11, 12)
