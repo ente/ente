@@ -2,6 +2,7 @@ import "dart:async";
 import "dart:math";
 
 import "package:flutter/material.dart";
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_music.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
@@ -72,6 +73,7 @@ class RewindChromeOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final copy = RewindCopy.of(context);
     final wordmark = chrome.wordmark;
     return Stack(
       children: [
@@ -80,7 +82,7 @@ class RewindChromeOverlay extends StatelessWidget {
           right: RewindChromeLayout.sideInset,
           child: RewindRoundButton(
             glyph: RewindGlyph.close,
-            label: "Close",
+            label: copy.close,
             size: 36,
             ring: false,
             onTap: onClose,
@@ -106,7 +108,7 @@ class RewindChromeOverlay extends StatelessWidget {
               listenable: music,
               builder: (context, _) => RewindRoundButton(
                 glyph: music.muted ? RewindGlyph.muted : RewindGlyph.sound,
-                label: music.muted ? "Play music" : "Mute music",
+                label: music.muted ? copy.playMusic : copy.muteMusic,
                 onTap: music.toggleMuted,
               ),
             ),
@@ -138,7 +140,7 @@ class RewindChromeOverlay extends StatelessWidget {
           child: _PopButton(
             buttonKey: shareKey,
             glyph: RewindGlyph.share,
-            label: "Share",
+            label: copy.share,
             onTap: onShare,
           ),
         ),
@@ -150,7 +152,7 @@ class RewindChromeOverlay extends StatelessWidget {
             child: _PopButton(
               buttonKey: videoKey,
               glyph: RewindGlyph.video,
-              label: "Share video",
+              label: copy.shareVideo,
               onTap: onShareVideo,
             ),
           ),
@@ -264,7 +266,7 @@ class _NextArrowState extends State<_NextArrow>
               Transform.translate(offset: Offset(0, _drop), child: child),
           child: RewindRoundButton(
             glyph: RewindGlyph.next,
-            label: "Next card",
+            label: RewindCopy.of(context).nextCard,
             onTap: widget.onTap,
           ),
         ),
@@ -288,7 +290,7 @@ class RewindProgressRail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: "Page ${index + 1} of $count",
+      label: RewindCopy.of(context).pageOf(index + 1, count),
       child: ExcludeSemantics(
         child: Column(
           mainAxisSize: MainAxisSize.min,

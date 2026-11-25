@@ -2,6 +2,7 @@ import "dart:math";
 
 import "package:flutter/material.dart";
 import "package:photos/models/file/file.dart";
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
@@ -13,8 +14,7 @@ import "package:photos/ui/rewind/widgets/rewind_stickers.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
 
 class SetupHeadline {
-  const SetupHeadline(
-    this.text, {
+  const SetupHeadline({
     required this.at,
     required this.size,
     this.height = 0.95,
@@ -23,7 +23,6 @@ class SetupHeadline {
     this.delayMs = 0,
   });
 
-  final String text;
   final Offset at;
   final double size;
   final double height;
@@ -33,8 +32,7 @@ class SetupHeadline {
 }
 
 class SetupCallout {
-  const SetupCallout(
-    this.text, {
+  const SetupCallout({
     required this.center,
     this.turn = 3,
     this.size = 38.72,
@@ -42,7 +40,6 @@ class SetupCallout {
     this.onTop = false,
   });
 
-  final String text;
   final Offset center;
   final double turn;
   final double size;
@@ -83,6 +80,7 @@ class SetupArt {
 class SetupPage extends RewindPage {
   const SetupPage({
     required this.key,
+    required this.setup,
     required this.color,
     required this.pattern,
     required this.ink,
@@ -94,6 +92,7 @@ class SetupPage extends RewindPage {
 
   @override
   final String key;
+  final RewindSetup setup;
   @override
   final RewindChrome chrome;
   final Color color;
@@ -118,15 +117,16 @@ class SetupPage extends RewindPage {
     double position, {
     required bool isActive,
   }) {
-    final calloutLayer = _callout(position, isActive);
+    final lines = RewindCopy.of(context).setup(setup);
+    final calloutLayer = _callout(lines.callout, position, isActive);
     return Stack(
       fit: StackFit.expand,
       children: [
         RewindBackdrop(color: color, pattern: RewindZigzag(pattern)),
         RewindStage(
           children: [
-            for (final headline in headlines)
-              _headline(headline, position, isActive),
+            for (final (i, headline) in headlines.indexed)
+              _headline(headline, lines.headlines[i], position, isActive),
             if (!callout.onTop) calloutLayer,
             _art(position, isActive),
             if (callout.onTop) calloutLayer,
@@ -136,13 +136,18 @@ class SetupPage extends RewindPage {
     );
   }
 
-  Widget _headline(SetupHeadline headline, double position, bool isActive) {
+  Widget _headline(
+    SetupHeadline headline,
+    String text,
+    double position,
+    bool isActive,
+  ) {
     final style = RewindTextStyles.display(
       headline.size,
       color: ink,
       height: headline.height,
     );
-    final lines = "\n".allMatches(headline.text).length + 1;
+    final lines = "\n".allMatches(text).length + 1;
     return Positioned(
       left: headline.at.dx,
       top: headline.at.dy,
@@ -158,7 +163,7 @@ class SetupPage extends RewindPage {
             alignment: Alignment.topLeft,
             child: RewindFitWidth(
               width: headline.width,
-              child: Text(headline.text, style: style, softWrap: false),
+              child: Text(text, style: style, softWrap: false),
             ),
           ),
         ),
@@ -166,7 +171,7 @@ class SetupPage extends RewindPage {
     );
   }
 
-  Widget _callout(double position, bool isActive) {
+  Widget _callout(String text, double position, bool isActive) {
     const box = Size(380, 140);
     return Positioned.fromRect(
       rect: Rect.fromCenter(
@@ -187,7 +192,7 @@ class SetupPage extends RewindPage {
               child: RewindFitWidth(
                 width: box.width - 20,
                 alignment: Alignment.center,
-                child: RewindCallout(callout.text, size: callout.size),
+                child: RewindCallout(text, size: callout.size),
               ),
             ),
           ),

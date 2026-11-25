@@ -2,6 +2,7 @@ import "dart:math";
 
 import "package:flutter/material.dart";
 import "package:flutter/scheduler.dart";
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/pages/finale/finale_actions.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
@@ -79,13 +80,14 @@ class _FinaleCardState extends State<FinaleCard>
 
   @override
   Widget build(BuildContext context) {
+    final copy = RewindCopy.of(context);
     final still = MediaQuery.disableAnimationsOf(context);
     return Stack(
       fit: StackFit.expand,
       children: [
         IgnorePointer(
           child: Semantics(
-            label: "What a year!",
+            label: copy.finaleLabel,
             child: ExcludeSemantics(
               child: Stack(
                 fit: StackFit.expand,
@@ -103,7 +105,7 @@ class _FinaleCardState extends State<FinaleCard>
                       ),
                       _fire(),
                       _headline(
-                        "WHAT A",
+                        copy.finaleTop,
                         size: 81.731,
                         color: RewindColors.cream,
                         letterSpacing: -4.0865,
@@ -112,7 +114,7 @@ class _FinaleCardState extends State<FinaleCard>
                         delayMs: 0,
                       ),
                       _headline(
-                        "YEAR!",
+                        copy.finaleBottom,
                         size: 118.196,
                         color: const Color(0xFFFFCE00),
                         centerY: 314.02,

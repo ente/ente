@@ -7,6 +7,7 @@ import "package:flutter/material.dart";
 import "package:flutter/scheduler.dart";
 import "package:flutter/services.dart";
 import "package:photos/models/file/file.dart";
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
@@ -14,52 +15,11 @@ import "package:photos/ui/rewind/theme/rewind_colors.dart";
 import "package:photos/ui/rewind/theme/rewind_motion.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_hint.dart";
-import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo_frames.dart";
 import "package:photos/ui/rewind/widgets/rewind_pixels.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
-
-const _months = [
-  "JAN",
-  "FEB",
-  "MAR",
-  "APR",
-  "MAY",
-  "JUN",
-  "JUL",
-  "AUG",
-  "SEP",
-  "OCT",
-  "NOV",
-  "DEC",
-];
-
-const _monthNames = [
-  "JANUARY",
-  "FEBRUARY",
-  "MARCH",
-  "APRIL",
-  "MAY",
-  "JUNE",
-  "JULY",
-  "AUGUST",
-  "SEPTEMBER",
-  "OCTOBER",
-  "NOVEMBER",
-  "DECEMBER",
-];
-
-const _weekdays = [
-  "MONDAY",
-  "TUESDAY",
-  "WEDNESDAY",
-  "THURSDAY",
-  "FRIDAY",
-  "SATURDAY",
-  "SUNDAY",
-];
 
 class WarpPage extends RewindPage {
   WarpPage({
@@ -109,9 +69,6 @@ class WarpPage extends RewindPage {
 
   static DateTime _instant(EnteFile file) =>
       DateTime.fromMicrosecondsSinceEpoch(file.creationTime ?? 0);
-
-  static String dated(DateTime day) =>
-      "${day.day} ${_months[day.month - 1]} ${day.year}";
 
   @override
   String get key => pageKey;
@@ -201,6 +158,10 @@ class _Flight extends StatefulWidget {
 }
 
 class _FlightState extends State<_Flight> with TickerProviderStateMixin {
+  RewindCopy get _copy => RewindCopy.of(context);
+
+  String _dated(DateTime day) => _copy.shortDate(day.day, day.month, day.year);
+
   static const _printWidth = 228.0;
   static const _coastMs = 450.0;
   static const _pixelsPerUnit = 68.0;
@@ -678,7 +639,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                                       ),
                                     ),
                                 child: _Month(
-                                  _monthNames[passing.month - 1],
+                                  _copy.monthBanner(passing.month),
                                   key: ValueKey(passing.month),
                                 ),
                               ),
@@ -715,7 +676,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                                       decoded: widget.landing?[widget.first],
                                       key: _landingPhoto,
                                     ),
-                                    caption: WarpPage.dated(
+                                    caption: _dated(
                                       WarpPage.taken(widget.first),
                                     ),
                                   ),
@@ -754,7 +715,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                                         walls.files[picked],
                                         key: _pickedPhoto,
                                       ),
-                                      caption: WarpPage.dated(
+                                      caption: _dated(
                                         WarpPage.taken(walls.files[picked]),
                                       ),
                                     ),
@@ -814,9 +775,8 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                             ? _Caption(
                                 key: const ValueKey("first"),
                                 eyebrow: _ago,
-                                title: "IT STARTED HERE",
-                                body: "Your first photo of the year.",
-                                myBody: "My first photo of the year.",
+                                title: _copy.tunnelStartTitle,
+                                body: _copy.tunnelStartBody,
                               )
                             : const SizedBox(
                                 key: ValueKey("flying"),
@@ -911,8 +871,8 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
     double window(double ms, double from, double to) =>
         ((ms - from) / 260).clamp(0.0, 1.0) * ((to - ms) / 420).clamp(0.0, 1.0);
     final texts = [
-      "TAP OR SWIPE UP TO GO ON",
-      if (!_hasFlown) "SWIPE DOWN TO FLY BACK",
+      _copy.tunnelGoOnHint,
+      if (!_hasFlown) _copy.tunnelFlyBackHint,
     ];
     final turnMs = _landingTipsMs / texts.length;
     final clock = sinceLanding - _landingHintMs;
@@ -932,11 +892,9 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
     final day = WarpPage.taken(file);
     return _Caption(
       key: ValueKey(file),
-      eyebrow:
-          "A ${_weekdays[day.weekday - 1]} IN ${_monthNames[day.month - 1]}",
-      title: "REMEMBER THIS?",
-      body: "One moment from your year.",
-      myBody: "One moment from my year.",
+      eyebrow: _copy.tunnelMomentEyebrow(day),
+      title: _copy.tunnelMomentTitle,
+      body: _copy.tunnelMomentBody,
     );
   }
 
@@ -944,9 +902,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
     final days = DateTime.now()
         .difference(WarpPage._instant(widget.first))
         .inDays;
-    return days < 1
-        ? "EARLIER TODAY"
-        : "${rewindCounted(days, "DAY", "DAYS")} AGO";
+    return _copy.tunnelAgo(days);
   }
 }
 
@@ -955,14 +911,12 @@ class _Caption extends StatelessWidget {
     required this.eyebrow,
     required this.title,
     required this.body,
-    required this.myBody,
     super.key,
   });
 
   final String eyebrow;
   final String title;
-  final String body;
-  final String myBody;
+  final RewindLines body;
 
   @override
   Widget build(BuildContext context) {
@@ -987,8 +941,7 @@ class _Caption extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           RewindVoice(
-            you: body,
-            me: myBody,
+            body,
             builder: (text) => Text(text, style: RewindTextStyles.body(17)),
           ),
         ],
@@ -1030,7 +983,7 @@ class _Loading extends StatelessWidget {
         ],
       ),
       child: Text(
-        "LOADING THE TAPE",
+        RewindCopy.of(context).tunnelLoading,
         style: RewindTextStyles.display(15, height: 1.1),
       ),
     );
@@ -1061,7 +1014,10 @@ class _Again extends StatelessWidget {
             size: 20,
           ),
           const SizedBox(width: 4),
-          Text("FLY AGAIN", style: RewindTextStyles.display(15, height: 1.1)),
+          Text(
+            RewindCopy.of(context).tunnelFlyAgain,
+            style: RewindTextStyles.display(15, height: 1.1),
+          ),
         ],
       ),
     );

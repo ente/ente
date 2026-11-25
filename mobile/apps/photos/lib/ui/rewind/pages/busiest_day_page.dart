@@ -4,6 +4,7 @@ import "package:flutter/material.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/services/rewind/rewind_edition.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
@@ -13,40 +14,11 @@ import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
 import "package:photos/ui/rewind/widgets/rewind_elapsed.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
-import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo_frames.dart";
 import "package:photos/ui/rewind/widgets/rewind_reveal_layer.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
-
-const _months = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
-
-String _ordinal(int day) {
-  final teen = day % 100 >= 11 && day % 100 <= 13;
-  final suffix = teen
-      ? "th"
-      : switch (day % 10) {
-          1 => "st",
-          2 => "nd",
-          3 => "rd",
-          _ => "th",
-        };
-  return "$day$suffix";
-}
 
 class BusiestDayPage extends RewindPage {
   const BusiestDayPage(this.day, this.photos);
@@ -63,13 +35,12 @@ class BusiestDayPage extends RewindPage {
     double position, {
     required bool isActive,
   }) {
-    final month = _months[(day.month - 1).clamp(0, 11)];
-    final onDay = "On ${_ordinal(day.day)} $month";
-    final kicker = "$onDay, you took";
-    final count = rewindCount(day.photoCount);
-    const line = "A memorable day indeed!";
-    final date = "${day.day} ${month.substring(0, 3)} ${RewindEdition.year}"
-        .toUpperCase();
+    final copy = RewindCopy.of(context);
+    final month = (day.month - 1).clamp(0, 11) + 1;
+    final kicker = copy.busiestDayKicker(day.day, month);
+    final count = copy.number(day.photoCount);
+    final line = copy.busiestDayLine;
+    final date = copy.shortDate(day.day, month, RewindEdition.year);
     final split = photos.length >= 4;
     final upper = split
         ? [for (var i = 0; i < photos.length; i += 2) photos[i]]
@@ -89,9 +60,7 @@ class BusiestDayPage extends RewindPage {
               grain: 0.25,
             ),
             Semantics(
-              label:
-                  "$kicker ${rewindCounted(day.photoCount, "photo", "photos")}. "
-                  "$line",
+              label: "${kicker.you} ${copy.photos(day.photoCount)}. $line",
               child: ExcludeSemantics(
                 child: RewindStage(
                   children: [
@@ -126,8 +95,10 @@ class BusiestDayPage extends RewindPage {
                       active: isActive,
                       delayMs: 900,
                       child: RewindVoice(
-                        you: kicker.toUpperCase(),
-                        me: "$onDay, I took".toUpperCase(),
+                        (
+                          you: kicker.you.toUpperCase(),
+                          me: kicker.me.toUpperCase(),
+                        ),
                         builder: (text) => Text(
                           text,
                           style: RewindTextStyles.display(
@@ -152,7 +123,7 @@ class BusiestDayPage extends RewindPage {
                           fit: BoxFit.scaleDown,
                           child: _Count(
                             count: count,
-                            unit: day.photoCount == 1 ? "photo" : "photos",
+                            unit: copy.photoUnit(day.photoCount),
                           ),
                         ),
                       ),

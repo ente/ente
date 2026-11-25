@@ -3,7 +3,7 @@ import "dart:math";
 import "package:flutter/material.dart";
 import "package:flutter_svg/flutter_svg.dart";
 import "package:photos/models/file/file.dart";
-import "package:photos/services/rewind/rewind_edition.dart";
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
@@ -17,7 +17,6 @@ import "package:photos/ui/rewind/widgets/rewind_elapsed.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
 import "package:photos/ui/rewind/widgets/rewind_keyframes.dart";
 import "package:photos/ui/rewind/widgets/rewind_layer.dart";
-import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo_frames.dart";
 import "package:photos/ui/rewind/widgets/rewind_rive.dart";
@@ -65,6 +64,7 @@ class PhotosCountPage extends RewindPage {
     double position, {
     required bool isActive,
   }) {
+    final copy = RewindCopy.of(context);
     final number = RewindTextStyles.display(
       95.144,
       color: RewindColors.hotPink,
@@ -179,8 +179,7 @@ class PhotosCountPage extends RewindPage {
                   delayMs: 700,
                   child: Center(
                     child: RewindVoice(
-                      you: "IN ${RewindEdition.year}, YOU CLICKED",
-                      me: "IN ${RewindEdition.year}, I CLICKED",
+                      copy.photosCountKicker,
                       builder: (text) => Text(
                         text,
                         style: RewindTextStyles.display(
@@ -217,7 +216,7 @@ class PhotosCountPage extends RewindPage {
                                 children: [
                                   Opacity(
                                     opacity: 0,
-                                    child: big(rewindCount(count)),
+                                    child: big(copy.number(count)),
                                   ),
                                   RewindCountUp(
                                     value: count,
@@ -240,7 +239,7 @@ class PhotosCountPage extends RewindPage {
                             child: Transform.rotate(
                               angle: -1.7 * pi / 180,
                               child: RewindOutlinedText(
-                                count == 1 ? "memory" : "memories",
+                                copy.memoriesUnit(count),
                                 style: RewindTextStyles.display(
                                   44.228,
                                   color: RewindColors.white,

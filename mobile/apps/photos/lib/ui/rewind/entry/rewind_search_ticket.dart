@@ -4,6 +4,7 @@ import "package:flutter/material.dart";
 import "package:flutter/semantics.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/rewind/rewind_edition.dart";
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/entry/rewind_entry.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
@@ -20,11 +21,12 @@ class RewindSearchTicket extends StatelessWidget {
       builder: (context, _) {
         final entry = RewindEntry.current();
         if (entry == null || entry.dismissed) return const SizedBox.shrink();
+        final copy = RewindCopy.of(context);
         final action = entry.completed
-            ? "Watch again"
+            ? copy.watchAgain
             : entry.opened
-            ? "Continue"
-            : "Watch";
+            ? copy.resume
+            : copy.watch;
         return Dismissible(
           key: const ValueKey("rewind_search_ticket"),
           direction: DismissDirection.endToStart,
@@ -38,7 +40,7 @@ class RewindSearchTicket extends StatelessWidget {
               button: true,
               label: "Rewind ${RewindEdition.year}, $action",
               customSemanticsActions: {
-                const CustomSemanticsAction(label: "Dismiss"): entry.dismiss,
+                CustomSemanticsAction(label: copy.dismiss): entry.dismiss,
               },
               child: RewindPressable(
                 onTap: () => entry.open(context),

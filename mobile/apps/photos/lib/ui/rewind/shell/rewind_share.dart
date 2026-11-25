@@ -5,6 +5,7 @@ import "package:flutter/rendering.dart";
 import "package:flutter/widgets.dart";
 import "package:flutter_svg/flutter_svg.dart";
 import "package:path_provider/path_provider.dart";
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:share_plus/share_plus.dart";
@@ -96,22 +97,16 @@ class _RewindShareableState extends State<RewindShareable> {
 }
 
 class RewindVoice extends StatelessWidget {
-  const RewindVoice({
-    required this.you,
-    required this.me,
-    required this.builder,
-    super.key,
-  });
+  const RewindVoice(this.lines, {required this.builder, super.key});
 
-  final String you;
-  final String me;
+  final RewindLines lines;
   final Widget Function(String text) builder;
 
   @override
   Widget build(BuildContext context) => builder(
     RewindShareable.capturing(context) || RewindPageScope.reelOf(context)
-        ? me
-        : you,
+        ? lines.me
+        : lines.you,
   );
 }
 

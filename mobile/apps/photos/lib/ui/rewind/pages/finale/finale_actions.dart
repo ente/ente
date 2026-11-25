@@ -5,6 +5,7 @@ import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:photos/core/configuration.dart";
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
@@ -84,6 +85,7 @@ class _FinaleActionsState extends State<FinaleActions> {
 
   @override
   Widget build(BuildContext context) {
+    final copy = RewindCopy.of(context);
     final videoSaved = RewindPageScope.navigatorOf(context)?.videoSaved;
     final still = MediaQuery.disableAnimationsOf(context);
     final saveAtMs = widget.delayMs + _saveDelayMs;
@@ -105,7 +107,7 @@ class _FinaleActionsState extends State<FinaleActions> {
                       videoSaved ?? const AlwaysStoppedAnimation(false),
                   builder: (context, saved, _) => _ArtworkButton(
                     artwork: _saveArtwork,
-                    label: saved ? "Saved" : "Save video",
+                    label: saved ? copy.savedVideo : copy.saveVideo,
                     icon: saved
                         ? HugeIcons.strokeRoundedTick02
                         : HugeIcons.strokeRoundedDownload04,
@@ -128,7 +130,7 @@ class _FinaleActionsState extends State<FinaleActions> {
               child: _ArtworkButton(
                 key: _shareButton,
                 artwork: _shareArtwork,
-                label: "Share your Rewind",
+                label: copy.shareRewind,
                 icon: HugeIcons.strokeRoundedVideo01,
                 onTap: _share,
               ),

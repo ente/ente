@@ -4,6 +4,7 @@ import "package:flutter/material.dart";
 import "package:flutter_svg/flutter_svg.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/story/rewind_face.dart";
@@ -13,7 +14,6 @@ import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
 import "package:photos/ui/rewind/widgets/rewind_elapsed.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
-import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo_gallery.dart";
 import "package:photos/ui/rewind/widgets/rewind_reveal_layer.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
@@ -221,9 +221,10 @@ class NewFacesPage extends RewindPage {
     double position, {
     required bool isActive,
   }) {
+    final copy = RewindCopy.of(context);
     final count = newFaces.count;
-    final title = count == 1 ? "1 NEW FACE" : "${rewindCount(count)} NEW FACES";
-    const line = "debuted in your gallery this year.";
+    final title = copy.newFacesTitle(count);
+    final line = copy.newFacesLine(count);
     final layout = _layoutOf(min(faces.length, _bubbles.length));
     final centering = layout.centred
         ? _boundsOf(_bubbles).center - _boundsOf(layout.bubbles).center
@@ -237,7 +238,7 @@ class NewFacesPage extends RewindPage {
             pattern: RewindStripes(Color(0xFF3366D3)),
           ),
           Semantics(
-            label: "${title.toLowerCase()} $line",
+            label: "${title.toLowerCase()} ${line.you}",
             child: ExcludeSemantics(
               child: RewindStage(
                 children: [
@@ -311,8 +312,7 @@ class NewFacesPage extends RewindPage {
                     active: isActive,
                     delayMs: 1350,
                     child: RewindVoice(
-                      you: line,
-                      me: "debuted in my gallery this year.",
+                      line,
                       builder: (text) =>
                           Text(text, style: RewindTextStyles.body(17)),
                     ),
