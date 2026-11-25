@@ -318,7 +318,7 @@ class _ReviewMonthPageState extends State<ReviewMonthPage> {
             List.of(files),
             files.indexOf(file),
             _tagPrefix,
-            mode: DetailPageMode.minimalistic,
+            showGalleryFilmstrip: true,
           ),
         ),
       ),
