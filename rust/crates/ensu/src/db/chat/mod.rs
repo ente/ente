@@ -3,7 +3,6 @@ mod migrations;
 mod todo;
 mod tool_turn;
 pub use conversation::ConversationSnapshot;
-pub use tool_turn::{Confirm, FinishedReply, ToolTurnState, Undo};
 #[cfg(feature = "sqlite")]
 mod retired_storage;
 mod schema;
@@ -250,7 +249,9 @@ impl<B: Backend> ChatDb<B> {
                 self.write_message(tx, &message)?;
                 self.touch_session(tx, session_uuid, message.created_at)?;
                 match (message.sender, parent) {
-                    (crate::db::Sender::Other, Some(parent)) => self.withdraw_offers(tx, parent),
+                    (crate::db::Sender::Other, Some(parent)) => {
+                        crate::tools::turn::withdraw_offers(self, tx, parent)
+                    }
                     _ => Ok(false),
                 }
             })?

@@ -8,10 +8,10 @@ use std::sync::{
 use std::time::Duration;
 
 use ente_ensu::conversation::GroundingCache;
-use ente_ensu::db::chat::{Confirm, Undo};
 use ente_ensu::db::{ChatDb, Clock, SqliteBackend, UuidGen};
 use ente_ensu::llm::GenerationEvent;
 use ente_ensu::todo;
+use ente_ensu::tools::turn::{self as tool_turn, Confirm, Undo};
 use serde::Serialize;
 use serde_json::{Value, json};
 use uuid::Uuid;
@@ -192,14 +192,14 @@ fn scripted_conversation_reports_prompt_reuse_per_turn() {
                 (*label, true)
             }
             Step::UndoLast => {
-                let states = db.tool_turn_states(session.uuid).unwrap();
+                let states = tool_turn::states(&db, session.uuid).unwrap();
                 let target = path.iter().rev().find(|uuid| {
                     states
                         .get(uuid)
                         .is_some_and(|state| state.undo == Undo::Available)
                 });
                 if let Some(&reply) = target {
-                    db.undo_tool_turn(reply).unwrap();
+                    tool_turn::undo(&db, reply).unwrap();
                 }
                 write_line(
                     &mut output,
@@ -212,7 +212,7 @@ fn scripted_conversation_reports_prompt_reuse_per_turn() {
                 continue;
             }
             Step::Regenerate => {
-                let states = db.tool_turn_states(session.uuid).unwrap();
+                let states = tool_turn::states(&db, session.uuid).unwrap();
                 let allowed = path
                     .last()
                     .is_some_and(|reply| states.get(reply).is_none_or(|state| state.can_retry));

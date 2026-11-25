@@ -3,6 +3,7 @@ use crate::conversation::{ConversationState, Effects, PrepareError, TurnInput, p
 use crate::db::ChatDb;
 use crate::llm::{FinishReason, ToolCall, ToolOutcome, ToolValue};
 use crate::todo::{LIST_TOOL, SAVE_TOOL};
+use crate::tools::turn as tool_turn;
 
 struct NoGeneration;
 
@@ -59,19 +60,19 @@ fn stored_multi_call_turns_render_each_gemma_response_with_its_own_call() {
                 )
                 .unwrap();
             let snapshot = db.conversation_snapshot(session, &[user.uuid]).unwrap();
-            let reply = db
-                .finish_reply(
-                    &snapshot,
-                    "",
-                    vec![],
-                    Some(&ToolOutcome {
-                        calls: calls.clone(),
-                        call_probability: Some(confidence),
-                        ..Default::default()
-                    }),
-                )
-                .unwrap()
-                .message;
+            let reply = tool_turn::finish_reply(
+                &db,
+                &snapshot,
+                "",
+                vec![],
+                Some(&ToolOutcome {
+                    calls: calls.clone(),
+                    call_probability: Some(confidence),
+                    ..Default::default()
+                }),
+            )
+            .unwrap()
+            .message;
             let next = db
                 .insert_message(session, "self", "Thanks", Some(reply.uuid), vec![])
                 .unwrap();
@@ -80,12 +81,12 @@ fn stored_multi_call_turns_render_each_gemma_response_with_its_own_call() {
         let db = ChatDb::open_sqlite_with_defaults(&path, vec![7; 32]).unwrap();
         for stage in 0..3 {
             if stage == 1 && confidence < 0.9 {
-                db.confirm_tool_turn(reply).unwrap();
+                tool_turn::confirm(&db, reply).unwrap();
             } else if stage == 2 {
-                db.undo_tool_turn(reply).unwrap();
+                tool_turn::undo(&db, reply).unwrap();
             }
             let snapshot = db.conversation_snapshot(session, &ids).unwrap();
-            let tools = db.turn_tools(&snapshot, "Thanks").unwrap();
+            let tools = tool_turn::turn_tools(&db, &snapshot, "Thanks").unwrap();
             let input = TurnInput {
                 session,
                 messages: snapshot.messages().to_vec(),
@@ -216,7 +217,7 @@ fn turn(
             output: Some(128),
             state: None,
             candidates: crate::conversation::GroundingCandidates::new(vec![], vec![], 0).unwrap(),
-            tools: db.turn_tools(&snapshot, user).unwrap(),
+            tools: tool_turn::turn_tools(db, &snapshot, user).unwrap(),
         },
         &mut effects,
     )
@@ -269,12 +270,11 @@ fn prompt_pair(
         call_probability: Some(1.0),
         ..Default::default()
     });
-    let reply = db
-        .finish_reply(&snapshot, "Hello.", vec![], outcome.as_ref())
+    let reply = tool_turn::finish_reply(&db, &snapshot, "Hello.", vec![], outcome.as_ref())
         .unwrap()
         .message;
     if undo == Some(true) {
-        db.undo_tool_turn(reply.uuid).unwrap();
+        tool_turn::undo(&db, reply.uuid).unwrap();
     }
     if let Some(title) = add {
         db.create_todo(title, None).unwrap();

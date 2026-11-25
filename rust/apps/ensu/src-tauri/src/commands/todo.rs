@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use ente_ensu::db::chat::{Confirm, ToolTurnState, Undo};
 use ente_ensu::todo::Todo;
+use ente_ensu::tools::turn::{self as tool_turn, Confirm, ToolTurnState, Undo};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
 
@@ -130,7 +130,7 @@ pub async fn tool_turn_confirm(
     reply_id: String,
 ) -> Result<ToolTurnStatusDto, ApiError> {
     let reply = parse_uuid(&reply_id)?;
-    let turn = with_chat_db_async(&state, move |db| db.confirm_tool_turn(reply)).await?;
+    let turn = with_chat_db_async(&state, move |db| tool_turn::confirm(db, reply)).await?;
     Ok(turn.into())
 }
 
@@ -140,7 +140,7 @@ pub async fn tool_turn_undo(
     reply_id: String,
 ) -> Result<ToolTurnStatusDto, ApiError> {
     let reply = parse_uuid(&reply_id)?;
-    let turn = with_chat_db_async(&state, move |db| db.undo_tool_turn(reply)).await?;
+    let turn = with_chat_db_async(&state, move |db| tool_turn::undo(db, reply)).await?;
     Ok(turn.into())
 }
 
@@ -151,8 +151,7 @@ pub async fn tool_turn_statuses(
 ) -> Result<HashMap<String, ToolTurnStatusDto>, ApiError> {
     let session = parse_uuid(&session_id)?;
     with_chat_db_async(&state, move |db| {
-        Ok(db
-            .tool_turn_states(session)?
+        Ok(tool_turn::states(db, session)?
             .into_iter()
             .map(|(reply, state)| (reply.to_string(), state.into()))
             .collect())

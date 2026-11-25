@@ -1,3 +1,4 @@
+use crate::tools::turn as tool_turn;
 use std::sync::{Arc, Mutex};
 
 use crate::db::{self, AttachmentMeta, Backend, ChatDb, chat::ConversationSnapshot};
@@ -221,7 +222,7 @@ impl Turn {
         snapshot: &ConversationSnapshot,
         request: TurnRequest,
     ) -> db::Result<TurnDraft<'a, B>> {
-        let tools = db.turn_tools(snapshot, &request.expected_user_text)?;
+        let tools = tool_turn::turn_tools(db, snapshot, &request.expected_user_text)?;
         Ok(TurnDraft {
             db,
             input: TurnInput {

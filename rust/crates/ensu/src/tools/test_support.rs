@@ -8,13 +8,14 @@ use chrono::NaiveDateTime;
 use uuid::Uuid;
 
 use crate::conversation::PassRunner;
-use crate::db::chat::{ConversationSnapshot, ToolTurnState};
+use crate::db::chat::ConversationSnapshot;
 use crate::db::{ChatDb, Clock, Message, RandomUuidGen, SqliteBackend};
 use crate::llm::{
     self, ChatRequest, EventSink, GenerationEvent, GenerationSummary, ToolCall, ToolOutcome,
     ToolValue,
 };
 use crate::todo::timing;
+use crate::tools::turn::{self as tool_turn, ToolTurnState};
 
 pub(crate) struct TestClock(AtomicI64);
 
@@ -89,7 +90,7 @@ pub(crate) fn finish(
         call_probability: confidence,
         ..Default::default()
     };
-    let finished = db.finish_reply(snapshot, "", vec![], Some(&outcome))?;
+    let finished = tool_turn::finish_reply(db, snapshot, "", vec![], Some(&outcome))?;
     Ok(ToolTurn {
         reply: finished.message,
         state: finished.tool_turn.unwrap(),
@@ -163,7 +164,7 @@ impl<'a> Chat<'a> {
 }
 
 pub(crate) fn state(db: &ChatDb<SqliteBackend>, reply: &Message) -> Option<ToolTurnState> {
-    db.tool_turn_states(reply.session_uuid)
+    tool_turn::states(db, reply.session_uuid)
         .unwrap()
         .remove(&reply.uuid)
 }

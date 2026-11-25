@@ -5,12 +5,13 @@ use ente_ensu::conversation::{
     ContextRunner, ConversationState, Effects, GroundingCache, GroundingCandidates, PrepareError,
     Turn, TurnRequest,
 };
-use ente_ensu::db::chat::{ConversationSnapshot, FinishedReply};
+use ente_ensu::db::chat::ConversationSnapshot;
 use ente_ensu::db::{ChatDb, SqliteBackend};
 use ente_ensu::llm::{
     self, ChatMessage, ChatRequest, Context, ContextParams, ContextRef, GenerationEvent,
     GenerationSummary, ToolRequest,
 };
+use ente_ensu::tools::turn::FinishedReply;
 
 pub fn model_context(ctx_size: i32) -> ContextRef {
     if let Ok(directory) = std::env::var("ENSU_TEST_BACKEND_DIR") {

@@ -6,10 +6,11 @@ use std::sync::Arc;
 use ente_ensu::conversation::{
     self, GroundingCache, GroundingCandidates, PrepareError, Turn, TurnRequest,
 };
-use ente_ensu::db::chat::{Confirm, ConversationSnapshot, FinishedReply};
+use ente_ensu::db::chat::ConversationSnapshot;
 use ente_ensu::db::{ChatDb, Clock, RandomUuidGen, SqliteBackend};
 use ente_ensu::llm::{self, ChatMessage, ChatRequest, ToolCall, ToolRequest};
 use ente_ensu::todo;
+use ente_ensu::tools::turn::{self as tool_turn, Confirm, FinishedReply};
 use serde::Deserialize;
 use serde_json::{Value, json};
 
@@ -461,7 +462,8 @@ impl ConversationCase {
                     )
                     .unwrap(),
                 "assistant" => {
-                    db.finish_reply(
+                    tool_turn::finish_reply(
+                        &db,
                         &db.conversation_snapshot(session.uuid, &path).unwrap(),
                         &message.content,
                         vec![],
@@ -480,7 +482,7 @@ impl ConversationCase {
             path.push(message.uuid);
         }
         if case.undo {
-            db.undo_tool_turn(*path.last().unwrap()).unwrap();
+            tool_turn::undo(&db, *path.last().unwrap()).unwrap();
         }
         let user = db
             .insert_message(
@@ -504,8 +506,7 @@ impl ConversationCase {
             .rev()
             .nth(1)
             .and_then(|message| {
-                self.db
-                    .tool_history(std::slice::from_ref(message))
+                tool_turn::history(&self.db, std::slice::from_ref(message))
                     .unwrap()
                     .remove(&message.uuid)
             })
@@ -523,10 +524,9 @@ impl ConversationCase {
 
     fn finish(&self, case: &Case, outcome: &llm::ToolOutcome, reply: &str) -> Recorded {
         let before = self.db.list_todos().unwrap();
-        let finished = self
-            .db
-            .finish_reply(&self.snapshot, reply, vec![], Some(outcome))
-            .unwrap();
+        let finished =
+            tool_turn::finish_reply(&self.db, &self.snapshot, reply, vec![], Some(outcome))
+                .unwrap();
         let changed = self.db.list_todos().unwrap() != before;
         self.record(case, outcome, reply, finished, changed)
     }
@@ -543,12 +543,10 @@ impl ConversationCase {
             .tool_turn
             .is_some_and(|turn| turn.confirm == Confirm::Offered);
         if confirmation && case.expects_change() {
-            self.db.confirm_tool_turn(finished.message.uuid).unwrap();
+            tool_turn::confirm(&self.db, finished.message.uuid).unwrap();
         }
-        let history = self
-            .db
-            .tool_history(std::slice::from_ref(&finished.message))
-            .unwrap();
+        let history =
+            tool_turn::history(&self.db, std::slice::from_ref(&finished.message)).unwrap();
         let calls = history
             .get(&finished.message.uuid)
             .map(|turn| turn.calls.clone())

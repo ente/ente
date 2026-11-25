@@ -53,7 +53,7 @@ impl std::fmt::Display for FinishWarning {
 
 #[derive(Debug)]
 pub struct FinishedTurn {
-    pub reply: db::chat::FinishedReply,
+    pub reply: crate::tools::turn::FinishedReply,
     pub warnings: Vec<FinishWarning>,
 }
 
@@ -114,7 +114,8 @@ fn save_reply<B: Backend>(
             }
         }
     };
-    let finished = db.finish_reply_inner(
+    let finished = crate::tools::turn::finish_reply_inner(
+        db,
         snapshot,
         &text,
         reply.attachments,

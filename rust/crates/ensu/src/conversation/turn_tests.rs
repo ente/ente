@@ -1,9 +1,10 @@
 use super::{tests::Fake, *};
-use crate::db::chat::{Confirm, ConversationSnapshot, Undo};
+use crate::db::chat::ConversationSnapshot;
 use crate::db::{self, ChatDb, SqliteBackend};
 use crate::llm::{self, GenerationEvent, GenerationSummary, ToolValue};
 use crate::todo::{COMPLETE_TOOL, LIST_TOOL, SAVE_TOOL};
 use crate::tools::test_support::*;
+use crate::tools::turn::{self as tool_turn, Confirm, Undo};
 
 const MIXED: &str = "Show my tasks and add buy milk.";
 
@@ -114,7 +115,7 @@ fn save_is_applied_or_offered_at_the_recorded_probability() {
         } else {
             assert_eq!(state.confirm, Confirm::Offered);
             assert!(db.list_todos().unwrap().is_empty());
-            db.confirm_tool_turn(finished.reply.message.uuid).unwrap();
+            tool_turn::confirm(&db, finished.reply.message.uuid).unwrap();
         }
         assert_eq!(db.list_todos().unwrap().len(), 1);
     }
@@ -269,7 +270,7 @@ fn interrupted_follow_up_keeps_no_outcome_and_emits_no_done() {
         assert!(!turn.has_outcome());
         assert!(!turn.is_saved());
         assert!(
-            db.tool_turn_states(snapshot.session_uuid())
+            tool_turn::states(&db, snapshot.session_uuid())
                 .unwrap()
                 .is_empty()
         );
@@ -316,7 +317,7 @@ fn a_refused_finish_keeps_the_outcome() {
         Err(db::Error::Refused(db::Refusal::EarlierReplyStands))
     ));
     assert!(turn.has_outcome());
-    db.undo_tool_turn(first.reply.uuid).unwrap();
+    tool_turn::undo(&db, first.reply.uuid).unwrap();
     turn.finish(&db, &chat.snapshot(), "", vec![]).unwrap();
     assert!(turn.is_saved() && !turn.has_outcome());
 }
