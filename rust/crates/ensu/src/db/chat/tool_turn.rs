@@ -145,19 +145,6 @@ fn no_turn(reply: Uuid) -> Error {
 }
 
 impl<B: Backend> ChatDb<B> {
-    pub fn tool_exchange(
-        &self,
-        snapshot: &ConversationSnapshot,
-        request: crate::llm::ToolRequest,
-    ) -> crate::llm::ToolExchange {
-        let continuation = crate::todo::continuation::ListContinuation::new(
-            snapshot.todos.clone(),
-            self.now_ms(),
-            request.quote_source.clone(),
-        );
-        crate::llm::ToolExchange::new(request).with_continuation(continuation)
-    }
-
     pub(crate) fn now_ms(&self) -> i64 {
         self.clock.now_us() / 1000
     }
@@ -172,15 +159,19 @@ impl<B: Backend> ChatDb<B> {
         crypto::encrypt_blob(&serde_json::to_vec(value)?, &self.key)
     }
 
-    pub fn turn_tools(
+    pub(crate) fn turn_tools(
         &self,
         snapshot: &ConversationSnapshot,
         user_text: &str,
     ) -> Result<TurnTools> {
         let messages = snapshot.messages();
         let (request, applied) = self.request_text(&self.backend, messages, user_text)?;
+        let mut tools = self.todo_tools(&snapshot.todos, request);
+        if applied {
+            tools.allowed = Some(Vec::new());
+        }
         Ok(TurnTools {
-            tools: (!applied).then(|| self.todo_tools(&snapshot.todos, request)),
+            tools: Some(tools),
             history: self.tool_history(messages)?,
             current_override: (!applied && request != user_text).then(|| request.to_owned()),
         })
@@ -211,27 +202,6 @@ impl<B: Backend> ChatDb<B> {
         tools: Option<&ToolOutcome>,
     ) -> Result<FinishedReply> {
         self.finish_reply_inner(snapshot, text, attachments, tools, &|_, _| true)
-    }
-
-    pub fn finish_exchange(
-        &self,
-        snapshot: &ConversationSnapshot,
-        text: &str,
-        attachments: Vec<AttachmentMeta>,
-        tools: Option<&crate::llm::ToolExchange>,
-    ) -> Result<FinishedReply> {
-        let outcome = tools.and_then(crate::llm::ToolExchange::outcome);
-        self.finish_reply_inner(
-            snapshot,
-            text,
-            attachments,
-            outcome.as_ref(),
-            &|outcome, now| {
-                tools
-                    .and_then(|tools| tools.continuation.as_deref())
-                    .is_none_or(|continuation| continuation.can_finish(outcome, now))
-            },
-        )
     }
 
     pub(crate) fn finish_reply_inner(

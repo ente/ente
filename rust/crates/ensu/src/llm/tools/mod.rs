@@ -170,59 +170,6 @@ pub struct ToolOutcome {
     pub rejected_steps: u32,
 }
 
-#[derive(Debug)]
-pub struct ToolExchange {
-    request: ToolRequest,
-    outcome: std::sync::Mutex<Option<ToolOutcome>>,
-    pub(crate) continuation: Option<std::sync::Arc<dyn ToolContinuation>>,
-}
-
-pub(crate) trait ToolContinuation: std::fmt::Debug + Send + Sync {
-    fn follow_up(
-        &self,
-        request: &super::ChatRequest,
-        outcome: &ToolOutcome,
-    ) -> Option<super::ChatRequest>;
-
-    fn can_finish(&self, outcome: &ToolOutcome, now_ms: i64) -> bool;
-}
-
-impl ToolExchange {
-    pub fn new(request: ToolRequest) -> Self {
-        Self {
-            request,
-            outcome: std::sync::Mutex::new(None),
-            continuation: None,
-        }
-    }
-
-    pub(crate) fn with_continuation(
-        mut self,
-        continuation: impl ToolContinuation + 'static,
-    ) -> Self {
-        self.continuation = Some(std::sync::Arc::new(continuation));
-        self
-    }
-
-    pub fn request(&self) -> &ToolRequest {
-        &self.request
-    }
-
-    pub(crate) fn record(&self, outcome: Option<ToolOutcome>) {
-        *self
-            .outcome
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner) = outcome;
-    }
-
-    pub fn outcome(&self) -> Option<ToolOutcome> {
-        self.outcome
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .clone()
-    }
-}
-
 pub(crate) fn finished_calls(
     format: Format,
     raw: &[u8],

@@ -600,180 +600,124 @@ fn prepared_completions_keep_their_original_targets() {
 }
 
 #[test]
-fn several_calls_in_one_message_each_use_the_list_in_effect() {
-    for changed in [false, true] {
-        let db = db();
-        let mut chat = Chat::new(&db);
-        let bank = db.create_todo("Call bank", None).unwrap();
-        let bread = db.create_todo("Buy bread", None).unwrap();
-        let research = db.create_todo("Research and save passwords", None).unwrap();
-        let groceries = db.create_todo("Buy milk and bread", None).unwrap();
-        let sequenced = db
-            .create_todo("Read reports and save files then mark notes done", None)
-            .unwrap();
-        let user = "List bank tasks and mark the first one done";
-        let (snapshot, exchange) = chat.prepare(user);
-        let mut request = crate::llm::ChatRequest {
-            messages: vec![crate::llm::ChatMessage::new("user", user)],
-            tools: Some(exchange.request().clone()),
-            ..Default::default()
-        };
-        let listed = ToolOutcome {
-            calls: vec![call(LIST_TOOL, &[("query", text("bank"))])],
-            call_probability: SURE,
-            ..Default::default()
-        };
-        let continuation = exchange.continuation.as_ref().unwrap();
-        let next = continuation.follow_up(&request, &listed).unwrap();
-        assert_eq!(
-            db.list_todos().unwrap(),
-            [bank.clone(), bread.clone(), research, groceries, sequenced]
-        );
-        assert!(
-            next.messages
-                .last()
-                .unwrap()
-                .content
-                .contains("1. Call bank")
-        );
-        assert!(!next.messages.last().unwrap().content.contains("Buy bread"));
-        assert_eq!(next.tools.as_ref().unwrap().max_calls, 3);
-        assert!(
-            next.tools
-                .as_ref()
-                .unwrap()
-                .tools
-                .iter()
-                .all(|tool| tool.name != LIST_TOOL)
-        );
-        for user in [
-            "List tasks",
-            "List tasks and don't mark any done",
-            "Show tasks about bread and milk",
-            "List tasks and check whether the dentist is there",
-            "List tasks about 'Research and save passwords'",
-            "List tasks about Research and save passwords",
-            "List research and save passwords please",
-            "List tasks about Research and\nsave passwords",
-            "List tasks about RESEARCH AND SAVE PASSWORDS",
-            "List tasks about 'Research; save passwords'",
-            "List tasks about \"draft and mark complete\"",
-        ] {
-            request.tools.as_mut().unwrap().quote_source = user.to_owned();
-            assert!(continuation.follow_up(&request, &listed).is_none());
-        }
-        for separator in COMMAND_SEPARATORS {
-            for user in [
-                format!("List research{separator}please save passwords"),
-                format!("List tasks about 'Research'{separator}save passwords"),
-                format!("List tasks about milk{separator}mark bread done"),
-            ] {
-                request.tools.as_mut().unwrap().quote_source = user.clone();
-                assert!(
-                    continuation.follow_up(&request, &listed).is_some(),
-                    "{user}"
-                );
-            }
-            for (open, close) in [("'", "'"), ("\"", "\""), ("“", "”"), ("‘", "’")] {
-                let user =
-                    format!("List tasks about {open}Research{separator}save passwords{close}");
-                request.tools.as_mut().unwrap().quote_source = user.clone();
-                assert!(
-                    continuation.follow_up(&request, &listed).is_none(),
-                    "{user}"
-                );
-            }
-        }
-        for user in [
-            "List tasks about milk and mark bread done",
-            "List tasks about Research; save passwords",
-            "List tasks about Research\nsave passwords",
-            "List tasks about Research;\nplease save passwords",
-            "List tasks about Research\nand save passwords",
-            "List research and save passwords for Mom",
-            "List research and save passwords today",
-        ] {
-            request.tools.as_mut().unwrap().quote_source = user.to_owned();
-            assert!(
-                continuation.follow_up(&request, &listed).is_some(),
-                "{user}"
-            );
-        }
-        request.tools.as_mut().unwrap().quote_source =
-            "List Read reports and save files then mark notes done".to_owned();
-        let next = continuation.follow_up(&request, &listed).unwrap();
-        let tools = &next.tools.as_ref().unwrap().tools;
-        assert!(tools.iter().any(|tool| tool.name == SAVE_TOOL));
-        assert!(tools.iter().any(|tool| tool.name == COMPLETE_TOOL));
+fn follow_up_only_runs_for_a_remaining_action() {
+    let db = db();
+    let bank = db.create_todo("Call bank", None).unwrap();
+    let bread = db.create_todo("Buy bread", None).unwrap();
+    let research = db.create_todo("Research and save passwords", None).unwrap();
+    let groceries = db.create_todo("Buy milk and bread", None).unwrap();
+    let sequenced = db
+        .create_todo("Read reports and save files then mark notes done", None)
+        .unwrap();
+    let user = "List bank tasks and mark the first one done";
+    let mut chat = Chat::new(&db);
+    chat.user(user);
+    let snapshot = chat.snapshot();
+    let tools = db.turn_tools(&snapshot, user).unwrap().tools.unwrap();
+    let follow_up = crate::todo::follow_up::FollowUp::new(
+        db.list_todos().unwrap(),
+        db.now_ms(),
+        user.to_owned(),
+    );
+    let mut request = crate::llm::ChatRequest {
+        messages: vec![crate::llm::ChatMessage::new("user", user)],
+        tools: Some(tools.clone()),
+        ..Default::default()
+    };
+    let listed = ToolOutcome {
+        calls: vec![call(LIST_TOOL, &[("query", text("bank"))])],
+        call_probability: SURE,
+        ..Default::default()
+    };
+    let next = follow_up.next(&request, &listed).unwrap();
+    assert_eq!(
+        db.list_todos().unwrap(),
+        [bank.clone(), bread.clone(), research, groceries, sequenced]
+    );
+    assert!(
+        next.messages
+            .last()
+            .unwrap()
+            .content
+            .contains("1. Call bank")
+    );
+    assert!(!next.messages.last().unwrap().content.contains("Buy bread"));
+    assert_eq!(next.tools.as_ref().unwrap().max_calls, 3);
+    assert_eq!(next.tools.as_ref().unwrap().tools, tools.tools);
+    assert_eq!(
+        next.tools.as_ref().unwrap().allowed,
+        Some(vec![COMPLETE_TOOL.into()])
+    );
+    for user in [
+        "List tasks",
+        "List tasks and don't mark any done",
+        "Show tasks about bread and milk",
+        "List tasks and check whether the dentist is there",
+        "List tasks about 'Research and save passwords'",
+        "List tasks about Research and save passwords",
+        "List research and save passwords please",
+        "List tasks about Research and\nsave passwords",
+        "List tasks about RESEARCH AND SAVE PASSWORDS",
+        "List tasks about 'Research; save passwords'",
+        "List tasks about \"draft and mark complete\"",
+    ] {
         request.tools.as_mut().unwrap().quote_source = user.to_owned();
-        let complete = call(COMPLETE_TOOL, &[("number", ToolValue::Integer(1))]);
-        assert!(
-            continuation
-                .follow_up(
-                    &request,
-                    &ToolOutcome {
-                        calls: vec![listed.calls[0].clone(), complete.clone()],
-                        call_probability: SURE,
-                        ..Default::default()
-                    }
-                )
-                .is_none()
-        );
-        request.tools.as_mut().unwrap().max_calls = 1;
-        assert!(continuation.follow_up(&request, &listed).is_none());
-        if changed {
-            db.update_todo(bank.id, bank.version, "Call insurer", None)
-                .unwrap();
+        assert!(follow_up.next(&request, &listed).is_none());
+    }
+    for separator in COMMAND_SEPARATORS {
+        for user in [
+            format!("List research{separator}please save passwords"),
+            format!("List tasks about 'Research'{separator}save passwords"),
+            format!("List tasks about milk{separator}mark bread done"),
+        ] {
+            request.tools.as_mut().unwrap().quote_source = user.clone();
+            assert!(follow_up.next(&request, &listed).is_some(), "{user}");
         }
-        exchange.record(Some(ToolOutcome {
-            calls: vec![listed.calls[0].clone(), complete],
-            call_probability: SURE,
-            ..Default::default()
-        }));
-        let finished = db.finish_exchange(&snapshot, "", vec![], Some(&exchange));
-        if changed {
-            assert!(matches!(finished, Err(Error::ConversationChanged)));
-            assert!(db.get_todo(bank.id).unwrap().unwrap().is_open());
-        } else {
-            let finished = finished.unwrap();
-            assert!(!db.get_todo(bank.id).unwrap().unwrap().is_open());
-            db.undo_tool_turn(finished.message.uuid).unwrap();
-            let restored = db.get_todo(bank.id).unwrap().unwrap();
-            assert!(restored.is_open());
-            assert_eq!(restored.title, bank.title);
-            assert_eq!(db.get_todo(bread.id).unwrap(), Some(bread));
+        for (open, close) in [("'", "'"), ("\"", "\""), ("“", "”"), ("‘", "’")] {
+            let user = format!("List tasks about {open}Research{separator}save passwords{close}");
+            request.tools.as_mut().unwrap().quote_source = user.clone();
+            assert!(follow_up.next(&request, &listed).is_none(), "{user}");
         }
     }
-    {
-        let db = db();
-        let mut chat = Chat::new(&db);
-        db.create_todo("Earlier task", Some(local_ms("2026-11-11 18:00")))
-            .unwrap();
-        db.create_todo("Later task", Some(local_ms("2026-11-12 18:00")))
-            .unwrap();
-        let user = "List today's tasks and mark the first one done";
-        let before = db.list_todos().unwrap();
-        let (snapshot, exchange) = chat.prepare(user);
-        let exchange =
-            exchange.with_continuation(crate::todo::continuation::ListContinuation::new(
-                before.clone(),
-                local_ms("2026-11-11 23:59"),
-                user.to_owned(),
-            ));
-        exchange.record(Some(ToolOutcome {
-            calls: vec![
-                call(LIST_TOOL, &[("filter", text("today"))]),
-                call(COMPLETE_TOOL, &[("number", ToolValue::Integer(1))]),
-            ],
-            call_probability: SURE,
-            ..Default::default()
-        }));
-        assert!(matches!(
-            db.finish_exchange(&snapshot, "", vec![], Some(&exchange)),
-            Err(Error::ConversationChanged)
-        ));
-        assert_eq!(db.list_todos().unwrap(), before);
+    for user in [
+        "List tasks about milk and mark bread done",
+        "List tasks about Research; save passwords",
+        "List tasks about Research\nsave passwords",
+        "List tasks about Research;\nplease save passwords",
+        "List tasks about Research\nand save passwords",
+        "List research and save passwords for Mom",
+        "List research and save passwords today",
+    ] {
+        request.tools.as_mut().unwrap().quote_source = user.to_owned();
+        assert!(follow_up.next(&request, &listed).is_some(), "{user}");
     }
+    request.tools.as_mut().unwrap().quote_source =
+        "List Read reports and save files then mark notes done".to_owned();
+    let next = follow_up.next(&request, &listed).unwrap();
+    assert_eq!(
+        next.tools.as_ref().unwrap().allowed,
+        Some(vec![SAVE_TOOL.into(), COMPLETE_TOOL.into()])
+    );
+    request.tools.as_mut().unwrap().quote_source = user.to_owned();
+    let complete = call(COMPLETE_TOOL, &[("number", ToolValue::Integer(1))]);
+    assert!(
+        follow_up
+            .next(
+                &request,
+                &ToolOutcome {
+                    calls: vec![listed.calls[0].clone(), complete],
+                    call_probability: SURE,
+                    ..Default::default()
+                }
+            )
+            .is_none()
+    );
+    request.tools.as_mut().unwrap().max_calls = 1;
+    assert!(follow_up.next(&request, &listed).is_none());
+}
+
+#[test]
+fn several_calls_in_one_message_each_use_the_list_in_effect() {
     for confidence in [SURE, UNSURE] {
         for (title, subject, target, number) in [
             (
@@ -1450,66 +1394,4 @@ fn an_offer_to_add_goes_stale_once_the_task_is_added_another_way() {
         Err(Error::Refused(Refusal::OfferStale))
     ));
     assert_eq!(db.list_todos().unwrap().len(), 1);
-}
-
-#[test]
-fn a_refused_finish_keeps_the_calls_and_a_saved_one_clears_them() {
-    use crate::conversation::{Reply, finish_turn};
-    let db = db();
-    let mut chat = Chat::new(&db);
-    let save = [call(SAVE_TOOL, &[("title", text("Buy tea"))])];
-    let first = chat.send("Buy tea", &save);
-    chat.back();
-    let exchange = crate::llm::ToolExchange::new(crate::todo::chat_tools("Buy tea", &[]));
-    let outcome = ToolOutcome {
-        calls: save.to_vec(),
-        call_probability: SURE,
-        ..Default::default()
-    };
-    exchange.record(Some(outcome.clone()));
-    let reply = || Reply {
-        text: "",
-        sources: &[],
-        passages: Vec::new(),
-        attachments: Vec::new(),
-        tools: Some(&exchange),
-    };
-    assert!(matches!(
-        finish_turn(&db, &chat.snapshot(), reply()),
-        Err(Error::Refused(Refusal::EarlierReplyStands))
-    ));
-    assert_eq!(exchange.outcome(), Some(outcome));
-    db.undo_tool_turn(first.reply.uuid).unwrap();
-    let finished = finish_turn(&db, &chat.snapshot(), reply()).unwrap();
-    assert!(finished.reply.tool_turn.is_some());
-    assert!(finished.warnings.is_empty());
-    assert_eq!(exchange.outcome(), None);
-    chat.path.push(finished.reply.message.uuid);
-    let (snapshot, exchange) = chat.prepare("List tasks and mark one done");
-    exchange.record(Some(ToolOutcome {
-        calls: vec![call(LIST_TOOL, &[])],
-        call_probability: SURE,
-        ..Default::default()
-    }));
-    let finished = finish_turn(
-        &db,
-        &snapshot,
-        Reply {
-            text: "Which task should I finish?",
-            sources: &[],
-            passages: Vec::new(),
-            attachments: Vec::new(),
-            tools: Some(&exchange),
-        },
-    )
-    .unwrap();
-    assert!(finished.reply.message.text.contains("1. Buy tea"));
-    assert!(
-        finished
-            .reply
-            .message
-            .text
-            .ends_with("Which task should I finish?")
-    );
-    assert!(db.list_todos().unwrap().iter().all(Todo::is_open));
 }

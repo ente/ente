@@ -4,10 +4,10 @@ use crate::db::{self, AttachmentMeta, Backend, ChatDb, chat::ConversationSnapsho
 use crate::llm::{self, EventSink, GenerationEvent, GenerationSummary, ToolOutcome};
 use crate::todo::{Todo, follow_up::FollowUp};
 
-use super::prompt::{Answer, remember_finish, save_reply};
+use super::prompt::{Answer, save_prepared_reply};
 use super::*;
 
-pub struct TurnInput {
+pub(crate) struct TurnInput {
     pub session: Uuid,
     pub messages: Vec<Message>,
     pub expected_user_text: String,
@@ -22,20 +22,20 @@ pub struct TurnInput {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct TurnTools {
+pub(crate) struct TurnTools {
     pub tools: Option<ToolRequest>,
     pub history: std::collections::HashMap<Uuid, ToolTurnHistory>,
     pub current_override: Option<String>,
 }
 
-pub struct PreparedTurn {
+pub(crate) struct PreparedTurn {
     pub preparation: Preparation,
     pub budget: GenerationBudget,
     pub grounding: FittedGrounding,
     pub tools: Option<ToolRequest>,
 }
 
-pub fn prepare_turn(
+pub(crate) fn prepare_turn(
     input: TurnInput,
     effects: &mut impl Effects,
 ) -> Result<PreparedTurn, PrepareError> {
@@ -344,16 +344,13 @@ impl Turn {
         attachments: Vec<AttachmentMeta>,
     ) -> db::Result<FinishedTurn> {
         let mut state = self.state();
-        if state.prepared.is_saved() {
-            return Err(db::Error::UnsupportedOperation(
-                "Answer already saved".into(),
-            ));
-        }
-        let outcome = state
-            .outcome
-            .as_ref()
-            .filter(|outcome| !outcome.calls.is_empty());
-        let text = if outcome.is_some() { &state.text } else { text };
+        let TurnState {
+            prepared,
+            outcome,
+            text: streamed,
+        } = &mut *state;
+        let calls = outcome.as_ref().filter(|outcome| !outcome.calls.is_empty());
+        let text = if calls.is_some() { streamed } else { text };
         let (sources, passages) = self
             .grounding
             .context
@@ -365,15 +362,17 @@ impl Turn {
                 )
             })
             .unwrap_or_default();
-        let finished = save_reply(
+        let finished = save_prepared_reply(
+            self.cache.as_deref(),
             db,
             snapshot,
+            prepared,
             Answer {
                 text,
                 sources,
                 passages,
                 attachments,
-                outcome,
+                outcome: calls,
             },
             &|outcome, now| {
                 self.tools
@@ -381,8 +380,7 @@ impl Turn {
                     .is_none_or(|tools| tools.follow_up.can_finish(outcome, now))
             },
         )?;
-        remember_finish(self.cache.as_deref(), &mut state.prepared, &finished);
-        state.outcome = None;
+        *outcome = None;
         Ok(finished)
     }
 }

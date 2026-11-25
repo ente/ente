@@ -19,7 +19,7 @@ pub struct GroundingCache {
 }
 
 impl GroundingCache {
-    pub fn prepare_turn(
+    pub(crate) fn prepare_turn(
         &self,
         input: TurnInput,
         effects: &mut impl Effects,
@@ -27,45 +27,6 @@ impl GroundingCache {
         let anchor = self.anchor.lock().ok().and_then(|anchor| anchor.clone());
         super::turn::prepare_turn_with_anchor(input, anchor, effects)
     }
-
-    pub fn finish<B: Backend>(
-        &self,
-        db: &ChatDb<B>,
-        snapshot: &ConversationSnapshot,
-        prepared: &mut PreparationResult,
-        reply: Reply<'_>,
-    ) -> db::Result<FinishedTurn> {
-        if prepared.is_saved() {
-            return Err(db::Error::UnsupportedOperation(
-                "Answer already saved".into(),
-            ));
-        }
-        let finished = finish_turn(db, snapshot, reply)?;
-        remember_finish(Some(self), prepared, &finished);
-        Ok(finished)
-    }
-}
-
-pub(super) fn remember_finish(
-    cache: Option<&GroundingCache>,
-    prepared: &mut PreparationResult,
-    finished: &FinishedTurn,
-) {
-    prepared.saved = true;
-    if finished.reply.tool_turn.is_none()
-        && let Some(cache) = cache
-        && let Ok(mut anchor) = cache.anchor.lock()
-    {
-        *anchor = prepared.grounding_anchor.take();
-    }
-}
-
-pub struct Reply<'a> {
-    pub text: &'a str,
-    pub sources: &'a [GroundedSource],
-    pub passages: Vec<IncludedPassage>,
-    pub attachments: Vec<AttachmentMeta>,
-    pub tools: Option<&'a crate::llm::ToolExchange>,
 }
 
 #[derive(Debug)]
@@ -96,38 +57,6 @@ pub struct FinishedTurn {
     pub warnings: Vec<FinishWarning>,
 }
 
-pub fn finish_turn<B: Backend>(
-    db: &ChatDb<B>,
-    snapshot: &ConversationSnapshot,
-    reply: Reply<'_>,
-) -> db::Result<FinishedTurn> {
-    let outcome = reply
-        .tools
-        .and_then(crate::llm::ToolExchange::outcome)
-        .filter(|outcome| !outcome.calls.is_empty());
-    let result = save_reply(
-        db,
-        snapshot,
-        Answer {
-            text: reply.text,
-            sources: reply.sources,
-            passages: reply.passages,
-            attachments: reply.attachments,
-            outcome: outcome.as_ref(),
-        },
-        &|outcome, now| {
-            reply
-                .tools
-                .and_then(|tools| tools.continuation.as_deref())
-                .is_none_or(|continuation| continuation.can_finish(outcome, now))
-        },
-    )?;
-    if let Some(tools) = reply.tools {
-        tools.record(None);
-    }
-    Ok(result)
-}
-
 pub(super) struct Answer<'a> {
     pub text: &'a str,
     pub sources: &'a [GroundedSource],
@@ -136,7 +65,31 @@ pub(super) struct Answer<'a> {
     pub outcome: Option<&'a crate::llm::ToolOutcome>,
 }
 
-pub(super) fn save_reply<B: Backend>(
+pub(super) fn save_prepared_reply<B: Backend>(
+    cache: Option<&GroundingCache>,
+    db: &ChatDb<B>,
+    snapshot: &ConversationSnapshot,
+    prepared: &mut PreparationResult,
+    reply: Answer<'_>,
+    can_finish: &dyn Fn(&crate::llm::ToolOutcome, i64) -> bool,
+) -> db::Result<FinishedTurn> {
+    if prepared.is_saved() {
+        return Err(db::Error::UnsupportedOperation(
+            "Answer already saved".into(),
+        ));
+    }
+    let finished = save_reply(db, snapshot, reply, can_finish)?;
+    prepared.saved = true;
+    if finished.reply.tool_turn.is_none()
+        && let Some(cache) = cache
+        && let Ok(mut anchor) = cache.anchor.lock()
+    {
+        *anchor = prepared.grounding_anchor.take();
+    }
+    Ok(finished)
+}
+
+fn save_reply<B: Backend>(
     db: &ChatDb<B>,
     snapshot: &ConversationSnapshot,
     reply: Answer<'_>,

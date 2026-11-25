@@ -249,7 +249,7 @@ fn prompt_pair(
     next: &str,
     before: &[&str],
     add: Option<&str>,
-    undo: bool,
+    undo: Option<bool>,
 ) -> (Rendered, Rendered) {
     let db = ChatDb::open_in_memory(vec![7; 32]).unwrap();
     for title in before {
@@ -261,7 +261,7 @@ fn prompt_pair(
         .unwrap();
     let prev = turn(&db, session, &[user.uuid], first, format);
     let snapshot = db.conversation_snapshot(session, &[user.uuid]).unwrap();
-    let outcome = undo.then(|| ToolOutcome {
+    let outcome = undo.map(|_| ToolOutcome {
         calls: vec![ToolCall {
             name: SAVE_TOOL.into(),
             arguments: [("title".to_owned(), ToolValue::Text("Buy milk".into()))].into(),
@@ -273,7 +273,7 @@ fn prompt_pair(
         .finish_reply(&snapshot, "Hello.", vec![], outcome.as_ref())
         .unwrap()
         .message;
-    if undo {
+    if undo == Some(true) {
         db.undo_tool_turn(reply.uuid).unwrap();
     }
     if let Some(title) = add {
@@ -295,7 +295,7 @@ fn prompt_pair(
 #[test]
 fn a_plain_follow_up_extends_the_previous_prompt() {
     for format in FORMATS {
-        let (prev, next) = prompt_pair(format, "Hi", "Thanks", &[], None, false);
+        let (prev, next) = prompt_pair(format, "Hi", "Thanks", &[], None, None);
         assert!(next.full.starts_with(&prev.stable), "{format:?}");
         if format == Format::Qwen {
             assert_eq!(
@@ -317,7 +317,7 @@ fn naming_a_task_leaves_the_system_message_unchanged() {
             "What do I need to renew my passport?",
             &["Buy tea", "Renew passport"],
             None,
-            false,
+            None,
         );
         assert_eq!(prev.system, next.system, "{format:?}");
     }
@@ -327,7 +327,7 @@ fn naming_a_task_leaves_the_system_message_unchanged() {
 fn adding_a_task_changes_only_the_task_choices() {
     for format in FORMATS {
         for before in [&[][..], &["Buy tea"][..]] {
-            let (prev, next) = prompt_pair(format, "Hi", "Thanks", before, Some("Buy milk"), false);
+            let (prev, next) = prompt_pair(format, "Hi", "Thanks", before, Some("Buy milk"), None);
             let marker = if format == Format::Gemma {
                 "declaration:complete_to_do{"
             } else {
@@ -349,8 +349,50 @@ fn adding_a_task_changes_only_the_task_choices() {
 #[test]
 fn try_again_extends_the_previous_prompt() {
     for format in FORMATS {
-        let (prev, next) = prompt_pair(format, "Add buy milk", "Try again", &[], None, true);
+        let (prev, next) = prompt_pair(format, "Add buy milk", "Try again", &[], None, Some(true));
         assert_eq!(prev.system, next.system, "{format:?}");
         assert!(next.full.starts_with(&prev.stable), "{format:?}");
+        let (prev, next) = prompt_pair(format, "Add buy milk", "Try again", &[], None, Some(false));
+        assert_eq!(next.tools.allowed, Some(vec![]));
+        assert!(
+            next.without_choices(format, true)
+                .starts_with(&prev.without_choices(format, false))
+        );
+    }
+}
+
+#[test]
+fn the_follow_up_pass_extends_the_first_pass() {
+    let user = "List my tasks and add buy tea.";
+    let db = ChatDb::open_in_memory(vec![7; 32]).unwrap();
+    db.create_todo("Buy milk", None).unwrap();
+    let tools = crate::todo::chat_tools(user, &["Buy milk"]);
+    let first = crate::llm::ChatRequest {
+        messages: vec![
+            ChatMessage::new("system", "Be brief."),
+            ChatMessage::new("user", user),
+        ],
+        tools: Some(tools),
+        ..Default::default()
+    };
+    let outcome = ToolOutcome {
+        calls: vec![ToolCall {
+            name: LIST_TOOL.into(),
+            arguments: Default::default(),
+        }],
+        call_probability: Some(1.0),
+        ..Default::default()
+    };
+    let follow_up =
+        crate::todo::follow_up::FollowUp::new(db.list_todos().unwrap(), db.now_ms(), user.into());
+    let second = follow_up.next(&first, &outcome).unwrap();
+    for format in FORMATS {
+        let first_prompt =
+            crate::llm::render_native(format, first.messages.clone(), first.tools.as_ref());
+        let prefix = first_prompt + &format.render_calls(&outcome.calls);
+        let second_prompt =
+            crate::llm::render_native(format, second.messages.clone(), second.tools.as_ref());
+        let suffix = second_prompt.strip_prefix(&prefix).unwrap();
+        assert!(suffix.contains("1. Buy milk") && suffix.contains("The listing is complete."));
     }
 }

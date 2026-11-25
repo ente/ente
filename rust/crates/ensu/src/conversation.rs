@@ -16,11 +16,14 @@ use grounding::{GroundingPlacement, fit_grounding_with_history};
 use lookup::{HistoryLookup, lookup_history, requested_history};
 pub use pass::{ContextRunner, PassRunner};
 pub use prepare::{Effects, Preparation, PreparationResult, PrepareError};
-pub use prompt::{FinishWarning, FinishedTurn, GroundingCache, Reply, finish_turn};
+pub use prompt::{FinishWarning, FinishedTurn, GroundingCache};
 use prompt::{GroundingAnchor, PromptGrounding};
 pub use state::AnswerEvidence;
 pub(crate) use state::{ConversationEnvelope, valid_answer_passages};
-pub use turn::{PreparedTurn, Turn, TurnDraft, TurnInput, TurnRequest, TurnTools, prepare_turn};
+#[cfg(test)]
+pub(crate) use turn::prepare_turn;
+pub(crate) use turn::{PreparedTurn, TurnInput, TurnTools};
+pub use turn::{Turn, TurnDraft, TurnRequest};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ToolTurnHistory {

@@ -130,17 +130,6 @@ impl<'a> Chat<'a> {
         self.path.push(message.uuid);
     }
 
-    pub(crate) fn prepare(
-        &mut self,
-        user: &str,
-    ) -> (ConversationSnapshot, crate::llm::ToolExchange) {
-        self.user(user);
-        let snapshot = self.snapshot();
-        let tools = self.db.turn_tools(&snapshot, user).unwrap().tools.unwrap();
-        let exchange = self.db.tool_exchange(&snapshot, tools);
-        (snapshot, exchange)
-    }
-
     pub(crate) fn send_as(
         &mut self,
         user: &str,
