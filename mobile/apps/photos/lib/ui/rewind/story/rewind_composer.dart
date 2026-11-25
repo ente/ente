@@ -86,12 +86,19 @@ const _minimumNewFaces = 1;
 
 RewindChapter _totals(rust.Totals? totals) {
   return RewindChapter([PhotosCountPage.pageKey, TopPercentPage.pageKey], (
-    _,
+    media,
   ) async {
     if (totals == null) return const [];
     final top = totals.topPercent;
     return [
-      PhotosCountPage(totals.files),
+      PhotosCountPage(
+        totals.files,
+        media.extraPhotos(
+          totals.fileIds,
+          PhotosCountPage.maxPhotos,
+          preload: true,
+        ),
+      ),
       if (top != null) TopPercentPage(percent: top, count: totals.files),
     ];
   });
