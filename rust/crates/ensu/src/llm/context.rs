@@ -9,6 +9,7 @@ use std::ffi::CString;
 use std::num::NonZeroU32;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Instant;
@@ -180,11 +181,54 @@ impl Context {
         if let Some(tools) = tools {
             tools.record(None);
         }
-        let summary = self.generate_chat_stream_inner(
-            request,
-            tools.and_then(|tools| tools.continuation.clone()),
-            sink,
-        )?;
+        let mut generation = self.begin(sink);
+        let mut summary = generation.pass(request.clone(), sink)?;
+        if let Some(mut next) = tools
+            .and_then(|tools| tools.continuation.as_ref())
+            .and_then(|continuation| {
+                summary
+                    .tools
+                    .as_ref()
+                    .and_then(|outcome| continuation.follow_up(&request, outcome))
+            })
+        {
+            let output = request
+                .max_tokens
+                .unwrap_or(8192)
+                .saturating_sub(summary.generated_tokens.unwrap_or(i32::MAX))
+                .max(0);
+            if output > 0
+                && self.measure_text_chat_prompt(&next)? + output as usize
+                    <= self.context_size() as usize
+            {
+                next.max_tokens = Some(output);
+                let mut finished = generation.pass(next, sink)?;
+                if let Some(mut prior) = summary.tools.take() {
+                    if let Some(outcome) = finished.tools.take() {
+                        if !outcome.calls.is_empty() {
+                            prior.calls.extend(outcome.calls);
+                            prior.call_probability = prior
+                                .call_probability
+                                .zip(outcome.call_probability)
+                                .map(|(first, second)| first.min(second));
+                        }
+                        prior.abstained |= outcome.abstained;
+                        prior.rejected_steps += outcome.rejected_steps;
+                    }
+                    finished.tools = Some(prior);
+                }
+                finished.prompt_tokens = summary
+                    .prompt_tokens
+                    .zip(finished.prompt_tokens)
+                    .map(|(first, second)| first + second);
+                finished.generated_tokens = summary
+                    .generated_tokens
+                    .zip(finished.generated_tokens)
+                    .map(|(first, second)| first + second);
+                summary = finished;
+            }
+        }
+        let summary = generation.done(summary, sink);
         if let Some(tools) = tools {
             tools.record(summary.tools.clone());
         }
@@ -196,27 +240,60 @@ impl Context {
         request: ChatRequest,
         sink: &mut dyn EventSink,
     ) -> Result<GenerationSummary, Error> {
-        self.generate_chat_stream_inner(request, None, sink)
+        let mut generation = self.begin(sink);
+        let summary = generation.pass(request, sink)?;
+        Ok(generation.done(summary, sink))
     }
 
-    fn generate_chat_stream_inner(
-        &self,
-        request: ChatRequest,
-        continuation: Option<Arc<dyn super::tools::ToolContinuation>>,
-        sink: &mut dyn EventSink,
-    ) -> Result<GenerationSummary, Error> {
+    pub fn begin(&self, sink: &mut dyn EventSink) -> Generation<'_> {
         let (job_id, cancel_flag) = register_job();
-        let _job_guard = JobGuard(job_id);
-        let start = Instant::now();
+        let generation = Generation {
+            context: self,
+            job_id,
+            cancel_flag,
+            start: Instant::now(),
+            _guard: JobGuard(job_id),
+        };
         sink.add(GenerationEvent::Text {
             job_id,
             text: String::new(),
             token_id: None,
         });
+        generation
+    }
+}
 
+pub struct Generation<'a> {
+    context: &'a Context,
+    job_id: super::JobId,
+    cancel_flag: Arc<AtomicBool>,
+    start: Instant,
+    _guard: JobGuard,
+}
+
+impl Generation<'_> {
+    pub fn job_id(&self) -> super::JobId {
+        self.job_id
+    }
+
+    pub fn cancelled(&self) -> bool {
+        self.cancel_flag.load(Ordering::Acquire)
+    }
+
+    pub fn pass(
+        &mut self,
+        request: ChatRequest,
+        sink: &mut dyn EventSink,
+    ) -> Result<GenerationSummary, Error> {
+        if self.cancelled() {
+            return Err(Error::Cancelled);
+        }
+        let job_id = self.job_id;
+        let cancel_flag = self.cancel_flag.clone();
+        let start = self.start;
         let (events, received_events) = mpsc::sync_channel(0);
         let (acknowledge, acknowledgements) = mpsc::sync_channel(0);
-        let completed = self.worker.submit(move |context| {
+        let completed = self.context.worker.submit(move |context| {
             let mut callback_failed = false;
             let mut emit = |event| {
                 if events.send(event).is_err() || acknowledgements.recv() != Ok(true) {
@@ -224,74 +301,18 @@ impl Context {
                     cancel(job_id);
                 }
             };
-            let result = (|| {
-                let mut summary = context.generate_chat_stream(
-                    request.clone(),
-                    &mut emit,
-                    job_id,
-                    cancel_flag.clone(),
-                    start,
-                )?;
-                if cancel_flag.load(std::sync::atomic::Ordering::Acquire) {
-                    return Err(Error::Cancelled);
-                }
-                if let Some(mut next) = continuation.as_ref().and_then(|continuation| {
-                    summary
-                        .tools
-                        .as_ref()
-                        .and_then(|outcome| continuation.follow_up(&request, outcome))
-                }) {
-                    let output = request
-                        .max_tokens
-                        .unwrap_or(8192)
-                        .saturating_sub(summary.generated_tokens.unwrap_or(i32::MAX))
-                        .max(0);
-                    if output == 0 {
-                        return Ok(summary);
-                    }
-                    next.max_tokens = Some(output);
-                    if context.measure_text_chat_prompt(&next)? + output as usize
-                        > context.context_size() as usize
-                    {
-                        return Ok(summary);
-                    }
-                    let mut finished = context.generate_chat_stream(
-                        next,
-                        &mut emit,
-                        job_id,
-                        cancel_flag.clone(),
-                        start,
-                    )?;
-                    if cancel_flag.load(std::sync::atomic::Ordering::Acquire) {
-                        return Err(Error::Cancelled);
-                    }
-                    if let Some(mut prior) = summary.tools.take() {
-                        if let Some(outcome) = finished.tools.take()
-                            && !outcome.calls.is_empty()
-                        {
-                            prior.calls.extend(outcome.calls);
-                            prior.call_probability = prior
-                                .call_probability
-                                .zip(outcome.call_probability)
-                                .map(|(first, second)| first.min(second));
-                        }
-                        finished.tools = Some(prior);
-                    }
-                    finished.prompt_tokens = summary
-                        .prompt_tokens
-                        .zip(finished.prompt_tokens)
-                        .map(|(first, second)| first + second);
-                    finished.generated_tokens = summary
-                        .generated_tokens
-                        .zip(finished.generated_tokens)
-                        .map(|(first, second)| first + second);
-                    summary = finished;
-                }
-                Ok(summary)
-            })();
+            let result = context.generate_chat_stream(
+                request,
+                &mut emit,
+                job_id,
+                cancel_flag.clone(),
+                start,
+            );
             if callback_failed {
                 context.invalidate_cache();
                 Err(Error::Panicked)
+            } else if cancel_flag.load(Ordering::Acquire) {
+                Err(Error::Cancelled)
             } else {
                 result
             }
@@ -304,11 +325,14 @@ impl Context {
             }
             let _ = acknowledge.send(!callback_failed);
         }
-        let summary = completed.recv().map_err(|_| Error::Panicked)??;
+        completed.recv().map_err(|_| Error::Panicked)?
+    }
+
+    pub fn done(self, summary: GenerationSummary, sink: &mut dyn EventSink) -> GenerationSummary {
         sink.add(GenerationEvent::Done {
             summary: summary.clone(),
         });
-        Ok(summary)
+        summary
     }
 }
 
