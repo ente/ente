@@ -795,6 +795,7 @@ fn several_calls_in_one_message_each_use_the_list_in_effect() {
             "List tasks and check whether the dentist is there",
             "List tasks about 'Research and save passwords'",
             "List tasks about Research and save passwords",
+            "List research and save passwords please",
             "List tasks about Research and\nsave passwords",
             "List tasks about RESEARCH AND SAVE PASSWORDS",
             "List tasks about 'Research; save passwords'",
@@ -832,6 +833,7 @@ fn several_calls_in_one_message_each_use_the_list_in_effect() {
             "List tasks about Research;\nplease save passwords",
             "List tasks about Research\nand save passwords",
             "List research and save passwords for Mom",
+            "List research and save passwords today",
         ] {
             request.tools.as_mut().unwrap().quote_source = user.to_owned();
             assert!(
