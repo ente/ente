@@ -84,10 +84,13 @@ pub fn decode_rewind_state(
     local_gallery_mode: bool,
 ) -> Option<RewindState> {
     match serde_json::from_slice::<RewindState>(bytes) {
-        Ok(state) => (state.version == REWIND_VERSION
-            && state.year == year
-            && state.local_gallery_mode == local_gallery_mode)
-            .then_some(state),
+        Ok(mut state) => {
+            state.ml_chapters_pending |= !state.ml_coverage.is_none_or(has_enough_ml);
+            (state.version == REWIND_VERSION
+                && state.year == year
+                && state.local_gallery_mode == local_gallery_mode)
+                .then_some(state)
+        }
         Err(error) => {
             log::warn!("ignoring an unreadable rewind state: {error}");
             None
@@ -123,12 +126,12 @@ mod tests {
     use tempfile::TempDir;
 
     use super::fixtures::{
-        BEFORE_NEW_YEAR, NoCities, appear, daily_photos, located, photo, request_at,
+        BEFORE_NEW_YEAR, NoCities, appear, daily_photos, located, person, photo, request_at,
     };
     use super::library::MICROS_PER_DAY;
     use super::{
-        Mosaic, REWIND_VERSION, RewindColour, RewindCoverageFile, RewindFile, RewindFileType,
-        RewindReport, RewindRequest, RewindState, RewindStatus, RewindVisibility, compute_rewind,
+        REWIND_VERSION, RewindColour, RewindCoverageFile, RewindFile, RewindFileType,
+        RewindRequest, RewindState, RewindStatus, RewindVisibility, compute_rewind,
         decode_rewind_state, encode_rewind_request, encode_rewind_state, rewind_has_enough_ml,
     };
     use crate::ml_db::{
@@ -336,7 +339,7 @@ mod tests {
     }
 
     #[test]
-    fn with_ml_the_ml_chapters_wait_until_ninety_percent_of_the_year_is_indexed() {
+    fn the_ml_cards_stay_pending_until_ninety_percent_of_the_year_is_indexed() {
         let mut files = photos(10);
         let mut document = photo(11, "2026-06-01T12:00:00");
         document.file_type = RewindFileType::Other;
@@ -500,55 +503,44 @@ mod tests {
     }
 
     #[test]
-    fn ml_chapters_wait_until_faces_are_clustered() {
+    fn unclustered_faces_hold_back_freezing_but_not_the_ml_cards() {
         let files = daily_photos(1, "2026-01-01T12:00:00", 60);
         let (_directory, store) = indexed_store(1..=60);
-        let mut before_clustering = request_at(AFTER_NEW_YEAR, files.clone());
-        before_clustering.just_clustered = false;
+        let mut request = request_at(AFTER_NEW_YEAR, files);
+        request.just_clustered = false;
 
-        let waiting = compute_rewind(
-            &a_day_earlier(&before_clustering),
+        let first = compute_rewind(
+            &a_day_earlier(&request),
             Some(&store),
             Some(&NoCities),
             None,
         )
         .unwrap();
-        assert_eq!(total_files(&waiting), Some(60));
-        assert_eq!(colour(&waiting), None);
-        assert!(waiting.ml_chapters_pending);
-        assert!(!waiting.is_final);
+        assert_eq!(colour(&first), Some(RewindColour::CherryBomb));
+        assert!(!first.ml_chapters_pending);
+        assert!(!first.is_final);
 
-        let just_clustered = compute_rewind(
-            &request_at(AFTER_NEW_YEAR, files),
-            Some(&store),
-            Some(&NoCities),
-            Some(&waiting),
-        )
-        .unwrap();
-        assert_eq!(colour(&just_clustered), Some(RewindColour::CherryBomb));
-        assert!(!just_clustered.ml_chapters_pending);
-        assert!(!just_clustered.is_final);
+        let unclustered =
+            compute_rewind(&request, Some(&store), Some(&NoCities), Some(&first)).unwrap();
+        assert_eq!(colour(&unclustered), Some(RewindColour::CherryBomb));
+        assert!(!unclustered.is_final);
+
+        let mut just_clustered = request.clone();
+        just_clustered.just_clustered = true;
+        let claimed =
+            compute_rewind(&just_clustered, Some(&store), Some(&NoCities), Some(&first)).unwrap();
+        assert!(!claimed.is_final);
 
         cluster_indexed_faces(&store, 1..=60);
-        let already_clustered = compute_rewind(
-            &before_clustering,
+        let clustered = compute_rewind(
+            &a_day_earlier(&request),
             Some(&store),
             Some(&NoCities),
-            Some(&waiting),
+            None,
         )
         .unwrap();
-        assert_eq!(colour(&already_clustered), Some(RewindColour::CherryBomb));
-        assert!(!already_clustered.ml_chapters_pending);
-        assert!(!already_clustered.is_final);
-
-        before_clustering.now += MICROS_PER_DAY;
-        let settled = compute_rewind(
-            &before_clustering,
-            Some(&store),
-            Some(&NoCities),
-            Some(&already_clustered),
-        )
-        .unwrap();
+        let settled =
+            compute_rewind(&request, Some(&store), Some(&NoCities), Some(&clustered)).unwrap();
         assert!(settled.is_final);
     }
 
@@ -577,51 +569,53 @@ mod tests {
     }
 
     #[test]
-    fn faces_the_clustering_skips_do_not_hold_back_the_report() {
-        let files = daily_photos(1, "2026-01-01T12:00:00", 60);
-        let (_directory, store) = indexed_store(1..=60);
-        cluster_indexed_faces(&store, 1..=60);
+    fn faces_the_clustering_skips_do_not_hold_back_freezing() {
         let mut invalid = vec![0.1; CLUSTER_CENTROID_DIMENSIONS];
         invalid[5] = f64::NAN;
-        unclustered_face(&store, 7, invalid);
-        let mut request = request_at(BEFORE_NEW_YEAR, files);
-        request.just_clustered = false;
+        for (with_clusterable_face, freezes) in [(false, true), (true, false)] {
+            let (_directory, store) = indexed_store(1..=60);
+            cluster_indexed_faces(&store, 1..=60);
+            unclustered_face(&store, 7, invalid.clone());
+            if with_clusterable_face {
+                unclustered_face(&store, 8, vec![0.1; CLUSTER_CENTROID_DIMENSIONS]);
+            }
+            let mut request =
+                request_at(AFTER_NEW_YEAR, daily_photos(1, "2026-01-01T12:00:00", 60));
+            request.just_clustered = false;
 
-        let state = compute_rewind(&request, Some(&store), None, None).unwrap();
-        assert_eq!(colour(&state), Some(RewindColour::CherryBomb));
-        assert!(!state.ml_chapters_pending);
-
-        unclustered_face(&store, 8, vec![0.1; CLUSTER_CENTROID_DIMENSIONS]);
-        let waiting = compute_rewind(&request, Some(&store), None, None).unwrap();
-        assert!(waiting.ml_chapters_pending);
+            let first = compute_rewind(
+                &a_day_earlier(&request),
+                Some(&store),
+                Some(&NoCities),
+                None,
+            )
+            .unwrap();
+            let state =
+                compute_rewind(&request, Some(&store), Some(&NoCities), Some(&first)).unwrap();
+            assert_eq!(colour(&state), Some(RewindColour::CherryBomb));
+            assert!(!state.ml_chapters_pending);
+            assert_eq!(state.is_final, freezes);
+        }
     }
 
     #[test]
-    fn new_faces_stay_once_shown_while_new_photos_wait_for_clustering() {
+    fn new_faces_wait_only_for_faces_from_earlier_years_to_be_clustered() {
         let mut files = daily_photos(1, "2026-01-01T12:00:00", 240);
         files.extend(daily_photos(301, "2025-06-01T12:00:00", 10));
         let (_directory, store) = indexed_store((1..=240).chain(301..=310));
         appear(&store, "partner", None, (1..=120).chain(301..=310));
         appear(&store, "baby", None, 121..=240);
-        let shown = compute_rewind(
-            &request_at(BEFORE_NEW_YEAR, files.clone()),
-            Some(&store),
-            None,
-            None,
-        )
-        .unwrap();
+        cluster_indexed_faces(&store, 301..=310);
+        let mut request = request_at(BEFORE_NEW_YEAR, files);
+        request.just_clustered = false;
+
+        let shown = compute_rewind(&request, Some(&store), None, None).unwrap();
         assert_eq!(new_face_clusters(&shown), Some(vec!["baby".to_string()]));
 
-        files.push(photo(241, "2026-12-30T12:00:00"));
-        let (_directory, store) = indexed_store((1..=241).chain(301..=310));
-        appear(&store, "partner", None, (1..=120).chain(301..=310));
-        appear(&store, "baby", None, 121..=240);
-        let mut before_clustering = request_at(BEFORE_NEW_YEAR, files);
-        before_clustering.just_clustered = false;
-        let unseen = compute_rewind(&before_clustering, Some(&store), None, None).unwrap();
+        unclustered_face(&store, 305, vec![0.1; CLUSTER_CENTROID_DIMENSIONS]);
+        let unseen = compute_rewind(&request, Some(&store), None, None).unwrap();
         assert_eq!(new_face_clusters(&unseen), None);
-        let still_shown =
-            compute_rewind(&before_clustering, Some(&store), None, Some(&shown)).unwrap();
+        let still_shown = compute_rewind(&request, Some(&store), None, Some(&shown)).unwrap();
         assert_eq!(
             new_face_clusters(&still_shown),
             Some(vec!["baby".to_string()])
@@ -768,6 +762,27 @@ mod tests {
     }
 
     #[test]
+    fn cached_states_below_ninety_percent_decode_as_pending() {
+        let state =
+            compute_rewind(&request_at(BEFORE_NEW_YEAR, photos(2)), None, None, None).unwrap();
+        for (coverage, stored, decoded) in [
+            (Some(0.6), false, true),
+            (Some(0.9), true, true),
+            (Some(0.9), false, false),
+            (None, false, false),
+        ] {
+            let mut cached = state.clone();
+            cached.ml_coverage = coverage;
+            cached.ml_chapters_pending = stored;
+            let bytes = encode_rewind_state(&cached).unwrap();
+            let pending = decode_rewind_state(&bytes, 2026, false)
+                .unwrap()
+                .ml_chapters_pending;
+            assert_eq!(pending, decoded, "{coverage:?} {stored}");
+        }
+    }
+
+    #[test]
     fn requests_encode_as_the_harness_reads_them() {
         let request = request_at(BEFORE_NEW_YEAR, photos(2));
         let bytes = encode_rewind_request(&request).unwrap();
@@ -778,7 +793,7 @@ mod tests {
     }
 
     #[test]
-    fn older_mosaic_caches_keep_the_ml_chapters_when_ml_coverage_drops() {
+    fn older_mosaic_caches_still_decode() {
         let (_directory, store) = indexed_store(1..=200);
         let mut files = daily_photos(1, "2026-01-01T12:00:00", 200);
         let ready = compute_rewind(
@@ -799,6 +814,7 @@ mod tests {
         mosaic.remove("cluster_face_ids");
         let bytes = serde_json::to_vec(&cache).unwrap();
         let previous = decode_rewind_state(&bytes, 2026, false);
+        assert!(previous.is_some());
 
         files.extend(daily_photos(201, "2026-07-20T12:00:00", 100));
         let refreshed = compute_rewind(
@@ -859,53 +875,31 @@ mod tests {
     }
 
     #[test]
-    fn ml_chapters_stay_once_shown_and_otherwise_wait_for_ninety_percent() {
+    fn the_ml_cards_show_with_whatever_is_indexed() {
         let (_directory, store) = indexed_store(1..=60);
-        let indexed = daily_photos(1, "2026-01-01T12:00:00", 60);
-        let ready = compute_rewind(
-            &request_at(BEFORE_NEW_YEAR, indexed.clone()),
-            Some(&store),
-            None,
-            None,
-        )
-        .unwrap();
-        assert_eq!(colour(&ready), Some(RewindColour::CherryBomb));
+        for (name, file_ids) in [("alice", 1..=20), ("bob", 21..=40), ("carol", 41..=60)] {
+            appear(&store, name, Some(name), file_ids);
+        }
+        let mut files = daily_photos(1, "2026-01-01T12:00:00", 60);
+        files.extend(daily_photos(61, "2026-06-01T12:00:00", 40));
+        let mut request = request_at(BEFORE_NEW_YEAR, files);
+        request.people = vec![person("alice"), person("bob"), person("carol")];
+        request.just_clustered = false;
 
-        let mut more = indexed;
-        more.extend(daily_photos(61, "2026-06-01T12:00:00", 40));
-        let after_new_year = request_at(AFTER_NEW_YEAR, more);
-        let latched = compute_rewind(&after_new_year, Some(&store), None, Some(&ready)).unwrap();
-        assert_eq!(latched.ml_coverage, Some(0.6));
-        assert_eq!(colour(&latched), Some(RewindColour::CherryBomb));
-        assert!(!latched.ml_chapters_pending);
-        let still_latched =
-            compute_rewind(&after_new_year, Some(&store), None, Some(&latched)).unwrap();
-        assert_eq!(colour(&still_latched), Some(RewindColour::CherryBomb));
-
-        let unseen = compute_rewind(&after_new_year, Some(&store), None, None).unwrap();
-        assert!(matches!(unseen.status, RewindStatus::Ready { .. }));
-        assert_eq!(colour(&unseen), None);
-        assert!(unseen.ml_chapters_pending);
-        let after_unseen =
-            compute_rewind(&after_new_year, Some(&store), None, Some(&unseen)).unwrap();
-        assert_eq!(colour(&after_unseen), None);
-    }
-
-    #[test]
-    fn an_unnamed_mosaic_face_keeps_the_ml_chapters_once_shown() {
-        let report = RewindReport {
-            mosaic: Some(Mosaic {
-                file_ids: vec![1],
-                me_person_id: None,
-                me_face_ids: Vec::new(),
-                top_person_id: None,
-                top_face_ids: Vec::new(),
-                cluster_id: Some("stranger".to_string()),
-                cluster_face_ids: vec!["1_stranger".to_string()],
-            }),
-            ..RewindReport::default()
+        let state = compute_rewind(&request, Some(&store), None, None).unwrap();
+        assert_eq!(state.ml_coverage, Some(0.6));
+        assert_eq!(colour(&state), Some(RewindColour::CherryBomb));
+        let RewindStatus::Ready { report } = &state.status else {
+            panic!("{:?}", state.status);
         };
-        assert!(report.shows_ml_chapters());
+        let racers: Vec<&str> = report
+            .people_race
+            .iter()
+            .flat_map(|race| &race.people)
+            .map(|racer| racer.person_id.as_str())
+            .collect();
+        assert_eq!(racers, ["alice", "bob", "carol"]);
+        assert!(state.ml_chapters_pending);
     }
 
     #[test]
