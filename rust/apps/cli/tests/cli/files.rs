@@ -213,6 +213,25 @@ fn replica_resumes_failed_pages_and_only_refreshes_changed_albums() {
         failure(&home.run(&["--offline", "photos", "file", "list", "--album", "First"]))
             .contains("have not finished syncing")
     );
+    {
+        let connection = open_replica_db(&home);
+        let state: (i64, Option<i64>) = connection
+            .query_row(
+                "SELECT files_cursor, files_synced_to FROM photos_collections WHERE id=1",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(state, (10, None));
+        let row: (i64, String, i64) = connection
+            .query_row(
+                "SELECT id, name, failed FROM photos_files WHERE collection_id=1",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            )
+            .unwrap();
+        assert_eq!(row, (10, "Edited 🌧.jpg".into(), 0));
+    }
     first_page.assert();
     broken_page.assert();
     broken_page.remove();
@@ -551,17 +570,7 @@ fn photos_lists_limit_output_and_stream_complete_results() {
         assert!(error.contains("More matches omitted"));
     }
 
-    let state = home.read_vault();
-    let database = home
-        .dir
-        .path()
-        .join("accounts")
-        .join(state["accounts"][0]["storage_id"].as_str().unwrap())
-        .join("data.db");
-    let connection = rusqlite::Connection::open(database).unwrap();
-    connection
-        .pragma_update(None, "key", format!("x'{}'", "2a".repeat(32)))
-        .unwrap();
+    let connection = open_replica_db(&home);
     let encoded: String = connection
         .query_row("SELECT record FROM photos_files WHERE id=150", [], |r| {
             r.get(0)
@@ -799,13 +808,37 @@ pub(super) fn remote_file_with(
     )
 }
 
+fn open_replica_db(home: &TestHome) -> rusqlite::Connection {
+    let state = home.read_vault();
+    let database = home
+        .dir
+        .path()
+        .join("accounts")
+        .join(state["accounts"][0]["storage_id"].as_str().unwrap())
+        .join("data.db");
+    let connection = rusqlite::Connection::open(database).unwrap();
+    connection
+        .pragma_update(None, "key", format!("x'{}'", "2a".repeat(32)))
+        .unwrap();
+    connection
+}
+
 pub(super) fn page(
     server: &mut mockito::ServerGuard,
     collection: i64,
     since: i64,
-    diff: Value,
+    mut diff: Value,
     more: bool,
 ) -> mockito::Mock {
+    if let Some(items) = diff.as_array_mut() {
+        for item in items {
+            if let Some(object) = item.as_object_mut()
+                && object.contains_key("collectionID")
+            {
+                object.insert("collectionID".into(), json!(collection));
+            }
+        }
+    }
     server
         .mock("GET", "/collections/v2/diff")
         .match_query(mockito::Matcher::AllOf(vec![

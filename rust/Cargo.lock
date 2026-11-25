@@ -2590,9 +2590,12 @@ name = "ente-collections"
 version = "0.0.0"
 dependencies = [
  "ente-core",
+ "ente-test-support",
+ "mockito",
  "serde",
  "serde_json",
  "thiserror 2.0.21",
+ "tokio",
 ]
 
 [[package]]
@@ -3078,6 +3081,8 @@ dependencies = [
  "ente-accounts",
  "ente-core",
  "postgresql_embedded",
+ "serde",
+ "serde_json",
  "tokio",
  "uuid",
 ]

@@ -27,6 +27,24 @@ pub struct TestAccount {
     pub key_attributes: KeyAttributes,
 }
 
+impl TestAccount {
+    pub fn session(&self, endpoint: &str, user_agent: &str) -> TestResult<ente_core::Session> {
+        Ok(ente_core::Session::new(
+            ente_core::http::ApiConfig {
+                origin: endpoint.into(),
+                client_package: Some("io.ente.photos".into()),
+                client_version: None,
+                user_agent: Some(user_agent.into()),
+                auth: Some(ente_core::http::Auth::User(self.auth_token.clone())),
+            },
+            self.user_id,
+            Key::try_from_slice(&self.master_key)?,
+            Key::try_from_slice(&self.recovery_key)?,
+            SecretKey::try_from_slice(&self.secret_key)?,
+        )?)
+    }
+}
+
 pub async fn create_account(endpoint: &str, email_prefix: &str) -> TestResult<TestAccount> {
     let email = format!(
         "{email_prefix}-{}{HARDCODED_OTT_EMAIL_SUFFIX}",

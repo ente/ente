@@ -224,7 +224,7 @@ impl<'a> Replica<'a> {
         let mut changes = Vec::with_capacity(page.collections.len());
         for remote in page.collections {
             let id = remote.id;
-            if remote.is_deleted == Some(true) {
+            if remote.is_deleted() {
                 changes.push((id, None));
                 continue;
             }
@@ -309,7 +309,7 @@ impl<'a> Replica<'a> {
     }
 
     pub async fn sync_album_files(&mut self, session: &Session, album: &Collection) -> Result<()> {
-        let (mut cursor, synced_to): (i64, Option<i64>) = self.db.read(|db| {
+        let (cursor, synced_to): (i64, Option<i64>) = self.db.read(|db| {
             Ok(db.query_row(
                 "SELECT files_cursor,files_synced_to FROM photos_collections WHERE id=?1",
                 [album.id],
@@ -317,8 +317,8 @@ impl<'a> Replica<'a> {
             )?)
         })?;
         if synced_to.is_none_or(|time| time < album.updated_at_micros) {
-            loop {
-                let page = ente_collections::client::files_diff(session, album.id, cursor).await?;
+            let mut pages = ente_collections::client::file_pages(session, album.id, cursor);
+            while let Some(page) = pages.next().await? {
                 let mut changes = Vec::with_capacity(page.files.len());
                 for remote in page.files {
                     let id = remote.id;
@@ -353,10 +353,6 @@ impl<'a> Replica<'a> {
                     )?;
                     Ok(())
                 })?;
-                cursor = page.cursor;
-                if !page.has_more {
-                    break;
-                }
             }
         }
         let mut after = 0;
