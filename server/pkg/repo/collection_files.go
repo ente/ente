@@ -175,6 +175,14 @@ func (repo *CollectionRepository) FilterActiveFileIDsInCollection(ctx context.Co
 	return active, nil
 }
 
+func (repo *CollectionRepository) HasPublishedFiles(ctx context.Context, collectionID int64) (bool, error) {
+	var exists bool
+	err := repo.DB.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM collection_files
+		WHERE collection_id = $1 AND NOT is_deleted AND moderation_status IS DISTINCT FROM $2)`,
+		collectionID, ente.ModerationPending).Scan(&exists)
+	return exists, stacktrace.Propagate(err, "")
+}
+
 func (repo *CollectionRepository) GetCollectionsFilesCount(collectionID int64) (int64, error) {
 	row := repo.DB.QueryRow(`SELECT count(*) FROM collection_files WHERE collection_id=$1 AND is_deleted = false`, collectionID)
 	var count int64 = 0

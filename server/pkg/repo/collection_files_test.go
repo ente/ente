@@ -6,7 +6,25 @@ import (
 
 	"github.com/ente/museum/ente"
 	"github.com/ente/museum/internal/testutil"
+	"github.com/stretchr/testify/require"
 )
+
+func TestHasPublishedFiles(t *testing.T) {
+	collections, db, owner := setupCollectionMembershipTest(t)
+	album := insertObjectTestCollection(t, db, owner)
+	files := insertCollectionMembershipTestFiles(t, db, owner, 2)
+	linkObjectTestFileToCollection(t, db, album, files[0], owner)
+	_, err := db.Exec(`UPDATE collection_files SET moderation_status = 'PENDING' WHERE file_id = $1`, files[0])
+	require.NoError(t, err)
+	hasPublished, err := collections.HasPublishedFiles(t.Context(), album)
+	require.NoError(t, err)
+	require.False(t, hasPublished)
+
+	linkObjectTestFileToCollection(t, db, album, files[1], owner)
+	hasPublished, err = collections.HasPublishedFiles(t.Context(), album)
+	require.NoError(t, err)
+	require.True(t, hasPublished)
+}
 
 func TestGetCollectionFileState(t *testing.T) {
 	_, db := setupAccessibleObjectTest(t)
