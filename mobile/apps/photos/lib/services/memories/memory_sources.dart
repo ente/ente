@@ -111,44 +111,44 @@ int _newestFirst(EnteFile a, EnteFile b) {
   return (b.generatedID ?? 0).compareTo(a.generatedID ?? 0);
 }
 
+const _junkAlbumNames = {
+  'screenshot',
+  'whatsapp',
+  'telegram',
+  'download',
+  'facebook',
+  'instagram',
+  'messenger',
+  'twitter',
+  'reddit',
+  'discord',
+  'signal',
+  'viber',
+  'wechat',
+  'line',
+  'meme',
+  'internet',
+  'saved images',
+  'document',
+};
+
+bool isJunkAlbumName(String? name) {
+  final lowercased = name?.toLowerCase();
+  return lowercased != null && _junkAlbumNames.any(lowercased.contains);
+}
+
 Future<Set<int>> getCollectionIDsToExclude() async {
   if (isLocalGalleryMode) {
     return <int>{};
   }
   final collections = CollectionsService.instance.getCollectionsForUI();
 
-  const excludedNames = {
-    'screenshot',
-    'whatsapp',
-    'telegram',
-    'download',
-    'facebook',
-    'instagram',
-    'messenger',
-    'twitter',
-    'reddit',
-    'discord',
-    'signal',
-    'viber',
-    'wechat',
-    'line',
-    'meme',
-    'internet',
-    'saved images',
-    'document',
-  };
-
   final excludedCollectionIDs = Set<int>.from(
     CollectionsService.instance.archivedOrHiddenCollectionIds(),
   );
-  collectionLoop:
   for (final collection in collections) {
-    final collectionName = collection.displayName.toLowerCase();
-    for (final excludedName in excludedNames) {
-      if (collectionName.contains(excludedName)) {
-        excludedCollectionIDs.add(collection.id);
-        continue collectionLoop;
-      }
+    if (isJunkAlbumName(collection.displayName)) {
+      excludedCollectionIDs.add(collection.id);
     }
   }
 

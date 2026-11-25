@@ -7,12 +7,15 @@ import "package:path/path.dart" as path;
 import "package:path_provider/path_provider.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/core/event_bus.dart";
+import "package:photos/db/files_db.dart";
 import "package:photos/db/ml/rust_db.dart";
 import "package:photos/events/app_mode_changed_event.dart";
 import "package:photos/events/diff_sync_complete_event.dart";
 import "package:photos/events/files_updated_event.dart";
+import "package:photos/events/local_photos_updated_event.dart";
 import "package:photos/events/people_changed_event.dart";
 import "package:photos/events/sync_finished_event.dart";
+import "package:photos/events/sync_status_update_event.dart";
 import "package:photos/main.dart" show isIOSBackgroundRefresh, isProcessBg;
 import "package:photos/service_locator.dart";
 import "package:photos/services/app_lifecycle_service.dart";
@@ -23,6 +26,7 @@ import "package:photos/services/rewind/rewind_edition.dart";
 import "package:photos/services/rewind/rewind_progress.dart";
 import "package:photos/services/rewind/rewind_request.dart";
 import "package:photos/services/sync/local_sync_service.dart";
+import "package:photos/services/sync/offline_import_metadata_service.dart";
 import "package:photos/services/sync/remote_sync_service.dart";
 import "package:photos/src/rust/api/ml_db_api.dart" show MlStore;
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
@@ -32,11 +36,19 @@ import "package:shared_preferences/shared_preferences.dart";
 import "package:synchronized/synchronized.dart";
 
 class RewindService {
-  RewindService(SharedPreferences prefs) : _progress = RewindProgress(prefs) {
+  RewindService(this._prefs) : _progress = RewindProgress(_prefs) {
     Bus.instance.on<AppModeChangedEvent>().listen((_) => _reset());
     Bus.instance.on<PeopleChangedEvent>().listen((_) => _rebuildStory());
     Bus.instance.on<DiffSyncCompleteEvent>().listen((_) => _rebuildStory());
-    Bus.instance.on<SyncFinishedEvent>().listen((_) => _refreshIfNoReport());
+    Bus.instance.on<SyncFinishedEvent>().listen((_) => _refreshIfOutdated());
+    Bus.instance
+        .on<SyncStatusUpdate>()
+        .where((event) => event.status == SyncStatus.completedBackup)
+        .listen((_) => _refreshIfOutdated());
+    Bus.instance
+        .on<LocalPhotosUpdatedEvent>()
+        .where((event) => event.source == _localMetadataSource)
+        .listen((_) => _refreshOnceLocalMetadataSettles());
     Bus.instance
         .on<FilesUpdatedEvent>()
         .where((event) => _visibilityChanges.contains(event.type))
@@ -44,6 +56,7 @@ class RewindService {
     ritualsService.stateNotifier.addListener(_onRitualsChanged);
   }
 
+  final SharedPreferences _prefs;
   final RewindProgress _progress;
   final _logger = Logger("RewindService");
   final _lock = Lock();
@@ -55,6 +68,7 @@ class RewindService {
   String _missingStateReason = "no state";
   String? _storyError;
   var _hasRefreshed = false;
+  Timer? _localMetadataTimer;
   final assets = RewindAssetStore();
   late final music = MemoryMusicService.remote(
     manifestURL: "https://rewind-assets.ente.com/rewind-2026-music.json",
@@ -64,6 +78,16 @@ class RewindService {
   static const _startupDelay = Duration(seconds: 5);
   static const _startupRetryDelay = Duration(seconds: 30);
   static const _refreshInterval = Duration(days: 1);
+  static const _toleratedShare = 0.1;
+  static const _mostChangesBeforeRecompute = 50;
+  static const _uploadLookback = Duration(minutes: 5);
+  static const _longestOfflineMetadataWait = Duration(days: 1);
+  static const _libraryCountKey =
+      "ls.rewind_${RewindEdition.year}_library_count";
+  static const _offlineMetadataWaitKey =
+      "ls.rewind_${RewindEdition.year}_offline_metadata_wait";
+  static const _localMetadataSource = "offlineImportMetadata";
+  static const _localMetadataQuietPeriod = Duration(seconds: 30);
   static const _notificationId = 20261205;
   static const _newCardsNotificationId = 20261206;
   static const _notificationPayload = "ente://rewind";
@@ -122,7 +146,7 @@ class RewindService {
 
   Future<void> _refreshAtStartup() async {
     await Future.delayed(_startupDelay, refresh);
-    await Future.delayed(_startupRetryDelay, _refreshIfNoReport);
+    await Future.delayed(_startupRetryDelay, _refreshIfOutdated);
   }
 
   Future<void> refresh({bool afterMlRun = false, bool justClustered = false}) =>
@@ -130,10 +154,100 @@ class RewindService {
         () => _refresh(afterMlRun: afterMlRun, justClustered: justClustered),
       );
 
-  void _refreshIfNoReport() {
-    if (isProcessBg || !_hasRefreshed || _state.value != null) return;
-    unawaited(refresh());
+  Future<void> _refreshIfOutdated() async {
+    if (isProcessBg || !_hasRefreshed) return;
+    await _guarded(() async {
+      final state = _state.value;
+      if (state != null && !await _libraryChanged(state)) return;
+      await _refresh(afterMlRun: false);
+    });
   }
+
+  void _refreshOnceLocalMetadataSettles() {
+    _localMetadataTimer?.cancel();
+    _localMetadataTimer = Timer(
+      _localMetadataQuietPeriod,
+      () => unawaited(_refreshIfOutdated()),
+    );
+  }
+
+  Future<bool> _libraryChanged(rust.RewindState state) async {
+    if (state.isFinal) return false;
+    final changed =
+        await _libraryCount(state.computedAt) - _libraryCountWhen(state);
+    return changed >= _changesForRecompute(state);
+  }
+
+  Future<int> _libraryCount(int computedAt) async {
+    if (!isLocalGalleryMode) {
+      return _ownedFilesUpdatedSince(
+        computedAt - _uploadLookback.inMicroseconds,
+      );
+    }
+    return _tracksOfflineMetadata ? _processedOfflineFiles() : 0;
+  }
+
+  int _libraryCountWhen(rust.RewindState state) {
+    final saved = _prefs.getStringList(_libraryCountKey);
+    if (saved == null || saved.first != "${state.computedAt}") return 0;
+    return int.tryParse(saved.last) ?? 0;
+  }
+
+  bool get _tracksOfflineMetadata => isLocalGalleryMode && Platform.isAndroid;
+
+  int _changesForRecompute(rust.RewindState state) {
+    final files = switch (state.status) {
+      rust.RewindStatus_Ready(:final report) => report.totals?.files ?? 0,
+      rust.RewindStatus_NothingToShow() => 0,
+    };
+    return (files * _toleratedShare).ceil().clamp(
+      1,
+      _mostChangesBeforeRecompute,
+    );
+  }
+
+  Future<bool> _waitsForOfflineMetadata(DateTime now) async {
+    if (!_tracksOfflineMetadata || _progress.opened) return false;
+    final waitingSince = _prefs.getInt(_offlineMetadataWaitKey);
+    if (waitingSince != null &&
+        now.microsecondsSinceEpoch - waitingSince >=
+            _longestOfflineMetadataWait.inMicroseconds) {
+      return false;
+    }
+    final (:total, :unread) = await FilesDB.instance
+        .countOfflineFilesCapturedBetween(
+          OfflineImportMetadataService.kProcessingVersion,
+          capturedFrom: _yearCaptureStart,
+          capturedBefore: _yearCaptureCutoff,
+        );
+    if (unread <= total * _toleratedShare) return false;
+    if (waitingSince == null) {
+      await _prefs.setInt(_offlineMetadataWaitKey, now.microsecondsSinceEpoch);
+    }
+    return true;
+  }
+
+  Future<int> _ownedFilesUpdatedSince(int time) async {
+    final userID = Configuration.instance.getUserID();
+    if (userID == null) return 0;
+    return FilesDB.instance.countOwnedFilesUpdatedSince(
+      userID,
+      time,
+      capturedBefore: _yearCaptureCutoff,
+    );
+  }
+
+  Future<int> _processedOfflineFiles() =>
+      FilesDB.instance.countProcessedOfflineFiles(
+        OfflineImportMetadataService.kProcessingVersion,
+        capturedBefore: _yearCaptureCutoff,
+      );
+
+  int get _yearCaptureStart =>
+      DateTime.utc(RewindEdition.year - 1, 12, 31).microsecondsSinceEpoch;
+
+  int get _yearCaptureCutoff =>
+      DateTime.utc(RewindEdition.year + 1, 1, 2).microsecondsSinceEpoch;
 
   Future<void> _guarded(Future<void> Function() work) async {
     if (isIOSBackgroundRefresh) return;
@@ -222,14 +336,25 @@ class RewindService {
     if (owner == null) return;
     final stored = await _load(owner);
     await _publishCached(owner, stored);
+    if (stored == null && await _waitsForOfflineMetadata(now)) {
+      _missingStateReason = "waiting for this year's photo details";
+      _logger.info("Rewind $diagnosis");
+      return;
+    }
     if (stored == null ||
         !_isFresh(stored, now) ||
+        await _libraryChanged(stored) ||
         (afterMlRun && stored.mlChaptersPending && await hasEnoughMl())) {
+      final libraryCount = await _libraryCount(now.microsecondsSinceEpoch);
       final computed = await _compute(
         owner,
         stored,
         await buildRewindRequest(now, justClustered: justClustered),
       );
+      await _prefs.setStringList(_libraryCountKey, [
+        "${computed.computedAt}",
+        "$libraryCount",
+      ]);
       await _publish(owner, computed, "computed");
       await _notifyNewCards(stored, computed);
     }
