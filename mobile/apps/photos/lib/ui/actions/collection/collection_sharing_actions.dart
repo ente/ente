@@ -73,7 +73,7 @@ class CollectionActions {
       return await pending.loadedCount(collection.id);
     } catch (error, stack) {
       logger.warning('Could not load pending uploads', error, stack);
-      return 0;
+      return pending.count(collection.id);
     }
   }
 
@@ -394,11 +394,13 @@ class CollectionActions {
 
   Future<bool> deleteMultipleCollectionSheet(
     BuildContext context,
-    List<Collection> collections,
-  ) async {
+    List<Collection> collections, {
+    required int pendingCount,
+  }) async {
     return _showDeleteCollectionConfirmationSheet(
       context: context,
       title: context.strings.deleteMultipleAlbumsQuestion,
+      pendingCount: pendingCount,
       message: context.strings.deleteMultipleAlbumDialog(
         count: collections.length,
       ),
@@ -427,8 +429,9 @@ class CollectionActions {
 
   Future<bool> deleteCollectionSheet(
     BuildContext bContext,
-    Collection collection,
-  ) async {
+    Collection collection, {
+    required int pendingCount,
+  }) async {
     final currentUserID = Configuration.instance.getUserID()!;
     if (collection.owner.id != currentUserID) {
       throw AssertionError("Can not delete album owned by others");
@@ -442,14 +445,12 @@ class CollectionActions {
         return false;
       }
     }
-    final pendingCount = await pendingCountForWarning(collection);
     if (!bContext.mounted) return false;
     return _showDeleteCollectionConfirmationSheet(
       context: bContext,
       title: bContext.strings.deleteAlbumQuestion,
-      message: pendingCount > 0
-          ? '${bContext.strings.deleteAlbumDialog}\n${bContext.strings.pendingUploadsMoveToTrash(count: pendingCount)}'
-          : bContext.strings.deleteAlbumDialog,
+      message: bContext.strings.deleteAlbumDialog,
+      pendingCount: pendingCount,
       keepPhotos: () async {
         try {
           await trashCollectionKeepingPhotos(collection);
@@ -473,6 +474,7 @@ class CollectionActions {
     required BuildContext context,
     required String title,
     required String message,
+    required int pendingCount,
     required Future<void> Function() keepPhotos,
     required Future<void> Function() deletePhotos,
   }) async {
@@ -487,7 +489,9 @@ class CollectionActions {
           closeTooltip: l10n.close,
           closeResult: ButtonResult(ButtonAction.third),
           content: StyledText(
-            text: message,
+            text: pendingCount > 0
+                ? '$message\n${l10n.pendingUploadsMoveToTrash(count: pendingCount)}'
+                : message,
             textAlign: TextAlign.center,
             style: TextStyles.body.copyWith(color: colors.textLight),
             tags: {

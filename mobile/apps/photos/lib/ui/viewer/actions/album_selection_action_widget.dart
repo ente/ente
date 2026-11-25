@@ -13,6 +13,7 @@ import "package:photos/models/metadata/common_keys.dart";
 import "package:photos/models/selected_albums.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
+import "package:photos/services/pending_uploads_service.dart";
 import "package:photos/ui/actions/collection/collection_sharing_actions.dart";
 import "package:photos/ui/collections/collection_list_page.dart";
 import "package:photos/ui/components/action_sheet_widget.dart";
@@ -300,7 +301,7 @@ class _AlbumSelectionActionWidgetState
   }
 
   Future<void> _trashCollection() async {
-    int count = 0;
+    int pendingCount = 0;
     final List<Collection> nonEmptyCollection = [];
 
     final List errors = [];
@@ -311,9 +312,11 @@ class _AlbumSelectionActionWidgetState
       if (collection.type == CollectionType.favorites) {
         continue;
       }
-      count = await FilesDB.instance.collectionFileCount(collection.id);
+      final count = await FilesDB.instance.collectionFileCount(collection.id);
+      final pending = PendingUploadsService.instance.count(collection.id);
       if (!mounted) return;
-      final bool isEmptyCollection = count == 0;
+      pendingCount += pending;
+      final bool isEmptyCollection = count == 0 && pending == 0;
       if (isEmptyCollection) {
         try {
           await CollectionsService.instance.trashEmptyCollection(collection);
@@ -336,6 +339,7 @@ class _AlbumSelectionActionWidgetState
       final bool result = await collectionActions.deleteMultipleCollectionSheet(
         context,
         nonEmptyCollection,
+        pendingCount: pendingCount,
       );
       if (result == false) {
         debugPrint("Failed to delete collection");

@@ -1414,12 +1414,16 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
   }
 
   Future<void> _trashCollection() async {
+    final collection = widget.collection!;
     final int count = await CollectionsService.instance.getFileCount(
-      widget.collection!,
+      collection,
       useCache: false,
     );
+    final pendingCount = count == 0
+        ? PendingUploadsService.instance.count(collection.id)
+        : await collectionActions.pendingCountForWarning(collection);
     if (!mounted) return;
-    final bool isEmptyCollection = count == 0;
+    final bool isEmptyCollection = count == 0 && pendingCount == 0;
     if (isEmptyCollection) {
       final dialog = createProgressDialog(
         context,
@@ -1427,9 +1431,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       );
       await dialog.show();
       try {
-        await CollectionsService.instance.trashEmptyCollection(
-          widget.collection!,
-        );
+        await CollectionsService.instance.trashEmptyCollection(collection);
         await dialog.hide();
         if (!mounted) return;
         Navigator.of(context).pop();
@@ -1442,7 +1444,8 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
     } else {
       final bool result = await collectionActions.deleteCollectionSheet(
         context,
-        widget.collection!,
+        collection,
+        pendingCount: pendingCount,
       );
       if (!mounted) return;
       if (result == true) {
