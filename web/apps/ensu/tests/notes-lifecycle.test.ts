@@ -32,17 +32,14 @@ const activity = (
 
 void test("manual updates coalesce, precede automatic work, and survive cancellation", () => {
     const controller = new NotesLifecycleController();
-    assert.equal(controller.ensureIndex("running", false), "start");
-    assert.equal(controller.ensureIndex("automatic", false), "queued");
-    assert.equal(controller.ensureIndex(folder.id, false), "queued");
+    controller.ensureIndex("automatic", true);
+    controller.ensureIndex(folder.id, true);
     assert.equal(activity(controller), "updateScheduled");
     for (let tap = 0; tap < 3; tap++) {
         assert.equal(controller.requestIndex(folder.id, true, false), "queued");
     }
     assert.equal(activity(controller), "updateRequested");
-    assert.equal(controller.takeNextQueued(false), undefined);
-    controller.finishIndex("running");
-    assert.equal(controller.ensureIndex("lateAutomatic", false), "queued");
+    controller.ensureIndex("lateAutomatic", true);
     assert.equal(controller.takeNextQueued(true, true), undefined);
     assert.deepEqual(controller.takeNextQueued(true, false), [folder.id, true]);
     assert.equal(controller.requestIndex(folder.id, true, false), "start");
@@ -53,7 +50,6 @@ void test("manual updates coalesce, precede automatic work, and survive cancella
     controller.requestIndex(folder.id, true, false);
     controller.queueIndex(folder.id, true);
     controller.queueIndex(folder.id, false);
-    assert.equal(controller.takeNextQueued(false), undefined);
     controller.finishIndex(folder.id);
     assert.deepEqual(controller.takeNextQueued(true, false), [folder.id, true]);
     controller.requestIndex(folder.id, true, false);

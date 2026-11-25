@@ -432,19 +432,28 @@ fn inventory(
     id: &str,
 ) -> Result<Vec<core::NotesSourceDocument>, NotesError> {
     let inventory: Vec<core::NotesSourceDocument> = source
-        .list_documents()?
+        .list_documents()
+        .map_err(source_inventory_error)?
         .into_iter()
         .map(Into::into)
         .collect();
     cancellation.check()?;
-    core::NotesIndexWriter::validate_inventory_capacity(id, &inventory)?;
+    core::NotesIndexWriter::validate_inventory_capacity(id, &inventory)
+        .map_err(|error| source_inventory_error(error.into()))?;
     let ids: BTreeSet<_> = inventory.iter().map(|v| &v.document_id).collect();
     if ids.len() != inventory.len() {
-        return Err(NotesError::InvalidInput {
+        return Err(NotesError::SourceRead {
             detail: "Ambiguous Notes document IDs".into(),
         });
     }
     Ok(inventory)
+}
+
+fn source_inventory_error(error: NotesError) -> NotesError {
+    match error {
+        NotesError::InvalidInput { detail } => NotesError::SourceRead { detail },
+        error => error,
+    }
 }
 
 fn read(

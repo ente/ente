@@ -400,26 +400,22 @@ final class NotesStore: ObservableObject, ModelMaintenance {
             do {
                 try cancellation.check()
                 if let snapshot {
-                    sourceRevisions.removeValue(forKey: id)
                     let result = try await modelProvider.withEmbeddingContext(
                         for: snapshot.trigger == .manual ? .manualIndexing : .automaticIndexing,
                         checkCancellation: cancellation.check
                     ) { context in
                         var forced = snapshot.forced
+                        let revision: String?
                         do {
                             let freshness = try await self.provider.inspectFreshness(
                                 id, operation: operation)
-                            if let revision = freshness.sourceRevision {
-                                await MainActor.run { self.sourceRevisions[id] = revision }
-                            }
+                            revision = freshness.sourceRevision
                             forced.formUnion(freshness.forcedDocumentIds)
                         } catch NotesError.RebuildRequired {
-                            if let revision = try await self.provider.inspectSourceRevision(
+                            revision = try await self.provider.inspectSourceRevision(
                                 id, operation: operation)
-                            {
-                                await MainActor.run { self.sourceRevisions[id] = revision }
-                            }
                         }
+                        await MainActor.run { self.sourceRevisions[id] = revision }
                         return try await self.provider.index(
                             id,
                             context: context,

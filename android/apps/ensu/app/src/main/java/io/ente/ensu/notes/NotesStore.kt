@@ -574,7 +574,6 @@ class NotesStore(
                                 error = null,
                             )
                         }
-                        sourceRevisions.remove(id)
                         val result =
                             llm.withEmbeddingContext(
                                 use =
@@ -597,10 +596,9 @@ class NotesStore(
                                             provider.inspectSourceRevision(id, revisionCancellation)
                                         }
                                     }
-                                revision?.let {
-                                    withContext(Dispatchers.Main.immediate) {
-                                        sourceRevisions[id] = it
-                                    }
+                                withContext(Dispatchers.Main.immediate) {
+                                    if (revision == null) sourceRevisions.remove(id)
+                                    else sourceRevisions[id] = revision
                                 }
                                 provider.index(
                                     id,
