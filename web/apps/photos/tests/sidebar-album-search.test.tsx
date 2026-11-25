@@ -283,15 +283,21 @@ describe("Hidden and Archive sidebars", () => {
             const buttons = (html.match(/<button\b[^>]*>/g) ?? []).join("");
             for (const label of ["Uncategorized", "Hidden", "Archive", "Trash"])
                 expect(buttons).not.toContain(`aria-label="${label}"`);
-            if (mode == "hidden-albums")
-                expect(html).toContain('role="group" aria-label="Hidden"');
+            const label = mode == "hidden-albums" ? "Hidden" : "Archive";
+            expect(html).toContain(`role="group" aria-label="${label}"`);
         },
     );
 
-    test("keeps the Hidden group available when there are no albums", () => {
-        const html = renderSearch("", "ente", "hidden-albums", []);
-        expect(html).toContain('role="group" aria-label="Hidden"');
-        expect(html).toContain('aria-expanded="true"');
-        expect(html).toContain(">Hidden<");
-    });
+    test.each([
+        ["hidden-albums", "Hidden"],
+        ["archive-albums", "Archive"],
+    ] as const)(
+        "keeps the %s group available when there are no albums",
+        (mode, label) => {
+            const html = renderSearch("", "ente", mode, []);
+            expect(html).toContain(`role="group" aria-label="${label}"`);
+            expect(html).toContain('aria-expanded="true"');
+            expect(html).toContain(`>${label}<`);
+        },
+    );
 });

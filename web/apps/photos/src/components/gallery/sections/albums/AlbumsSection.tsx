@@ -411,9 +411,11 @@ export const AlbumsSection = ({
                             }
                             onAddSaveGroup={onAddSaveGroup}
                             showBackToAlbums={
-                                albumOpenedFromOverview !== undefined &&
-                                albumOpenedFromOverview.collectionID ===
-                                    activeCollectionSummary?.id
+                                (albumMode != "albums" &&
+                                    (activeCollectionSummary?.id ?? 0) > 0) ||
+                                (albumOpenedFromOverview !== undefined &&
+                                    albumOpenedFromOverview.collectionID ===
+                                        activeCollectionSummary?.id)
                             }
                             onEditAlbumDetails={showEditAlbumDetails}
                             onCollectionSlideshow={startSlideshow}
