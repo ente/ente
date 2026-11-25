@@ -56,15 +56,12 @@ test("adds a trusted contact using the key shown during verification", async ({
     await openLegacy(contactPage, contact.password);
     const ownerRow = contactPage
         .getByText(owner.email, { exact: true })
-        .and(contactPage.getByRole("paragraph"));
+        .and(contactPage.getByRole("paragraph", { includeHidden: true }));
+    const inviteIcon = ownerRow.locator("..").locator("svg");
+    await expect(inviteIcon).toBeVisible();
     await ownerRow.click();
-    const accepted = contactPage.waitForResponse((response) =>
-        response.url().endsWith("/emergency-contacts/info"),
-    );
-    const accept = contactPage.getByRole("button", { name: "Accept invite" });
-    await accept.click();
-    await accepted;
-    await expect(accept).toBeHidden();
+    await contactPage.getByRole("button", { name: "Accept invite" }).click();
+    await expect(inviteIcon).toHaveCount(0);
     await ownerRow.click();
     await contactPage.getByRole("button", { name: "Start recovery" }).click();
     const recoveryInfo = contactPage.waitForResponse((response) =>
