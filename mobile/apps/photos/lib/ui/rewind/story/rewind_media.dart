@@ -160,6 +160,8 @@ class RewindMedia {
   IMLDataDB<int> get _ml =>
       isLocalGalleryMode ? MLDataDB.localGalleryInstance : MLDataDB.instance;
 
+  Set<int> get hiddenPeopleFiles => _hiddenPeopleFiles;
+
   List<RewindBlurryFaces> get blurryFaces => [
     for (final MapEntry(key: fileId, value: faces) in _blurryFaces.entries)
       (

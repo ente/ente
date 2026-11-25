@@ -1,6 +1,9 @@
 import "dart:async";
+import "dart:convert";
 import "dart:io";
+import "dart:ui" show Locale;
 
+import "package:crypto/crypto.dart";
 import "package:flutter/foundation.dart";
 import "package:logging/logging.dart";
 import "package:path/path.dart" as path;
@@ -19,6 +22,7 @@ import "package:photos/events/sync_status_update_event.dart";
 import "package:photos/main.dart" show isIOSBackgroundRefresh, isProcessBg;
 import "package:photos/service_locator.dart";
 import "package:photos/services/app_lifecycle_service.dart";
+import "package:photos/services/collections_service.dart";
 import "package:photos/services/memories/memory_music_service.dart";
 import "package:photos/services/notification_service.dart";
 import "package:photos/services/rewind/rewind_asset_store.dart";
@@ -31,6 +35,7 @@ import "package:photos/services/sync/remote_sync_service.dart";
 import "package:photos/src/rust/api/ml_db_api.dart" show MlStore;
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
 import "package:photos/ui/rewind/copy/rewind_copy.dart";
+import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/story/rewind_rituals.dart";
 import "package:photos/ui/rewind/story/rewind_story.dart";
 import "package:shared_preferences/shared_preferences.dart";
@@ -53,7 +58,10 @@ class RewindService {
     Bus.instance
         .on<FilesUpdatedEvent>()
         .where((event) => _visibilityChanges.contains(event.type))
-        .listen((_) => _rebuildStory());
+        .listen((_) {
+          unawaited(_forgetVideo());
+          unawaited(_rebuildStory());
+        });
     ritualsService.stateNotifier.addListener(_onRitualsChanged);
   }
 
@@ -69,6 +77,7 @@ class RewindService {
   String _missingStateReason = "no state";
   String? _storyError;
   var _hasRefreshed = false;
+  var _videoGeneration = 0;
   Timer? _localMetadataTimer;
   final assets = RewindAssetStore();
   late final music = MemoryMusicService.remote(
@@ -87,6 +96,7 @@ class RewindService {
       "ls.rewind_${RewindEdition.year}_library_count";
   static const _offlineMetadataWaitKey =
       "ls.rewind_${RewindEdition.year}_offline_metadata_wait";
+  static const _keptVideoKey = "ls.rewind_${RewindEdition.year}_video";
   static const _localMetadataSource = "offlineImportMetadata";
   static const _localMetadataQuietPeriod = Duration(seconds: 30);
   static const _notificationId = 20261205;
@@ -300,9 +310,65 @@ class RewindService {
 
   Future<void> clear() async {
     _reset();
-    final cache = Directory(await _cacheDirectory());
-    if (await cache.exists()) await cache.delete(recursive: true);
+    await _forgetVideo();
+    for (final cache in [
+      Directory(await _cacheDirectory()),
+      await _videoDirectory(),
+    ]) {
+      if (await cache.exists()) await cache.delete(recursive: true);
+    }
   }
+
+  String? videoFingerprint(List<RewindPage> pages, Locale locale) {
+    final story = _story.value;
+    if (story == null || !identical(story.pages, pages)) return null;
+    final hiddenPeopleFiles = story.hiddenPeopleFiles.toList()..sort();
+    final hiddenAlbums =
+        CollectionsService.instance.archivedOrHiddenCollectionIds().toList()
+          ..sort();
+    return [
+      _owner,
+      locale.toLanguageTag(),
+      ServiceLocator.instance.packageInfo.buildNumber,
+      DateTime.now().year > RewindEdition.year,
+      sha256.convert(
+        utf8.encode("${hiddenPeopleFiles.join(",")};${hiddenAlbums.join(",")}"),
+      ),
+      for (final page in pages) page.key,
+    ].join("|");
+  }
+
+  Future<File?> keptVideo(String fingerprint) async {
+    final kept = _prefs.getStringList(_keptVideoKey);
+    if (kept == null || kept.first != fingerprint) return null;
+    final video = File(path.join((await _videoDirectory()).path, kept.last));
+    return await video.exists() ? video : null;
+  }
+
+  int get videoGeneration => _videoGeneration;
+
+  Future<void> keepVideo(String fingerprint, int generation, File video) async {
+    if (generation != _videoGeneration) return;
+    await _prefs.setStringList(_keptVideoKey, [
+      fingerprint,
+      path.basename(video.path),
+    ]);
+  }
+
+  Future<void> _forgetVideo() {
+    _videoGeneration++;
+    return _prefs.remove(_keptVideoKey);
+  }
+
+  Future<String> videoDirectory() async {
+    final directory = await _videoDirectory();
+    await directory.create(recursive: true);
+    return "${directory.path}/";
+  }
+
+  Future<Directory> _videoDirectory() async => Directory(
+    path.join((await getTemporaryDirectory()).path, "rewind-video"),
+  );
 
   void _reset() {
     _state.value = null;
