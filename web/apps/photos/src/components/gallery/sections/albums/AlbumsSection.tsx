@@ -354,6 +354,7 @@ export const AlbumsSection = ({
                 <AlbumsOverview
                     onRemotePull={remotePull}
                     albums={overviewAlbums}
+                    collections={library.collections}
                     title={(
                         albumFilters.find(
                             ({ value }) => value == overviewFilter,
