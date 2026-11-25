@@ -61,13 +61,28 @@ pub(crate) fn apply<B: Backend, T: BackendTx>(
         )
         .map_err(|name| Error::UnsupportedOperation(format!("Unknown To Do call {name}")))
     };
-    let plan = plan_for(db.todos(tx)?)?;
-    if calls.iter().any(|call| call.name == todo::COMPLETE_TOOL) {
-        let prepared = plan_for(captured.to_vec())?;
-        if plan.changes != prepared.changes {
+    let prepared = plan_for(captured.to_vec())?;
+    let plan = if calls.iter().any(|call| call.name == todo::LIST_TOOL) {
+        let live = plan_for(db.todos(tx)?)?;
+        if live.changes != prepared.changes {
             return Err(Error::ConversationChanged);
         }
-    }
+        live
+    } else {
+        for before in prepared
+            .changes
+            .iter()
+            .filter_map(|change| change.before.as_ref())
+        {
+            if db
+                .todo(tx, before.id)?
+                .is_none_or(|current| current.version != before.version)
+            {
+                return Err(Error::ConversationChanged);
+            }
+        }
+        prepared
+    };
     let text = plan.text(plan.unsure, zone);
     let mut data = TodoTurnData {
         responses: plan.responses(plan.unsure, zone),

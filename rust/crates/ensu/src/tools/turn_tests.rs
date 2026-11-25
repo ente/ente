@@ -1337,3 +1337,55 @@ fn an_offer_to_add_goes_stale_once_the_task_is_added_another_way() {
     ));
     assert_eq!(db.list_todos().unwrap().len(), 1);
 }
+
+#[test]
+fn a_completion_commits_unless_its_target_changed() {
+    for change in ["added duplicate", "edited", "completed", "deleted"] {
+        let db = db();
+        let target = db.create_todo("Buy milk", None).unwrap();
+        let mut chat = Chat::new(&db);
+        chat.user("Mark Buy milk done");
+        let snapshot = chat.snapshot();
+        let duplicate = match change {
+            "added duplicate" => Some(db.create_todo("Buy milk", None).unwrap()),
+            "edited" => {
+                db.update_todo(
+                    target.id,
+                    target.version,
+                    "Buy milk",
+                    Some(local_ms("2026-11-13 09:00")),
+                )
+                .unwrap();
+                None
+            }
+            "completed" => {
+                db.set_todo_completed(target.id, target.version, true)
+                    .unwrap();
+                None
+            }
+            "deleted" => {
+                db.delete_todo(target.id, target.version).unwrap();
+                None
+            }
+            _ => unreachable!(),
+        };
+        let before = db.list_todos().unwrap();
+        let result = finish(
+            &db,
+            &snapshot,
+            &[call(COMPLETE_TOOL, &[("task", text("Buy milk"))])],
+            SURE,
+        );
+        if let Some(duplicate) = duplicate {
+            assert_eq!(result.unwrap().state.undo, Undo::Available);
+            assert!(!db.get_todo(target.id).unwrap().unwrap().is_open());
+            assert_eq!(db.get_todo(duplicate.id).unwrap(), Some(duplicate));
+        } else {
+            assert!(
+                matches!(result, Err(Error::ConversationChanged)),
+                "{change}"
+            );
+            assert_eq!(db.list_todos().unwrap(), before);
+        }
+    }
+}
