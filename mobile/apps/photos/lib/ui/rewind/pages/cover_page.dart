@@ -284,10 +284,12 @@ class _FlyingLockupState extends State<_FlyingLockup>
     for (final piece in _pieces) (piece: piece, name: piece.name),
   ];
 
-  static Future<void> warmUp() => Future.wait([
-    for (final layer in _layerNames)
-      _loader(layer.name).loadBytes(null).then<void>((_) {}, onError: (_) {}),
-  ]);
+  static Future<void> warmUp() =>
+      Future.wait([for (final layer in _layerNames) _warmUpLayer(layer.name)]);
+
+  static Future<void> _warmUpLayer(String name) async {
+    await _loader(name).loadBytes(null).then<void>((_) {}, onError: (_) {});
+  }
 
   late final _layers = [
     for (final (:piece, :name) in _layerNames)
