@@ -14,7 +14,7 @@ import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
 
 class TopPercentPage extends RewindPage {
-  const TopPercentPage({required this.percent, required this.count});
+  TopPercentPage({required this.percent, required this.count});
 
   static const pageKey = "top_percent";
 
@@ -24,6 +24,8 @@ class TopPercentPage extends RewindPage {
 
   final int percent;
   final int count;
+
+  late final _crowdRive = rewindRiveWarm(RewindAssets.topPercent);
 
   @override
   String get key => pageKey;
@@ -35,10 +37,19 @@ class TopPercentPage extends RewindPage {
   @override
   List<EnteFile> get reelThumbnails => const [];
 
-  ({String trigger, Rect heroes}) get _variant => switch (percent) {
-    1 => (trigger: "top1", heroes: const Rect.fromLTRB(134, 142, 260, 251)),
-    <= 10 => (trigger: "top10", heroes: const Rect.fromLTRB(68, 137, 314, 266)),
-    _ => (trigger: "top25", heroes: const Rect.fromLTRB(68, 100, 314, 267)),
+  @override
+  Future<bool> warmUp() async {
+    await _crowdRive.value;
+    return true;
+  }
+
+  @override
+  void release() => _crowdRive.release();
+
+  String get _trigger => switch (percent) {
+    1 => "top1",
+    <= 10 => "top10",
+    _ => "top25",
   };
 
   @override
@@ -48,7 +59,6 @@ class TopPercentPage extends RewindPage {
     required bool isActive,
   }) {
     final small = percent >= 10;
-    final variant = _variant;
     return RewindShareable(
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -65,17 +75,18 @@ class TopPercentPage extends RewindPage {
                     position: position,
                     child: RewindSpread(
                       mirror: wide
-                          ? const RewindDucky(
+                          ? RewindDucky(
                               RewindAssets.topPercent,
                               stateMachine: "Top",
+                              warm: _crowdRive,
                             )
                           : const SizedBox.shrink(),
                       child: RewindDucky(
                         RewindAssets.topPercent,
                         stateMachine: "Top",
-                        play: variant.trigger,
+                        play: _trigger,
                         active: isActive,
-                        tap: (trigger: "tap", area: variant.heroes),
+                        warm: _crowdRive,
                       ),
                     ),
                   ),

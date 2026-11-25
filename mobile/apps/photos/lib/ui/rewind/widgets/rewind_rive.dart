@@ -1,6 +1,7 @@
 import "package:flutter/material.dart";
 import "package:logging/logging.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
+import "package:photos/ui/rewind/widgets/rewind_pixels.dart";
 import "package:rive/rive.dart" as rive;
 
 final _logger = Logger("RewindRive");
@@ -37,13 +38,16 @@ Future<rive.File?> _readRiveFile(String asset) async {
   }
 }
 
+RewindWarm<rive.File> rewindRiveWarm(String asset) =>
+    RewindWarm(() => _loadRiveFile(asset), (file) => file.dispose());
+
 class RewindDucky extends StatefulWidget {
   const RewindDucky(
     this.asset, {
     this.stateMachine = "Loop",
     this.play,
     this.active = true,
-    this.tap,
+    this.warm,
     super.key,
   });
 
@@ -51,7 +55,7 @@ class RewindDucky extends StatefulWidget {
   final String stateMachine;
   final String? play;
   final bool active;
-  final ({String trigger, Rect area})? tap;
+  final RewindWarm<rive.File>? warm;
 
   @override
   State<RewindDucky> createState() => _RewindDuckyState();
@@ -61,7 +65,8 @@ class _RewindDuckyState extends State<RewindDucky> {
   static const _settleSteps = 80;
   static const _settleStepSeconds = 0.05;
 
-  rive.File? _file;
+  late final _warm = widget.warm;
+  rive.File? _ownedFile;
   rive.RiveWidgetController? _controller;
   rive.ViewModelInstance? _bindings;
   var _played = false;
@@ -70,16 +75,29 @@ class _RewindDuckyState extends State<RewindDucky> {
   @override
   void initState() {
     super.initState();
-    _load();
+    _warm?.hold();
+    final warmed = _warm?.loaded;
+    if (warmed == null) {
+      _load();
+    } else {
+      _start(warmed);
+    }
   }
 
   Future<void> _load() async {
-    final file = await _loadRiveFile(widget.asset);
+    final file = await (_warm?.value ?? _loadRiveFile(widget.asset));
     if (file == null) return;
     if (!mounted) {
-      file.dispose();
+      if (_warm == null) file.dispose();
       return;
     }
+    if (!_start(file)) return;
+    _playOnce();
+    setState(() {});
+  }
+
+  bool _start(rive.File file) {
+    final owned = _warm == null;
     rive.RiveWidgetController? controller;
     rive.ViewModelInstance? bindings;
     try {
@@ -91,7 +109,7 @@ class _RewindDuckyState extends State<RewindDucky> {
       background
         ?..scaleX = 0
         ..scaleY = 0;
-      if (widget.play != null || widget.tap != null) {
+      if (widget.play != null) {
         bindings = controller.dataBind(rive.DataBind.auto());
       }
       controller.advance(0);
@@ -99,19 +117,19 @@ class _RewindDuckyState extends State<RewindDucky> {
       _logger.warning("Failed to start ${widget.asset}", error, stackTrace);
       bindings?.dispose();
       controller?.dispose();
-      file.dispose();
-      return;
+      if (owned) file.dispose();
+      return false;
     }
-    _file = file;
+    if (owned) _ownedFile = file;
     _controller = controller;
     _bindings = bindings;
-    _playOnce();
-    setState(() {});
+    return true;
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _playOnce();
     _settleWhenStill();
   }
 
@@ -145,7 +163,8 @@ class _RewindDuckyState extends State<RewindDucky> {
   void dispose() {
     _bindings?.dispose();
     _controller?.dispose();
-    _file?.dispose();
+    _ownedFile?.dispose();
+    _warm?.drop();
     super.dispose();
   }
 
@@ -153,33 +172,13 @@ class _RewindDuckyState extends State<RewindDucky> {
   Widget build(BuildContext context) {
     final controller = _controller;
     if (controller == null) return const SizedBox.expand();
-    final tap = widget.tap;
-    final still = MediaQuery.disableAnimationsOf(context);
-    final animation = TickerMode(
-      enabled: !still,
+    return TickerMode(
+      enabled: !MediaQuery.disableAnimationsOf(context),
       child: rive.RiveWidget(
         key: ValueKey(_settled),
         controller: controller,
         fit: rive.Fit.contain,
-        hitTestBehavior: tap == null
-            ? rive.RiveDefaults.hitTestBehaviour
-            : rive.RiveHitTestBehavior.none,
       ),
-    );
-    if (tap == null) return animation;
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        animation,
-        if (!still && widget.active)
-          Positioned.fromRect(
-            rect: tap.area,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => _fire(_bindings, tap.trigger),
-            ),
-          ),
-      ],
     );
   }
 }
