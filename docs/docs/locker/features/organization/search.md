@@ -18,6 +18,10 @@ Search helps you find any item in your Locker quickly. Search works locally on y
 3. Results appear as you type
 4. Tap a result to view the item
 
+To narrow the results, tap **Items** or **Collections** above the list.
+
+To act on several results at once, long-press one result, then tap any others you want to add. Use the actions that appear, just as you would on the home screen. Changing the filter or what you typed, or closing search, clears your selection.
+
 ## What is searched
 
 Search looks through:

@@ -42,6 +42,8 @@ Open `Settings > Machine learning`, disable "Face recognition" and "Magic search
 
 Open `Settings > Preferences > Machine learning`, disable ML features, upload the videos, then re-enable ML afterwards.
 
+Turning ML off doesn't delete your existing faces, names or search results. See [Will I lose my faces and search results if I turn machine learning off?](/photos/faq/search-and-discovery#ml-turn-back-on).
+
 **Solution 2: Disable video streaming (iOS)**
 
 Video streaming can cause crashes when combined with ML on some devices:
@@ -229,7 +231,7 @@ Learn more in [Backup and Sync FAQ](/photos/faq/backup-and-sync#background-sync)
 
 **On iOS:**
 
-Open device `Settings > Ente > Photos` and select "Full Access" (not "Selected Photos").
+Open device `Settings > Ente > Photos` and select "Full Access" (not "Selected Photos") if you want Ente to back up your whole library. If you chose "Selected Photos" on purpose, Ente only sees the photos you picked. See [Can I let Ente see only some photos on my iPhone?](/photos/faq/backup-and-sync#ios-limited-access-backup).
 
 **On Android:**
 
