@@ -153,45 +153,40 @@ fn parameter(name: &str, description: &str, kind: ParameterKind, required: bool)
 }
 
 fn task_choices(user_text: &str, open_titles: &[&str]) -> Vec<String> {
-    let mut labels: Vec<String> = open_titles
+    let mut seen = std::collections::HashSet::new();
+    let mut labels: Vec<_> = open_titles
         .iter()
         .filter_map(|title| choice_label(title))
+        .filter(|label| seen.insert(label.clone()))
         .collect();
-    labels.sort_by_cached_key(|label| {
-        if matching::spells_out(label, user_text) {
-            0
-        } else if refine::names_task(label, user_text) {
-            1
+    if labels.len() <= LIST_LIMIT {
+        return labels;
+    }
+    let mentioned = |label: &String| {
+        matching::spells_out(label, user_text) || refine::names_task(label, user_text)
+    };
+    let mut promoted: Vec<_> = labels
+        .drain(LIST_LIMIT..)
+        .filter(mentioned)
+        .take(LIST_LIMIT)
+        .collect();
+    for _ in 0..promoted.len() {
+        if let Some(index) = labels.iter().rposition(|label| !mentioned(label)) {
+            labels.remove(index);
         } else {
-            2
-        }
-    });
-    let mut choices: Vec<String> = Vec::new();
-    for label in labels {
-        if choices.len() == LIST_LIMIT {
-            break;
-        }
-        if !choices.contains(&label) {
-            choices.push(label);
+            promoted.pop();
         }
     }
-    choices
+    labels.extend(promoted);
+    labels
 }
 
 pub fn chat_tools(user_text: &str, open_titles: &[&str]) -> ToolRequest {
     let choices = task_choices(user_text, open_titles);
-    let (task_kind, task_text, open_text) = if choices.is_empty() {
-        (
-            ParameterKind::Quote,
-            "Words naming the task, copied from the user's message.",
-            " The list has no open tasks.",
-        )
+    let task_kind = if choices.is_empty() {
+        ParameterKind::Quote
     } else {
-        (
-            ParameterKind::Choice { values: choices },
-            "The open task the user means.",
-            "",
-        )
+        ParameterKind::Choice { values: choices }
     };
     ToolRequest {
         tools: vec![
@@ -235,11 +230,9 @@ pub fn chat_tools(user_text: &str, open_titles: &[&str]) -> ToolRequest {
             },
             ToolSpec {
                 name: COMPLETE_TOOL.into(),
-                description: format!(
-                    "Mark a task in the user's To Do list as done: when the user asks to mark, tick or check it off, or says they have just done it (\"finished the…\", \"called…\", \"picked up…\"). Name the task, or give its number from the list just shown. Call once per requested completion.{open_text}",
-                ),
+                description:                     "Mark a task in the user's To Do list as done: when the user asks to mark, tick or check it off, or says they have just done it (\"finished the…\", \"called…\", \"picked up…\"). Name the task, or give its number from the list just shown. Call once per requested completion.".into(),
                 parameters: vec![
-                    parameter("task", task_text, task_kind, false),
+                    parameter("task", "The open task the user means.", task_kind, false),
                     parameter(
                         "number",
                         "The task's position in the list just shown, when the user refers to it by position (\"the third one\" is 3).",
@@ -414,13 +407,43 @@ mod tests {
         let ParameterKind::Choice { values } = task_kind("Renew passport is done", &many) else {
             panic!("expected choices");
         };
-        assert_eq!(values[0], "Renew passport");
+        assert_eq!(values.last().unwrap(), "Renew passport");
+        assert_eq!(values[..LIST_LIMIT - 1], many[..LIST_LIMIT - 1]);
         let clients: Vec<String> = (1..=21).map(|i| format!("Call client {i}")).collect();
         let clients: Vec<&str> = clients.iter().map(String::as_str).collect();
         let ParameterKind::Choice { values } = task_kind("I called client 21", &clients) else {
             panic!("expected choices");
         };
-        assert_eq!(values[0], "Call client 21");
+        assert_eq!(values.last().unwrap(), "Call client 21");
+        assert_eq!(values[..LIST_LIMIT - 1], clients[..LIST_LIMIT - 1]);
+    }
+
+    #[test]
+    fn declarations_ignore_the_message_and_list_emptiness() {
+        let titles = ["Buy milk", "Renew passport", "Call client 21"];
+        let first = chat_tools("I renewed my passport", &titles);
+        let second = chat_tools("I called client 21", &titles);
+        assert_eq!(first.tools, second.tools);
+
+        let descriptions = |request: ToolRequest| {
+            request
+                .tools
+                .into_iter()
+                .map(|tool| {
+                    (
+                        tool.description,
+                        tool.parameters
+                            .into_iter()
+                            .map(|parameter| parameter.description)
+                            .collect::<Vec<_>>(),
+                    )
+                })
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(
+            descriptions(chat_tools("hello", &[])),
+            descriptions(chat_tools("hello", &["A"]))
+        );
     }
 
     #[test]
