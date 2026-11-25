@@ -1,6 +1,7 @@
 use crate::llm::tools::ToolContinuation;
 use crate::llm::{ChatMessage, ChatRequest, ToolOutcome};
 
+use super::follow_up::remaining_actions;
 use super::{COMPLETE_TOOL, LIST_TOOL, SAVE_TOOL, Todo};
 
 #[derive(Debug)]
@@ -18,36 +19,6 @@ impl ListContinuation {
             user_text,
         }
     }
-}
-
-fn remaining_actions(text: &str, todos: &[Todo]) -> (bool, bool) {
-    let mut actions = (false, false);
-    for clause in super::matching::command_clauses(text, todos).iter().skip(1) {
-        if clause.in_title {
-            continue;
-        }
-        let Some((verb, target)) = clause.words.split_first() else {
-            continue;
-        };
-        if target.is_empty()
-            || target.iter().any(|word| {
-                matches!(
-                    word.as_str(),
-                    "whether" | "if" | "not" | "nothing" | "don't" | "should"
-                )
-            })
-        {
-            continue;
-        }
-        actions.0 |= matches!(verb.as_str(), "add" | "save" | "remind");
-        actions.1 |= matches!(verb.as_str(), "finish" | "complete")
-            || matches!(verb.as_str(), "tick" | "check") && target.iter().any(|word| word == "off")
-            || verb == "mark"
-                && target
-                    .iter()
-                    .any(|word| matches!(word.as_str(), "done" | "complete" | "completed" | "off"));
-    }
-    actions
 }
 
 impl ToolContinuation for ListContinuation {

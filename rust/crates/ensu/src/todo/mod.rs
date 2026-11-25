@@ -1,4 +1,5 @@
 pub(crate) mod continuation;
+pub(crate) mod follow_up;
 mod intent;
 mod matching;
 mod phrase;

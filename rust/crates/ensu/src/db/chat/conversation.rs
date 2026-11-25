@@ -20,6 +20,9 @@ pub struct ConversationSnapshot {
 }
 
 impl ConversationSnapshot {
+    pub(crate) fn todos(&self) -> &[crate::todo::Todo] {
+        &self.todos
+    }
     pub fn messages(&self) -> &[Message] {
         &self.messages
     }

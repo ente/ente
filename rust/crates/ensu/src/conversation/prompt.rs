@@ -41,13 +41,22 @@ impl GroundingCache {
             ));
         }
         let finished = finish_turn(db, snapshot, reply)?;
-        prepared.saved = true;
-        if finished.reply.tool_turn.is_none()
-            && let Ok(mut anchor) = self.anchor.lock()
-        {
-            *anchor = prepared.grounding_anchor.take();
-        }
+        remember_finish(Some(self), prepared, &finished);
         Ok(finished)
+    }
+}
+
+pub(super) fn remember_finish(
+    cache: Option<&GroundingCache>,
+    prepared: &mut PreparationResult,
+    finished: &FinishedTurn,
+) {
+    prepared.saved = true;
+    if finished.reply.tool_turn.is_none()
+        && let Some(cache) = cache
+        && let Ok(mut anchor) = cache.anchor.lock()
+    {
+        *anchor = prepared.grounding_anchor.take();
     }
 }
 
@@ -92,12 +101,49 @@ pub fn finish_turn<B: Backend>(
     snapshot: &ConversationSnapshot,
     reply: Reply<'_>,
 ) -> db::Result<FinishedTurn> {
-    let mut warnings = Vec::new();
     let outcome = reply
         .tools
         .and_then(crate::llm::ToolExchange::outcome)
         .filter(|outcome| !outcome.calls.is_empty());
-    let text = if outcome.as_ref().is_some_and(|outcome| {
+    let result = save_reply(
+        db,
+        snapshot,
+        Answer {
+            text: reply.text,
+            sources: reply.sources,
+            passages: reply.passages,
+            attachments: reply.attachments,
+            outcome: outcome.as_ref(),
+        },
+        &|outcome, now| {
+            reply
+                .tools
+                .and_then(|tools| tools.continuation.as_deref())
+                .is_none_or(|continuation| continuation.can_finish(outcome, now))
+        },
+    )?;
+    if let Some(tools) = reply.tools {
+        tools.record(None);
+    }
+    Ok(result)
+}
+
+pub(super) struct Answer<'a> {
+    pub text: &'a str,
+    pub sources: &'a [GroundedSource],
+    pub passages: Vec<IncludedPassage>,
+    pub attachments: Vec<AttachmentMeta>,
+    pub outcome: Option<&'a crate::llm::ToolOutcome>,
+}
+
+pub(super) fn save_reply<B: Backend>(
+    db: &ChatDb<B>,
+    snapshot: &ConversationSnapshot,
+    reply: Answer<'_>,
+    can_finish: &dyn Fn(&crate::llm::ToolOutcome, i64) -> bool,
+) -> db::Result<FinishedTurn> {
+    let mut warnings = Vec::new();
+    let text = if reply.outcome.is_some_and(|outcome| {
         outcome
             .calls
             .iter()
@@ -115,10 +161,13 @@ pub fn finish_turn<B: Backend>(
             }
         }
     };
-    let finished = db.finish_exchange(snapshot, &text, reply.attachments, reply.tools)?;
-    if let Some(tools) = reply.tools {
-        tools.record(None);
-    }
+    let finished = db.finish_reply_inner(
+        snapshot,
+        &text,
+        reply.attachments,
+        reply.outcome,
+        can_finish,
+    )?;
     if finished.tool_turn.is_none() && !reply.passages.is_empty() {
         match db.save_answer_evidence(snapshot, finished.message.uuid, reply.passages) {
             Ok(true) => {}

@@ -158,7 +158,7 @@ impl<B: Backend> ChatDb<B> {
         crate::llm::ToolExchange::new(request).with_continuation(continuation)
     }
 
-    pub(super) fn now_ms(&self) -> i64 {
+    pub(crate) fn now_ms(&self) -> i64 {
         self.clock.now_us() / 1000
     }
 
@@ -210,7 +210,7 @@ impl<B: Backend> ChatDb<B> {
         attachments: Vec<AttachmentMeta>,
         tools: Option<&ToolOutcome>,
     ) -> Result<FinishedReply> {
-        self.finish_reply_inner(snapshot, text, attachments, tools, None)
+        self.finish_reply_inner(snapshot, text, attachments, tools, &|_, _| true)
     }
 
     pub fn finish_exchange(
@@ -226,17 +226,21 @@ impl<B: Backend> ChatDb<B> {
             text,
             attachments,
             outcome.as_ref(),
-            tools.and_then(|tools| tools.continuation.as_deref()),
+            &|outcome, now| {
+                tools
+                    .and_then(|tools| tools.continuation.as_deref())
+                    .is_none_or(|continuation| continuation.can_finish(outcome, now))
+            },
         )
     }
 
-    fn finish_reply_inner(
+    pub(crate) fn finish_reply_inner(
         &self,
         snapshot: &ConversationSnapshot,
         text: &str,
         attachments: Vec<AttachmentMeta>,
         tools: Option<&ToolOutcome>,
-        continuation: Option<&dyn crate::llm::tools::ToolContinuation>,
+        can_finish: &dyn Fn(&ToolOutcome, i64) -> bool,
     ) -> Result<FinishedReply> {
         let user_text = snapshot
             .messages()
@@ -244,13 +248,7 @@ impl<B: Backend> ChatDb<B> {
             .map_or("", |message| message.text.as_str());
         let (_, applied) = self.request_text(&self.backend, snapshot.messages(), user_text)?;
         if applied || tools.is_some_and(|tools| !tools.calls.is_empty()) {
-            let finished = self.apply_tool_calls(
-                snapshot,
-                tools.map_or(&[], |tools| &tools.calls),
-                tools.and_then(|tools| tools.call_probability),
-                text,
-                continuation,
-            )?;
+            let finished = self.apply_tool_calls(snapshot, tools, text, can_finish)?;
             self.tools_changed();
             return Ok(finished);
         }
@@ -271,10 +269,9 @@ impl<B: Backend> ChatDb<B> {
     fn apply_tool_calls(
         &self,
         snapshot: &ConversationSnapshot,
-        calls: &[ToolCall],
-        call_probability: Option<f32>,
+        tools: Option<&ToolOutcome>,
         reply_text: &str,
-        continuation: Option<&dyn crate::llm::tools::ToolContinuation>,
+        can_finish: &dyn Fn(&ToolOutcome, i64) -> bool,
     ) -> Result<FinishedReply> {
         let created_at = self.clock.now_us();
         let request = snapshot
@@ -296,16 +293,7 @@ impl<B: Backend> ChatDb<B> {
             if !super::conversation::snapshot_matches(tx, snapshot, false)? {
                 return Err(Error::ConversationChanged);
             }
-            if continuation.is_some_and(|continuation| {
-                !continuation.can_finish(
-                    &ToolOutcome {
-                        calls: calls.to_vec(),
-                        call_probability,
-                        ..Default::default()
-                    },
-                    created_at / 1000,
-                )
-            }) {
+            if tools.is_some_and(|outcome| !can_finish(outcome, created_at / 1000)) {
                 return Err(Error::ConversationChanged);
             }
             for (_, earlier) in self.read_turns_from(tx, request.uuid)? {
@@ -324,11 +312,11 @@ impl<B: Backend> ChatDb<B> {
             } else {
                 self.apply_todo_calls(
                     tx,
-                    calls,
+                    tools.map_or(&[], |tools| &tools.calls),
                     (&snapshot.todos, user_text),
                     shown,
                     created_at / 1000,
-                    call_probability,
+                    tools.and_then(|tools| tools.call_probability),
                 )?
             };
             if !calls.is_empty()

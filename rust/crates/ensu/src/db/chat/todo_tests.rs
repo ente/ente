@@ -1,38 +1,12 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicI64, Ordering};
 
-use chrono::NaiveDateTime;
-
 use super::*;
-use crate::db::chat::ConversationSnapshot;
-use crate::db::chat::tool_turn::{Confirm, ToolTurnState, Undo};
-use crate::db::models::Message;
-use crate::db::traits::{Clock, RandomUuidGen};
-use crate::db::{ChatDb, SqliteBackend};
-use crate::llm::ToolOutcome;
-use crate::llm::{ToolCall, ToolValue};
-use crate::todo::{COMPLETE_TOOL, LIST_TOOL, SAVE_TOOL, timing};
-
-struct TestClock(AtomicI64);
-
-impl Clock for TestClock {
-    fn now_us(&self) -> i64 {
-        self.0.fetch_add(1_000, Ordering::Relaxed)
-    }
-}
-
-fn local_ms(text: &str) -> i64 {
-    timing::local_millis(
-        NaiveDateTime::parse_from_str(text, "%Y-%m-%d %H:%M").unwrap(),
-        &chrono::Local,
-    )
-    .unwrap()
-}
-
-const NOW: &str = "2026-11-12 14:30";
-
-const SURE: Option<f32> = Some(1.0);
-const UNSURE: Option<f32> = Some(0.6);
+use crate::db::SqliteBackend;
+use crate::db::chat::{Confirm, ToolTurnState, Undo};
+use crate::llm::{ToolOutcome, ToolValue};
+use crate::todo::{COMPLETE_TOOL, LIST_TOOL, SAVE_TOOL};
+use crate::tools::test_support::*;
 
 const COMMAND_SEPARATORS: &[&str] = &[
     " and ",
@@ -52,124 +26,6 @@ const COMMAND_SEPARATORS: &[&str] = &[
     " AND THEN ",
     "\r\nand then ",
 ];
-
-fn db() -> ChatDb<SqliteBackend> {
-    ChatDb::new(
-        SqliteBackend::open_in_memory().unwrap(),
-        vec![7; 32],
-        Arc::new(TestClock(AtomicI64::new(local_ms(NOW) * 1000))),
-        Arc::new(RandomUuidGen),
-    )
-    .unwrap()
-}
-
-fn call(name: &str, args: &[(&str, ToolValue)]) -> ToolCall {
-    ToolCall {
-        name: name.into(),
-        arguments: args
-            .iter()
-            .map(|(k, v)| ((*k).to_owned(), v.clone()))
-            .collect(),
-    }
-}
-
-fn text(value: &str) -> ToolValue {
-    ToolValue::Text(value.into())
-}
-
-struct ToolTurn {
-    reply: Message,
-    state: ToolTurnState,
-}
-
-fn finish(
-    db: &ChatDb<SqliteBackend>,
-    snapshot: &ConversationSnapshot,
-    calls: &[ToolCall],
-    confidence: Option<f32>,
-) -> crate::db::Result<ToolTurn> {
-    let outcome = ToolOutcome {
-        calls: calls.to_vec(),
-        call_probability: confidence,
-        ..Default::default()
-    };
-    let finished = db.finish_reply(snapshot, "", vec![], Some(&outcome))?;
-    Ok(ToolTurn {
-        reply: finished.message,
-        state: finished.tool_turn.unwrap(),
-    })
-}
-
-struct Chat<'a> {
-    db: &'a ChatDb<SqliteBackend>,
-    session: Uuid,
-    path: Vec<Uuid>,
-}
-
-impl<'a> Chat<'a> {
-    fn new(db: &'a ChatDb<SqliteBackend>) -> Self {
-        let session = db.create_session("To Do").unwrap();
-        Self {
-            db,
-            session: session.uuid,
-            path: Vec::new(),
-        }
-    }
-
-    fn send(&mut self, user: &str, calls: &[ToolCall]) -> ToolTurn {
-        self.send_as(user, calls, SURE)
-    }
-
-    fn user(&mut self, user: &str) {
-        let message = self
-            .db
-            .insert_message(
-                self.session,
-                "self",
-                user,
-                self.path.last().copied(),
-                vec![],
-            )
-            .unwrap();
-        self.path.push(message.uuid);
-    }
-
-    fn prepare(&mut self, user: &str) -> (ConversationSnapshot, crate::llm::ToolExchange) {
-        self.user(user);
-        let snapshot = self.snapshot();
-        let tools = self.db.turn_tools(&snapshot, user).unwrap().tools.unwrap();
-        let exchange = self.db.tool_exchange(&snapshot, tools);
-        (snapshot, exchange)
-    }
-
-    fn send_as(&mut self, user: &str, calls: &[ToolCall], confidence: Option<f32>) -> ToolTurn {
-        self.user(user);
-        let turn = self.answer(calls, confidence).unwrap();
-        self.path.push(turn.reply.uuid);
-        turn
-    }
-
-    fn answer(&self, calls: &[ToolCall], confidence: Option<f32>) -> crate::db::Result<ToolTurn> {
-        let snapshot = self.snapshot();
-        finish(self.db, &snapshot, calls, confidence)
-    }
-
-    fn snapshot(&self) -> ConversationSnapshot {
-        self.db
-            .conversation_snapshot(self.session, &self.path)
-            .unwrap()
-    }
-
-    fn back(&mut self) {
-        self.path.pop();
-    }
-}
-
-fn state(db: &ChatDb<SqliteBackend>, reply: &Message) -> Option<ToolTurnState> {
-    db.tool_turn_states(reply.session_uuid)
-        .unwrap()
-        .remove(&reply.uuid)
-}
 
 #[test]
 fn chat_calls_save_list_and_complete_tasks_with_one_reply_each() {
