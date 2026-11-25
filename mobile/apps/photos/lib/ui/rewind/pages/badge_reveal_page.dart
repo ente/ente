@@ -3,6 +3,7 @@ import "dart:math";
 import "package:flutter/material.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
 import "package:photos/ui/rewind/shell/rewind_page.dart";
+import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
@@ -278,7 +279,9 @@ class BadgeRevealPage extends RewindPage {
                 width: 324,
                 child: Builder(
                   builder: (context) => Visibility(
-                    visible: RewindShareable.capturing(context),
+                    visible:
+                        RewindShareable.capturing(context) ||
+                        RewindPageScope.reelOf(context),
                     maintainState: true,
                     maintainAnimation: true,
                     maintainSize: true,

@@ -34,9 +34,13 @@ class PeopleRacePage extends RewindPage {
   final List<RaceRunner> runners;
   final List<int> _start;
   int? _pick;
+  var _clipKey = Object();
 
   @override
   String get key => pageKey;
+
+  @override
+  Object get clipKey => _clipKey;
 
   @override
   Duration? get reelHold =>
@@ -59,7 +63,12 @@ class PeopleRacePage extends RewindPage {
   RewindChrome get chrome => const RewindChrome(foreground: RewindColors.cream);
 
   @override
-  void resetAnswer() => _pick = null;
+  void resetAnswer() => _answer(null);
+
+  void _answer(int? pick) {
+    _pick = pick;
+    _clipKey = Object();
+  }
 
   static List<int> _startOrder(List<RaceRunner> runners) {
     final seed = runners.map((runner) => runner.person.personId).join("|");
@@ -124,6 +133,7 @@ class _PeopleRaceState extends State<_PeopleRace>
   static const _speed = 0.75;
   static const _monthMs = 470.0;
   static const _settleMs = 750.0;
+  static const _pickedMs = 850;
   static const _clipLeadMs = 2000.0;
   static const _clipEndMs = _settleMs + 5000;
 
@@ -132,7 +142,7 @@ class _PeopleRaceState extends State<_PeopleRace>
   late final _leadMs = _clip ? _clipLeadMs : 0.0;
   late final Ticker _ticker = createTicker(_tick);
   late final List<_Lane> _lanes;
-  late var _phase = _pick == null ? _Phase.pick : _Phase.done;
+  late var _phase = _pick == null || _reel ? _Phase.pick : _Phase.done;
   late final _replayed = _phase == _Phase.done;
   late var _order = List.of(widget.page._start);
   late var _cue = _question;
@@ -144,7 +154,7 @@ class _PeopleRaceState extends State<_PeopleRace>
 
   List<RaceRunner> get _runners => widget.page.runners;
 
-  int? get _pick => _reel ? null : widget.page._pick;
+  int? get _pick => _reel && !_clip ? null : widget.page._pick;
 
   static const _question = "WHO SHOWED UP MOST?";
 
@@ -173,8 +183,9 @@ class _PeopleRaceState extends State<_PeopleRace>
   }
 
   void _raceUnprompted() {
-    if (!_reel || !widget.isActive || _phase != _Phase.pick) return;
-    _phase = _Phase.race;
+    if (!_reel || !widget.isActive || _ticker.isActive) return;
+    if (_phase != _Phase.pick) return;
+    if (_pick == null) _phase = _Phase.race;
     unawaited(_ticker.start());
   }
 
@@ -198,12 +209,12 @@ class _PeopleRaceState extends State<_PeopleRace>
   void _choose(int runner) {
     if (_phase != _Phase.pick) return;
     unawaited(HapticFeedback.selectionClick());
-    widget.page._pick = runner;
+    widget.page._answer(runner);
     setState(() {
       _phase = _Phase.picked;
       _cueDetail = "${_runners[runner].face.name}? bold choice";
     });
-    _later(const Duration(milliseconds: 850), () {
+    _later(const Duration(milliseconds: _pickedMs), () {
       setState(() => _phase = _Phase.race);
       unawaited(_ticker.start());
     });
@@ -211,7 +222,11 @@ class _PeopleRaceState extends State<_PeopleRace>
 
   void _tick(Duration elapsed) {
     final nowMs = elapsed.inMicroseconds / 1000 - _leadMs;
+    if (_phase == _Phase.pick && nowMs >= -_pickedMs) {
+      setState(() => _phase = _Phase.picked);
+    }
     if (nowMs < 0) return;
+    if (_phase == _Phase.picked) _phase = _Phase.race;
     final dt = _lastMs == 0 ? 16.0 : min(50.0, nowMs - _lastMs);
     _lastMs = nowMs;
     const raceMs = 12 * _monthMs;
@@ -320,7 +335,9 @@ class _PeopleRaceState extends State<_PeopleRace>
   }
 
   String _verdict({bool firstPerson = false}) {
-    if (_reel) return "${_nameOf(_order.first).toUpperCase()} SHOWED UP MOST!";
+    if (_pick == null) {
+      return "${_nameOf(_order.first).toUpperCase()} SHOWED UP MOST!";
+    }
     return switch (_pick) {
       0 => firstPerson ? "I CALLED IT!" : "YOU CALLED IT!",
       1 => "SO CLOSE!",
@@ -380,7 +397,7 @@ class _PeopleRaceState extends State<_PeopleRace>
                   if (_phase == _Phase.done && !_replayed)
                     Positioned.fill(
                       child: RewindConfetti(
-                        count: _reel || _pick == 0 ? 80 : 30,
+                        count: _pick == null || _pick == 0 ? 80 : 30,
                         active: true,
                       ),
                     ),
@@ -489,7 +506,7 @@ class _PeopleRaceState extends State<_PeopleRace>
     final rank = _order.indexOf(runner);
     final winner = _phase == _Phase.done && rank == 0;
     final countTop = winner ? -55.0 : -40.0;
-    final picked = _pick == runner;
+    final picked = _pick == runner && _phase != _Phase.pick;
     return Positioned(
       left: lane.x - 51.5,
       top: head - 45,
