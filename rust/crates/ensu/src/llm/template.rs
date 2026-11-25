@@ -41,7 +41,7 @@ pub(super) fn build_prompt(
             .and_then(|template| template.to_string().ok())
             .unwrap_or_else(|| "chatml".to_owned()),
     };
-    let has_token = |text: &str| super::tools::single_token(model, text).is_some();
+    let has_token = |text: &str| super::vocab::single_token(model, text).is_some();
     if !source.is_empty()
         && source != "chatml"
         && source

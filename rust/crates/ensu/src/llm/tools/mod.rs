@@ -6,6 +6,7 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
 pub(super) use format::Format;
+pub(super) use grammar::grammar;
 
 pub const MAX_TOOL_CALLS: u8 = 4;
 pub(crate) const MAX_TEXT_ARGUMENT_CHARS: usize = 128;
@@ -201,17 +202,6 @@ impl ToolExchange {
     }
 }
 
-pub(crate) fn single_token(
-    model: &llama_cpp_2::model::LlamaModel,
-    text: &str,
-) -> Option<llama_cpp_2::token::LlamaToken> {
-    let vocab = model.vocab();
-    match vocab.tokenize(text.as_bytes(), false, true).as_slice() {
-        [token] if vocab.token_to_piece(*token, true, None) == text.as_bytes() => Some(*token),
-        _ => None,
-    }
-}
-
 pub(crate) fn finished_calls(
     format: Format,
     raw: &[u8],
@@ -227,16 +217,6 @@ pub(crate) fn finished_calls(
                 super::ToolCallFailure::Unfinished.into()
             }
         })
-}
-
-pub(crate) fn grammar(
-    format: Format,
-    request: &ToolRequest,
-    model: &llama_cpp_2::model::LlamaModel,
-) -> Result<String, super::Error> {
-    grammar::grammar(format, request, &|text| {
-        single_token(model, text).map(|token| token.0)
-    })
 }
 
 pub(crate) fn adapt_messages(

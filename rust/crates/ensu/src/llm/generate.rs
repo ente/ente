@@ -20,7 +20,7 @@ use super::event::{EventSink, FinishReason, GenerationEvent, GenerationSummary, 
 use super::execution::{ExecutionContext, ExecutionState, MIN_GPU_PROMPT_TOKENS, MultimodalPrompt};
 use super::template::build_prompt;
 use super::tools::{self, Format, ToolCall, ToolOutcome, ToolRequest};
-use super::{Error, format_error, lock};
+use super::{Error, format_error, lock, vocab};
 
 static JOB_COUNTER: AtomicI64 = AtomicI64::new(1);
 static CANCEL_FLAGS: OnceLock<Mutex<HashMap<JobId, Arc<AtomicBool>>>> = OnceLock::new();
@@ -776,11 +776,13 @@ fn generate_chat_stream(
             let prompt = built.text;
             let mut banned = Vec::new();
             if let Some(format) = built.native_format
-                && let Some(open) = tools::single_token(ctx.model, format.open())
+                && let Some(open) = vocab::single_token(ctx.model, format.open())
             {
                 banned.push(open);
                 if let Some(request) = tool_request {
-                    let grammar = tools::grammar(format, &request, ctx.model)?;
+                    let grammar = tools::grammar(format, &request, &|text| {
+                        vocab::single_token(ctx.model, text).map(|token| token.0)
+                    })?;
                     let grammar =
                         LlamaSampler::grammar(ctx.model, &grammar, "root").map_err(|err| {
                             Error::InvalidInput(format_error("Invalid tool grammar", err))

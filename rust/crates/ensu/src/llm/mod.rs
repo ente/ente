@@ -8,6 +8,7 @@ pub mod memory;
 mod model;
 mod template;
 pub mod tools;
+mod vocab;
 mod worker;
 
 pub use context::*;
