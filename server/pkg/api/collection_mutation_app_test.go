@@ -22,6 +22,7 @@ import (
 	"github.com/ente/museum/pkg/repo"
 	castrepo "github.com/ente/museum/pkg/repo/cast"
 	publicrepo "github.com/ente/museum/pkg/repo/public"
+	socialrepo "github.com/ente/museum/pkg/repo/social"
 	bonusrepo "github.com/ente/museum/pkg/repo/storagebonus"
 	"github.com/gin-gonic/gin"
 	"github.com/patrickmn/go-cache"
@@ -43,6 +44,7 @@ func TestCollectionMutationAppIsolation(t *testing.T) {
 	testutil.InsertSubscription(t, db, testutil.SubscriptionFixture{UserID: ownerID, Storage: 1 << 30, ExpiryTime: 4102444800000000})
 	userRepo := &repo.UserRepository{DB: db, HashingKey: testutil.HashingKey(), SecretEncryptionKey: testutil.SecretEncryptionKey()}
 	linkRepo := publicrepo.NewCollectionLinkRepository(db, "")
+	linkRepo.Cache = publicrepo.NewLinkCache(time.Minute, time.Minute)
 	collectionRepo := &repo.CollectionRepository{DB: db, CollectionLinkRepo: linkRepo, SecretEncryptionKey: testutil.SecretEncryptionKey()}
 	h := &CollectionHandler{Controller: &collections.CollectionController{
 		AccessCtrl: access.NewAccessController(collectionRepo, nil), CollectionRepo: collectionRepo,
@@ -56,14 +58,19 @@ func TestCollectionMutationAppIsolation(t *testing.T) {
 	router := gin.New()
 	storage := router.Group("/collections", authMiddleware.TokenAuthMiddleware(nil), middleware.RejectAuthApp())
 	linkAuth := &middleware.CollectionLinkMiddleware{
-		CollectionLinkRepo: linkRepo, CollectionRepo: collectionRepo,
+		CollectionLinkRepo: linkRepo, CollectionRepo: collectionRepo, Cache: linkRepo.Cache,
 		BillingCtrl: h.Controller.BillingCtrl, PublicCollectionCtrl: h.Controller.CollectionLinkCtrl,
 	}
 	publicHandler := &PublicCollectionHandler{
 		Controller:             h.Controller.CollectionLinkCtrl,
 		StorageBonusController: &storagebonus.Controller{StorageBonus: &bonusrepo.Repository{DB: db}},
 	}
-	router.GET("/public-collection/info", linkAuth.Authenticate(func(c *gin.Context) string { return c.FullPath() }), publicHandler.GetCollection)
+	publicAPI := router.Group("/public-collection", linkAuth.Authenticate(func(c *gin.Context) string { return c.FullPath() }))
+	publicAPI.GET("/info", publicHandler.GetCollection)
+	socialHandler := &PublicCommentsHandler{AnonIdentityCtrl: &public.AnonIdentityController{
+		JwtSecret: []byte("guest-identity-test-secret"), AnonUsersRepo: &socialrepo.AnonUsersRepository{DB: db},
+	}}
+	publicAPI.POST("/anon-identity", socialHandler.CreateAnonIdentity)
 	storage.GET("/v2", h.GetV2)
 	storage.POST("/share-url", h.ShareURL)
 	storage.PUT("/share-url", h.UpdateShareURL)
@@ -136,7 +143,7 @@ func TestCollectionMutationAppIsolation(t *testing.T) {
 				return response.Body.String()
 			}
 
-			created := linkRequest(http.MethodPost, ownerID, `"enableCollect":true,"requireApproval":true`, http.StatusOK)
+			created := linkRequest(http.MethodPost, ownerID, `"enableCollect":true,"enableComment":false,"requireApproval":true`, http.StatusOK)
 			require.Contains(t, created, `"requireApproval":false`)
 			linkRequest(http.MethodPut, adminID, `"requireApproval":true`, http.StatusForbidden)
 			if app == ente.Locker {
@@ -151,6 +158,22 @@ func TestCollectionMutationAppIsolation(t *testing.T) {
 
 			link, err := linkRepo.GetActiveCollectionLinkRow(t.Context(), album.ID)
 			require.NoError(t, err)
+			requestIdentity := func() *httptest.ResponseRecorder {
+				body := `{"cipher":"` + base64.StdEncoding.EncodeToString(make([]byte, 20)) + `","nonce":"nonce"}`
+				req := httptest.NewRequest(http.MethodPost, "/public-collection/anon-identity", strings.NewReader(body))
+				req.Header.Set("Content-Type", "application/json")
+				req.Header.Set("X-Auth-Access-Token", link.Token)
+				response := httptest.NewRecorder()
+				router.ServeHTTP(response, req)
+				return response
+			}
+			guest := requestIdentity()
+			require.Equal(t, http.StatusCreated, guest.Code, guest.Body.String())
+			var identity public.AnonIdentityResponse
+			require.NoError(t, json.Unmarshal(guest.Body.Bytes(), &identity))
+			require.NotEmpty(t, identity.Token)
+			require.NotEmpty(t, identity.AnonUserID)
+
 			req := httptest.NewRequest(http.MethodGet, "/public-collection/info", nil)
 			req.Header.Set("X-Auth-Access-Token", link.Token)
 			response := httptest.NewRecorder()
@@ -167,6 +190,9 @@ func TestCollectionMutationAppIsolation(t *testing.T) {
 
 			disabled := linkRequest(http.MethodPut, ownerID, `"requireApproval":false`, http.StatusOK)
 			require.Contains(t, disabled, `"requireApproval":false`)
+			require.Equal(t, http.StatusMethodNotAllowed, requestIdentity().Code)
+			linkRequest(http.MethodPut, ownerID, `"enableComment":true`, http.StatusOK)
+			require.Equal(t, http.StatusCreated, requestIdentity().Code)
 		})
 		for _, tc := range cases {
 			actors := []int64{ownerID}
