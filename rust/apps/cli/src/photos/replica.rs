@@ -482,6 +482,17 @@ impl<'a> Replica<'a> {
         })?
     }
 
+    pub fn file_ids(&self, album: Option<i64>) -> core_db::Result<HashSet<i64>> {
+        self.db.read(|db| {
+            let mut statement = db.prepare(
+                "SELECT DISTINCT id FROM photos_files WHERE ?1 IS NULL OR collection_id=?1",
+            )?;
+            Ok(statement
+                .query_map([album], |row| row.get(0))?
+                .collect::<SqliteResult<_>>()?)
+        })
+    }
+
     pub fn files_synced_to(&self, id: i64) -> core_db::Result<Option<i64>> {
         self.db.read(|db| {
             Ok(db.query_row(

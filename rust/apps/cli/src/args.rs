@@ -452,6 +452,18 @@ Each member has email, status, admin, usedBytes and storageLimitBytes (null with
         #[command(subcommand)]
         command: FileCommand,
     },
+    #[command(about = "See the people in your photos", visible_alias = "people")]
+    Person {
+        #[arg(
+            long,
+            global = true,
+            value_name = "ALBUM",
+            help = "Limit to an album ID or exact name"
+        )]
+        album: Option<String>,
+        #[command(subcommand)]
+        command: PersonCommand,
+    },
     #[command(about = "See where your files were taken")]
     Place {
         #[arg(
@@ -750,6 +762,14 @@ pub struct FileQuery {
     pub country: Option<String>,
     #[arg(
         long,
+        value_name = "PERSON",
+        value_parser = nonempty_search,
+        help = "Include files of a person, given by ID or exact name",
+        long_help = "Include files of the person with this ID or exact name, as `person list` shows them; hidden people can be selected too. Requires machine learning to be on for your account; see `person list --help`."
+    )]
+    pub person: Option<String>,
+    #[arg(
+        long,
         value_name = "LAT,LON",
         requires = "radius",
         allow_hyphen_values = true,
@@ -813,6 +833,25 @@ pub enum PlaceCommand {
         #[command(flatten)]
         list: ListArgs,
     },
+}
+
+const PERSON_HELP: &str = "Refreshes people and file metadata first; --offline reads previously synced data.
+Lists the people saved in Ente Photos with the most files first, including hidden and ignored people.
+Requires machine learning to be on for your account in the Ente Photos app;
+when it is off, the people synced to this device are removed.
+A person's files are the photos and videos you assigned to them in Ente Photos, including files in hidden albums.
+People with none of their files in the selected albums are left out.
+With --json, returns an array. Fields: id, name (strings); hidden (boolean); fileCount (integer).
+
+Examples:
+  ente photos person list
+  ente photos file list --person \"Ada Lovelace\"";
+
+#[derive(Subcommand)]
+pub enum PersonCommand {
+    #[command(about = "List people and how many files each one is in")]
+    #[command(after_long_help = PERSON_HELP)]
+    List(ListArgs),
 }
 
 #[derive(Clone, Copy, ValueEnum)]

@@ -2566,6 +2566,7 @@ dependencies = [
  "ente-photos-export",
  "ente-test-support",
  "env_logger",
+ "flate2",
  "futures-util",
  "keyring",
  "mockito",
