@@ -291,7 +291,10 @@ fn typed_call(
     name: &str,
     raw: Vec<(&str, RawValue)>,
 ) -> Result<ToolCall, Error> {
-    let spec = request.spec(name).ok_or_else(invalid)?;
+    let spec = request
+        .spec(name)
+        .filter(|_| request.allows(name))
+        .ok_or_else(invalid)?;
     let mut arguments = BTreeMap::new();
     for (key, value) in raw {
         let parameter = spec

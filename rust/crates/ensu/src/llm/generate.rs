@@ -781,8 +781,13 @@ fn generate_chat_stream(
                 && let Some(open) = vocab::single_token(ctx.model, format.open())
             {
                 banned.push(open);
-                if let Some(request) = tool_request {
-                    let grammar = tools::grammar(format, &request, &|text| {
+                if let Some(request) = tool_request
+                    && request
+                        .allowed
+                        .as_ref()
+                        .is_none_or(|allowed| !allowed.is_empty())
+                {
+                    let grammar = tools::grammar(format, &request, true, &|text| {
                         vocab::single_token(ctx.model, text).map(|token| token.0)
                     })?;
                     let grammar =

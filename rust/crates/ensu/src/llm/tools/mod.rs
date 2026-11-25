@@ -41,6 +41,8 @@ pub enum ParameterKind {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ToolRequest {
     pub tools: Vec<ToolSpec>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub allowed: Option<Vec<String>>,
     #[serde(default)]
     pub quote_source: String,
     pub max_calls: u8,
@@ -93,7 +95,20 @@ impl ToolRequest {
                 }
             }
         }
+        if self
+            .allowed
+            .as_ref()
+            .is_some_and(|allowed| allowed.iter().any(|name| !names.contains(name.as_str())))
+        {
+            return invalid("Allowed tools must be declared");
+        }
         Ok(())
+    }
+
+    pub(super) fn allows(&self, name: &str) -> bool {
+        self.allowed
+            .as_ref()
+            .is_none_or(|allowed| allowed.iter().any(|candidate| candidate == name))
     }
 
     pub(super) fn max_calls(&self) -> usize {

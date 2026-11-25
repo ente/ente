@@ -189,6 +189,7 @@ pub fn chat_tools(user_text: &str, open_titles: &[&str]) -> ToolRequest {
         ParameterKind::Choice { values: choices }
     };
     ToolRequest {
+        allowed: None,
         tools: vec![
             ToolSpec {
                 name: SAVE_TOOL.into(),

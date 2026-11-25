@@ -3,6 +3,7 @@ use crate::llm::ChatMessage;
 
 fn request(quote_source: &str) -> ToolRequest {
     ToolRequest {
+        allowed: None,
         tools: vec![
             ToolSpec {
                 name: "save_to_do".into(),
@@ -254,7 +255,8 @@ fn grammar_builds_for_every_format_and_quotes_only_source_spans() {
         })
     };
     for format in [Format::Lfm, Format::Gemma, Format::Qwen] {
-        let grammar = grammar::grammar(format, &request("Call \"Lee\" tomorrow."), &token).unwrap();
+        let grammar =
+            grammar::grammar(format, &request("Call \"Lee\" tomorrow."), true, &token).unwrap();
         assert!(grammar.starts_with("root ::= <[10]>"), "{grammar}");
         assert!(
             grammar.contains("w2 ::= ") && !grammar.contains("w3 ::="),
@@ -268,9 +270,9 @@ fn grammar_builds_for_every_format_and_quotes_only_source_spans() {
             );
         }
     }
-    let empty = grammar::grammar(Format::Gemma, &request(""), &token).unwrap();
+    let empty = grammar::grammar(Format::Gemma, &request(""), true, &token).unwrap();
     assert!(!empty.contains("quote ::="));
-    assert!(grammar::grammar(Format::Gemma, &request("x"), &|_| None).is_err());
+    assert!(grammar::grammar(Format::Gemma, &request("x"), true, &|_| None).is_err());
 }
 
 fn range_accepts(rule: &str, text: &str) -> bool {
@@ -397,4 +399,54 @@ fn plain_leaves_the_media_marker_alone() {
         specials.plain("look <__media__>"),
         std::borrow::Cow::Borrowed("look <__media__>")
     ));
+}
+
+#[test]
+fn allowed_narrows_grammar_and_parser_not_declarations() {
+    let all = request("Buy milk");
+    let mut narrowed = all.clone();
+    narrowed.allowed = Some(vec!["save_to_do".into()]);
+    for format in [Format::Gemma, Format::Lfm, Format::Qwen] {
+        let token = |_: &str| Some(1);
+        let allowed = grammar::grammar(format, &narrowed, true, &token).unwrap();
+        let full = grammar::grammar(format, &all, false, &token).unwrap();
+        assert_eq!(
+            full,
+            grammar::grammar(format, &narrowed, false, &token).unwrap()
+        );
+        assert!(allowed.lines().any(|line| line.starts_with("call ::=")
+            && line.contains("save_to_do")
+            && !line.contains("list_to_dos")));
+        let messages = vec![ChatMessage::new("user", "Buy milk")];
+        assert_eq!(
+            crate::llm::render_native(format, messages.clone(), Some(&all)),
+            crate::llm::render_native(format, messages, Some(&narrowed))
+        );
+        assert!(
+            format
+                .parse(&format.render_calls(&calls()[1..2]), &narrowed)
+                .is_err()
+        );
+    }
+}
+
+#[test]
+fn validate_rejects_undeclared_allowed_names() {
+    let mut request = request("Buy milk");
+    request.allowed = Some(vec![]);
+    assert!(request.validate().is_ok());
+    request.allowed = Some(vec!["unknown".into()]);
+    assert!(request.validate().is_err());
+}
+
+#[test]
+fn allowed_is_optional_in_json() {
+    let value = serde_json::to_value(request("Buy milk")).unwrap();
+    assert!(value.get("allowed").is_none());
+    assert_eq!(
+        serde_json::from_value::<ToolRequest>(value)
+            .unwrap()
+            .allowed,
+        None
+    );
 }
