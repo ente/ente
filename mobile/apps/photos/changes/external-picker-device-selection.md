@@ -1,0 +1,1 @@
+- You can now attach Ente and device photos together from either view in the Android photo picker.

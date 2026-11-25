@@ -36,6 +36,19 @@ void main() {
     selectedFiles.dispose();
   });
 
+  testWidgets(
+    "a date is selected when its upload was picked in another album",
+    (tester) async {
+      final selection = SelectedFiles(dedupeByUploadID: true);
+      EnteFile albumCopy(int rowID) => EnteFile()
+        ..generatedID = rowID
+        ..uploadedFileID = 42;
+      selection.selectAll({albumCopy(1)});
+      await tester.pumpWidget(_header([albumCopy(2)], selection, "Date"));
+      expect(_isSelected(tester), isTrue);
+    },
+  );
+
   testWidgets("group selection still ignores dummy cells", (tester) async {
     final selectedFiles = SelectedFiles();
     final first = EnteFile()..generatedID = 1;
