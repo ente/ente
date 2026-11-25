@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/ente/museum/ente"
+	"github.com/ente/museum/pkg/utils/time"
 	"github.com/ente/stacktrace"
 	"github.com/lib/pq"
 )
@@ -189,6 +190,37 @@ func (repo *CollectionRepository) HasPublishedFiles(ctx context.Context, collect
 		WHERE collection_id = $1 AND NOT is_deleted AND moderation_status IS DISTINCT FROM $2)`,
 		collectionID, ente.ModerationPending).Scan(&exists)
 	return exists, stacktrace.Propagate(err, "")
+}
+
+func (repo *CollectionRepository) GetPendingFileIDs(ctx context.Context, collectionID int64, fileIDs []int64, anonUserID *string) ([]int64, error) {
+	rows, err := repo.DB.QueryContext(ctx, `SELECT file_id FROM collection_files
+		WHERE collection_id = $1 AND file_id = ANY ($2) AND NOT is_deleted AND moderation_status = $3
+		AND ($4::text IS NULL OR anon_user_id = $4)`,
+		collectionID, pq.Array(fileIDs), ente.ModerationPending, anonUserID)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "")
+	}
+	defer rows.Close()
+	pending := make([]int64, 0, len(fileIDs))
+	for rows.Next() {
+		var fileID int64
+		if err := rows.Scan(&fileID); err != nil {
+			return nil, stacktrace.Propagate(err, "")
+		}
+		pending = append(pending, fileID)
+	}
+	return pending, stacktrace.Propagate(rows.Err(), "")
+}
+
+func (repo *CollectionRepository) ApprovePendingFiles(ctx context.Context, collectionID int64, fileIDs []int64) error {
+	_, err := repo.DB.ExecContext(ctx, `WITH approved AS (
+			UPDATE collection_files SET moderation_status = $1, updation_time = $2, created_at = $2
+			WHERE collection_id = $3 AND file_id = ANY ($4) AND NOT is_deleted AND moderation_status = $5
+			RETURNING file_id
+		)
+		UPDATE collections SET updation_time = $2 WHERE collection_id = $3 AND EXISTS (SELECT 1 FROM approved)`,
+		ente.ModerationApproved, time.Microseconds(), collectionID, pq.Array(fileIDs), ente.ModerationPending)
+	return stacktrace.Propagate(err, "")
 }
 
 func (repo *CollectionRepository) GetCollectionsFilesCount(collectionID int64) (int64, error) {

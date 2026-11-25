@@ -785,6 +785,8 @@ func main() {
 
 	storageAPI.POST("/collections/v3/remove-files", collectionHandler.RemoveFilesV3)
 	storageAPI.POST("/collections/suggest-delete", collectionHandler.SuggestDeleteInSharedCollection)
+	storageAPI.POST("/collections/pending-files/approve", collectionHandler.ApprovePendingFiles)
+	storageAPI.POST("/collections/pending-files/reject", collectionHandler.RejectPendingFiles)
 	storageAPI.GET("/collections/v2/diff", collectionHandler.GetDiffV2)
 	storageAPI.GET("/collections/file", collectionHandler.GetFile)
 	storageAPI.GET("/collections/sharees", collectionHandler.GetSharees)
@@ -820,6 +822,7 @@ func main() {
 	publicCollectionAPI.POST("/upload-url", publicCollectionHandler.GetUploadURLV2)
 	publicCollectionAPI.POST("/multipart-upload-url", publicCollectionHandler.GetMultipartUploadURLV2)
 	publicCollectionAPI.POST("/file", publicCollectionHandler.CreateFile)
+	publicCollectionAPI.DELETE("/pending-files/:fileID", publicCollectionHandler.RemovePendingFile)
 	publicCollectionAPI.POST("/verify-password", publicCollectionHandler.VerifyPassword)
 	publicCollectionAPI.GET("/social/diff", publicSocialHandler.SocialDiff)
 	publicCollectionAPI.GET("/comments/diff", publicSocialHandler.CommentDiff)

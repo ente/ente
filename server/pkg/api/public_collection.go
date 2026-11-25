@@ -237,6 +237,19 @@ func (h *PublicCollectionHandler) getFileForType(c *gin.Context, objectType ente
 	c.Redirect(http.StatusTemporaryRedirect, url)
 }
 
+func (h *PublicCollectionHandler) RemovePendingFile(c *gin.Context) {
+	fileID, err := strconv.ParseInt(c.Param("fileID"), 10, 64)
+	if err != nil {
+		handler.Error(c, stacktrace.Propagate(ente.ErrBadRequest, ""))
+		return
+	}
+	if err := h.CollectionCtrl.RemovePendingFile(c, fileID); err != nil {
+		handler.Error(c, stacktrace.Propagate(err, ""))
+		return
+	}
+	c.Status(http.StatusOK)
+}
+
 func (h *PublicCollectionHandler) getFileURL(c *gin.Context, objectType ente.ObjectType) (string, error) {
 	fileID, err := strconv.ParseInt(c.Param("fileID"), 10, 64)
 	if err != nil {

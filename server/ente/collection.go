@@ -176,6 +176,11 @@ type SuggestDeleteRequest struct {
 	FileIDs      []int64 `json:"fileIDs" binding:"required"`
 }
 
+type PendingFilesRequest struct {
+	CollectionID int64   `json:"collectionID" binding:"required"`
+	FileIDs      []int64 `json:"fileIDs" binding:"required"`
+}
+
 type RenameRequest struct {
 	CollectionID        int64  `json:"collectionID" binding:"required"`
 	EncryptedName       string `json:"encryptedName" binding:"required"`
