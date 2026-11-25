@@ -12,8 +12,8 @@ import "package:photos/service_locator.dart";
 import "package:photos/services/memories/memory_music_service.dart";
 import "package:photos/services/remote_assets_service.dart";
 import "package:photos/services/video_preview_service.dart";
+import "package:photos/ui/common/offscreen_widget_tree.dart";
 import "package:photos/ui/rewind/reel/rewind_reel.dart";
-import "package:photos/ui/rewind/reel/rewind_reel_tree.dart";
 import "package:photos/ui/rewind/reel/rewind_video_format.dart";
 import "package:photos/ui/rewind/reel/rewind_video_sink.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
@@ -106,7 +106,7 @@ class RewindVideoJob with WidgetsBindingObserver {
   var _failed = false;
   var _encodesWithFfmpeg = false;
   RewindReel? _reel;
-  RewindReelTree? _tree;
+  OffscreenWidgetTree? _tree;
   File? _file;
 
   ValueListenable<RewindVideoProgress> get progress => _progress;
@@ -324,7 +324,7 @@ class RewindVideoJob with WidgetsBindingObserver {
 
   Future<void> _advance(
     RewindReel reel,
-    RewindReelTree tree,
+    OffscreenWidgetTree tree,
     Duration time,
   ) async {
     await _pace();
@@ -337,7 +337,7 @@ class RewindVideoJob with WidgetsBindingObserver {
     await tree.advance();
   }
 
-  RewindReelTree _mount(RewindReel reel) => _tree = RewindReelTree(
+  OffscreenWidgetTree _mount(RewindReel reel) => _tree = OffscreenWidgetTree(
     size: RewindReel.canvas,
     pixelRatio: format.pixelRatio,
     frameRate: RewindReel.frameRate,
@@ -360,7 +360,7 @@ class RewindVideoJob with WidgetsBindingObserver {
     ),
   );
 
-  void _unmount(RewindReelTree tree) {
+  void _unmount(OffscreenWidgetTree tree) {
     if (_tree == tree) _tree = null;
     tree.dispose();
   }
