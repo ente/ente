@@ -100,7 +100,7 @@ export const todoChanges = () => {
         },
         change(
             todo: Todo,
-            action: (latest: Todo) => Promise<Todo | void>,
+            action: (latest: Todo) => Promise<Todo> | Promise<void>,
         ): Promise<void> {
             const next = queue.then(async () => {
                 const latest =

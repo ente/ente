@@ -19,10 +19,10 @@ void test("queued To Do toggles use the version returned by the preceding change
         versions.push(latest.version);
         return completed.promise;
     });
-    const second = changes.change(todo, async (latest) => {
+    const second = changes.change(todo, (latest) => {
         versions.push(latest.version);
         assert.equal(latest.completedAtMs, 1);
-        return latest;
+        return Promise.resolve(latest);
     });
     await Promise.resolve();
     assert.deepEqual(versions, [1]);
@@ -35,11 +35,12 @@ void test("a failed To Do change leaves the next change queued", async () => {
     const changes = todoChanges();
     changes.show([todo]);
     const failure = new Error("change failed");
-    const first = changes.change(todo, async () => {
-        throw failure;
-    });
-    const second = changes.change(todo, async (latest) => {
+    const first = changes.change(todo, (): Promise<never> =>
+        Promise.reject(failure),
+    );
+    const second = changes.change(todo, (latest) => {
         assert.equal(latest.version, 1);
+        return Promise.resolve();
     });
     await assert.rejects(first, failure);
     await second;
