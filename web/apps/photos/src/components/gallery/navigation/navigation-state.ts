@@ -113,8 +113,6 @@ export const navigationReducer = (
             return navigate(homeDestination);
         case "showCollectionSummary": {
             const id = action.collectionSummaryID ?? PseudoCollectionID.all;
-            // Archived albums only resolve in Archive, so open them there even
-            // when selected from elsewhere (e.g. search).
             const mode = action.library.hiddenCollectionSummaries.has(id)
                 ? "hidden-albums"
                 : action.library.archivedCollectionSummaries.has(id)
