@@ -23,79 +23,73 @@ _BadgeCopy _copyOf(rust.RewindBadge badge) => switch (badge) {
     title: "SUN CHASER",
     pronunciation: "/ˈsən ˌchā-sər/",
     definition:
-        "Someone who drops everything the second the sky turns pink. Golden hour is their love language.",
+        "Someone who regularly photographs sunrises, sunsets, and the golden-hour light.",
   ),
   rust.RewindBadge.consistencyChamp => (
     title: "CONSISTENCY\nCHAMP",
     pronunciation: "/kən-ˈsis-tən-sē champ/",
     definition:
-        "Someone who showed up for their camera roll every single month. Rain, shine or Tuesday.",
+        "Someone who showed up for their camera roll every single month. Come rain or shine.",
   ),
   rust.RewindBadge.unpaidPhotographer => (
     title: "UNPAID\nPHOTOGRAPHER",
     pronunciation: "/ən-ˈpād fə-ˈtä-grə-fər/",
-    definition:
-        "The reason the group chat has any photos at all. Shares albums, asks for nothing, deserves everything.",
+    definition: "The reason the group chat has any photos at all.",
   ),
   rust.RewindBadge.mainCharacter => (
     title: "MAIN\nCHARACTER",
     pronunciation: "/ˈmān ˈker-ik-tər/",
     definition:
-        "The star of their own story, and what a story it was. Every scene was better with them in it.",
+        "Someone who loves being photographed. Every scene was better with them in it.",
   ),
   rust.RewindBadge.earlyBird => (
     title: "EARLY BIRD",
     pronunciation: "/ˈər-lē ˈbərd/",
-    definition:
-        "Someone who’s caught a sunrise, a coffee and a whole adventure before anyone else’s alarm goes off.",
+    definition: "Someone who’s up before the alarm and out before the crowds.",
   ),
   rust.RewindBadge.nightOwl => (
     title: "NIGHT OWL",
     pronunciation: "/ˈnīt ˌau̇l/",
-    definition:
-        "Someone who comes alive after dark. Their camera roll has a nightlife, and it’s thriving.",
+    definition: "Someone whose camera has a thriving nightlife.",
   ),
   rust.RewindBadge.weekendStar => (
     title: "WEEKEND STAR",
     pronunciation: "/ˈwēk-end ˈstär/",
-    definition:
-        "Someone who saves their best material for the weekend. Monday to Friday is just rehearsal.",
+    definition: "Monday to Friday is rehearsal. The weekend is showtime.",
   ),
   rust.RewindBadge.pawparazzi => (
     title: "PAWPARAZZI",
     pronunciation: "/ˌpȯ-pə-ˈrät-sē/",
     definition:
-        "Someone whose pet has had more photoshoots than most celebrities. Every yawn is a cover shot.",
+        "Someone whose pet has had more photoshoots than most celebrities.",
   ),
   rust.RewindBadge.foodie => (
     title: "FOODIE",
     pronunciation: "/ˈfü-dē/",
-    definition:
-        "Someone whose phone always eats first. Every meal gets a photoshoot, and every meal deserves one.",
+    definition: "Someone whose phone always eats first.",
   ),
   rust.RewindBadge.plantParent => (
     title: "PLANT PARENT",
     pronunciation: "/ˈplant ˌper-ənt/",
     definition:
-        "Someone who has never walked past a pretty flower without saying hi. Proud parent to every leaf they meet.",
+        "Someone who stops for every bloom and says hello to every leaf.",
   ),
   rust.RewindBadge.buildingBuff => (
     title: "BUILDING BUFF",
     pronunciation: "/ˈbil-diŋ ˈbəf/",
-    definition:
-        "Someone who looks up while everyone else looks down. Never met a cool doorway they didn’t photograph.",
+    definition: "Someone who sees art in arches, stairs and skylines.",
   ),
   rust.RewindBadge.screenshotCollector => (
     title: "SCREENSHOT\nCOLLECTOR",
     pronunciation: "/ˈskrēn-ˌshät kə-ˈlek-tər/",
     definition:
-        "The keeper of receipts, recipes and everything worth remembering. If it was on a screen, it’s safe with them.",
+        "The keeper of receipts, recipes and every chat worth remembering.",
   ),
   rust.RewindBadge.hobbyHopper => (
     title: "HOBBY HOPPER",
     pronunciation: "/ˈhä-bē ˈhä-pər/",
     definition:
-        "Someone with a new passion every season and the photos to prove it. Jack of all trades, master of fun.",
+        "Jack of all trades, master of fun. A new passion every few months.",
   ),
   rust.RewindBadge.indoorKid => (
     title: "INDOOR KID",
@@ -106,50 +100,48 @@ _BadgeCopy _copyOf(rust.RewindBadge badge) => switch (badge) {
   rust.RewindBadge.outOfOffice => (
     title: "OUT OF OFFICE",
     pronunciation: "/ˈau̇t əv ˈȯ-fəs/",
-    definition:
-        "Someone whose auto-reply did a lot of work this year. Home is wherever the next adventure is.",
+    definition: "Explorer whose suitcase barely got unpacked this year.",
   ),
   rust.RewindBadge.fullThrottle => (
     title: "FULL THROTTLE",
     pronunciation: "/ˈfu̇l ˈthrä-tᵊl/",
     definition:
-        "Someone who doesn’t do “sit still”. If there’s a game, a trail or a finish line, they’re in it.",
+        "Someone who doesn’t do “sit still”. If there’s a game, a trail or a finish line, they’re there.",
   ),
   rust.RewindBadge.eventHopper => (
     title: "EVENT HOPPER",
     pronunciation: "/i-ˈvent ˈhä-pər/",
     definition:
-        "The friend with the best calendar. Concerts, parties, festivals. If it was happening, they were there.",
+        "The friend with the best calendar. If it was happening, they were there.",
   ),
   rust.RewindBadge.alwaysRolling => (
     title: "ALWAYS\nROLLING",
     pronunciation: "/ˈȯl-wāz ˈrō-liŋ/",
     definition:
-        "Someone who doesn’t take photos, they take scenes. Hits record first, asks questions later.",
+        "Someone who shoots more videos than photos, every frame is priceless.",
   ),
   rust.RewindBadge.fitCheck => (
     title: "FIT CHECK",
     pronunciation: "/ˈfit ˌchek/",
     definition:
-        "Someone who never wastes a good outfit. Every look gets documented, and every look deserves to be.",
+        "Someone who never wastes a good outfit. Every look gets documented.",
   ),
   rust.RewindBadge.artLover => (
     title: "ART LOVER",
     pronunciation: "/ˈärt ˈlə-vər/",
     definition:
-        "Someone who can’t walk past a mural without stopping. Turns every gallery and street corner into a date.",
+        "Someone who finds art everywhere, from galleries to street corners.",
   ),
   rust.RewindBadge.limitedEdition => (
     title: "LIMITED\nEDITION",
     pronunciation: "/ˈli-mə-təd i-ˈdi-shən/",
-    definition:
-        "Someone who doesn’t snap everything, just the good stuff. Rare, hand-picked and worth every frame.",
+    definition: "Someone who doesn’t snap everything, just the good stuff.",
   ),
   rust.RewindBadge.happySnapper => (
     title: "HAPPY SNAPPER",
     pronunciation: "/ˈha-pē ˈsna-pər/",
     definition:
-        "Someone who photographs everything, because everything is worth it. No theme, no rules, all joy.",
+        "Someone who photographs everything, because everything is worth it.",
   ),
   rust.RewindBadge.openingCredits => (
     title: "OPENING\nCREDITS",
@@ -161,13 +153,12 @@ _BadgeCopy _copyOf(rust.RewindBadge badge) => switch (badge) {
     title: "GUEST STAR",
     pronunciation: "/ˈgest ˌstär/",
     definition:
-        "Someone who saves their camera for the big days, and then steals the show. Every appearance is an event.",
+        "Someone who saves their camera for the moments that matter, then goes all in.",
   ),
   rust.RewindBadge.mixedBag => (
     title: "MIXED BAG",
     pronunciation: "/ˈmikst ˈbag/",
-    definition:
-        "Someone who can’t be put in a box. A little bit of everything, a whole lot of personality.",
+    definition: "Impossible to label, and that’s the best part.",
   ),
 };
 
