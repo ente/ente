@@ -8,6 +8,7 @@ import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:ente_strings/ente_strings.dart";
 import 'package:ente_ui/components/date_time_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:photos/core/configuration.dart';
 import 'package:photos/core/constants.dart';
 import "package:photos/core/errors.dart";
 import "package:photos/gateways/collections/models/public_url.dart";
@@ -139,6 +140,34 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
             ),
           ],
         ),
+        if (url.approvalSupported &&
+            url.enableCollect &&
+            collection.isOwner(Configuration.instance.getUserID()!)) ...[
+          const SizedBox(height: Spacing.lg),
+          ShareMenuGroup(
+            items: [
+              ShareMenuItem(
+                key: ValueKey('Require approval ${url.requireApproval}'),
+                title: context.strings.requireApproval,
+                subtitle: context.strings.requireApprovalDescription,
+                subtitleMaxLines: 3,
+                icon: HugeIcons.strokeRoundedShield01,
+                trailing: ToggleSwitchComponent(
+                  selected: url.requireApproval,
+                  onChanged: (selected) async {
+                    if (selected) {
+                      await _updateUrlSettings(context, {
+                        'requireApproval': true,
+                      });
+                    } else {
+                      await _turnOffApproval(context);
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
         const SizedBox(height: Spacing.lg),
         ShareMenuGroup(
           items: [
@@ -273,6 +302,36 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
       'grouped' => context.strings.layoutGrouped,
       _ => context.strings.layoutMasonry,
     };
+  }
+
+  Future<void> _turnOffApproval(BuildContext context) async {
+    final count = await sharingActions.pendingCountForWarning(
+      widget.collection,
+    );
+    if (!context.mounted) return;
+    if (count > 0) {
+      final turnOff = await showBottomSheetComponent<bool>(
+        context: context,
+        builder: (sheetContext) => BottomSheetComponent(
+          title: context.strings.turnOffApprovalQuestion,
+          content: Text(
+            context.strings.turnOffApprovalWarning(count: count),
+            style: TextStyles.body.copyWith(
+              color: sheetContext.componentColors.textLight,
+            ),
+          ),
+          closeTooltip: context.strings.close,
+          actions: [
+            ButtonComponent(
+              label: context.strings.turnOffApproval,
+              onTap: () => Navigator.of(sheetContext).pop(true),
+            ),
+          ],
+        ),
+      );
+      if (turnOff != true || !context.mounted) return;
+    }
+    await _updateUrlSettings(context, {'requireApproval': false});
   }
 
   Future<void> _showLinkExpirySheet(BuildContext context, PublicURL url) async {

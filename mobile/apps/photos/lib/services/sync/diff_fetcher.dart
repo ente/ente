@@ -12,6 +12,7 @@ import 'package:photos/models/file/file.dart';
 import "package:photos/models/metadata/file_magic.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
+import "package:photos/services/pending_uploads_service.dart";
 import "package:photos/utils/dialog_util.dart";
 import "package:photos/utils/file_key.dart";
 
@@ -116,6 +117,7 @@ class DiffFetcher {
 
   Future<Diff> getEncryptedFilesDiff(int collectionID, int sinceTime) async {
     try {
+      final pendingSession = PendingUploadsService.instance.session;
       final response = await collectionsGateway.getDiff(
         collectionID: collectionID,
         sinceTime: sinceTime,
@@ -123,6 +125,11 @@ class DiffFetcher {
       int latestUpdatedAtTime = 0;
       final diff = response["diff"] as List;
       final bool hasMore = response["hasMore"] as bool;
+      PendingUploadsService.instance.applyDiff(
+        collectionID,
+        diff,
+        pendingSession,
+      );
       final startTime = DateTime.now();
       final currentUserID = Configuration.instance.getUserID();
       late Set<int> existingUploadIDs;
@@ -143,6 +150,7 @@ class DiffFetcher {
         file.updationTime = item["updationTime"];
         latestUpdatedAtTime = max(latestUpdatedAtTime, file.updationTime!);
 
+        if (isPendingRow(Map<String, dynamic>.from(item as Map))) continue;
         if (item["isDeleted"]) {
           if (existingUploadIDs.contains(file.uploadedFileID)) {
             deletedFiles.add(file);

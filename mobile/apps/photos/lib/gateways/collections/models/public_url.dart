@@ -7,6 +7,8 @@ class PublicURL {
   bool passwordEnabled;
   bool enableJoin;
   bool enableComment;
+  bool requireApproval;
+  bool approvalSupported;
   String? nonce;
   int? opsLimit;
   int? memLimit;
@@ -20,6 +22,8 @@ class PublicURL {
     this.enableCollect = false,
     this.enableJoin = true,
     this.enableComment = false,
+    this.requireApproval = false,
+    this.approvalSupported = false,
     this.nonce,
     this.opsLimit,
     this.memLimit,
@@ -38,6 +42,7 @@ class PublicURL {
       'opsLimit': opsLimit,
       'enableJoin': enableJoin,
       'enableComment': enableComment,
+      if (approvalSupported) 'requireApproval': requireApproval,
     };
   }
 
@@ -59,6 +64,8 @@ class PublicURL {
       memLimit: map['memLimit'],
       enableJoin: map['enableJoin'] ?? true,
       enableComment: map['enableComment'] ?? false,
+      requireApproval: map['requireApproval'] ?? false,
+      approvalSupported: map['requireApproval'] != null,
     );
   }
 }

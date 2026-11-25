@@ -19,6 +19,7 @@ import "package:photos/models/metadata/common_keys.dart";
 import 'package:photos/services/account/user_service.dart';
 import 'package:photos/services/collections_service.dart';
 import 'package:photos/services/hidden_service.dart';
+import 'package:photos/services/pending_uploads_service.dart';
 import 'package:photos/ui/components/action_sheet_widget.dart';
 import 'package:photos/ui/components/buttons/button_widget.dart';
 import 'package:photos/ui/components/models/button_type.dart';
@@ -63,6 +64,19 @@ class CollectionActions {
 
   CollectionActions(this.collectionsService);
 
+  Future<int> pendingCountForWarning(Collection collection) async {
+    final pending = PendingUploadsService.instance;
+    if (!collection.publicURLs.any((url) => url.requireApproval)) {
+      return pending.count(collection.id);
+    }
+    try {
+      return await pending.loadedCount(collection.id);
+    } catch (error, stack) {
+      logger.warning('Could not load pending uploads', error, stack);
+      return 0;
+    }
+  }
+
   Future<bool> enableUrl(
     BuildContext context,
     Collection collection, {
@@ -88,6 +102,8 @@ class CollectionActions {
   }
 
   Future<bool> disableUrl(BuildContext context, Collection collection) async {
+    final pendingCount = await pendingCountForWarning(collection);
+    if (!context.mounted) return false;
     final actionResult = await showActionSheet(
       context: context,
       buttons: [
@@ -115,9 +131,13 @@ class CollectionActions {
         ),
       ],
       title: context.strings.removePublicLink,
-      body: context.strings.disableLinkMessage(
-        albumName: collection.displayName,
-      ),
+      body: pendingCount == 0
+          ? context.strings.disableLinkMessage(
+              albumName: collection.displayName,
+            )
+          : collection.isQuickLinkCollection() && !collection.hasSharees
+          ? '${context.strings.disableLinkMessage(albumName: collection.displayName)}\n${context.strings.pendingUploadsMoveToTrash(count: pendingCount)}'
+          : context.strings.removeLinkPendingWarning(count: pendingCount),
     );
     if (actionResult?.action != null) {
       if (actionResult!.action == ButtonAction.error) {
@@ -422,11 +442,14 @@ class CollectionActions {
         return false;
       }
     }
+    final pendingCount = await pendingCountForWarning(collection);
     if (!bContext.mounted) return false;
     return _showDeleteCollectionConfirmationSheet(
       context: bContext,
       title: bContext.strings.deleteAlbumQuestion,
-      message: bContext.strings.deleteAlbumDialog,
+      message: pendingCount > 0
+          ? '${bContext.strings.deleteAlbumDialog}\n${bContext.strings.pendingUploadsMoveToTrash(count: pendingCount)}'
+          : bContext.strings.deleteAlbumDialog,
       keepPhotos: () async {
         try {
           await trashCollectionKeepingPhotos(collection);

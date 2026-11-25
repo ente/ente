@@ -56,7 +56,11 @@ class CollectionsGateway {
   }) async {
     final response = await _enteDio.get(
       "/collections/v2/diff",
-      queryParameters: {"collectionID": collectionID, "sinceTime": sinceTime},
+      queryParameters: {
+        "collectionID": collectionID,
+        "sinceTime": sinceTime,
+        "includePending": true,
+      },
     );
     return response.data;
   }
