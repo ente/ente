@@ -322,7 +322,7 @@
     media-control-bar:not(:first-child),
 .pswp-ente
     .pswp__media-controls.pswp__media-controls--disabled
-    media-playback-rate-menu {
+    media-playback-rate-menu:not([hidden]) {
     opacity: 0.45;
     pointer-events: none;
 }
