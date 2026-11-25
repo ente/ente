@@ -352,6 +352,21 @@ class RewindDecoded {
     RewindBytes bytes,
   ) => RewindWarm(() => _load(photos, bytes), (decoded) => decoded.dispose());
 
+  static Future<RewindDecoded> available(
+    List<EnteFile> photos,
+    RewindBytes bytes,
+  ) async {
+    final images = await Future.wait([
+      for (final photo in photos) _image(photo, bytes),
+    ]);
+    return RewindDecoded._(
+      Map.identity()..addEntries([
+        for (final (index, photo) in photos.indexed)
+          if (images[index] case final image?) MapEntry(photo, image),
+      ]),
+    );
+  }
+
   static Future<RewindDecoded?> _load(
     List<EnteFile> photos,
     RewindBytes bytes,

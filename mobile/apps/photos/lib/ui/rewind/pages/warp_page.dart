@@ -91,6 +91,14 @@ class WarpPage extends RewindPage {
     first,
   ], bytes);
 
+  late final RewindWarm<RewindDecoded> _closeUps = RewindWarm(() async {
+    final walls = await _walls.value;
+    if (walls == null) return null;
+    return RewindDecoded.available([
+      for (final panel in _Course.of(walls).closest) walls.files[panel],
+    ], bytes);
+  }, (closeUps) => closeUps.dispose());
+
   static final _wallClock = RegExp(r"^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}");
 
   static DateTime taken(EnteFile file) =>
@@ -127,8 +135,9 @@ class WarpPage extends RewindPage {
   @override
   Future<bool> warmUp() async {
     final landing = _landing.value;
+    final closeUps = _closeUps.value;
     final walls = await _walls.value;
-    await landing;
+    await Future.wait([landing, closeUps]);
     return walls != null;
   }
 
@@ -136,6 +145,7 @@ class WarpPage extends RewindPage {
   void release() {
     _walls.release();
     _landing.release();
+    _closeUps.release();
   }
 
   @override
@@ -148,14 +158,18 @@ class WarpPage extends RewindPage {
       warm: _walls,
       builder: (context, walls) => RewindWarmBuilder<RewindDecoded>(
         warm: _landing,
-        builder: (context, landing) => _Flight(
-          key: ValueKey(walls),
-          walls: walls,
-          first: first,
-          landing: landing,
-          photo: photo,
-          active: isActive && !RewindPageScope.coveredOf(context),
-          position: position,
+        builder: (context, landing) => RewindWarmBuilder<RewindDecoded>(
+          warm: _closeUps,
+          builder: (context, closeUps) => _Flight(
+            key: ValueKey(walls),
+            walls: walls,
+            closeUps: closeUps,
+            first: first,
+            landing: landing,
+            photo: photo,
+            active: isActive && !RewindPageScope.coveredOf(context),
+            position: position,
+          ),
         ),
       ),
     );
@@ -165,6 +179,7 @@ class WarpPage extends RewindPage {
 class _Flight extends StatefulWidget {
   const _Flight({
     required this.walls,
+    required this.closeUps,
     required this.first,
     required this.landing,
     required this.photo,
@@ -174,6 +189,7 @@ class _Flight extends StatefulWidget {
   });
 
   final RewindAtlas? walls;
+  final RewindDecoded? closeUps;
   final EnteFile first;
   final RewindDecoded? landing;
   final RewindPhotoBuilder photo;
@@ -212,9 +228,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
     duration: const Duration(milliseconds: 380),
     reverseDuration: const Duration(milliseconds: 220),
   )..addStatusListener(_onPull);
-  late final _Course _course = _Course(
-    (widget.walls?.length ?? 0) ~/ _Course.sides,
-  );
+  late final _Course _course = _Course.of(widget.walls);
   late final ImageShader? _shader = switch (widget.walls) {
     final walls? => ImageShader(
       walls.image,
@@ -227,6 +241,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   };
   final _landingPhoto = GlobalKey<RewindPhotoState>();
   final _pickedPhoto = GlobalKey<RewindPhotoState>();
+  var _closeUps = <int, _CloseUp>{};
 
   var _last = Duration.zero;
   var _ms = 0.0;
@@ -262,6 +277,12 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   bool get _canPick => widget.walls != null && _piloted && !_landed;
 
   @override
+  void initState() {
+    super.initState();
+    _shadeCloseUps();
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _sync();
@@ -270,6 +291,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   @override
   void didUpdateWidget(_Flight oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.closeUps != widget.closeUps) _shadeCloseUps();
     _sync();
   }
 
@@ -278,7 +300,40 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
     _ticker.dispose();
     _pull.dispose();
     _shader?.dispose();
+    _disposeCloseUps();
     super.dispose();
+  }
+
+  void _shadeCloseUps() {
+    _disposeCloseUps();
+    final walls = widget.walls;
+    final closeUps = widget.closeUps;
+    if (walls == null || closeUps == null) return;
+    _closeUps = {
+      for (final panel in _course.closest)
+        if (closeUps[walls.files[panel]] case final image?)
+          panel: (
+            shader: ImageShader(
+              image,
+              TileMode.clamp,
+              TileMode.clamp,
+              Matrix4.identity().storage,
+              filterQuality: FilterQuality.medium,
+            ),
+            tile: Rect.fromCenter(
+              center: Offset(image.width / 2, image.height / 2),
+              width: min(image.width, image.height).toDouble(),
+              height: min(image.width, image.height).toDouble(),
+            ),
+          ),
+    };
+  }
+
+  void _disposeCloseUps() {
+    for (final closeUp in _closeUps.values) {
+      closeUp.shader.dispose();
+    }
+    _closeUps = {};
   }
 
   void _sync() {
@@ -575,6 +630,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                         painter: _Tube(
                           walls: walls,
                           shader: _shader,
+                          closeUps: _closeUps,
                           course: course,
                           travelled: travelled,
                           roll: _roll,
@@ -1044,6 +1100,8 @@ class _Print extends StatelessWidget {
 class _Course {
   _Course(this.rings) : _boxes = List.filled(rings * sides, null);
 
+  _Course.of(RewindAtlas? walls) : this((walls?.length ?? 0) ~/ sides);
+
   static const sides = 6;
   static const depth = 1.4;
   static const lead = 0.5;
@@ -1066,6 +1124,11 @@ class _Course {
   double get end => lead + rings * depth;
 
   double get length => max(1.0, end - landing);
+
+  List<int> get closest => [
+    if (rings > 0)
+      for (var side = 0; side < sides; side++) (rings - 1) * sides + side,
+  ];
 
   double start(int ring) => lead + ring * depth;
 
@@ -1227,10 +1290,13 @@ class _Course {
   }
 }
 
+typedef _CloseUp = ({ImageShader shader, Rect tile});
+
 class _Tube extends CustomPainter {
   _Tube({
     required this.walls,
     required this.shader,
+    required this.closeUps,
     required this.course,
     required this.travelled,
     required this.roll,
@@ -1260,6 +1326,7 @@ class _Tube extends CustomPainter {
 
   final RewindAtlas? walls;
   final ImageShader? shader;
+  final Map<int, _CloseUp> closeUps;
   final _Course course;
   final double travelled;
   final double roll;
@@ -1275,45 +1342,73 @@ class _Tube extends CustomPainter {
       _static(canvas);
       return;
     }
-    final positions = <double>[];
-    final pixels = <double>[];
-    final indices = <int>[];
+    final tiles = <(int, int, Rect)>[];
+    final layers = <(ui.Vertices, ImageShader)>[];
     for (var ring = course.rings - 1; ring >= 0; ring--) {
       for (var side = 0; side < _Course.sides; side++) {
-        course.mesh(
-          ring,
-          side,
-          travelled,
-          roll,
-          walls.source(ring * _Course.sides + side),
-          positions,
-          pixels,
-          indices,
-        );
+        final panel = ring * _Course.sides + side;
+        final closeUp = closeUps[panel];
+        if (closeUp == null) {
+          tiles.add((ring, side, walls.source(panel)));
+        } else if (_vertices([(ring, side, closeUp.tile)]) case final mesh?) {
+          layers.add((mesh, closeUp.shader));
+        }
       }
     }
-    if (indices.isNotEmpty) {
-      final tube = ui.Vertices.raw(
-        ui.VertexMode.triangles,
-        Float32List.fromList(positions),
-        textureCoordinates: Float32List.fromList(pixels),
-        indices: Uint16List.fromList(indices),
-      );
-      final paint = Paint()
-        ..shader = shader
-        ..colorFilter = _fade((1 - 0.42 * arrival) * (1 - 0.55 * dim));
-      canvas.drawVertices(tube, BlendMode.srcOver, paint);
-      _soften(canvas, tube, paint);
-      tube.dispose();
+    if (_vertices(tiles) case final tube?) layers.add((tube, shader));
+    if (layers.isNotEmpty) {
+      final fade = _fade((1 - 0.42 * arrival) * (1 - 0.55 * dim));
+      void draw() {
+        for (final (mesh, shader) in layers) {
+          canvas.drawVertices(
+            mesh,
+            BlendMode.srcOver,
+            Paint()
+              ..shader = shader
+              ..colorFilter = fade,
+          );
+        }
+      }
+
+      draw();
+      _soften(canvas, draw);
+      for (final (mesh, _) in layers) {
+        mesh.dispose();
+      }
     }
     _fog(canvas);
     _dusk(canvas);
   }
 
-  void _soften(Canvas canvas, ui.Vertices tube, Paint paint) {
+  ui.Vertices? _vertices(List<(int, int, Rect)> tiles) {
+    final positions = <double>[];
+    final pixels = <double>[];
+    final indices = <int>[];
+    for (final (ring, side, tile) in tiles) {
+      course.mesh(
+        ring,
+        side,
+        travelled,
+        roll,
+        tile,
+        positions,
+        pixels,
+        indices,
+      );
+    }
+    if (indices.isEmpty) return null;
+    return ui.Vertices.raw(
+      ui.VertexMode.triangles,
+      Float32List.fromList(positions),
+      textureCoordinates: Float32List.fromList(pixels),
+      indices: Uint16List.fromList(indices),
+    );
+  }
+
+  void _soften(Canvas canvas, void Function() draw) {
     canvas.saveLayer(_softBounds, Paint());
     canvas.saveLayer(_softBounds, _softBlur);
-    canvas.drawVertices(tube, BlendMode.srcOver, paint);
+    draw();
     canvas.restore();
     canvas.drawRect(_softBounds, _softMask);
     canvas.restore();
@@ -1400,6 +1495,7 @@ class _Tube extends CustomPainter {
   @override
   bool shouldRepaint(_Tube oldDelegate) =>
       oldDelegate.walls != walls ||
+      oldDelegate.closeUps != closeUps ||
       oldDelegate.travelled != travelled ||
       oldDelegate.roll != roll ||
       oldDelegate.arrival != arrival ||
