@@ -3,9 +3,9 @@ use ente_photos::rewind;
 pub use ente_photos::rewind::{
     Badge, BusiestDay, ColourOfTheYear, CrowdFavourite, Favourites, Finale, Globe, GlobePlace,
     LikedPhoto, Mosaic, NewFace, NewFaces, PeopleRace, Places, RacePerson, RewindBadge, RewindCity,
-    RewindColour, RewindFile, RewindFileType, RewindLocation, RewindPerson, RewindReport,
-    RewindRequest, RewindState, RewindStatus, RewindVisibility, Scrapbook, Spots, Totals, Tour,
-    TourStop, Warp, WeeklyHabit,
+    RewindColour, RewindCoverageFile, RewindFile, RewindFileType, RewindLocation, RewindPerson,
+    RewindReport, RewindRequest, RewindState, RewindStatus, RewindVisibility, Scrapbook, Spots,
+    Totals, Tour, TourStop, Warp, WeeklyHabit,
 };
 use flutter_rust_bridge::frb;
 
@@ -60,6 +60,15 @@ pub enum _RewindFileType {
     Video,
     LivePhoto,
     Other,
+}
+
+#[frb(mirror(RewindCoverageFile))]
+pub struct _RewindCoverageFile {
+    pub id: i64,
+    pub creation_time: i64,
+    pub local_date_time: Option<String>,
+    pub utc_offset_seconds: i32,
+    pub file_type: RewindFileType,
 }
 
 #[frb(mirror(RewindLocation))]
@@ -348,11 +357,12 @@ pub fn compute_rewind(
 }
 
 pub fn rewind_has_enough_ml(
-    request: RewindRequest,
+    year: i32,
+    files: Vec<RewindCoverageFile>,
     store: RustAutoOpaque<MlStore>,
 ) -> Result<bool, RewindError> {
     let store = store.blocking_read();
-    Ok(rewind::rewind_has_enough_ml(&request, &store.inner)?)
+    Ok(rewind::rewind_has_enough_ml(year, &files, &store.inner)?)
 }
 
 pub fn encode_rewind_state(state: RewindState) -> Result<Vec<u8>, RewindError> {

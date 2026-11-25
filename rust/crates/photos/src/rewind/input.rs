@@ -29,6 +29,14 @@ pub struct RewindFile {
     pub like_count: u32,
 }
 
+pub struct RewindCoverageFile {
+    pub id: i64,
+    pub creation_time: i64,
+    pub local_date_time: Option<String>,
+    pub utc_offset_seconds: i32,
+    pub file_type: RewindFileType,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RewindFileType {
     Image,
