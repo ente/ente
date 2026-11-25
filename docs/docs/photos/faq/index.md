@@ -71,6 +71,7 @@ Jump to a category:
 - [How do I change an album's cover or description?](/photos/faq/albums-and-organization#edit-album-details)
 - [Why does an album show a blank cover?](/photos/faq/albums-and-organization#album-cover-missing)
 - [Can I sort my home timeline oldest first?](/photos/faq/albums-and-organization#timeline-sort)
+- [Can I sort my albums by the date of the photos in them?](/photos/faq/albums-and-organization#sort-albums-list)
 - [Can Ente albums be nested?](/photos/faq/albums-and-organization#nested-albums)
 - [What happens when I upload a nested folder structure?](/photos/faq/albums-and-organization#nested-folders)
 - [Can I sync a folder with multiple subfolders?](/photos/faq/albums-and-organization#sync-subfolders)
@@ -147,6 +148,8 @@ Jump to a category:
 - [How does automatic backup work in Ente?](/photos/faq/backup-and-sync#automatic-backup)
 - [How do I select which albums to back up?](/photos/faq/backup-and-sync#select-albums)
 - [Can I back up only some photos from a folder, not the whole folder?](/photos/faq/backup-and-sync#backup-selected-photos)
+- [How do I upload only a few photos without turning on folder backup?](/photos/faq/backup-and-sync#upload-selected-photos)
+- [Can I let Ente see only some photos on my iPhone?](/photos/faq/backup-and-sync#ios-limited-access-backup)
 - [Can I backup over mobile data or only WiFi?](/photos/faq/backup-and-sync#mobile-data)
 - [Why is my initial backup taking so long?](/photos/faq/backup-and-sync#initial-backup-slow)
 - [Why does Backup mode say "No backup in progress"?](/photos/faq/backup-and-sync#backup-mode-no-backup)
@@ -308,6 +311,7 @@ Jump to a category:
 - [Can I name the recognized persons?](/photos/faq/search-and-discovery#name-persons)
 - [Why does Machine Learning stay just below 100%?](/photos/faq/search-and-discovery#ml-stuck-below-100)
 - [Why does Machine Learning say processing is paused?](/photos/faq/search-and-discovery#ml-indexing-paused)
+- [Will I lose my faces and search results if I turn machine learning off?](/photos/faq/search-and-discovery#ml-turn-back-on)
 - [Why does my desktop app show different unnamed people than my phone?](/photos/faq/search-and-discovery#unnamed-people-differ)
 
 ### Magic Search
@@ -316,10 +320,12 @@ Jump to a category:
 - [How do I enable magic search?](/photos/faq/search-and-discovery#enable-magic-search)
 - [Does magic search require internet?](/photos/faq/search-and-discovery#magic-search-offline)
 - [Can I search for photos using the descriptions I've added?](/photos/faq/search-and-discovery#search-descriptions)
+- [Can I search for keywords or tags I added in Lightroom or Apple Photos?](/photos/faq/search-and-discovery#search-keyword-tags)
 
 ### Memories
 
 - [How do I mute the music in Memories?](/photos/faq/search-and-discovery#mute-memories-music)
+- [How do I keep screenshots or chat images out of Memories?](/photos/faq/search-and-discovery#exclude-from-memories)
 
 ### General Search
 
@@ -409,6 +415,7 @@ Jump to a category:
 - [Where do I manage Family in the apps?](/photos/faq/storage-and-plans#where-is-family)
 - [How many family members can I add to my plan?](/photos/faq/storage-and-plans#family-members-limit)
 - [Can family members see each other's photos?](/photos/faq/storage-and-plans#family-privacy)
+- [Can a family admin delete photos from a family member's account?](/photos/faq/storage-and-plans#family-admin-delete-photos)
 - [Can I set storage limits for family members?](/photos/faq/storage-and-plans#family-storage-limits)
 - [Why does my family member show 0 GB storage after accepting the invite?](/photos/faq/storage-and-plans#family-member-zero-storage)
 - [Why can't I add a family member?](/photos/faq/storage-and-plans#cannot-add-family-member)

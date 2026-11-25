@@ -67,7 +67,32 @@ There is no setting to leave a folder selected for backup while excluding specif
 Options that still help:
 
 - Use **Backup only new photos** under `Settings > Backup > Backup settings` if you want automatic backup to skip older items in selected folders. See [Can I backup only new photos without uploading my existing library?](#backup-only-new-photos).
-- Upload specific photos manually from the app when you need a one-off selection.
+- Upload specific photos manually when you need a one-off selection. See [How do I upload only a few photos without turning on folder backup?](#upload-selected-photos).
+
+### How do I upload only a few photos without turning on folder backup? {#upload-selected-photos}
+
+You can add chosen photos and videos to Ente without backing up any folder.
+
+**On mobile:**
+
+1. Open the **Albums** tab and go to **On device**.
+2. Open the album that has the photos, then long-press to select them.
+3. Tap **Add to Ente** (or **Add to album** if some of them are already in Ente).
+4. Choose an Ente album or create a new one.
+
+Ente uploads only the photos you selected. Nothing else on your phone is backed up unless you turn on backup for a folder in `Settings > Backup > Backed up folders`.
+
+**On web and desktop:**
+
+Click **Upload** and choose the files or folders you want to add.
+
+### Can I let Ente see only some photos on my iPhone? {#ios-limited-access-backup}
+
+Yes. When iPhone asks for photo access, choose **Limit Access** (or **Selected Photos**) and pick the photos you want. Ente can only see and back up the photos you've allowed.
+
+To add more photos later, tap the backup button at the top of the home screen, then tap **Select more photos**. To let Ente back up your whole library, choose **Open settings** and allow access to all photos.
+
+On Android, allow access to all photos and choose which folders to back up instead. See [Why can't Ente access my photos?](/photos/faq/troubleshooting#photo-access-permissions).
 
 ### Does hiding a folder stop Ente Photos from backing it up? {#hidden-folder-backup}
 
@@ -246,6 +271,8 @@ Yes! Once photos are safely backed up to Ente, you can delete them from your dev
 
 Use Ente's "Free up space" feature at `Settings > Free up space`. Ente will show photos that are backed up and can be safely deleted. Review and confirm deletion.
 
+Ente doesn't delete anything from your phone on its own. Run **Free up space** whenever you want to clear photos that are already backed up.
+
 This feature only deletes photos that have been successfully uploaded to Ente. Photos remain in Ente and can be re-downloaded anytime.
 
 Learn more in the [Storage optimization guide](/photos/features/albums-and-organization/storage-optimization).
@@ -305,6 +332,8 @@ Open `Settings > Backup > Backup status` to see:
 - Files pending upload
 - Any errors or issues
 
+The list shows files from the current session. To clear finished items, fully close the app and open it again.
+
 **On desktop:**
 
 - Check the sync status indicator in the bottom right corner
@@ -354,6 +383,8 @@ When you back up a Live Photo, Ente automatically detects it by analyzing the fi
 Ente uses a special hash (unique identifier) that combines both components, ensuring they remain associated with each other. This means when you download or view your Live Photo later, both parts are always retrieved together.
 
 Because they're stored as one file, you won't see them as separate items in your library - they appear as a single Live Photo, just like on your iPhone.
+
+This is also why Ente can show fewer items than tools that copy files to a computer, such as Image Capture on a Mac. Those tools list a Live Photo's still image and video as two files, while Ente counts them as one.
 
 **How to view:**
 

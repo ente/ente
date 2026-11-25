@@ -366,6 +366,17 @@ Open `Settings > Legacy > Add trusted contact`.
 
 Learn more in the [Legacy contact guide](https://ente.com/help/photos/features/account/legacy/#legacy).
 
+### Can a family admin delete photos from a family member's account? {#family-admin-delete-photos}
+
+No. A family plan only shares storage. Each member's photos stay in their own account, and only the person who uploaded a photo can delete it.
+
+If you share an album with family members and make yourself an admin, you can:
+
+- Remove photos from that album. This doesn't delete them from the owner's account.
+- Use [Suggest deletion](/photos/faq/sharing-and-collaboration#suggest-deletion) on mobile to ask the owner to delete them.
+
+To free up family storage, ask each member to delete the photos they no longer need from their own account.
+
 ### Are duplicate photos deduplicated across family members? {#family-plan-deduplication}
 
 No. Family plans are a way to share storage, but each family member has their own separate account. Ente cannot deduplicate files across different accounts.
