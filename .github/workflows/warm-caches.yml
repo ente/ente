@@ -231,7 +231,7 @@ jobs:
               working-directory: mobile
 
     web:
-        # For web-lint.yml.
+        # For web-lint.yml and web-e2e.yml.
         if: github.event_name != 'push'
         runs-on: ubuntu-latest
         defaults:
@@ -285,6 +285,8 @@ jobs:
             - run: _ENTE_IS_DESKTOP=1 npm run build:photos
 
             - run: npm run build:wasm
+
+            - run: cargo build --locked --manifest-path ../rust/Cargo.toml -p ente-test-support --bin with-museum
 
             - run: npm exec --workspaces -- tsc --incremental
 
