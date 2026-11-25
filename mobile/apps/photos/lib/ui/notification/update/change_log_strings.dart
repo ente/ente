@@ -62,968 +62,847 @@ class ChangeLogStrings {
     'en': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'New look for your gallery',
+          title: 'Review old photos, reclaim space',
           description:
-              'See photos in their original proportions with the new mosaic layout.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Pinch to change gallery layout',
-          description:
-              'You can now pinch in or out to switch layouts and choose how many photos fit on your screen.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Image editor improvements',
-          description:
-              'Add text to your photos with a choice of fonts, colors, backgrounds, and alignment. You can now straighten tilted photos too.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Fresh look for albums and more',
-          description:
-              'Redesigned albums and simpler menus for your photo actions.',
+              'Swipe through your gallery and mark photos you no longer want for deletion.\n\nFind it in Settings → Free up space → Old photos.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Faster backup preparation',
+          title: 'Revamped photo picker',
           description:
-              'Ente now prepares your photos and videos for upload more quickly.',
+              'When attaching photos or videos in another app using Ente as the photo picker, you can now explore your gallery, search your library, and browse albums.',
+          isAndroidOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Sort albums by filename',
+          description: 'Sort photos and videos in your albums by filename.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Now in Korean',
-          description: 'You can now use Ente Photos in Korean.',
+          title: 'Now in Indonesian and Swedish',
+          description: 'You can now use Ente Photos in Indonesian or Swedish.',
         ),
         ChangeLogEntryStrings(
-          title: 'And more!',
+          title: 'More reliable backups',
           description:
-              'Memory Lane on your home screen, smoother photo transitions between gallery and viewer, clearer map markers, more reliable filters in hidden albums.',
+              'We fixed a few edge cases where backups could stall or fail.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
           title: 'And more!',
           description:
-              'Memory Lane on your home screen, smoother photo transitions between gallery and viewer, clearer map markers.',
-          isLocalGalleryOnly: true,
+              'Quicker photo editor opening, more reliable crops in Original mode, and fewer repeat trip memories.',
         ),
       ],
     ),
     'ca': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Nou aspecte per a la teva galeria',
+          title: 'Revisa fotos antigues i recupera espai',
           description:
-              'Mira les fotos amb les proporcions originals amb el nou disseny en mosaic.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Ajunta els dits per canviar la disposició de la galeria',
-          description:
-              'Ara pots ajuntar o separar dos dits per canviar de disposició i triar quantes fotos caben a la pantalla.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Millores a l’editor d’imatges',
-          description:
-              'Afegeix text a les fotos i tria entre diversos tipus de lletra, colors, fons i opcions d’alineació. Ara també pots redreçar les fotos inclinades.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Nou aspecte per als àlbums i més',
-          description:
-              'Àlbums redissenyats i menús més senzills per a les accions amb les fotos.',
+              'Fes lliscar les fotos de la galeria i marca per suprimir les que ja no vulguis.\n\nHo trobaràs a Configuració → Allibera espai → Old photos.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Preparació més ràpida de les còpies de seguretat',
+          title: 'Selector de fotos renovat',
           description:
-              'Ara Ente prepara les fotos i els vídeos més ràpidament per pujar-los.',
+              'Quan adjuntis fotos o vídeos en una altra aplicació fent servir Ente com a selector de fotos, ara podràs explorar la galeria, cercar a la biblioteca i navegar pels àlbums.',
+          isAndroidOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Ordena els àlbums per nom de fitxer',
+          description:
+              'Ordena les fotos i els vídeos dels àlbums per nom de fitxer.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Ara en coreà',
-          description: 'Ara pots fer servir Ente Photos en coreà.',
+          title: 'Ara en indonesi i suec',
+          description: 'Ara pots fer servir Ente Photos en indonesi o en suec.',
         ),
         ChangeLogEntryStrings(
-          title: 'I més coses!',
+          title: 'Còpies de seguretat més fiables',
           description:
-              'Camí dels records a la pantalla d’inici, transicions de fotos més fluides entre la galeria i el visor, marcadors del mapa més clars, filtres més fiables als àlbums ocults.',
+              'Hem corregit alguns casos poc habituals en què les còpies de seguretat es podien encallar o fallar.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
           title: 'I més coses!',
           description:
-              'Camí dels records a la pantalla d’inici, transicions de fotos més fluides entre la galeria i el visor, marcadors del mapa més clars.',
-          isLocalGalleryOnly: true,
+              'L’editor de fotos s’obre més de pressa, el retall en mode Original és més fiable i els records de viatges es repeteixen menys.',
         ),
       ],
     ),
     'cs': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Nový vzhled vaší galerie',
+          title: 'Projděte si staré fotky a uvolněte místo',
           description:
-              'Prohlížejte si fotografie v původních proporcích díky novému mozaikovému rozložení.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Změna rozložení galerie stažením prstů',
-          description:
-              'Nyní můžete stažením nebo roztažením dvou prstů přepínat rozložení a zvolit, kolik fotografií se vejde na obrazovku.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Vylepšení editoru obrázků',
-          description:
-              'Přidávejte k fotografiím text s výběrem písem, barev, pozadí a zarovnání. Nyní můžete také narovnat nakloněné fotografie.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Nový vzhled alb a další změny',
-          description:
-              'Přepracovaná alba a jednodušší nabídky pro práci s fotografiemi.',
+              'Procházejte fotky v galerii posouváním a označte ke smazání ty, které už nechcete.\n\nTuto funkci najdete v nabídce Nastavení → Uvolnit místo → Old photos.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Rychlejší příprava zálohování',
+          title: 'Přepracovaný výběr fotek',
           description:
-              'Ente nyní rychleji připravuje vaše fotografie a videa k nahrání.',
+              'Když v jiné aplikaci přikládáte fotky nebo videa pomocí výběru v Ente, můžete teď procházet galerii, vyhledávat v knihovně a prohlížet alba.',
+          isAndroidOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Řazení alb podle názvu souboru',
+          description: 'Seřaďte fotky a videa v albech podle názvu souboru.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Nyní i v korejštině',
-          description: 'Ente Photos nyní můžete používat v korejštině.',
+          title: 'Nově v indonéštině a švédštině',
+          description:
+              'Ente Photos můžete teď používat v indonéštině nebo švédštině.',
         ),
         ChangeLogEntryStrings(
-          title: 'A mnohem více!',
+          title: 'Spolehlivější zálohování',
           description:
-              'Vzpomínání na domovské obrazovce, plynulejší přechody fotografií mezi galerií a prohlížečem, přehlednější značky na mapě, spolehlivější filtry ve skrytých albech.',
+              'Opravili jsme několik ojedinělých případů, kdy se zálohování mohlo zaseknout nebo selhat.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'A mnohem více!',
+          title: 'A další novinky!',
           description:
-              'Vzpomínání na domovské obrazovce, plynulejší přechody fotografií mezi galerií a prohlížečem, přehlednější značky na mapě.',
-          isLocalGalleryOnly: true,
+              'Editor fotek se otevírá rychleji, ořez v režimu Original je spolehlivější a vzpomínky na výlety se méně často opakují.',
         ),
       ],
     ),
     'de': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Neuer Look für deine Galerie',
+          title: 'Alte Fotos durchsehen und Platz schaffen',
           description:
-              'Sieh dir Fotos mit dem neuen Mosaiklayout in ihren ursprünglichen Proportionen an.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Galerie-Layout durch Zusammenziehen zweier Finger ändern',
-          description:
-              'Du kannst jetzt zwei Finger zusammenziehen oder auseinanderziehen, um das Layout zu wechseln und auszuwählen, wie viele Fotos auf deinen Bildschirm passen.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Verbesserungen im Bildeditor',
-          description:
-              'Füge deinen Fotos Text hinzu und wähle Schriftart, Farbe, Hintergrund und Ausrichtung. Jetzt kannst du auch schiefe Fotos gerade ausrichten.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Frischer Look für Alben und mehr',
-          description:
-              'Neu gestaltete Alben und einfachere Menüs für deine Fotoaktionen.',
+              'Wische durch deine Galerie und markiere Fotos, die du nicht mehr behalten möchtest, zum Löschen.\n\nDu findest die Funktion unter Einstellungen → Speicherplatz freigeben → Old photos.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Schnellere Vorbereitung der Datensicherung',
+          title: 'Überarbeitete Fotoauswahl',
           description:
-              'Ente bereitet deine Fotos und Videos jetzt schneller für das Hochladen vor.',
+              'Wenn du Fotos oder Videos in einer anderen App anhängst und Ente zur Fotoauswahl verwendest, kannst du jetzt deine Galerie erkunden, deine Mediathek durchsuchen und in Alben stöbern.',
+          isAndroidOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Alben nach Dateiname sortieren',
+          description:
+              'Sortiere Fotos und Videos in deinen Alben nach Dateiname.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Jetzt auf Koreanisch',
-          description: 'Du kannst Ente Photos jetzt auf Koreanisch nutzen.',
+          title: 'Jetzt auf Indonesisch und Schwedisch',
+          description:
+              'Du kannst Ente Photos jetzt auf Indonesisch oder Schwedisch nutzen.',
         ),
         ChangeLogEntryStrings(
-          title: 'Und mehr!',
+          title: 'Zuverlässigere Datensicherung',
           description:
-              'Erinnerungen auf deinem Startbildschirm, flüssigere Fotoübergänge zwischen Galerie und Fotoansicht, deutlichere Kartenmarkierungen und zuverlässigere Filter in versteckten Alben.',
+              'Wir haben einige seltene Fälle behoben, in denen die Datensicherung hängen bleiben oder fehlschlagen konnte.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
           title: 'Und mehr!',
           description:
-              'Erinnerungen auf deinem Startbildschirm, flüssigere Fotoübergänge zwischen Galerie und Fotoansicht und deutlichere Kartenmarkierungen.',
-          isLocalGalleryOnly: true,
+              'Der Fotoeditor öffnet sich schneller, das Zuschneiden im Modus Original funktioniert zuverlässiger, und Reiseerinnerungen wiederholen sich seltener.',
         ),
       ],
     ),
     'es': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Nuevo aspecto para tu galería',
+          title: 'Revisa fotos antiguas y recupera espacio',
           description:
-              'Ve las fotos con sus proporciones originales con el nuevo diseño de mosaico.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Junta los dedos para cambiar el diseño de la galería',
-          description:
-              'Ahora puedes juntar o separar dos dedos para cambiar de diseño y elegir cuántas fotos caben en la pantalla.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Mejoras en el editor de imágenes',
-          description:
-              'Añade texto a tus fotos y elige entre distintas fuentes, colores, fondos y opciones de alineación. Ahora también puedes enderezar las fotos inclinadas.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Nuevo aspecto para los álbumes y más',
-          description:
-              'Álbumes rediseñados y menús más sencillos para las acciones con tus fotos.',
+              'Desliza para recorrer tu galería y marca para eliminar las fotos que ya no quieras conservar.\n\nEncuentra esta función en Configuración → Liberar espacio → Old photos.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Preparación más rápida de las copias de seguridad',
+          title: 'Selector de fotos renovado',
           description:
-              'Ahora Ente prepara tus fotos y vídeos más rápido para subirlos.',
+              'Cuando adjuntes fotos o vídeos en otra aplicación usando Ente como selector de fotos, ahora puedes explorar tu galería, buscar en tu biblioteca y recorrer tus álbumes.',
+          isAndroidOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Ordena los álbumes por nombre de archivo',
+          description:
+              'Ordena las fotos y los vídeos de tus álbumes por nombre de archivo.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Ahora en coreano',
-          description: 'Ahora puedes usar Ente Photos en coreano.',
+          title: 'Ahora en indonesio y sueco',
+          description: 'Ya puedes usar Ente Photos en indonesio o sueco.',
         ),
         ChangeLogEntryStrings(
-          title: '¡Y mucho más!',
+          title: 'Copias de seguridad más fiables',
           description:
-              'Jardín de recuerdos en tu pantalla de inicio, transiciones de fotos más fluidas entre la galería y el visor, marcadores del mapa más claros y filtros más fiables en los álbumes ocultos.',
+              'Hemos corregido algunos casos poco habituales en los que las copias de seguridad podían atascarse o fallar.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: '¡Y mucho más!',
+          title: '¡Y más!',
           description:
-              'Jardín de recuerdos en tu pantalla de inicio, transiciones de fotos más fluidas entre la galería y el visor y marcadores del mapa más claros.',
-          isLocalGalleryOnly: true,
+              'El editor de fotos se abre más rápido, el recorte en modo Original es más fiable y hay menos recuerdos de viajes repetidos.',
         ),
       ],
     ),
     'fr': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Nouveau look pour votre galerie',
+          title: 'Triez vos anciennes photos et libérez de l’espace',
           description:
-              'Affichez vos photos dans leurs proportions d’origine grâce à la nouvelle disposition en mosaïque.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Pincez pour changer la disposition de la galerie',
-          description:
-              'Vous pouvez maintenant rapprocher ou écarter deux doigts pour changer de disposition et choisir combien de photos tiennent à l’écran.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Améliorations de l’éditeur d’images',
-          description:
-              'Ajoutez du texte à vos photos en choisissant les polices, les couleurs, les arrière-plans et l’alignement. Vous pouvez désormais aussi redresser les photos inclinées.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Nouveau look pour les albums et plus encore',
-          description:
-              'Des albums repensés et des menus simplifiés pour vos actions sur les photos.',
+              'Faites défiler votre galerie d’un geste et marquez les photos que vous ne souhaitez plus garder pour les supprimer.\n\nRetrouvez cette fonction dans Paramètres → Libérer de l\'espace → Old photos.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Préparation des sauvegardes plus rapide',
+          title: 'Sélecteur de photos repensé',
           description:
-              'Ente prépare désormais plus rapidement vos photos et vidéos pour leur envoi.',
+              'Lorsque vous joignez des photos ou des vidéos dans une autre application en utilisant Ente comme sélecteur de photos, vous pouvez désormais explorer votre galerie, faire des recherches dans votre photothèque et parcourir vos albums.',
+          isAndroidOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Tri des albums par nom de fichier',
+          description:
+              'Triez les photos et vidéos de vos albums par nom de fichier.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Désormais en coréen',
-          description: 'Vous pouvez désormais utiliser Ente Photos en coréen.',
+          title: 'Désormais en indonésien et en suédois',
+          description:
+              'Vous pouvez désormais utiliser Ente Photos en indonésien ou en suédois.',
         ),
         ChangeLogEntryStrings(
-          title: 'Et plus encore !',
+          title: 'Sauvegardes plus fiables',
           description:
-              'Souvenirs sur votre écran d’accueil, transitions photo plus fluides entre la galerie et la visionneuse, repères plus clairs sur la carte et filtres plus fiables dans les albums masqués.',
+              'Nous avons corrigé quelques cas rares où les sauvegardes pouvaient se bloquer ou échouer.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
           title: 'Et plus encore !',
           description:
-              'Souvenirs sur votre écran d’accueil, transitions photo plus fluides entre la galerie et la visionneuse et repères plus clairs sur la carte.',
-          isLocalGalleryOnly: true,
+              'L’éditeur photo s’ouvre plus vite, le recadrage en mode Original est plus fiable et les souvenirs de voyage se répètent moins.',
+        ),
+      ],
+    ),
+    'id': ChangeLogStrings(
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Tinjau foto lama dan kosongkan ruang',
+          description:
+              'Geser untuk menelusuri galeri dan tandai foto yang tidak ingin Anda simpan lagi untuk dihapus.\n\nTemukan fitur ini di Pengaturan → Bersihkan ruang → Old photos.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Pemilih foto yang diperbarui',
+          description:
+              'Saat melampirkan foto atau video di aplikasi lain dengan Ente sebagai pemilih foto, Anda kini bisa menjelajahi galeri, mencari di pustaka, dan menelusuri album.',
+          isAndroidOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Urutkan album berdasarkan nama file',
+          description:
+              'Urutkan foto dan video di album Anda berdasarkan nama file.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Kini dalam bahasa Indonesia dan Swedia',
+          description:
+              'Kini Anda bisa menggunakan Ente Photos dalam bahasa Indonesia atau Swedia.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Pencadangan yang lebih andal',
+          description:
+              'Kami memperbaiki beberapa kasus yang jarang terjadi saat pencadangan bisa macet atau gagal.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Dan masih banyak lagi!',
+          description:
+              'Editor foto terbuka lebih cepat, pemotongan dalam mode Original lebih andal, dan kenangan perjalanan yang sama lebih jarang muncul.',
         ),
       ],
     ),
     'it': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Nuovo look per la tua galleria',
+          title: 'Rivedi le vecchie foto e libera spazio',
           description:
-              'Guarda le foto nelle loro proporzioni originali con il nuovo layout a mosaico.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Pizzica per cambiare il layout della galleria',
-          description:
-              'Ora puoi avvicinare o allontanare due dita per cambiare layout e scegliere quante foto entrano nello schermo.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Miglioramenti all’editor di immagini',
-          description:
-              'Aggiungi testo alle tue foto scegliendo caratteri, colori, sfondi e allineamento. Ora puoi anche raddrizzare le foto inclinate.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Nuovo look per gli album e non solo',
-          description:
-              'Album ridisegnati e menu più semplici per le azioni sulle tue foto.',
+              'Scorri la galleria e contrassegna per l’eliminazione le foto che non vuoi più tenere.\n\nTrovi questa funzione in Impostazioni → Libera spazio → Old photos.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Preparazione dei backup più rapida',
+          title: 'Selettore di foto rinnovato',
           description:
-              'Ora Ente prepara più rapidamente le tue foto e i tuoi video per il caricamento.',
+              'Quando alleghi foto o video in un’altra app usando Ente come selettore di foto, ora puoi esplorare la galleria, cercare nella tua raccolta e sfogliare gli album.',
+          isAndroidOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Ordina gli album per nome del file',
+          description:
+              'Ordina le foto e i video dei tuoi album per nome del file.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Ora in coreano',
-          description: 'Ora puoi usare Ente Photos in coreano.',
+          title: 'Ora in indonesiano e svedese',
+          description:
+              'Ora puoi usare Ente Photos in indonesiano o in svedese.',
         ),
         ChangeLogEntryStrings(
-          title: 'E molto altro!',
+          title: 'Backup più affidabili',
           description:
-              'Volti nel tempo nella schermata iniziale, transizioni delle foto più fluide tra galleria e visualizzatore, indicatori più chiari sulla mappa e filtri più affidabili negli album nascosti.',
+              'Abbiamo risolto alcuni casi poco comuni in cui i backup potevano bloccarsi o non riuscire.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'E molto altro!',
+          title: 'E altro ancora!',
           description:
-              'Volti nel tempo nella schermata iniziale, transizioni delle foto più fluide tra galleria e visualizzatore e indicatori più chiari sulla mappa.',
-          isLocalGalleryOnly: true,
+              'L’editor di foto si apre più rapidamente, il ritaglio in modalità Original è più affidabile e i ricordi di viaggio si ripetono meno spesso.',
         ),
       ],
     ),
     'ja': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'ギャラリーが新しい見た目に',
-          description: '新しいモザイクレイアウトで、写真を元の縦横比のまま表示できます。',
-        ),
-        ChangeLogEntryStrings(
-          title: 'ピンチ操作でギャラリーのレイアウトを変更',
+          title: '昔の写真を見直して空き容量を増やす',
           description:
-              '2本の指でつまんだり広げたりして、レイアウトを切り替えたり、画面に表示する写真の枚数を選んだりできるようになりました。',
-        ),
-        ChangeLogEntryStrings(
-          title: '画像エディターの改善',
-          description:
-              'フォント、色、背景、配置を選んで写真にテキストを追加できます。傾いた写真をまっすぐに補正することもできるようになりました。',
-        ),
-        ChangeLogEntryStrings(
-          title: 'アルバムなどのデザインを一新',
-          description: 'アルバムを再デザインし、写真を操作するメニューをよりシンプルにしました。',
+              'ギャラリーをスワイプしながら、不要になった写真に削除のマークを付けられます。\n\nこの機能は「設定 → スペースを解放する → Old photos」から利用できます。',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'バックアップの準備がより高速に',
-          description: 'Enteが写真や動画のアップロード準備をより速く行えるようになりました。',
+          title: '写真の選択画面を刷新',
+          description:
+              '他のアプリで Ente を写真の選択画面として使い、写真や動画を添付するときに、ギャラリーを見たり、ライブラリを検索したり、アルバムを閲覧したりできるようになりました。',
+          isAndroidOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'アルバム内をファイル名で並べ替え',
+          description: 'アルバム内の写真や動画をファイル名で並べ替えられます。',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: '韓国語に対応',
-          description: 'Ente Photosを韓国語で使えるようになりました。',
+          title: 'インドネシア語とスウェーデン語に対応',
+          description: 'Ente Photos をインドネシア語またはスウェーデン語で利用できるようになりました。',
         ),
         ChangeLogEntryStrings(
-          title: 'さらに！',
-          description:
-              'ホーム画面にMemory Laneが登場。ギャラリーとビューアー間での写真の切り替えがよりスムーズになり、地図のマーカーが見やすく、非表示アルバムのフィルターもより確実に動作するようになりました。',
+          title: 'より安定したバックアップ',
+          description: 'まれにバックアップが途中で止まったり失敗したりする問題を修正しました。',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'さらに！',
+          title: 'その他の改善',
           description:
-              'ホーム画面にMemory Laneが登場。ギャラリーとビューアー間での写真の切り替えがよりスムーズになり、地図のマーカーも見やすくなりました。',
-          isLocalGalleryOnly: true,
+              '写真エディターがより速く開き、Original モードでより安定して切り抜けるようになり、同じ旅行の思い出が表示される頻度も減りました。',
         ),
       ],
     ),
     'ko': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: '새로워진 갤러리',
-          description: '새로운 모자이크 레이아웃으로 사진을 원래 비율 그대로 감상하세요.',
-        ),
-        ChangeLogEntryStrings(
-          title: '손가락을 오므려 갤러리 레이아웃 바꾸기',
-          description: '이제 두 손가락을 오므리거나 벌려 레이아웃을 바꾸고 화면에 표시할 사진 수를 선택할 수 있어요.',
-        ),
-        ChangeLogEntryStrings(
-          title: '이미지 편집기 개선',
+          title: '오래된 사진을 정리하고 공간 확보',
           description:
-              '글꼴, 색상, 배경, 정렬 방식을 선택해 사진에 텍스트를 추가하세요. 이제 기울어진 사진의 수평도 맞출 수 있어요.',
-        ),
-        ChangeLogEntryStrings(
-          title: '새로워진 앨범과 메뉴',
-          description: '앨범 디자인이 새로워지고 사진 작업 메뉴가 더 간편해졌어요.',
+              '갤러리를 스와이프하면서 더 이상 보관하고 싶지 않은 사진을 삭제 대상으로 표시할 수 있어요.\n\n이 기능은 설정 → 공간 확보 → Old photos에서 찾을 수 있어요.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: '더 빨라진 백업 준비',
-          description: '이제 Ente가 사진과 동영상의 업로드 준비를 더 빠르게 마쳐요.',
+          title: '새로워진 사진 선택기',
+          description:
+              '다른 앱에서 Ente를 사진 선택기로 사용해 사진이나 동영상을 첨부할 때, 이제 갤러리를 둘러보고 라이브러리에서 검색하고 앨범을 살펴볼 수 있어요.',
+          isAndroidOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: '앨범을 파일 이름으로 정렬',
+          description: '앨범에 있는 사진과 동영상을 파일 이름으로 정렬할 수 있어요.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: '이제 한국어로도 사용하세요',
-          description: '이제 Ente Photos를 한국어로 사용할 수 있어요.',
+          title: '이제 인도네시아어와 스웨덴어로',
+          description: '이제 Ente Photos를 인도네시아어 또는 스웨덴어로 사용할 수 있어요.',
         ),
         ChangeLogEntryStrings(
-          title: '그 밖에도!',
-          description:
-              '홈 화면의 추억의 길, 갤러리와 뷰어 사이의 더 부드러운 사진 전환, 더 명확한 지도 마커, 숨김 앨범에서 더 안정적으로 작동하는 필터를 만나보세요.',
+          title: '더 안정적인 백업',
+          description: '드물게 백업이 멈추거나 실패할 수 있던 문제를 수정했어요.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: '그 밖에도!',
+          title: '그 밖의 개선 사항',
           description:
-              '홈 화면의 추억의 길, 갤러리와 뷰어 사이의 더 부드러운 사진 전환, 더 명확한 지도 마커를 만나보세요.',
-          isLocalGalleryOnly: true,
+              '사진 편집기가 더 빨리 열리고, Original 모드에서 더 안정적으로 자를 수 있으며, 같은 여행 추억이 반복해서 표시되는 일이 줄었어요.',
         ),
       ],
     ),
     'nl': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Nieuwe look voor je galerij',
+          title: 'Bekijk oude foto’s en maak ruimte vrij',
           description:
-              'Bekijk foto’s in hun oorspronkelijke verhoudingen met de nieuwe mozaïekindeling.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Knijp om de galerijindeling te wijzigen',
-          description:
-              'Je kunt nu twee vingers naar elkaar toe of uit elkaar bewegen om van indeling te wisselen en te kiezen hoeveel foto’s op je scherm passen.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Verbeteringen in de afbeeldingseditor',
-          description:
-              'Voeg tekst toe aan je foto’s met een keuze uit lettertypen, kleuren, achtergronden en uitlijning. Je kunt nu ook scheve foto’s rechtzetten.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Frisse look voor albums en meer',
-          description:
-              'Vernieuwde albums en eenvoudigere menu’s voor je fotoacties.',
+              'Veeg door je galerij en markeer foto’s die je niet meer wilt bewaren om ze later te verwijderen.\n\nJe vindt deze functie onder Instellingen → Ruimte vrijmaken → Old photos.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Snellere voorbereiding van back-ups',
+          title: 'Vernieuwde fotokiezer',
           description:
-              'Ente bereidt je foto’s en video’s nu sneller voor op het uploaden.',
+              'Als je in een andere app foto’s of video’s bijvoegt met Ente als fotokiezer, kun je nu je galerij bekijken, in je bibliotheek zoeken en door albums bladeren.',
+          isAndroidOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Sorteer albums op bestandsnaam',
+          description:
+              'Sorteer foto’s en video’s in je albums op bestandsnaam.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Nu in het Koreaans',
-          description: 'Je kunt Ente Photos nu in het Koreaans gebruiken.',
+          title: 'Nu in het Indonesisch en Zweeds',
+          description:
+              'Je kunt Ente Photos nu in het Indonesisch of Zweeds gebruiken.',
         ),
         ChangeLogEntryStrings(
-          title: 'En meer!',
+          title: 'Betrouwbaardere back-ups',
           description:
-              'Herinneringen op je startscherm, vloeiendere foto-overgangen tussen galerij en fotoviewer, duidelijkere kaartmarkeringen en betrouwbaardere filters in verborgen albums.',
+              'We hebben enkele uitzonderlijke gevallen verholpen waarin back-ups konden vastlopen of mislukken.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
           title: 'En meer!',
           description:
-              'Herinneringen op je startscherm, vloeiendere foto-overgangen tussen galerij en fotoviewer en duidelijkere kaartmarkeringen.',
-          isLocalGalleryOnly: true,
+              'De foto-editor opent sneller, bijsnijden in de modus Original werkt betrouwbaarder en reisherinneringen worden minder vaak herhaald.',
         ),
       ],
     ),
     'no': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Nytt utseende for galleriet ditt',
+          title: 'Se gjennom gamle bilder og frigjør lagringsplass',
           description:
-              'Se bilder i de opprinnelige proporsjonene med det nye mosaikkoppsettet.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Endre gallerioppsettet ved å knipe',
-          description:
-              'Du kan nå føre to fingre sammen eller fra hverandre for å bytte oppsett og velge hvor mange bilder som får plass på skjermen.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Forbedret bilderedigering',
-          description:
-              'Legg til tekst på bildene dine og velg skrifttyper, farger, bakgrunner og tekstjustering. Nå kan du også rette opp skjeve bilder.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Friskt utseende for album og mer',
-          description:
-              'Album med nytt design og enklere menyer for handlinger med bildene dine.',
+              'Sveip gjennom galleriet og merk uønskede bilder for sletting.\n\nDu finner funksjonen under Settings → Frigjør lagringsplass → Old photos.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Raskere klargjøring for sikkerhetskopiering',
+          title: 'Fornyet bildevelger',
           description:
-              'Ente klargjør nå bildene og videoene dine raskere for opplasting.',
+              'Når du legger ved bilder eller videoer i en annen app med Ente som bildevelger, kan du nå utforske galleriet, søke i biblioteket og bla gjennom albumene dine.',
+          isAndroidOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Sorter album etter filnavn',
+          description:
+              'Sorter bilder og videoer i albumene dine etter filnavn.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Nå på koreansk',
-          description: 'Du kan nå bruke Ente Photos på koreansk.',
+          title: 'Nå på indonesisk og svensk',
+          description:
+              'Du kan nå bruke Ente Photos på indonesisk eller svensk.',
         ),
         ChangeLogEntryStrings(
-          title: 'Og mer!',
+          title: 'Mer pålitelig sikkerhetskopiering',
           description:
-              'Memory Lane på startskjermen, jevnere bildeoverganger mellom galleriet og bildeviseren, tydeligere kartmarkører og mer pålitelige filtre i skjulte album.',
+              'Vi har rettet noen sjeldne tilfeller der sikkerhetskopieringen kunne stoppe opp eller mislykkes.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
           title: 'Og mer!',
           description:
-              'Memory Lane på startskjermen, jevnere bildeoverganger mellom galleriet og bildeviseren og tydeligere kartmarkører.',
-          isLocalGalleryOnly: true,
+              'Bilderedigeringen åpnes raskere, beskjæring i Original-modus fungerer mer pålitelig, og reiseminner gjentas sjeldnere.',
         ),
       ],
     ),
     'pl': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Nowy wygląd Twojej galerii',
+          title: 'Przejrzyj stare zdjęcia i zwolnij miejsce',
           description:
-              'Oglądaj zdjęcia w oryginalnych proporcjach dzięki nowemu układowi mozaiki.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Zsuń palce, aby zmienić układ galerii',
-          description:
-              'Teraz możesz zsuwać lub rozsuwać dwa palce, aby zmieniać układ i wybierać, ile zdjęć mieści się na ekranie.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Ulepszenia edytora obrazów',
-          description:
-              'Dodawaj tekst do zdjęć, wybierając czcionki, kolory, tła i wyrównanie. Teraz możesz też prostować przekrzywione zdjęcia.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Odświeżony wygląd albumów i nie tylko',
-          description:
-              'Przeprojektowane albumy i prostsze menu działań na zdjęciach.',
+              'Przeglądaj galerię, przesuwając palcem, i oznacz do usunięcia zdjęcia, których nie chcesz już przechowywać.\n\nTę funkcję znajdziesz w menu Ustawienia → Zwolnij miejsce → Old photos.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Szybsze przygotowanie kopii zapasowych',
+          title: 'Odnowiony wybór zdjęć',
           description:
-              'Ente teraz szybciej przygotowuje Twoje zdjęcia i filmy do przesłania.',
+              'Gdy dołączasz zdjęcia lub filmy w innej aplikacji, używając Ente do ich wyboru, możesz teraz przeglądać galerię, wyszukiwać w bibliotece i przeglądać zawartość albumów.',
+          isAndroidOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Sortuj albumy według nazwy pliku',
+          description: 'Sortuj zdjęcia i filmy w albumach według nazwy pliku.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Teraz po koreańsku',
-          description: 'Możesz teraz korzystać z Ente Photos po koreańsku.',
+          title: 'Teraz po indonezyjsku i szwedzku',
+          description:
+              'Możesz teraz korzystać z Ente Photos po indonezyjsku lub szwedzku.',
         ),
         ChangeLogEntryStrings(
-          title: 'I wiele więcej!',
+          title: 'Bardziej niezawodne kopie zapasowe',
           description:
-              'Memory Lane na ekranie głównym, płynniejsze przejścia zdjęć między galerią a przeglądarką zdjęć, wyraźniejsze znaczniki na mapie i bardziej niezawodne filtry w ukrytych albumach.',
+              'Naprawiliśmy kilka rzadkich przypadków, w których tworzenie kopii zapasowej mogło się zatrzymać lub nie powieść.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'I wiele więcej!',
+          title: 'I więcej!',
           description:
-              'Memory Lane na ekranie głównym, płynniejsze przejścia zdjęć między galerią a przeglądarką zdjęć i wyraźniejsze znaczniki na mapie.',
-          isLocalGalleryOnly: true,
+              'Edytor zdjęć otwiera się szybciej, kadrowanie w trybie Original działa pewniej, a wspomnienia z podróży rzadziej się powtarzają.',
         ),
       ],
     ),
     'pt_BR': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Novo visual para sua galeria',
+          title: 'Revise fotos antigas e libere espaço',
           description:
-              'Veja as fotos nas proporções originais com o novo layout em mosaico.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Junte os dedos para mudar o layout da galeria',
-          description:
-              'Agora você pode juntar ou afastar dois dedos para mudar o layout e escolher quantas fotos cabem na tela.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Melhorias no editor de imagens',
-          description:
-              'Adicione texto às suas fotos escolhendo fontes, cores, fundos e alinhamento. Agora você também pode endireitar fotos inclinadas.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Novo visual para os álbuns e mais',
-          description:
-              'Álbuns redesenhados e menus mais simples para as ações nas suas fotos.',
+              'Deslize pela galeria e marque para exclusão as fotos que você não quer mais guardar.\n\nEncontre esse recurso em Opções → Liberar espaço → Old photos.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Preparação mais rápida do backup',
+          title: 'Seletor de fotos renovado',
           description:
-              'Agora o Ente prepara suas fotos e vídeos mais rapidamente para o envio.',
+              'Ao anexar fotos ou vídeos em outro app usando o Ente como seletor de fotos, você agora pode explorar a galeria, buscar na biblioteca e navegar pelos álbuns.',
+          isAndroidOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Ordene álbuns por nome do arquivo',
+          description:
+              'Ordene fotos e vídeos dos seus álbuns por nome do arquivo.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Agora em coreano',
-          description: 'Agora você pode usar o Ente Photos em coreano.',
+          title: 'Agora em indonésio e sueco',
+          description:
+              'Agora você pode usar o Ente Photos em indonésio ou sueco.',
         ),
         ChangeLogEntryStrings(
-          title: 'E muito mais!',
+          title: 'Backups mais confiáveis',
           description:
-              'Banner de Memória na sua tela inicial, transições de fotos mais suaves entre a galeria e o visualizador, marcadores mais claros no mapa e filtros mais confiáveis nos álbuns ocultos.',
+              'Corrigimos alguns casos raros em que os backups podiam travar ou falhar.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'E muito mais!',
+          title: 'E mais!',
           description:
-              'Banner de Memória na sua tela inicial, transições de fotos mais suaves entre a galeria e o visualizador e marcadores mais claros no mapa.',
-          isLocalGalleryOnly: true,
+              'O editor de fotos abre mais rápido, o recorte no modo Original é mais confiável e as memórias de viagens se repetem menos.',
         ),
       ],
     ),
     'pt_PT': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Novo visual para a sua galeria',
+          title: 'Reveja fotos antigas e liberte espaço',
           description:
-              'Veja as fotografias nas proporções originais com o novo esquema em mosaico.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Junte os dedos para mudar o esquema da galeria',
-          description:
-              'Agora pode juntar ou afastar dois dedos para mudar o esquema e escolher quantas fotografias cabem no ecrã.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Melhorias no editor de imagens',
-          description:
-              'Adicione texto às suas fotografias, escolhendo tipos de letra, cores, fundos e alinhamento. Agora também pode endireitar fotografias inclinadas.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Novo visual para os álbuns e mais',
-          description:
-              'Álbuns redesenhados e menus mais simples para as ações nas suas fotografias.',
+              'Deslize pela galeria e marque para apagar as fotos que já não quer guardar.\n\nEncontre esta funcionalidade em Settings → Libertar espaço → Old photos.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Preparação mais rápida das cópias de segurança',
+          title: 'Seletor de fotos renovado',
           description:
-              'O Ente prepara agora as suas fotografias e vídeos mais rapidamente para o carregamento.',
+              'Ao anexar fotos ou vídeos noutra aplicação com o Ente como seletor de fotos, pode agora explorar a galeria, pesquisar na biblioteca e navegar pelos álbuns.',
+          isAndroidOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Ordene álbuns por nome de ficheiro',
+          description:
+              'Ordene as fotos e os vídeos dos seus álbuns por nome de ficheiro.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Agora em coreano',
-          description: 'Agora pode utilizar o Ente Photos em coreano.',
+          title: 'Agora em indonésio e sueco',
+          description: 'Já pode usar o Ente Photos em indonésio ou sueco.',
         ),
         ChangeLogEntryStrings(
-          title: 'E muito mais!',
+          title: 'Cópias de segurança mais fiáveis',
           description:
-              'Memory Lane no seu ecrã principal, transições de fotografias mais suaves entre a galeria e o visualizador, marcadores mais claros no mapa e filtros mais fiáveis nos álbuns ocultos.',
+              'Corrigimos alguns casos raros em que as cópias de segurança podiam ficar bloqueadas ou falhar.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
           title: 'E muito mais!',
           description:
-              'Memory Lane no seu ecrã principal, transições de fotografias mais suaves entre a galeria e o visualizador e marcadores mais claros no mapa.',
-          isLocalGalleryOnly: true,
+              'O editor de fotos abre mais depressa, o recorte no modo Original é mais fiável e as memórias de viagens repetem-se menos.',
         ),
       ],
     ),
     'ro': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Aspect nou pentru galeria ta',
+          title: 'Revizuiește fotografiile vechi și eliberează spațiu',
           description:
-              'Vezi fotografiile în proporțiile originale cu noul aranjament mozaic.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Apropie degetele pentru a schimba aranjamentul galeriei',
-          description:
-              'Acum poți apropia sau depărta două degete pentru a schimba aranjamentul și a alege câte fotografii încap pe ecran.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Îmbunătățiri ale editorului de imagini',
-          description:
-              'Adaugă text pe fotografii, alegând fonturi, culori, fundaluri și alinierea. Acum poți și să îndrepți fotografiile înclinate.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Aspect nou pentru albume și nu numai',
-          description:
-              'Albume reproiectate și meniuri mai simple pentru acțiunile asupra fotografiilor.',
+              'Glisează prin galerie și marchează pentru ștergere fotografiile pe care nu mai vrei să le păstrezi.\n\nGăsești funcția în Setări → Eliberați spațiu → Old photos.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Pregătirea mai rapidă a copiilor de rezervă',
+          title: 'Selector de fotografii refăcut',
           description:
-              'Ente pregătește acum mai rapid fotografiile și videoclipurile tale pentru încărcare.',
+              'Când atașezi fotografii sau videoclipuri în altă aplicație folosind Ente ca selector de fotografii, acum poți explora galeria, căuta în bibliotecă și răsfoi albumele.',
+          isAndroidOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Sortează albumele după numele fișierului',
+          description:
+              'Sortează fotografiile și videoclipurile din albume după numele fișierului.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Acum în coreeană',
-          description: 'Acum poți folosi Ente Photos în coreeană.',
+          title: 'Acum în indoneziană și suedeză',
+          description:
+              'Acum poți folosi Ente Photos în indoneziană sau suedeză.',
         ),
         ChangeLogEntryStrings(
-          title: 'Și altele!',
+          title: 'Copii de rezervă mai fiabile',
           description:
-              'Memory Lane pe ecranul principal, tranziții mai fluide ale fotografiilor între galerie și vizualizator, marcaje mai clare pe hartă și filtre mai fiabile în albumele ascunse.',
+              'Am remediat câteva cazuri rare în care crearea copiilor de rezervă se putea bloca sau putea eșua.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Și altele!',
+          title: 'Și alte îmbunătățiri!',
           description:
-              'Memory Lane pe ecranul principal, tranziții mai fluide ale fotografiilor între galerie și vizualizator și marcaje mai clare pe hartă.',
-          isLocalGalleryOnly: true,
+              'Editorul foto se deschide mai repede, decuparea în modul Original este mai fiabilă, iar amintirile din călătorii se repetă mai rar.',
         ),
       ],
     ),
     'ru': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Новый облик вашей галереи',
+          title: 'Просмотрите старые фото и освободите место',
           description:
-              'Смотрите фотографии в исходных пропорциях с новой мозаичной раскладкой.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Сведите пальцы, чтобы изменить раскладку галереи',
-          description:
-              'Теперь вы можете сводить или разводить два пальца, чтобы переключать раскладки и выбирать, сколько фотографий помещается на экране.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Улучшения редактора изображений',
-          description:
-              'Добавляйте текст на фотографии, выбирая шрифты, цвета, фон и выравнивание. Теперь можно также выпрямлять наклонённые фотографии.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Новый облик альбомов и не только',
-          description:
-              'Обновлённый дизайн альбомов и более простые меню действий с фотографиями.',
+              'Листайте галерею и отмечайте для удаления фотографии, которые больше не хотите хранить.\n\nЭта функция находится в разделе Настройки → Освободить место → Old photos.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Более быстрая подготовка резервного копирования',
+          title: 'Обновлённое окно выбора фотографий',
           description:
-              'Теперь Ente быстрее подготавливает ваши фотографии и видео к загрузке.',
+              'Когда вы прикрепляете фото или видео в другом приложении через окно выбора фотографий Ente, теперь можно просматривать галерею, искать в медиатеке и открывать альбомы.',
+          isAndroidOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Сортировка альбомов по имени файла',
+          description: 'Сортируйте фото и видео в альбомах по имени файла.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Теперь на корейском',
+          title: 'Теперь на индонезийском и шведском',
           description:
-              'Теперь Ente Photos можно использовать на корейском языке.',
+              'Теперь Ente Photos можно использовать на индонезийском или шведском.',
         ),
         ChangeLogEntryStrings(
-          title: 'И многое другое!',
+          title: 'Более надёжное резервное копирование',
           description:
-              'Линия воспоминаний на главном экране, более плавные переходы фотографий между галереей и экраном просмотра, более чёткие маркеры на карте и более надёжные фильтры в скрытых альбомах.',
+              'Мы исправили несколько редких случаев, когда резервное копирование могло зависнуть или завершиться ошибкой.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'И многое другое!',
+          title: 'И не только!',
           description:
-              'Линия воспоминаний на главном экране, более плавные переходы фотографий между галереей и экраном просмотра и более чёткие маркеры на карте.',
-          isLocalGalleryOnly: true,
+              'Фоторедактор открывается быстрее, обрезка в режиме Original работает надёжнее, а воспоминания о поездках реже повторяются.',
+        ),
+      ],
+    ),
+    'sv': ChangeLogStrings(
+      entries: [
+        ChangeLogEntryStrings(
+          title: 'Gå igenom gamla foton och frigör utrymme',
+          description:
+              'Svep igenom galleriet och markera oönskade foton för radering.\n\nDu hittar funktionen under Inställningar → Frigör utrymme → Old photos.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Omarbetad fotoväljare',
+          description:
+              'När du bifogar foton eller videor i en annan app med Ente som fotoväljare kan du nu utforska galleriet, söka i biblioteket och bläddra i album.',
+          isAndroidOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Sortera album efter filnamn',
+          description: 'Sortera foton och videor i dina album efter filnamn.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Nu på indonesiska och svenska',
+          description:
+              'Du kan nu använda Ente Photos på indonesiska eller svenska.',
+        ),
+        ChangeLogEntryStrings(
+          title: 'Mer tillförlitliga säkerhetskopior',
+          description:
+              'Vi har åtgärdat några ovanliga fall där säkerhetskopieringen kunde fastna eller misslyckas.',
+          isOnlineOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Och mer!',
+          description:
+              'Fotoredigeraren öppnas snabbare, beskärning i Original-läget är mer tillförlitlig och reseminnen upprepas mer sällan.',
         ),
       ],
     ),
     'tr': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Galeriniz için yeni görünüm',
+          title: 'Eski fotoğrafları gözden geçirin ve yer açın',
           description:
-              'Yeni mozaik düzeniyle fotoğraflarınızı özgün oranlarında görün.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Galeri düzenini değiştirmek için parmaklarınızı birleştirin',
-          description:
-              'Artık iki parmağınızı birleştirerek veya ayırarak düzenler arasında geçiş yapabilir ve ekranınıza kaç fotoğraf sığacağını seçebilirsiniz.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Görsel düzenleyicide iyileştirmeler',
-          description:
-              'Yazı tipi, renk, arka plan ve hizalama seçenekleriyle fotoğraflarınıza metin ekleyin. Artık eğik fotoğrafları da düzeltebilirsiniz.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Albümler ve daha fazlası için yeni görünüm',
-          description:
-              'Yeniden tasarlanan albümler ve fotoğraf işlemleriniz için daha sade menüler.',
+              'Galerinizde kaydırarak gezinin ve artık saklamak istemediğiniz fotoğrafları silmek üzere işaretleyin.\n\nBu özelliği Ayarlar → Boş alan → Old photos bölümünde bulabilirsiniz.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Daha hızlı yedekleme hazırlığı',
+          title: 'Yenilenen fotoğraf seçici',
           description:
-              'Ente artık fotoğraf ve videolarınızı yüklemeye daha hızlı hazırlıyor.',
+              'Başka bir uygulamada Ente’yi fotoğraf seçici olarak kullanıp fotoğraf veya video eklerken artık galerinizi keşfedebilir, arşivinizde arama yapabilir ve albümlerinize göz atabilirsiniz.',
+          isAndroidOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Albümleri dosya adına göre sıralayın',
+          description:
+              'Albümlerinizdeki fotoğraf ve videoları dosya adına göre sıralayın.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Artık Korece de var',
-          description: 'Ente Photos’u artık Korece kullanabilirsiniz.',
+          title: 'Artık Endonezce ve İsveççe',
+          description:
+              'Artık Ente Photos’u Endonezce veya İsveççe kullanabilirsiniz.',
         ),
         ChangeLogEntryStrings(
-          title: 'Ve daha fazlası!',
+          title: 'Daha güvenilir yedekleme',
           description:
-              'Ana ekranınızda Memory Lane, galeri ile görüntüleyici arasında daha akıcı fotoğraf geçişleri, daha belirgin harita işaretçileri ve gizli albümlerde daha güvenilir filtreler.',
+              'Yedeklemenin takılabildiği veya başarısız olabildiği bazı nadir durumları düzelttik.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
           title: 'Ve daha fazlası!',
           description:
-              'Ana ekranınızda Memory Lane, galeri ile görüntüleyici arasında daha akıcı fotoğraf geçişleri ve daha belirgin harita işaretçileri.',
-          isLocalGalleryOnly: true,
+              'Fotoğraf düzenleyici daha hızlı açılıyor, Original modunda kırpma daha güvenilir çalışıyor ve gezi anıları daha az tekrarlanıyor.',
         ),
       ],
     ),
     'uk': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Новий вигляд вашої галереї',
+          title: 'Перегляньте старі фото та звільніть місце',
           description:
-              'Переглядайте фотографії в оригінальних пропорціях із новою мозаїчною розкладкою.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Зведіть пальці, щоб змінити розкладку галереї',
-          description:
-              'Тепер ви можете зводити або розводити два пальці, щоб перемикати розкладки й вибирати, скільки фотографій вміщується на екрані.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Покращення редактора зображень',
-          description:
-              'Додавайте текст до фотографій, обираючи шрифти, кольори, тло й вирівнювання. Тепер можна також вирівнювати нахилені фотографії.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Новий вигляд альбомів і не тільки',
-          description:
-              'Оновлений дизайн альбомів і простіші меню дій із фотографіями.',
+              'Гортайте галерею та позначайте для видалення фото, які більше не хочете зберігати.\n\nЦя функція доступна в розділі Налаштування → Звільнити місце → Old photos.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Швидша підготовка резервного копіювання',
+          title: 'Оновлене вікно вибору фото',
           description:
-              'Тепер Ente швидше готує ваші фотографії та відео до завантаження.',
+              'Коли ви додаєте фото чи відео в іншому застосунку, використовуючи Ente для вибору фото, тепер можна гортати галерею, шукати в медіатеці та переглядати альбоми.',
+          isAndroidOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Сортування альбомів за назвою файлу',
+          description: 'Сортуйте фото й відео в альбомах за назвою файлу.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Тепер корейською',
+          title: 'Тепер індонезійською та шведською',
           description:
-              'Тепер Ente Photos можна використовувати корейською мовою.',
+              'Тепер Ente Photos можна використовувати індонезійською або шведською.',
         ),
         ChangeLogEntryStrings(
-          title: 'І не тільки!',
+          title: 'Надійніше резервне копіювання',
           description:
-              'Лінія спогадів на головному екрані, плавніші переходи фотографій між галереєю та вікном перегляду, чіткіші позначки на мапі й надійніші фільтри в прихованих альбомах.',
+              'Ми виправили кілька рідкісних випадків, коли резервне копіювання могло зависнути або завершитися помилкою.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
           title: 'І не тільки!',
           description:
-              'Лінія спогадів на головному екрані, плавніші переходи фотографій між галереєю та вікном перегляду й чіткіші позначки на мапі.',
-          isLocalGalleryOnly: true,
+              'Редактор фото відкривається швидше, обрізання в режимі Original працює надійніше, а спогади про подорожі рідше повторюються.',
         ),
       ],
     ),
     'vi': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: 'Diện mạo mới cho thư viện',
-          description: 'Xem ảnh với tỷ lệ gốc bằng bố cục khảm mới.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Chụm hai ngón tay để đổi bố cục thư viện',
+          title: 'Xem lại ảnh cũ và giải phóng dung lượng',
           description:
-              'Giờ đây, bạn có thể chụm hoặc tách hai ngón tay để chuyển đổi bố cục và chọn số ảnh hiển thị trên màn hình.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Cải tiến trình chỉnh sửa ảnh',
-          description:
-              'Thêm văn bản vào ảnh với các lựa chọn về phông chữ, màu sắc, nền và căn chỉnh. Giờ đây, bạn cũng có thể làm thẳng những bức ảnh bị nghiêng.',
-        ),
-        ChangeLogEntryStrings(
-          title: 'Diện mạo mới cho album và hơn thế nữa',
-          description:
-              'Album được thiết kế lại cùng các menu đơn giản hơn cho những thao tác với ảnh.',
+              'Vuốt để xem thư viện và đánh dấu xóa những ảnh bạn không muốn giữ nữa.\n\nBạn có thể mở tính năng này trong Cài đặt → Giải phóng dung lượng → Old photos.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Chuẩn bị sao lưu nhanh hơn',
+          title: 'Trình chọn ảnh được làm mới',
           description:
-              'Ente giờ đây mất ít thời gian hơn để chuẩn bị ảnh và video của bạn cho việc tải lên.',
+              'Khi dùng Ente làm trình chọn ảnh để đính kèm ảnh hoặc video trong ứng dụng khác, giờ đây bạn có thể khám phá bộ sưu tập ảnh, tìm kiếm trong thư viện và duyệt album.',
+          isAndroidOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: 'Sắp xếp album theo tên tệp',
+          description: 'Sắp xếp ảnh và video trong album theo tên tệp.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Đã có tiếng Hàn',
+          title: 'Đã có tiếng Indonesia và tiếng Thụy Điển',
           description:
-              'Giờ đây, bạn có thể sử dụng Ente Photos bằng tiếng Hàn.',
+              'Giờ đây bạn có thể dùng Ente Photos bằng tiếng Indonesia hoặc tiếng Thụy Điển.',
         ),
         ChangeLogEntryStrings(
-          title: 'Và còn nhiều hơn thế!',
+          title: 'Sao lưu ổn định hơn',
           description:
-              'Kỷ niệm trên màn hình chính, chuyển cảnh ảnh mượt mà hơn giữa thư viện và trình xem, các điểm đánh dấu trên bản đồ rõ ràng hơn, bộ lọc trong album ẩn hoạt động đáng tin cậy hơn.',
+              'Chúng tôi đã khắc phục một số trường hợp hiếm gặp khiến quá trình sao lưu có thể bị treo hoặc thất bại.',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: 'Và còn nhiều hơn thế!',
+          title: 'Và còn nữa!',
           description:
-              'Kỷ niệm trên màn hình chính, chuyển cảnh ảnh mượt mà hơn giữa thư viện và trình xem, các điểm đánh dấu trên bản đồ rõ ràng hơn.',
-          isLocalGalleryOnly: true,
+              'Trình chỉnh sửa ảnh mở nhanh hơn, cắt ảnh ở chế độ Original ổn định hơn và kỷ niệm chuyến đi ít bị lặp lại hơn.',
         ),
       ],
     ),
     'zh_CN': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: '图库焕然一新',
-          description: '全新的拼贴布局让照片以原始比例显示。',
-        ),
-        ChangeLogEntryStrings(
-          title: '双指捏合，更改图库布局',
-          description: '现在，您可以通过双指捏合或张开来切换布局，并选择屏幕上显示的照片数量。',
-        ),
-        ChangeLogEntryStrings(
-          title: '图片编辑器改进',
-          description: '为照片添加文字，自由选择字体、颜色、背景和对齐方式。现在还可以拉直倾斜的照片。',
-        ),
-        ChangeLogEntryStrings(
-          title: '相册等界面焕新',
-          description: '重新设计的相册，以及更简洁的照片操作菜单。',
+          title: '整理旧照片，释放空间',
+          description:
+              '滑动浏览图库，将不想再保留的照片标记为待删除。\n\n在「设置 → 释放空间 → Old photos」中即可找到此功能。',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: '备份准备更快',
-          description: 'Ente 现在能更快地为照片和视频做好上传准备。',
+          title: '全新设计的照片选择器',
+          description: '在其他应用中使用 Ente 作为照片选择器添加照片或视频时，现在可以浏览图库、搜索照片库和查看相册。',
+          isAndroidOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: '按文件名排序相册',
+          description: '按文件名对相册里的照片和视频排序。',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: '现已支持韩语',
-          description: '现在可以使用韩语版 Ente Photos 了。',
+          title: '现已支持印度尼西亚语和瑞典语',
+          description: '现在可以使用印度尼西亚语或瑞典语版的 Ente Photos。',
         ),
         ChangeLogEntryStrings(
-          title: '还有更多！',
-          description: '主屏幕上的回忆长廊、图库与查看器之间更流畅的照片过渡、更清晰的地图标记，以及隐藏相册中更可靠的筛选功能。',
+          title: '备份更可靠',
+          description: '我们修复了少数可能导致备份卡住或失败的情况。',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
           title: '还有更多！',
-          description: '主屏幕上的回忆长廊、图库与查看器之间更流畅的照片过渡，以及更清晰的地图标记。',
-          isLocalGalleryOnly: true,
+          description: '照片编辑器打开得更快，Original 模式下的裁剪更可靠，旅行回忆的重复显示也更少了。',
         ),
       ],
     ),
     'zh_TW': ChangeLogStrings(
       entries: [
         ChangeLogEntryStrings(
-          title: '圖片庫煥然一新',
-          description: '全新的拼貼版面配置讓照片以原始比例顯示。',
-        ),
-        ChangeLogEntryStrings(
-          title: '雙指捏合，變更圖片庫版面配置',
-          description: '現在，你可以透過雙指捏合或張開來切換版面配置，並選擇螢幕上顯示的照片數量。',
-        ),
-        ChangeLogEntryStrings(
-          title: '圖片編輯器改善',
-          description: '為照片加入文字，自由選擇字型、顏色、背景和對齊方式。現在也可以拉直傾斜的照片。',
-        ),
-        ChangeLogEntryStrings(
-          title: '相簿等介面煥新',
-          description: '重新設計的相簿，以及更簡潔的照片操作選單。',
+          title: '整理舊照片，釋放空間',
+          description:
+              '滑動瀏覽圖片庫，將不想再保留的照片標記為待刪除。\n\n你可以在「設定 → 釋放空間 → Old photos」找到這項功能。',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: '備份準備更快速',
-          description: 'Ente 現在能更快地為照片和影片做好上傳準備。',
+          title: '重新設計的照片選擇器',
+          description: '在其他應用程式中使用 Ente 作為照片選擇器附加照片或影片時，現在可以探索圖片庫、搜尋媒體庫和瀏覽相簿。',
+          isAndroidOnly: true,
+        ),
+        ChangeLogEntryStrings(
+          title: '依檔名排序相簿',
+          description: '依檔名排序相簿裡的照片和影片。',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
-          title: '現已支援韓文',
-          description: '現在可以使用韓文版 Ente Photos 了。',
+          title: '現已支援印尼語和瑞典語',
+          description: '現在可以使用印尼語或瑞典語版的 Ente Photos。',
         ),
         ChangeLogEntryStrings(
-          title: '還有更多！',
-          description: '主畫面上的懷舊小徑、圖片庫與檢視器之間更流暢的照片轉場、更清楚的地圖標記，以及隱藏相簿中更可靠的篩選功能。',
+          title: '備份更可靠',
+          description: '我們修正了少數可能導致備份卡住或失敗的情況。',
           isOnlineOnly: true,
         ),
         ChangeLogEntryStrings(
           title: '還有更多！',
-          description: '主畫面上的懷舊小徑、圖片庫與檢視器之間更流暢的照片轉場，以及更清楚的地圖標記。',
-          isLocalGalleryOnly: true,
+          description: '照片編輯器開啟得更快，Original 模式下的裁切更可靠，旅行回憶也更少重複出現。',
         ),
       ],
     ),
