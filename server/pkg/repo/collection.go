@@ -1079,7 +1079,8 @@ func (repo *CollectionRepository) GetDiff(collectionID int64, sinceTime int64, l
             collection_files.encrypted_key, collection_files.key_decryption_nonce,
             files.file_decryption_header, files.thumbnail_decryption_header,
             files.metadata_decryption_header, files.encrypted_metadata, files.magic_metadata, files.pub_magic_metadata, 
-            files.info, collection_files.action_user, collection_files.action, collection_files.is_deleted, collection_files.updation_time, collection_files.created_at
+            files.info, collection_files.action_user, collection_files.action, collection_files.is_deleted, collection_files.updation_time, collection_files.created_at,
+            collection_files.moderation_status
         FROM files
         INNER JOIN collection_files
         ON collection_files.file_id = files.file_id
@@ -1104,7 +1105,8 @@ func (repo *CollectionRepository) GetFilesWithVersion(collectionID int64, update
             collection_files.encrypted_key, collection_files.key_decryption_nonce,
             files.file_decryption_header, files.thumbnail_decryption_header,
             files.metadata_decryption_header, files.encrypted_metadata, files.magic_metadata, files.pub_magic_metadata,
-            files.info, collection_files.action_user, collection_files.action, collection_files.is_deleted, collection_files.updation_time, collection_files.created_at
+            files.info, collection_files.action_user, collection_files.action, collection_files.is_deleted, collection_files.updation_time, collection_files.created_at,
+            collection_files.moderation_status
         FROM files
         INNER JOIN collection_files
         ON collection_files.file_id = files.file_id
@@ -1123,7 +1125,8 @@ func (repo *CollectionRepository) GetFile(collectionID int64, fileID int64) ([]e
             collection_files.encrypted_key, collection_files.key_decryption_nonce,
             files.file_decryption_header, files.thumbnail_decryption_header,
             files.metadata_decryption_header, files.encrypted_metadata, files.magic_metadata, files.pub_magic_metadata,
-            files.info, collection_files.action_user, collection_files.action, collection_files.is_deleted, collection_files.updation_time, collection_files.created_at
+            files.info, collection_files.action_user, collection_files.action, collection_files.is_deleted, collection_files.updation_time, collection_files.created_at,
+            collection_files.moderation_status
         FROM files
         INNER JOIN collection_files
         ON collection_files.file_id = files.file_id

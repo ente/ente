@@ -27,16 +27,17 @@ func (repo *CollectionRepository) GetCollectionFileIDs(collectionID int64, colle
 type CollectionFileState string
 
 const (
-	CollectionFileActive        CollectionFileState = "active"
-	CollectionFileAbsent        CollectionFileState = "absent"
-	CollectionFileDeleted       CollectionFileState = "deleted"
-	CollectionFilePendingRemove CollectionFileState = "pending_remove"
+	CollectionFileActive           CollectionFileState = "active"
+	CollectionFileAbsent           CollectionFileState = "absent"
+	CollectionFileDeleted          CollectionFileState = "deleted"
+	CollectionFilePendingRemove    CollectionFileState = "pending_remove"
+	CollectionFileAwaitingApproval CollectionFileState = "awaiting_approval"
 )
 
 func (repo *CollectionRepository) GetCollectionFileState(ctx context.Context, collectionID, fileID int64) (CollectionFileState, error) {
-	var isDeleted, isPendingRemove bool
-	err := repo.DB.QueryRowContext(ctx, `SELECT is_deleted, action IS NOT DISTINCT FROM $3 FROM collection_files WHERE collection_id = $1 AND file_id = $2`,
-		collectionID, fileID, ente.ActionRemove).Scan(&isDeleted, &isPendingRemove)
+	var isDeleted, isPendingRemove, isAwaitingApproval bool
+	err := repo.DB.QueryRowContext(ctx, `SELECT is_deleted, action IS NOT DISTINCT FROM $3, moderation_status IS NOT DISTINCT FROM $4 FROM collection_files WHERE collection_id = $1 AND file_id = $2`,
+		collectionID, fileID, ente.ActionRemove, ente.ModerationPending).Scan(&isDeleted, &isPendingRemove, &isAwaitingApproval)
 	if errors.Is(err, sql.ErrNoRows) {
 		return CollectionFileAbsent, nil
 	}
@@ -45,6 +46,9 @@ func (repo *CollectionRepository) GetCollectionFileState(ctx context.Context, co
 	}
 	if isDeleted {
 		return CollectionFileDeleted, nil
+	}
+	if isAwaitingApproval {
+		return CollectionFileAwaitingApproval, nil
 	}
 	if isPendingRemove {
 		return CollectionFilePendingRemove, nil

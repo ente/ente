@@ -134,9 +134,10 @@ func (c *CollectionController) GetFile(ctx *gin.Context, collectionID int64, fil
 		file.Action = nil
 		file.ActionUserID = nil
 	}
-	if file.IsDeleted {
+	if file.IsDeleted || (file.ModerationStatus != nil && *file.ModerationStatus == ente.ModerationPending) {
 		return nil, stacktrace.Propagate(&ente.ErrFileNotFoundInAlbum, "")
 	}
+	file.ModerationStatus = nil
 	return &file, nil
 }
 

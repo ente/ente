@@ -26,6 +26,7 @@ func TestValidateFileInCollection(t *testing.T) {
 		repo.CollectionFileAbsent,
 		repo.CollectionFileDeleted,
 		repo.CollectionFilePendingRemove,
+		repo.CollectionFileAwaitingApproval,
 	} {
 		err := validateFileInCollection(t.Context(), fileCollectionRepoStub{state: state}, 1, 2)
 		require.ErrorIs(t, err, ente.ErrPermissionDenied)
