@@ -26,6 +26,43 @@ func TestHasPublishedFiles(t *testing.T) {
 	require.True(t, hasPublished)
 }
 
+func TestPendingUploadVisibility(t *testing.T) {
+	collections, db, owner := setupCollectionMembershipTest(t)
+	ctx := t.Context()
+	album := insertObjectTestCollection(t, db, owner)
+	member := testutil.InsertUser(t, db, testutil.UserFixture{UserID: 2, Email: "album-member@example.com", CreationTime: 1})
+	insertObjectTestCollectionShare(t, db, album, owner, member)
+	files := insertCollectionMembershipTestFiles(t, db, owner, 2)
+	pending, published := files[0], files[1]
+	linkObjectTestFileToCollection(t, db, album, pending, owner)
+	_, err := db.Exec(`UPDATE collection_files SET moderation_status = 'PENDING' WHERE file_id = $1`, pending)
+	require.NoError(t, err)
+	linkObjectTestFileToCollection(t, db, album, published, owner)
+
+	state, err := collections.GetCollectionFileState(ctx, album, pending)
+	require.NoError(t, err)
+	require.Equal(t, CollectionFileAwaitingApproval, state)
+	require.ErrorIs(t, collections.VerifyAllFileIDsExistsInCollection(ctx, album, files), ente.ErrPermissionDenied)
+	require.Error(t, collections.DoAllFilesExistInGivenCollections(files, []int64{album}))
+	active, err := collections.FilterActiveFileIDsInCollection(ctx, album, files)
+	require.NoError(t, err)
+	require.Equal(t, []int64{published}, active)
+	count, err := collections.GetCollectionsFilesCount(album)
+	require.NoError(t, err)
+	require.EqualValues(t, 2, count)
+
+	objects := &ObjectRepository{DB: db}
+	for _, objType := range []ente.ObjectType{ente.FILE, ente.THUMBNAIL} {
+		insertObjectTestKey(t, db, pending, objType, "pending-"+string(objType), 100, []string{"b2-eu-cen"})
+		_, err = objects.GetAccessibleObject(ctx, pending, member, objType)
+		require.ErrorIs(t, err, ente.ErrPermissionDenied)
+		_, err = objects.GetCollectionObject(ctx, album, pending, objType)
+		require.ErrorIs(t, err, ente.ErrPermissionDenied)
+		_, err = objects.GetAccessibleObject(ctx, pending, owner, objType)
+		require.NoError(t, err)
+	}
+}
+
 func TestGetCollectionFileState(t *testing.T) {
 	_, db := setupAccessibleObjectTest(t)
 	repository := &CollectionRepository{DB: db}

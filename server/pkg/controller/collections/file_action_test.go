@@ -7,10 +7,7 @@ import (
 
 	"github.com/ente/museum/ente"
 	"github.com/ente/museum/pkg/controller/access"
-	memoryshare "github.com/ente/museum/pkg/controller/memory_share"
-	"github.com/ente/museum/pkg/controller/public"
 	"github.com/ente/museum/pkg/repo"
-	publicrepo "github.com/ente/museum/pkg/repo/public"
 	"github.com/ente/museum/pkg/utils/auth"
 	"github.com/stretchr/testify/require"
 )
@@ -69,50 +66,6 @@ func TestCollectionActionCreationApp(t *testing.T) {
 			})
 		}
 	}
-}
-
-func TestPendingUploadsCannotBePublished(t *testing.T) {
-	db, collections, ownerID, _ := setupCollectionShareTest(t)
-	albumID := createShareTestCollection(t, collections, ownerID)
-	ordinary := addShareTestOwnerFile(t, db, albumID, ownerID)
-	pending := addShareTestOwnerFile(t, db, albumID, ownerID)
-	_, err := db.Exec(`UPDATE collection_files SET moderation_status = 'PENDING' WHERE file_id = $1`, pending)
-	require.NoError(t, err)
-	files := &repo.FileRepository{DB: db}
-	ctx := newBatchShareTestContext(ownerID)
-
-	t.Run("file link", func(t *testing.T) {
-		links := &public.FileLinkController{FileRepo: files, FileLinkRepo: publicrepo.NewFileLinkRepo(db)}
-		_, err := links.CreateLink(ctx, ente.CreateFileUrl{FileID: pending, App: ente.Photos})
-		requireBadRequestError(t, err)
-		link, err := links.CreateLink(ctx, ente.CreateFileUrl{FileID: ordinary, App: ente.Photos})
-		require.NoError(t, err)
-		require.Equal(t, ordinary, link.FileID)
-		published, err := links.GetUrls(ctx, 0, 10)
-		require.NoError(t, err)
-		require.Len(t, published, 1)
-		require.Equal(t, ordinary, published[0].FileID)
-	})
-
-	t.Run("memory share", func(t *testing.T) {
-		memories := memoryshare.NewController(repo.NewMemoryShareRepository(db), files, access.NewAccessController(collections, files))
-		req := ente.CreateMemoryShareRequest{
-			EncryptedKey: "memory-key", KeyDecryptionNonce: "nonce",
-			Files: []ente.MemoryShareFileItem{
-				{FileID: ordinary, EncryptedKey: "ordinary-key", KeyDecryptionNonce: "nonce"},
-				{FileID: pending, EncryptedKey: "pending-key", KeyDecryptionNonce: "nonce"},
-			},
-		}
-		_, err := memories.Create(ctx, ownerID, req)
-		requireBadRequestError(t, err)
-		req.Files = req.Files[:1]
-		created, err := memories.Create(ctx, ownerID, req)
-		require.NoError(t, err)
-		published, err := memories.List(ctx, ownerID)
-		require.NoError(t, err)
-		require.Len(t, published.MemoryShares, 1)
-		require.Equal(t, created.MemoryShare.ID, published.MemoryShares[0].ID)
-	})
 }
 
 func TestMoveFilesRejectsSameCollection(t *testing.T) {

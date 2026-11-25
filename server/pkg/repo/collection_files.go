@@ -63,8 +63,9 @@ func (repo *CollectionRepository) DoAllFilesExistInGivenCollections(fileIDs []in
         WHERE file_id = ANY ($1) 
         AND is_deleted = false 
         AND action IS DISTINCT FROM $3
+        AND moderation_status IS DISTINCT FROM $4
         AND collection_id = ANY ($2)`,
-		pq.Array(fileIDs), pq.Array(cIDs), ente.ActionRemove)
+		pq.Array(fileIDs), pq.Array(cIDs), ente.ActionRemove, ente.ModerationPending)
 
 	if err != nil {
 		return stacktrace.Propagate(err, "")
@@ -104,8 +105,8 @@ func (repo *CollectionRepository) VerifyAllFileIDsExistsInCollection(ctx context
 		return nil
 	}
 	fileIdMap := make(map[int64]bool)
-	rows, err := repo.DB.QueryContext(ctx, `SELECT file_id FROM collection_files WHERE collection_id = $1 AND is_deleted = $2 AND file_id = ANY ($3) AND action IS DISTINCT FROM $4`,
-		cID, false, pq.Array(fileIDs), ente.ActionRemove)
+	rows, err := repo.DB.QueryContext(ctx, `SELECT file_id FROM collection_files WHERE collection_id = $1 AND is_deleted = $2 AND file_id = ANY ($3) AND action IS DISTINCT FROM $4 AND moderation_status IS DISTINCT FROM $5`,
+		cID, false, pq.Array(fileIDs), ente.ActionRemove, ente.ModerationPending)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
@@ -129,7 +130,7 @@ func (repo *CollectionRepository) VerifyAllFileIDsExistsInCollection(ctx context
 }
 
 // FilterActiveFileIDsInCollection returns the fileIDs still active in the collection
-// (not deleted and not marked for owner removal).
+// (not deleted, not marked for owner removal, and not awaiting approval).
 // If any fileID was never in the collection, it returns an error.
 func (repo *CollectionRepository) FilterActiveFileIDsInCollection(ctx context.Context, cID int64, fileIDs []int64) ([]int64, error) {
 	if len(fileIDs) == 0 {
@@ -138,24 +139,27 @@ func (repo *CollectionRepository) FilterActiveFileIDsInCollection(ctx context.Co
 	type fileState struct {
 		isDeleted bool
 		action    string
+		isPending bool
 	}
 	fileStates := make(map[int64]fileState)
-	rows, err := repo.DB.QueryContext(ctx, `SELECT file_id, is_deleted, COALESCE(action, '') FROM collection_files WHERE collection_id = $1 AND file_id = ANY ($2)`,
-		cID, pq.Array(fileIDs))
+	rows, err := repo.DB.QueryContext(ctx, `SELECT file_id, is_deleted, COALESCE(action, ''), moderation_status IS NOT DISTINCT FROM $3
+		FROM collection_files WHERE collection_id = $1 AND file_id = ANY ($2)`,
+		cID, pq.Array(fileIDs), ente.ModerationPending)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var fileID int64
-		var isDeleted bool
+		var isDeleted, isPending bool
 		var action string
-		if err := rows.Scan(&fileID, &isDeleted, &action); err != nil {
+		if err := rows.Scan(&fileID, &isDeleted, &action, &isPending); err != nil {
 			return nil, stacktrace.Propagate(err, "")
 		}
 		fileStates[fileID] = fileState{
 			isDeleted: isDeleted,
 			action:    action,
+			isPending: isPending,
 		}
 	}
 	if err := rows.Err(); err != nil {
@@ -169,7 +173,7 @@ func (repo *CollectionRepository) FilterActiveFileIDsInCollection(ctx context.Co
 			missing = append(missing, fileID)
 			continue
 		}
-		if !state.isDeleted && state.action != ente.ActionRemove {
+		if !state.isDeleted && state.action != ente.ActionRemove && !state.isPending {
 			active = append(active, fileID)
 		}
 	}
