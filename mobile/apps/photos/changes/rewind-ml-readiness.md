@@ -1,1 +1,0 @@
-- Reduced the library data read during Rewind's ML indexing checks.
