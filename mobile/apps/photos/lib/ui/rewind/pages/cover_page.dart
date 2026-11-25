@@ -1,3 +1,4 @@
+import "dart:async";
 import "dart:math";
 import "dart:ui" show lerpDouble;
 
@@ -36,6 +37,32 @@ class CoverPage extends RewindPage {
 
   @override
   RewindChrome get chrome => const RewindChrome(foreground: RewindColors.cream);
+
+  @override
+  Future<bool> warmUp() async {
+    await Future.wait([
+      _FlyingLockupState.warmUp(),
+      _imageLoaded(FileImage(RewindAssets.file(RewindAssets.cameraSticker))),
+    ]);
+    return true;
+  }
+
+  static Future<void> _imageLoaded(ImageProvider provider) {
+    final loaded = Completer<void>();
+    final stream = provider.resolve(ImageConfiguration.empty);
+    late final ImageStreamListener listener;
+    void done() {
+      if (!loaded.isCompleted) loaded.complete();
+      stream.removeListener(listener);
+    }
+
+    listener = ImageStreamListener((image, _) {
+      image.dispose();
+      done();
+    }, onError: (_, _) => done());
+    stream.addListener(listener);
+    return loaded.future;
+  }
 
   @override
   Widget build(
@@ -251,10 +278,20 @@ class _FlyingLockupState extends State<_FlyingLockup>
       .map((piece) => piece.at + piece.kind.ms)
       .reduce(max);
 
-  late final _layers = [
+  static final _layerNames = [
     for (final piece in _pieces)
-      if (piece.outline) (piece: piece, image: _svg("${piece.name}-outline")),
-    for (final piece in _pieces) (piece: piece, image: _svg(piece.name)),
+      if (piece.outline) (piece: piece, name: "${piece.name}-outline"),
+    for (final piece in _pieces) (piece: piece, name: piece.name),
+  ];
+
+  static Future<void> warmUp() => Future.wait([
+    for (final layer in _layerNames)
+      _loader(layer.name).loadBytes(null).then<void>((_) {}, onError: (_) {}),
+  ]);
+
+  late final _layers = [
+    for (final (:piece, :name) in _layerNames)
+      (piece: piece, image: _svg(name)),
   ];
 
   late final _flight = AnimationController(
@@ -333,13 +370,13 @@ class _FlyingLockupState extends State<_FlyingLockup>
 
   static final _loaders = <String, SvgFileLoader>{};
 
-  static Widget _svg(String name) {
+  static SvgFileLoader _loader(String name) {
     final file = RewindAssets.file(RewindAssets.lockupPiece(name));
-    return SvgPicture(
-      _loaders.putIfAbsent(file.path, () => SvgFileLoader(file)),
-      fit: BoxFit.fill,
-    );
+    return _loaders.putIfAbsent(file.path, () => SvgFileLoader(file));
   }
+
+  static Widget _svg(String name) =>
+      SvgPicture(_loader(name), fit: BoxFit.fill);
 
   @override
   Widget build(BuildContext context) {
