@@ -1,5 +1,4 @@
 import "dart:async";
-import "dart:io";
 import "dart:math";
 import 'dart:ui' as ui show Image, ImageByteFormat;
 
@@ -43,12 +42,12 @@ import 'package:pro_image_editor/pro_image_editor.dart';
 
 class ImageEditorPage extends StatefulWidget {
   final ente.EnteFile originalFile;
-  final File file;
+  final Uint8List imageBytes;
   final DetailPageConfiguration detailPageConfig;
 
   const ImageEditorPage({
     super.key,
-    required this.file,
+    required this.imageBytes,
     required this.originalFile,
     required this.detailPageConfig,
   });
@@ -274,9 +273,9 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
           onPointerMove: _layerDoubleTap.onPointerMove,
           onPointerUp: _layerDoubleTap.onPointerUp,
           onPointerCancel: _layerDoubleTap.onPointerCancel,
-          child: ProImageEditor.file(
+          child: ProImageEditor.memory(
             key: editorKey,
-            widget.file,
+            widget.imageBytes,
             callbacks: ProImageEditorCallbacks(
               cropRotateEditorCallbacks: CropRotateEditorCallbacks(
                 onKeyboardEvent: (event) => imageEditorHandleCropUndoKey(
