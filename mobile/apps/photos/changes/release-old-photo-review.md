@@ -1,0 +1,1 @@
+- Made old photo review available to all users.
