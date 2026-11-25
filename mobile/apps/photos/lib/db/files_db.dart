@@ -2207,6 +2207,37 @@ class FilesDB with SqlDbBase {
     return FileLoadResult(filteredFiles, files.length == limit);
   }
 
+  Future<int> countOwnedFilesUpdatedSince(
+    int ownerID,
+    int time, {
+    required int capturedBefore,
+  }) async {
+    final db = await instance.sqliteAsyncDB;
+    final row = await db.get(
+      'SELECT COUNT(DISTINCT $columnUploadedFileID) AS count FROM $filesTable '
+      'WHERE $columnOwnerID = ? AND $columnUploadedFileID IS NOT NULL '
+      'AND $columnUploadedFileID IS NOT -1 AND $columnUpdationTime > ? '
+      'AND $columnCreationTime < ?',
+      [ownerID, time, capturedBefore],
+    );
+    return row['count'] as int;
+  }
+
+  Future<int> countProcessedOfflineFiles(
+    int processingVersion, {
+    required int capturedBefore,
+  }) async {
+    final db = await instance.sqliteAsyncDB;
+    final row = await db.get(
+      'SELECT COUNT(DISTINCT $columnLocalID) AS count FROM $filesTable '
+      'WHERE ($columnUploadedFileID IS NULL OR $columnUploadedFileID IS -1) '
+      'AND $columnLocalID IS NOT NULL AND $columnLocalID IS NOT -1 '
+      'AND $columnMetadataVersion >= ? AND $columnCreationTime < ?',
+      [processingVersion, capturedBefore],
+    );
+    return row['count'] as int;
+  }
+
   Future<int> remoteFileCount() async {
     final db = await instance.sqliteAsyncDB;
     final results = await db.getAll('''
