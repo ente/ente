@@ -781,7 +781,7 @@ func convertRowsToFiles(rows *sql.Rows) ([]ente.File, error) {
 			&file.File.DecryptionHeader, &file.Thumbnail.DecryptionHeader,
 			&file.Metadata.DecryptionHeader,
 			&file.Metadata.EncryptedData, &file.MagicMetadata, &file.PublicMagicMetadata,
-			&file.Info, &actionUser, &action, &file.IsDeleted, &updationTime, &addedAt, &file.ModerationStatus)
+			&file.Info, &actionUser, &action, &file.IsDeleted, &updationTime, &addedAt, &file.ModerationStatus, &file.AnonUserID)
 		if err != nil {
 			return files, stacktrace.Propagate(err, "")
 		}

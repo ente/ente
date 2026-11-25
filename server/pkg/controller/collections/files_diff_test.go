@@ -9,6 +9,7 @@ import (
 
 	"github.com/ente/museum/ente"
 	"github.com/ente/museum/ente/cast"
+	"github.com/ente/museum/internal/testutil"
 	"github.com/ente/museum/pkg/controller/access"
 	"github.com/ente/museum/pkg/utils/auth"
 	"github.com/gin-gonic/gin"
@@ -78,13 +79,13 @@ func TestFileDiffScrubsDeletedAndPendingFiles(t *testing.T) {
 			fetch: func() ([]ente.File, bool, error) {
 				ctx := newFileDiffTestContext("/collections/v2/diff")
 				ctx.Request.Header.Set("X-Auth-User-ID", strconv.FormatInt(viewerID, 10))
-				return controller.GetDiffV2(ctx, collectionID, viewerID, 0)
+				return controller.GetDiffV2(ctx, collectionID, viewerID, 0, true)
 			},
 		},
 		{
 			name: "owner",
 			fetch: func() ([]ente.File, bool, error) {
-				return controller.GetDiffV2(newBatchShareTestContext(collectionOwnerID), collectionID, collectionOwnerID, 0)
+				return controller.GetDiffV2(newBatchShareTestContext(collectionOwnerID), collectionID, collectionOwnerID, 0, false)
 			},
 		},
 		{
@@ -150,7 +151,7 @@ func TestFileDiffScrubsDeletedAndPendingFiles(t *testing.T) {
 		if !hasMore || len(files) != 2 {
 			t.Fatalf("got %d files, hasMore=%t; expected both rows at time 2", len(files), hasMore)
 		}
-		scrubDeletedFiles(files)
+		scrubDeletedFiles(files, false)
 		pending := findFileDiffTestFile(t, files, pendingFileID)
 		if !pending.IsDeleted || pending.EncryptedKey != "" {
 			t.Fatalf("pending file at page boundary was not scrubbed: %+v", pending)
@@ -159,14 +160,82 @@ func TestFileDiffScrubsDeletedAndPendingFiles(t *testing.T) {
 
 	for _, actor := range []int64{viewerID, collectionOwnerID} {
 		ctx := newBatchShareTestContext(actor)
-		file, err := controller.GetFile(ctx, collectionID, pendingFileID)
+		file, err := controller.GetFile(ctx, collectionID, pendingFileID, actor == viewerID)
 		if file != nil || !errors.Is(err, &ente.ErrFileNotFoundInAlbum) {
 			t.Fatalf("pending file lookup for user %d = (%+v, %v), want file not found", actor, file, err)
 		}
-		file, err = controller.GetFile(ctx, collectionID, restoredFileID)
+		file, err = controller.GetFile(ctx, collectionID, restoredFileID, true)
 		if err != nil || file == nil || file.AnonUserID != nil || file.ModerationStatus != nil || file.EncryptedKey == "" {
 			t.Fatalf("restored file lookup for user %d = (%+v, %v)", actor, file, err)
 		}
+	}
+}
+
+func TestFileDiffReturnsPendingUploadsToModerators(t *testing.T) {
+	db, collectionRepo, ownerID, viewerID := setupCollectionShareTest(t)
+	collectionRepo.LatencyLogger = prometheus.NewHistogramVec(prometheus.HistogramOpts{}, []string{"method"})
+	adminID := testutil.InsertUser(t, db, testutil.UserFixture{UserID: 3, Email: "admin@example.com", CreationTime: 1})
+	collectionID := createShareTestCollection(t, collectionRepo, ownerID)
+	addShareTestShare(t, collectionRepo, collectionID, ownerID, viewerID, ente.VIEWER)
+	addShareTestShare(t, collectionRepo, collectionID, ownerID, adminID, ente.ADMIN)
+	pendingFileID := addShareTestOwnerFile(t, db, collectionID, ownerID)
+	if _, err := db.Exec(
+		`UPDATE collection_files SET moderation_status = $1, anon_user_id = 'guest' WHERE collection_id = $2 AND file_id = $3`,
+		ente.ModerationPending, collectionID, pendingFileID,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(
+		`UPDATE files SET magic_metadata = '{"version":1,"count":1,"data":"private","header":"header"}'::jsonb WHERE file_id = $1`,
+		pendingFileID,
+	); err != nil {
+		t.Fatal(err)
+	}
+	controller := &CollectionController{
+		AccessCtrl:     access.NewAccessController(collectionRepo, nil),
+		CollectionRepo: collectionRepo,
+	}
+
+	for _, tc := range []struct {
+		name           string
+		actor          int64
+		includePending bool
+		wantFull       bool
+		wantMagic      bool
+	}{
+		{name: "owner with flag", actor: ownerID, includePending: true, wantFull: true, wantMagic: true},
+		{name: "admin with flag", actor: adminID, includePending: true, wantFull: true},
+		{name: "admin without flag", actor: adminID},
+		{name: "viewer with flag", actor: viewerID, includePending: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := newBatchShareTestContext(tc.actor)
+			files, _, err := controller.GetDiffV2(ctx, collectionID, tc.actor, 0, tc.includePending)
+			if err != nil {
+				t.Fatal(err)
+			}
+			diffFile := findFileDiffTestFile(t, files, pendingFileID)
+			file, err := controller.GetFile(ctx, collectionID, pendingFileID, tc.includePending)
+			if !tc.wantFull {
+				if !diffFile.IsDeleted || diffFile.EncryptedKey != "" || diffFile.ModerationStatus != nil || diffFile.AnonUserID != nil {
+					t.Fatalf("pending upload was not a tombstone: %+v", diffFile)
+				}
+				if file != nil || !errors.Is(err, &ente.ErrFileNotFoundInAlbum) {
+					t.Fatalf("pending file lookup = (%+v, %v), want file not found", file, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, got := range []ente.File{diffFile, *file} {
+				if got.IsDeleted || got.EncryptedKey != "collection-file-key" ||
+					got.ModerationStatus == nil || *got.ModerationStatus != ente.ModerationPending ||
+					got.AnonUserID == nil || *got.AnonUserID != "guest" || (got.MagicMetadata != nil) != tc.wantMagic {
+					t.Fatalf("unexpected pending upload: %+v", got)
+				}
+			}
+		})
 	}
 }
 

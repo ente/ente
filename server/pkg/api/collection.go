@@ -392,7 +392,8 @@ func (h *CollectionHandler) GetDiffV2(c *gin.Context) {
 	userID := auth.GetUserID(c.Request.Header)
 	cID, _ := strconv.ParseInt(c.Query("collectionID"), 10, 64)
 	sinceTime, _ := strconv.ParseInt(c.Query("sinceTime"), 10, 64)
-	files, hasMore, err := h.Controller.GetDiffV2(c, cID, userID, sinceTime)
+	includePending := c.Query("includePending") == "true"
+	files, hasMore, err := h.Controller.GetDiffV2(c, cID, userID, sinceTime, includePending)
 	if err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
@@ -406,7 +407,8 @@ func (h *CollectionHandler) GetDiffV2(c *gin.Context) {
 func (h *CollectionHandler) GetFile(c *gin.Context) {
 	cID, _ := strconv.ParseInt(c.Query("collectionID"), 10, 64)
 	fileID, _ := strconv.ParseInt(c.Query("fileID"), 10, 64)
-	file, err := h.Controller.GetFile(c, cID, fileID)
+	includePending := c.Query("includePending") == "true"
+	file, err := h.Controller.GetFile(c, cID, fileID, includePending)
 	if err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return

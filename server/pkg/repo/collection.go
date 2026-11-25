@@ -1080,7 +1080,7 @@ func (repo *CollectionRepository) GetDiff(collectionID int64, sinceTime int64, l
             files.file_decryption_header, files.thumbnail_decryption_header,
             files.metadata_decryption_header, files.encrypted_metadata, files.magic_metadata, files.pub_magic_metadata, 
             files.info, collection_files.action_user, collection_files.action, collection_files.is_deleted, collection_files.updation_time, collection_files.created_at,
-            collection_files.moderation_status
+            collection_files.moderation_status, collection_files.anon_user_id
         FROM files
         INNER JOIN collection_files
         ON collection_files.file_id = files.file_id
@@ -1106,7 +1106,7 @@ func (repo *CollectionRepository) GetFilesWithVersion(collectionID int64, update
             files.file_decryption_header, files.thumbnail_decryption_header,
             files.metadata_decryption_header, files.encrypted_metadata, files.magic_metadata, files.pub_magic_metadata,
             files.info, collection_files.action_user, collection_files.action, collection_files.is_deleted, collection_files.updation_time, collection_files.created_at,
-            collection_files.moderation_status
+            collection_files.moderation_status, collection_files.anon_user_id
         FROM files
         INNER JOIN collection_files
         ON collection_files.file_id = files.file_id
@@ -1126,7 +1126,7 @@ func (repo *CollectionRepository) GetFile(collectionID int64, fileID int64) ([]e
             files.file_decryption_header, files.thumbnail_decryption_header,
             files.metadata_decryption_header, files.encrypted_metadata, files.magic_metadata, files.pub_magic_metadata,
             files.info, collection_files.action_user, collection_files.action, collection_files.is_deleted, collection_files.updation_time, collection_files.created_at,
-            collection_files.moderation_status
+            collection_files.moderation_status, collection_files.anon_user_id
         FROM files
         INNER JOIN collection_files
         ON collection_files.file_id = files.file_id

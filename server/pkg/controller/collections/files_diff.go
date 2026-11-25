@@ -11,20 +11,21 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func (c *CollectionController) GetDiffV2(ctx *gin.Context, cID int64, userID int64, sinceTime int64) ([]ente.File, bool, error) {
+func (c *CollectionController) GetDiffV2(ctx *gin.Context, cID int64, userID int64, sinceTime int64, includePending bool) ([]ente.File, bool, error) {
 	reqContextLogger := log.WithFields(log.Fields{
 		"user_id":       userID,
 		"collection_id": cID,
 		"since_time":    sinceTime,
 		"req_id":        requestid.Get(ctx),
 	})
-	_, err := c.AccessCtrl.GetCollection(ctx, &access.GetCollectionParams{
+	resp, err := c.AccessCtrl.GetCollection(ctx, &access.GetCollectionParams{
 		CollectionID: cID,
 		ActorUserID:  userID,
 	})
 	if err != nil {
 		return nil, false, stacktrace.Propagate(err, "failed to verify access")
 	}
+	includePending = includePending && canModerate(*resp.Role)
 	diff, hasMore, err := c.getDiff(cID, sinceTime, CollectionDiffLimit, reqContextLogger)
 	if err != nil {
 		return nil, false, stacktrace.Propagate(err, "")
@@ -52,15 +53,26 @@ func (c *CollectionController) GetDiffV2(ctx *gin.Context, cID int64, userID int
 			diff[idx].IsDeleted = true
 		}
 	}
-	scrubDeletedFiles(diff)
+	scrubDeletedFiles(diff, includePending)
 	return diff, hasMore, nil
 }
 
-func scrubDeletedFiles(files []ente.File) {
+func canModerate(role ente.CollectionParticipantRole) bool {
+	return role == ente.OWNER || role == ente.ADMIN
+}
+
+func isPendingUpload(file ente.File) bool {
+	return file.ModerationStatus != nil && *file.ModerationStatus == ente.ModerationPending
+}
+
+func scrubDeletedFiles(files []ente.File, includePending bool) {
 	for idx := range files {
 		file := &files[idx]
-		if !file.IsDeleted && (file.ModerationStatus == nil || *file.ModerationStatus != ente.ModerationPending) {
-			file.ModerationStatus = nil
+		pending := isPendingUpload(*file)
+		if !file.IsDeleted && (!pending || includePending) {
+			if !pending {
+				file.ModerationStatus, file.AnonUserID = nil, nil
+			}
 			continue
 		}
 		files[idx] = ente.File{

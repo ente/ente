@@ -57,6 +57,6 @@ func (c *CollectionController) GetCastDiff(ctx *gin.Context, sinceTime int64) ([
 			diff[idx].IsDeleted = true
 		}
 	}
-	scrubDeletedFiles(diff)
+	scrubDeletedFiles(diff, false)
 	return diff, hasMore, nil
 }
