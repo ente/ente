@@ -19,22 +19,32 @@ Future<void> showVerifyIdentitySheet(
   required bool self,
   String email = '',
   String? title,
+  Future<String?> Function(String)? lookupPublicKey,
 }) {
   return showBottomSheetComponent<void>(
     context: context,
     builder: (sheetContext) => BottomSheetComponent(
       title: title ?? sheetContext.strings.verify,
-      content: _VerifyIdentitySheetContent(self: self, email: email),
+      content: _VerifyIdentitySheetContent(
+        self: self,
+        email: email,
+        lookupPublicKey: lookupPublicKey,
+      ),
     ),
   );
 }
 
 class _VerifyIdentitySheetContent extends StatefulWidget {
   final String email;
+  final Future<String?> Function(String)? lookupPublicKey;
 
   final bool self;
 
-  _VerifyIdentitySheetContent({required this.self, this.email = ''}) {
+  _VerifyIdentitySheetContent({
+    required this.self,
+    this.email = '',
+    this.lookupPublicKey,
+  }) {
     if (!self && email.isEmpty) {
       throw ArgumentError("email cannot be empty when self is false");
     }
@@ -47,6 +57,8 @@ class _VerifyIdentitySheetContent extends StatefulWidget {
 
 class _VerifyIdentitySheetContentState
     extends State<_VerifyIdentitySheetContent> {
+  late final _publicKey = _getPublicKey();
+
   @override
   Widget build(BuildContext context) {
     final String subTitle = widget.self
@@ -59,7 +71,7 @@ class _VerifyIdentitySheetContentState
     final colors = context.componentColors;
 
     return FutureBuilder<String>(
-      future: _getPublicKey(),
+      future: _publicKey,
       builder: (context, snapshot) {
         if (snapshot.hasData) {
           final publicKey = snapshot.data!;
@@ -121,13 +133,8 @@ class _VerifyIdentitySheetContentState
     if (widget.self) {
       return Configuration.instance.getKeyAttributes()!.publicKey;
     }
-    final String? userPublicKey = await UserService.instance.getPublicKey(
-      widget.email,
-    );
-    if (userPublicKey == null) {
-      return "";
-    }
-    return userPublicKey;
+    final lookup = widget.lookupPublicKey ?? UserService.instance.getPublicKey;
+    return await lookup(widget.email) ?? "";
   }
 
   Widget _verificationIDSheetWidget(BuildContext context, String publicKey) {

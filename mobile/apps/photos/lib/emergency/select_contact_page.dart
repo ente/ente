@@ -51,6 +51,7 @@ class _AddContactSheetState extends State<AddContactSheet> {
   final Set<String> _selectedEmails = <String>{};
   String _email = "";
   bool _emailIsValid = false;
+  final _recipientKeys = <String, String>{};
   int _selectedRecoveryDays = 14;
   late final Logger _logger = Logger("AddContactSheet");
 
@@ -194,6 +195,15 @@ class _AddContactSheetState extends State<AddContactSheet> {
     );
   }
 
+  Future<String?> _recipientKey(String email) async {
+    final address = email.trim().toLowerCase();
+    final existing = _recipientKeys[address];
+    if (existing != null) return existing;
+    final key = await UserService.instance.getPublicKey(address);
+    if (key == null) return null;
+    return _recipientKeys.putIfAbsent(address, () => key);
+  }
+
   Future<bool> _addContact(String email, int recoveryNoticeInDays) async {
     if (!isValidEmail(email)) {
       if (!mounted) return false;
@@ -215,9 +225,16 @@ class _AddContactSheetState extends State<AddContactSheet> {
       return false;
     }
     try {
+      final key = await _recipientKey(email);
+      if (key == null) {
+        throw const LegacyError.contactNotOnEnte(
+          message: "Contact not on Ente",
+        );
+      }
       await legacy.addContact(
         session: authenticatedSession(),
         email: email,
+        publicKey: key,
         recoveryNoticeInDays: recoveryNoticeInDays,
       );
       return true;
@@ -311,7 +328,12 @@ class _AddContactSheetState extends State<AddContactSheet> {
       return;
     }
 
-    await showVerifyIdentitySheet(context, self: false, email: emailToAdd);
+    await showVerifyIdentitySheet(
+      context,
+      self: false,
+      email: emailToAdd,
+      lookupPublicKey: _recipientKey,
+    );
   }
 
   List<UserSuggestion> _getSuggestedUser() {
