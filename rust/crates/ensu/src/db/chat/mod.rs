@@ -60,7 +60,26 @@ impl<B: Backend> ChatDb<B> {
         }
     }
 
-    pub(super) fn tools_changed(&self) {
+    pub(crate) fn transaction<T>(
+        &self,
+        f: impl for<'a> FnOnce(&B::Tx<'a>) -> Result<T>,
+    ) -> Result<T> {
+        self.backend.transaction(f)
+    }
+
+    pub(crate) fn reader(&self) -> &B {
+        &self.backend
+    }
+
+    pub(crate) fn now_us(&self) -> i64 {
+        self.clock.now_us()
+    }
+
+    pub(crate) fn new_uuid(&self) -> Uuid {
+        self.uuid_gen.new_uuid()
+    }
+
+    pub(crate) fn tools_changed(&self) {
         let observer = self.tools_observer.read().ok().and_then(|o| o.clone());
         if let Some(observer) = observer {
             observer();

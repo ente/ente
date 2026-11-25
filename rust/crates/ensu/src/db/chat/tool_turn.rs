@@ -146,7 +146,7 @@ fn no_turn(reply: Uuid) -> Error {
 
 impl<B: Backend> ChatDb<B> {
     pub(crate) fn now_ms(&self) -> i64 {
-        self.clock.now_us() / 1000
+        self.now_us() / 1000
     }
 
     pub(super) fn open<T: DeserializeOwned>(&self, blob: &[u8]) -> Result<T> {
@@ -165,7 +165,7 @@ impl<B: Backend> ChatDb<B> {
         user_text: &str,
     ) -> Result<TurnTools> {
         let messages = snapshot.messages();
-        let (request, applied) = self.request_text(&self.backend, messages, user_text)?;
+        let (request, applied) = self.request_text(self.reader(), messages, user_text)?;
         let mut tools = self.todo_tools(&snapshot.todos, request);
         if applied {
             tools.allowed = Some(Vec::new());
@@ -185,7 +185,7 @@ impl<B: Backend> ChatDb<B> {
     ) -> Result<(&'a str, bool)> {
         let mut applied = false;
         let text = crate::todo::request_text(messages, user_text, |reply| {
-            let Some(turn) = self.read_turn(tx, reply.uuid)? else {
+            let Some(turn) = self.turn::<_, TurnRecord>(tx, reply.uuid)? else {
                 return Ok::<_, Error>(false);
             };
             applied |= turn.live() || turn.undone.is_some_and(|undone| undone.kept_edits);
@@ -216,7 +216,7 @@ impl<B: Backend> ChatDb<B> {
             .messages()
             .last()
             .map_or("", |message| message.text.as_str());
-        let (_, applied) = self.request_text(&self.backend, snapshot.messages(), user_text)?;
+        let (_, applied) = self.request_text(self.reader(), snapshot.messages(), user_text)?;
         if applied || tools.is_some_and(|tools| !tools.calls.is_empty()) {
             let finished = self.apply_tool_calls(snapshot, tools, text, can_finish)?;
             self.tools_changed();
@@ -243,7 +243,7 @@ impl<B: Backend> ChatDb<B> {
         reply_text: &str,
         can_finish: &dyn Fn(&ToolOutcome, i64) -> bool,
     ) -> Result<FinishedReply> {
-        let created_at = self.clock.now_us();
+        let created_at = self.now_us();
         let request = snapshot
             .messages()
             .last()
@@ -254,19 +254,16 @@ impl<B: Backend> ChatDb<B> {
             .iter()
             .rev()
             .find(|message| message.sender == Sender::Other)
-            .map(|reply| self.read_turn(&self.backend, reply.uuid))
+            .map(|reply| self.turn::<_, TurnRecord>(self.reader(), reply.uuid))
             .transpose()?
             .flatten()
             .map(|turn| turn.todo.shown)
             .unwrap_or_default();
-        self.backend.transaction(|tx| {
-            if !super::conversation::snapshot_matches(tx, snapshot, false)? {
-                return Err(Error::ConversationChanged);
-            }
+        let (message, state) = self.commit_tool_turn(snapshot, request, created_at, |tx| {
             if tools.is_some_and(|outcome| !can_finish(outcome, created_at / 1000)) {
                 return Err(Error::ConversationChanged);
             }
-            for (_, earlier) in self.read_turns_from(tx, request.uuid)? {
+            for (_, earlier) in self.turns_by_source::<_, TurnRecord>(tx, request.uuid)? {
                 if self.undoable(tx, &earlier)? {
                     return Err(Refusal::EarlierReplyStands.into());
                 }
@@ -297,8 +294,29 @@ impl<B: Backend> ChatDb<B> {
                 text.push_str(reply_text.trim());
             }
             let record = TurnRecord::new(request.uuid, calls, todo);
+            let state = self.state(tx, &record)?;
+            Ok((text, record, state))
+        })?;
+        Ok(FinishedReply {
+            message,
+            tool_turn: Some(state),
+        })
+    }
+
+    pub(crate) fn commit_tool_turn<R: Serialize, S>(
+        &self,
+        snapshot: &ConversationSnapshot,
+        request: &Message,
+        created_at: i64,
+        decide: impl for<'a> FnOnce(&B::Tx<'a>) -> Result<(String, R, S)>,
+    ) -> Result<(Message, S)> {
+        self.transaction(|tx| {
+            if !super::conversation::snapshot_matches(tx, snapshot, false)? {
+                return Err(Error::ConversationChanged);
+            }
+            let (text, record, state) = decide(tx)?;
             let reply = Message {
-                uuid: self.uuid_gen.new_uuid(),
+                uuid: self.new_uuid(),
                 session_uuid: request.session_uuid,
                 parent_message_uuid: Some(request.uuid),
                 sender: Sender::Other,
@@ -308,15 +326,12 @@ impl<B: Backend> ChatDb<B> {
             };
             self.write_message(tx, &reply)?;
             self.touch_session_at_least(tx, reply.session_uuid, created_at)?;
-            self.write_turn(tx, reply.uuid, &record)?;
-            Ok(FinishedReply {
-                message: reply,
-                tool_turn: Some(self.state(tx, &record)?),
-            })
+            self.put_turn(tx, reply.uuid, request.uuid, &record)?;
+            Ok((reply, state))
         })
     }
 
-    fn reply_changed<T: BackendTx>(&self, tx: &T, reply: Uuid) -> Result<()> {
+    pub(crate) fn reply_edited<T: BackendTx>(&self, tx: &T, reply: Uuid) -> Result<()> {
         let row = tx.query_row(
             "SELECT session_uuid FROM messages WHERE message_uuid = ?",
             &[Value::Text(reply.to_string())],
@@ -333,10 +348,10 @@ impl<B: Backend> ChatDb<B> {
 
     pub(super) fn withdraw_offers<T: BackendTx>(&self, tx: &T, source: Uuid) -> Result<bool> {
         let mut withdrew = false;
-        for (reply, mut earlier) in self.read_turns_from(tx, source)? {
+        for (reply, mut earlier) in self.turns_by_source::<_, TurnRecord>(tx, source)? {
             if earlier.pending() {
                 earlier.offer = Some(Offer::Withdrawn);
-                self.write_turn(tx, reply, &earlier)?;
+                self.put_turn(tx, reply, earlier.source_id, &earlier)?;
                 withdrew = true;
             }
         }
@@ -345,8 +360,10 @@ impl<B: Backend> ChatDb<B> {
 
     pub fn confirm_tool_turn(&self, reply: Uuid) -> Result<ToolTurnState> {
         let now = self.now_ms();
-        let (confirmed, changed) = self.backend.transaction(|tx| {
-            let mut record = self.read_turn(tx, reply)?.ok_or_else(|| no_turn(reply))?;
+        let (confirmed, changed) = self.transaction(|tx| {
+            let mut record = self
+                .turn::<_, TurnRecord>(tx, reply)?
+                .ok_or_else(|| no_turn(reply))?;
             match record.offer {
                 None => return Err(Refusal::NothingOffered.into()),
                 Some(Offer::Confirmed) => return Ok((Ok(self.state(tx, &record)?), false)),
@@ -359,8 +376,8 @@ impl<B: Backend> ChatDb<B> {
             } else {
                 Offer::Withdrawn
             });
-            self.write_turn(tx, reply, &record)?;
-            self.reply_changed(tx, reply)?;
+            self.put_turn(tx, reply, record.source_id, &record)?;
+            self.reply_edited(tx, reply)?;
             let confirmed = if stands {
                 Ok(self.state(tx, &record)?)
             } else {
@@ -376,8 +393,10 @@ impl<B: Backend> ChatDb<B> {
 
     pub fn undo_tool_turn(&self, reply: Uuid) -> Result<ToolTurnState> {
         let now = self.now_ms();
-        let (undone, changed) = self.backend.transaction(|tx| {
-            let mut record = self.read_turn(tx, reply)?.ok_or_else(|| no_turn(reply))?;
+        let (undone, changed) = self.transaction(|tx| {
+            let mut record = self
+                .turn::<_, TurnRecord>(tx, reply)?
+                .ok_or_else(|| no_turn(reply))?;
             if record.undone.is_some() {
                 return Ok((self.state(tx, &record)?, false));
             }
@@ -391,8 +410,8 @@ impl<B: Backend> ChatDb<B> {
             record.undone = Some(Undone {
                 kept_edits: reverted < record.todo.changes.len(),
             });
-            self.write_turn(tx, reply, &record)?;
-            self.reply_changed(tx, reply)?;
+            self.put_turn(tx, reply, record.source_id, &record)?;
+            self.reply_edited(tx, reply)?;
             Ok((self.state(tx, &record)?, true))
         })?;
         if changed {
@@ -426,7 +445,17 @@ impl<B: Backend> ChatDb<B> {
     }
 
     pub fn tool_turn_states(&self, session: Uuid) -> Result<HashMap<Uuid, ToolTurnState>> {
-        self.backend
+        self.session_turns::<TurnRecord>(session)?
+            .into_iter()
+            .map(|(reply, record)| Ok((reply, self.state(self.reader(), &record)?)))
+            .collect()
+    }
+
+    pub(crate) fn session_turns<R: DeserializeOwned>(
+        &self,
+        session: Uuid,
+    ) -> Result<Vec<(Uuid, R)>> {
+        self.reader()
             .query(
                 "SELECT t.reply_id, t.record FROM tool_turns t
                  JOIN messages m ON m.message_uuid = t.reply_id
@@ -435,10 +464,9 @@ impl<B: Backend> ChatDb<B> {
             )?
             .iter()
             .map(|row| {
-                let record: TurnRecord = self.open(&row.get_blob(1)?)?;
                 Ok((
                     Uuid::parse_str(&row.get_string(0)?)?,
-                    self.state(&self.backend, &record)?,
+                    self.open(&row.get_blob(1)?)?,
                 ))
             })
             .collect()
@@ -451,7 +479,7 @@ impl<B: Backend> ChatDb<B> {
             .map(|message| message.uuid)
             .collect();
         Ok(self
-            .read_turns(&replies)?
+            .turns_for::<TurnRecord>(&replies)?
             .into_iter()
             .map(|(reply, record)| {
                 let history = ToolTurnHistory {
@@ -466,7 +494,11 @@ impl<B: Backend> ChatDb<B> {
             .collect())
     }
 
-    fn read_turn<T: BackendTx>(&self, tx: &T, reply: Uuid) -> Result<Option<TurnRecord>> {
+    pub(crate) fn turn<T: BackendTx, R: DeserializeOwned>(
+        &self,
+        tx: &T,
+        reply: Uuid,
+    ) -> Result<Option<R>> {
         tx.query_row(
             "SELECT record FROM tool_turns WHERE reply_id = ?",
             &[Value::Text(reply.to_string())],
@@ -475,20 +507,29 @@ impl<B: Backend> ChatDb<B> {
         .transpose()
     }
 
-    fn write_turn<T: BackendTx>(&self, tx: &T, reply: Uuid, record: &TurnRecord) -> Result<()> {
+    pub(crate) fn put_turn<T: BackendTx, R: Serialize>(
+        &self,
+        tx: &T,
+        reply: Uuid,
+        source: Uuid,
+        record: &R,
+    ) -> Result<()> {
         tx.execute(
             "INSERT INTO tool_turns (reply_id, source_id, record) VALUES (?, ?, ?)
              ON CONFLICT(reply_id) DO UPDATE SET record = excluded.record",
             &[
                 Value::Text(reply.to_string()),
-                Value::Text(record.source_id.to_string()),
+                Value::Text(source.to_string()),
                 Value::Blob(self.seal(record)?),
             ],
         )?;
         Ok(())
     }
 
-    fn read_turns(&self, replies: &[Uuid]) -> Result<HashMap<Uuid, TurnRecord>> {
+    pub(crate) fn turns_for<R: DeserializeOwned>(
+        &self,
+        replies: &[Uuid],
+    ) -> Result<HashMap<Uuid, R>> {
         let mut turns = HashMap::new();
         for batch in replies.chunks(super::conversation::MESSAGE_QUERY_BATCH_SIZE) {
             let placeholders = vec!["?"; batch.len()].join(", ");
@@ -508,11 +549,11 @@ impl<B: Backend> ChatDb<B> {
         Ok(turns)
     }
 
-    fn read_turns_from<T: BackendTx>(
+    pub(crate) fn turns_by_source<T: BackendTx, R: DeserializeOwned>(
         &self,
         tx: &T,
         source: Uuid,
-    ) -> Result<Vec<(Uuid, TurnRecord)>> {
+    ) -> Result<Vec<(Uuid, R)>> {
         tx.query(
             "SELECT reply_id, record FROM tool_turns WHERE source_id = ?",
             &[Value::Text(source.to_string())],

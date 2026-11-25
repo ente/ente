@@ -77,7 +77,7 @@ impl<B: Backend> ChatDb<B> {
                     "Conversation history omits an existing ancestor".into(),
                 ));
             }
-            Ok((envelope, rows, turn_rows(tx, path)?, self.read_todos(tx)?))
+            Ok((envelope, rows, turn_rows(tx, path)?, self.todos(tx)?))
         })?;
         let messages = rows
             .iter()

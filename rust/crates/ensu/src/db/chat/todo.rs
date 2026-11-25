@@ -35,7 +35,7 @@ fn not_found(id: Uuid) -> Error {
 }
 
 impl<B: Backend> ChatDb<B> {
-    fn read_todo<T: BackendTx>(&self, tx: &T, id: Uuid) -> Result<Option<Todo>> {
+    pub(crate) fn todo<T: BackendTx>(&self, tx: &T, id: Uuid) -> Result<Option<Todo>> {
         tx.query_row(
             "SELECT record FROM todos WHERE todo_id = ?",
             &[Value::Text(id.to_string())],
@@ -44,14 +44,14 @@ impl<B: Backend> ChatDb<B> {
         .transpose()
     }
 
-    pub(super) fn read_todos<T: BackendTx>(&self, tx: &T) -> Result<Vec<Todo>> {
+    pub(crate) fn todos<T: BackendTx>(&self, tx: &T) -> Result<Vec<Todo>> {
         tx.query("SELECT record FROM todos ORDER BY created_at, rowid", &[])?
             .into_iter()
             .map(|row| self.open(&row.get_blob(0)?))
             .collect()
     }
 
-    fn write_todo<T: BackendTx>(&self, tx: &T, todo: &Todo) -> Result<()> {
+    pub(crate) fn put_todo<T: BackendTx>(&self, tx: &T, todo: &Todo) -> Result<()> {
         tx.execute(
             "INSERT INTO todos (todo_id, record, created_at) VALUES (?, ?, ?)
              ON CONFLICT(todo_id) DO UPDATE SET record = excluded.record",
@@ -64,7 +64,7 @@ impl<B: Backend> ChatDb<B> {
         Ok(())
     }
 
-    fn remove_todo<T: BackendTx>(&self, tx: &T, id: Uuid) -> Result<()> {
+    pub(crate) fn delete_todo_row<T: BackendTx>(&self, tx: &T, id: Uuid) -> Result<()> {
         let affected = tx.execute(
             "DELETE FROM todos WHERE todo_id = ?",
             &[Value::Text(id.to_string())],
@@ -77,7 +77,7 @@ impl<B: Backend> ChatDb<B> {
     }
 
     fn current<T: BackendTx>(&self, tx: &T, id: Uuid, version: u64) -> Result<Todo> {
-        let todo = self.read_todo(tx, id)?.ok_or_else(|| not_found(id))?;
+        let todo = self.todo(tx, id)?.ok_or_else(|| not_found(id))?;
         if todo.version != version {
             return Err(conflict());
         }
@@ -85,7 +85,7 @@ impl<B: Backend> ChatDb<B> {
     }
 
     pub fn list_todos(&self) -> Result<Vec<Todo>> {
-        let mut todos = self.read_todos(&self.backend)?;
+        let mut todos = self.todos(&self.backend)?;
         todo::sort_for_display(&mut todos);
         Ok(todos)
     }
@@ -97,7 +97,7 @@ impl<B: Backend> ChatDb<B> {
     }
 
     pub fn get_todo(&self, id: Uuid) -> Result<Option<Todo>> {
-        self.read_todo(&self.backend, id)
+        self.todo(&self.backend, id)
     }
 
     fn typed_title(title: &str) -> Result<String> {
@@ -113,8 +113,8 @@ impl<B: Backend> ChatDb<B> {
 
     pub fn create_todo(&self, title: &str, due_at_ms: Option<i64>) -> Result<Todo> {
         let title = Self::typed_title(title)?;
-        let todo = Todo::new(self.uuid_gen.new_uuid(), title, due_at_ms, self.now_ms());
-        self.write_todo(&self.backend, &todo)?;
+        let todo = Todo::new(self.new_uuid(), title, due_at_ms, self.now_ms());
+        self.put_todo(&self.backend, &todo)?;
         self.tools_changed();
         Ok(todo)
     }
@@ -137,7 +137,7 @@ impl<B: Backend> ChatDb<B> {
                 todo.title = title;
                 todo.due_at_ms = due_at_ms;
             });
-            self.write_todo(tx, &after)?;
+            self.put_todo(tx, &after)?;
             Ok((after, true))
         })?;
         if changed {
@@ -156,7 +156,7 @@ impl<B: Backend> ChatDb<B> {
             let after = before.changed(now, |todo| {
                 todo.completed_at_ms = completed.then_some(now);
             });
-            self.write_todo(tx, &after)?;
+            self.put_todo(tx, &after)?;
             Ok((after, true))
         })?;
         if changed {
@@ -169,7 +169,7 @@ impl<B: Backend> ChatDb<B> {
         self.backend
             .transaction(|tx| {
                 self.current(tx, id, version)?;
-                self.remove_todo(tx, id)
+                self.delete_todo_row(tx, id)
             })
             .inspect(|_| self.tools_changed())
     }
@@ -195,7 +195,7 @@ impl<B: Backend> ChatDb<B> {
                 call_probability,
                 &mut || {
                     if next == new_ids.len() {
-                        new_ids.push(self.uuid_gen.new_uuid());
+                        new_ids.push(self.new_uuid());
                     }
                     let id = new_ids[next];
                     next += 1;
@@ -204,7 +204,7 @@ impl<B: Backend> ChatDb<B> {
             )
             .map_err(|name| Error::UnsupportedOperation(format!("Unknown To Do call {name}")))
         };
-        let plan = plan_for(self.read_todos(tx)?)?;
+        let plan = plan_for(self.todos(tx)?)?;
         if calls.iter().any(|call| call.name == todo::COMPLETE_TOOL) {
             let prepared = plan_for(captured.to_vec())?;
             if plan.changes != prepared.changes {
@@ -225,7 +225,7 @@ impl<B: Backend> ChatDb<B> {
                 .iter()
                 .filter_map(|change| change.after.as_ref())
             {
-                self.write_todo(tx, after)?;
+                self.put_todo(tx, after)?;
             }
             data.changes = plan.changes;
         }
@@ -246,7 +246,7 @@ impl<B: Backend> ChatDb<B> {
             .iter()
             .filter_map(|change| change.after.as_ref())
         {
-            let current = self.read_todo(tx, after.id)?;
+            let current = self.todo(tx, after.id)?;
             let mut todo = after.clone();
             todo.updated_at_ms = now;
             match &current {
@@ -256,7 +256,7 @@ impl<B: Backend> ChatDb<B> {
             if todo.completed_at_ms.is_some() {
                 todo.completed_at_ms = Some(now);
             }
-            self.write_todo(tx, &todo)?;
+            self.put_todo(tx, &todo)?;
             data.changes.push(TodoChange {
                 before: current,
                 after: Some(todo),
@@ -277,12 +277,12 @@ impl<B: Backend> ChatDb<B> {
                 continue;
             };
             match &change.before {
-                None => self.remove_todo(tx, current.id)?,
+                None => self.delete_todo_row(tx, current.id)?,
                 Some(before) => {
                     let mut restored = before.clone();
                     restored.version = current.version + 1;
                     restored.updated_at_ms = now;
-                    self.write_todo(tx, &restored)?;
+                    self.put_todo(tx, &restored)?;
                 }
             }
             reverted += 1;
@@ -295,7 +295,7 @@ impl<B: Backend> ChatDb<B> {
             return Ok(None);
         };
         Ok(self
-            .read_todo(tx, after.id)?
+            .todo(tx, after.id)?
             .filter(|current| same_task(current, after)))
     }
 
@@ -309,11 +309,11 @@ impl<B: Backend> ChatDb<B> {
             let Some(after) = &proposed.after else {
                 continue;
             };
-            let unchanged = match (self.read_todo(tx, after.id)?, &proposed.before) {
+            let unchanged = match (self.todo(tx, after.id)?, &proposed.before) {
                 (None, None) => {
                     let todos = match &todos {
                         Some(todos) => todos,
-                        None => todos.insert(self.read_todos(tx)?),
+                        None => todos.insert(self.todos(tx)?),
                     };
                     !todos.iter().any(|todo| {
                         todo.created_at_ms >= after.created_at_ms
