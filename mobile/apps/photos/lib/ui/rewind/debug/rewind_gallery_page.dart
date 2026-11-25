@@ -33,7 +33,7 @@ const rewindSampleRituals = RewindRituals(
   icons: ["🏃", "📚"],
 );
 
-const rewindTopPercentPages = <RewindPage>[
+final rewindTopPercentPages = <RewindPage>[
   TopPercentPage(percent: 1, count: 15059),
   TopPercentPage(percent: 8, count: 5765),
   TopPercentPage(percent: 13, count: 4170),
