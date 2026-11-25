@@ -5,6 +5,7 @@ mod phrase;
 mod plan;
 mod refine;
 pub mod timing;
+pub(crate) mod tool;
 mod wording;
 
 use chrono::TimeZone;
@@ -540,4 +541,16 @@ mod tests {
             );
         }
     }
+}
+
+pub(crate) fn typed_title(title: &str) -> crate::db::Result<String> {
+    use crate::db::Refusal;
+    let title = clean_title(title).ok_or(Refusal::TitleMissing)?;
+    if title.chars().count() > MAX_TITLE_CHARS {
+        return Err(Refusal::TitleTooLong {
+            max: MAX_TITLE_CHARS,
+        }
+        .into());
+    }
+    Ok(title)
 }

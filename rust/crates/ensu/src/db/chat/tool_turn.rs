@@ -4,7 +4,6 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use super::todo::TodoTurnData;
 use super::{ChatDb, ConversationSnapshot};
 use crate::conversation::{ToolTurnHistory, TurnTools};
 use crate::db::backend::{Backend, BackendTx, RowExt, Value};
@@ -12,6 +11,7 @@ use crate::db::crypto;
 use crate::db::models::{AttachmentMeta, EntityType, Message, Sender};
 use crate::db::{Error, Refusal, Result};
 use crate::llm::{ToolCall, ToolOutcome};
+use crate::todo::tool::{self, TodoTurnData};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FinishedReply {
@@ -166,7 +166,7 @@ impl<B: Backend> ChatDb<B> {
     ) -> Result<TurnTools> {
         let messages = snapshot.messages();
         let (request, applied) = self.request_text(self.reader(), messages, user_text)?;
-        let mut tools = self.todo_tools(&snapshot.todos, request);
+        let mut tools = tool::request(self, &snapshot.todos, request);
         if applied {
             tools.allowed = Some(Vec::new());
         }
@@ -277,7 +277,8 @@ impl<B: Backend> ChatDb<B> {
                     TodoTurnData::default(),
                 )
             } else {
-                self.apply_todo_calls(
+                tool::apply(
+                    self,
                     tx,
                     tools.map_or(&[], |tools| &tools.calls),
                     (&snapshot.todos, user_text),
@@ -370,7 +371,7 @@ impl<B: Backend> ChatDb<B> {
                 Some(Offer::Withdrawn) => return Ok((Err(Refusal::OfferStale.into()), false)),
                 Some(Offer::Pending) => {}
             }
-            let stands = self.confirm_todo_offer(tx, &mut record.todo, now)?;
+            let stands = tool::confirm(self, tx, &mut record.todo, now)?;
             record.offer = Some(if stands {
                 Offer::Confirmed
             } else {
@@ -403,7 +404,7 @@ impl<B: Backend> ChatDb<B> {
             if !record.changed() {
                 return Err(Refusal::NothingChanged.into());
             }
-            let reverted = self.undo_todo_changes(tx, &record.todo, now)?;
+            let reverted = tool::undo(self, tx, &record.todo, now)?;
             if reverted == 0 {
                 return Err(Refusal::UndoStale.into());
             }
@@ -421,7 +422,7 @@ impl<B: Backend> ChatDb<B> {
     }
 
     fn undoable<T: BackendTx>(&self, tx: &T, record: &TurnRecord) -> Result<bool> {
-        Ok(record.live() && self.todo_changes_stand(tx, &record.todo)?)
+        Ok(record.live() && tool::changes_stand(self, tx, &record.todo)?)
     }
 
     fn state<T: BackendTx>(&self, tx: &T, record: &TurnRecord) -> Result<ToolTurnState> {
@@ -429,12 +430,12 @@ impl<B: Backend> ChatDb<B> {
             _ if !record.changed() => Undo::None,
             Some(Undone { kept_edits: true }) => Undo::PartlyUndone,
             Some(Undone { kept_edits: false }) => Undo::Undone,
-            None if self.todo_changes_stand(tx, &record.todo)? => Undo::Available,
+            None if tool::changes_stand(self, tx, &record.todo)? => Undo::Available,
             None => Undo::Stale,
         };
         let confirm = match record.offer {
             None | Some(Offer::Confirmed) => Confirm::None,
-            Some(Offer::Pending) if self.todo_offer_stands(tx, &record.todo)? => Confirm::Offered,
+            Some(Offer::Pending) if tool::offer_stands(self, tx, &record.todo)? => Confirm::Offered,
             Some(Offer::Pending | Offer::Withdrawn) => Confirm::Stale,
         };
         Ok(ToolTurnState {
