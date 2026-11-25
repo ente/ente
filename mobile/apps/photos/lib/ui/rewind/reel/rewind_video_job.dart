@@ -54,6 +54,7 @@ class RewindVideoJob with WidgetsBindingObserver {
     required this.pages,
     this.reelOf = RewindReel.of,
     this.filePrefix = "ente-rewind-",
+    this.directory,
     this.format = RewindVideoFormat.fullHd,
     this.loadMedia,
     this.track,
@@ -83,6 +84,7 @@ class RewindVideoJob with WidgetsBindingObserver {
   final List<RewindPage> pages;
   final RewindReel Function(List<RewindPage> pages) reelOf;
   final String filePrefix;
+  final Future<String> Function()? directory;
   final RewindVideoFormat format;
   final Future<bool> Function(List<RewindPage> pages)? loadMedia;
   final MemoryMusicTrack? track;
@@ -194,7 +196,9 @@ class RewindVideoJob with WidgetsBindingObserver {
         throw const _Cancelled();
       }
       final reel = _reel = await _loadReel();
-      final directory = Configuration.instance.getTempDirectory();
+      final directory =
+          await this.directory?.call() ??
+          Configuration.instance.getTempDirectory();
       await _deleteOldVideos(directory);
       final output = File(
         "$directory$filePrefix${DateTime.now().millisecondsSinceEpoch}.mp4",

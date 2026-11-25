@@ -60,6 +60,8 @@ Future<RewindVideoJob?> pregenerateRewindVideo(
   Future<bool> Function(List<RewindPage> pages)? loadMedia,
   MemoryMusicTrack? track,
 }) async {
+  final fingerprint = _fingerprintOf(context, pages);
+  await _recallKeptVideo(pages, fingerprint);
   final cached = _videos[pages];
   if (cached != null && await cached.exists()) return null;
   if (!context.mounted) return null;
@@ -67,13 +69,50 @@ Future<RewindVideoJob?> pregenerateRewindVideo(
   if (!await _hasFrameHeadroom(refreshRate) || !context.mounted || !wanted()) {
     return null;
   }
-  final job = RewindVideoJob(
+  return _fullVideoJob(
     context,
     pages: pages,
+    fingerprint: fingerprint,
     loadMedia: loadMedia,
     track: track,
   );
-  job.video.then((video) => _videos[pages] = video).ignore();
+}
+
+String? _fingerprintOf(BuildContext context, List<RewindPage> pages) =>
+    rewindService.videoFingerprint(
+      pages,
+      Localizations.maybeLocaleOf(context) ??
+          WidgetsBinding.instance.platformDispatcher.locale,
+    );
+
+Future<void> _recallKeptVideo(
+  List<RewindPage> pages,
+  String? fingerprint,
+) async {
+  if (fingerprint == null || _videos[pages] != null) return;
+  _videos[pages] = await rewindService.keptVideo(fingerprint);
+}
+
+RewindVideoJob _fullVideoJob(
+  BuildContext context, {
+  required List<RewindPage> pages,
+  required String? fingerprint,
+  Future<bool> Function(List<RewindPage> pages)? loadMedia,
+  MemoryMusicTrack? track,
+  bool foreground = false,
+}) {
+  final job = RewindVideoJob(
+    context,
+    pages: pages,
+    directory: fingerprint == null ? null : rewindService.videoDirectory,
+    loadMedia: loadMedia,
+    track: track,
+    foreground: foreground,
+  );
+  job.video.then((video) async {
+    _videos[pages] = video;
+    if (fingerprint != null) await rewindService.keepVideo(fingerprint, video);
+  }).ignore();
   return job;
 }
 
@@ -364,18 +403,24 @@ Future<File?> _exportRewindVideo(
   Future<bool> Function(List<RewindPage> pages)? loadMedia,
   MemoryMusicTrack? track,
   RewindVideoJob? job,
-}) => _export(
-  context,
-  cacheKey: pages,
-  job: job,
-  start: () => RewindVideoJob(
+}) async {
+  final fingerprint = _fingerprintOf(context, pages);
+  await _recallKeptVideo(pages, fingerprint);
+  if (!context.mounted) return null;
+  return _export(
     context,
-    pages: pages,
-    loadMedia: loadMedia,
-    track: track,
-    foreground: true,
-  ),
-);
+    cacheKey: pages,
+    job: job,
+    start: () => _fullVideoJob(
+      context,
+      pages: pages,
+      fingerprint: fingerprint,
+      loadMedia: loadMedia,
+      track: track,
+      foreground: true,
+    ),
+  );
+}
 
 Future<File?> _export(
   BuildContext context, {
