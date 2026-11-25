@@ -46,7 +46,7 @@ _BadgeCopy _copyOf(rust.RewindBadge badge) => switch (badge) {
     title: "EARLY BIRD",
     pronunciation: "/ˈər-lē ˈbərd/",
     definition:
-        "Someone who’s caught a sunrise, a coffee and a whole adventure before your alarm goes off.",
+        "Someone who’s caught a sunrise, a coffee and a whole adventure before anyone else’s alarm goes off.",
   ),
   rust.RewindBadge.nightOwl => (
     title: "NIGHT OWL",
@@ -124,7 +124,7 @@ _BadgeCopy _copyOf(rust.RewindBadge badge) => switch (badge) {
     title: "ALWAYS\nROLLING",
     pronunciation: "/ˈȯl-wāz ˈrō-liŋ/",
     definition:
-        "Someone who doesn’t take photos, they take scenes. Hit record first, ask questions later.",
+        "Someone who doesn’t take photos, they take scenes. Hits record first, asks questions later.",
   ),
   rust.RewindBadge.fitCheck => (
     title: "FIT CHECK",
@@ -160,7 +160,7 @@ _BadgeCopy _copyOf(rust.RewindBadge badge) => switch (badge) {
     title: "GUEST STAR",
     pronunciation: "/ˈgest ˌstär/",
     definition:
-        "Someone who doesn’t show up often, but when they do, they steal the show. Every appearance is an event.",
+        "Someone who saves their camera for the big days, and then steals the show. Every appearance is an event.",
   ),
   rust.RewindBadge.mixedBag => (
     title: "MIXED BAG",
