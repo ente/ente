@@ -91,6 +91,33 @@ export const watchTodos = <T>(
     };
 };
 
+export const todoChanges = () => {
+    let shown: Todo[] = [];
+    let queue: Promise<void> = Promise.resolve();
+    return {
+        show(list: Todo[]) {
+            shown = list;
+        },
+        change(
+            todo: Todo,
+            action: (latest: Todo) => Promise<Todo | void>,
+        ): Promise<void> {
+            const next = queue.then(async () => {
+                const latest =
+                    shown.find((item) => item.id === todo.id) ?? todo;
+                const updated = await action(latest);
+                if (updated) {
+                    shown = shown.map((item) =>
+                        item.id === updated.id ? updated : item,
+                    );
+                }
+            });
+            queue = next.catch(() => undefined);
+            return next;
+        },
+    };
+};
+
 export const isOpen = (todo: Todo) => todo.completedAtMs === null;
 
 export const formatDue = (dueAtMs: number) => {
