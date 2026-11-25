@@ -623,6 +623,150 @@ impl ConversationCase {
     }
 }
 
+#[derive(Default)]
+struct Tally {
+    route_ok: usize,
+    calls_ok: usize,
+    false_changes: usize,
+    misses: usize,
+    raw_calls_ok: usize,
+    false_by_tool: std::collections::BTreeMap<&'static str, usize>,
+    failures: Vec<Value>,
+    probabilities: Vec<(Option<bool>, f32)>,
+    state_ok: usize,
+    state_ok_unconfirmed: usize,
+    unsafe_state_changes: usize,
+    state_failures: Vec<Value>,
+    correct_changes: usize,
+    unnecessary_confirmations: usize,
+    offers: usize,
+    wrong_offers: usize,
+    applied_false_changes: usize,
+    offered_false_changes: usize,
+}
+
+impl Tally {
+    fn add(
+        &mut self,
+        case: &Case,
+        outcome: &llm::ToolOutcome,
+        record: &Recorded,
+        completion: &CompletionContext,
+    ) -> bool {
+        self.probabilities.push((
+            (case.expect != "safe").then_some(case.expect == "tool"),
+            outcome.call_probability.unwrap_or_default(),
+        ));
+        let called = !outcome.calls.is_empty();
+        let scored = case.expect != "safe";
+        let routed = scored && called == (case.expect == "tool");
+        self.route_ok += usize::from(routed);
+        let expected_changes = case.expects_change();
+        if scored
+            && outcome
+                .calls
+                .iter()
+                .any(|call| CHANGES.contains(&call.name.as_str()))
+            && !expected_changes
+        {
+            self.false_changes += 1;
+        }
+        if case.expect == "reply" {
+            for name in [todo::SAVE_TOOL, todo::COMPLETE_TOOL, todo::LIST_TOOL] {
+                if outcome.calls.iter().any(|call| call.name == name) {
+                    *self.false_by_tool.entry(name).or_insert(0) += 1;
+                }
+            }
+        }
+        if case.expect == "tool" && !called {
+            self.misses += 1;
+        }
+        self.unsafe_state_changes += usize::from(!expected_changes && record.state.changed);
+        let state_matches = record.state.matches(case);
+        if case.state.is_some() {
+            if state_matches {
+                self.state_ok += 1;
+                self.state_ok_unconfirmed += usize::from(!(expected_changes && record.unsure));
+            } else {
+                self.state_failures
+                    .push(json!({"id": case.id, "expected": case.state, "listed": case.listed, "confirmation": case.confirmation, "actual": record.state}));
+            }
+        }
+        let refined = &record.calls;
+        let matches = |calls: &[ToolCall]| {
+            routed
+                && calls_match_with_context(
+                    &case.calls,
+                    calls,
+                    Some(completion.clone()),
+                    &record.state.listed,
+                )
+        };
+        self.raw_calls_ok += usize::from(matches(&outcome.calls));
+        let matched = matches(refined);
+        self.calls_ok += usize::from(matched);
+        let right = matched && case.state.as_ref().is_none_or(|_| state_matches);
+        self.correct_changes += usize::from(expected_changes && right);
+        self.unnecessary_confirmations += usize::from(expected_changes && right && record.unsure);
+        self.offers += usize::from(record.unsure);
+        self.wrong_offers += usize::from(record.unsure && !(expected_changes && right));
+        self.applied_false_changes +=
+            usize::from(scored && !expected_changes && record.state.changed);
+        self.offered_false_changes += usize::from(scored && !expected_changes && record.unsure);
+        if scored && !matched {
+            self.failures.push(json!({
+                "id": case.id,
+                "user": case.user,
+                "expected": case.expect,
+                "calls": refined,
+                "raw_calls": outcome.calls,
+                "reply": record.reply,
+                "call_probability": outcome.call_probability,
+            }));
+        }
+        matched
+    }
+
+    fn report(&self, cases: &[Case]) -> Value {
+        let route_cases = cases.iter().filter(|case| case.expect != "safe").count();
+        let state_cases = cases.iter().filter(|case| case.state.is_some()).count();
+        let reply_cases = cases.iter().filter(|case| case.expect == "reply").count();
+        let tool_cases = (route_cases - reply_cases).max(1) as f64;
+        let reply_cases = reply_cases.max(1) as f64;
+        let non_mutating = non_mutating_cases(cases);
+        json!({
+            "cases": cases.len(),
+            "route_cases": route_cases,
+            "route_accuracy": self.route_ok as f64 / route_cases.max(1) as f64,
+            "call_accuracy": self.calls_ok as f64 / route_cases.max(1) as f64,
+            "raw_call_accuracy": self.raw_calls_ok as f64 / route_cases.max(1) as f64,
+            "state_cases": state_cases,
+            "state_accuracy": self.state_ok as f64 / state_cases.max(1) as f64,
+            "state_accuracy_unconfirmed": self.state_ok_unconfirmed as f64 / state_cases.max(1) as f64,
+            "state_failures": self.state_failures,
+            "unsafe_state_changes": self.unsafe_state_changes,
+            "non_mutating_cases": non_mutating,
+            "false_change_call_rate": self.false_changes as f64 / non_mutating.max(1) as f64,
+            "false_change_applied_rate": self.applied_false_changes as f64 / non_mutating.max(1) as f64,
+            "false_change_offered_rate": self.offered_false_changes as f64 / non_mutating.max(1) as f64,
+            "unnecessary_confirmation_rate": self.unnecessary_confirmations as f64 / self.correct_changes.max(1) as f64,
+            "wrong_offer_rate": self.wrong_offers as f64 / cases.len().max(1) as f64,
+            "offers": self.offers,
+            "wrong_offers": self.wrong_offers,
+            "false_call_rate_by_tool": self.false_by_tool
+                .iter()
+                .map(|(name, count)| ((*name).to_owned(), json!(*count as f64 / reply_cases)))
+                .collect::<serde_json::Map<_, _>>(),
+            "missed_tool_rate": self.misses as f64 / tool_cases,
+            "call_probability": self.probabilities
+                .iter()
+                .map(|(tool, p)| json!({"expected_tool": tool, "p": p}))
+                .collect::<Vec<Value>>(),
+            "failures": self.failures,
+        })
+    }
+}
+
 struct EvalEffects<'a>(&'a Context);
 
 impl Effects for EvalEffects<'_> {
@@ -697,16 +841,9 @@ fn todo_tool_calls_meet_accuracy_targets() {
         .ok()
         .map(|value| value.parse::<f32>().unwrap());
 
-    let (mut route_ok, mut calls_ok, mut false_changes, mut misses) = (0, 0, 0, 0);
-    let mut raw_calls_ok = 0;
-    let mut false_by_tool = std::collections::BTreeMap::<&str, usize>::new();
+    let mut tally = Tally::default();
     let (mut prompt_tokens, mut elapsed_ms) = (0_i64, 0_u128);
-    let mut failures = Vec::new();
     let mut recorded = Vec::new();
-    let mut probabilities = Vec::new();
-    let mut state_ok = 0;
-    let mut unsafe_state_changes = 0;
-    let mut state_failures = Vec::new();
     let mut guard_results = Vec::new();
     for case in &cases {
         let conversation = ConversationCase::new(case);
@@ -733,44 +870,8 @@ fn todo_tool_calls_meet_accuracy_targets() {
         elapsed_ms += started.elapsed().as_millis();
         prompt_tokens += i64::from(summary.prompt_tokens.unwrap_or_default());
         let outcome = summary.tools.unwrap_or_default();
-        probabilities.push((
-            (case.expect != "safe").then_some(case.expect == "tool"),
-            outcome.call_probability.unwrap_or_default(),
-        ));
-        let called = !outcome.calls.is_empty();
-        let scored = case.expect != "safe";
-        let routed = scored && called == (case.expect == "tool");
-        route_ok += usize::from(routed);
-        let expected_changes = case.expects_change();
-        if scored
-            && outcome
-                .calls
-                .iter()
-                .any(|call| CHANGES.contains(&call.name.as_str()))
-            && !expected_changes
-        {
-            false_changes += 1;
-        }
-        if case.expect == "reply" {
-            for name in [todo::SAVE_TOOL, todo::COMPLETE_TOOL, todo::LIST_TOOL] {
-                if outcome.calls.iter().any(|call| call.name == name) {
-                    *false_by_tool.entry(name).or_insert(0) += 1;
-                }
-            }
-        }
-        if case.expect == "tool" && !called {
-            misses += 1;
-        }
         let record = conversation.finish_with_exchange(case, &outcome, &reply, exchange.as_ref());
-        unsafe_state_changes += usize::from(!case.expects_change() && record.state.changed);
-        if case.state.is_some() {
-            if record.state.matches(case) {
-                state_ok += 1;
-            } else {
-                state_failures
-                    .push(json!({"id": case.id, "expected": case.state, "listed": case.listed, "confirmation": case.confirmation, "actual": record.state}));
-            }
-        }
+        tally.add(case, &outcome, &record, &completion_context);
         if !case.probe.is_empty() {
             let probe = ConversationCase::new(case).finish(
                 case,
@@ -784,71 +885,24 @@ fn todo_tool_calls_meet_accuracy_targets() {
             guard_results
                 .push(json!({"id": case.id, "passed": state.matches(case), "actual": state}));
         }
-        let refined = &record.calls;
-        let matches = |calls: &[ToolCall]| {
-            routed
-                && calls_match_with_context(
-                    &case.calls,
-                    calls,
-                    Some(completion_context.clone()),
-                    &record.state.listed,
-                )
-        };
-        raw_calls_ok += usize::from(matches(&outcome.calls));
-        let matched = matches(refined);
-        calls_ok += usize::from(matched);
-        if scored && !matched {
-            failures.push(json!({
-                "id": case.id,
-                "user": case.user,
-                "expected": case.expect,
-                "calls": refined,
-                "raw_calls": outcome.calls,
-                "reply": reply,
-                "call_probability": outcome.call_probability,
-            }));
-        }
         recorded.push(record);
     }
-    let n = cases.len() as f64;
-    let route_cases = cases.iter().filter(|case| case.expect != "safe").count();
-    let state_cases = cases.iter().filter(|case| case.state.is_some()).count();
     let guard_ok = guard_results
         .iter()
         .filter(|result| result["passed"] == true)
         .count();
-    let reply_cases = cases.iter().filter(|case| case.expect == "reply").count();
-    let tool_cases = (route_cases - reply_cases).max(1) as f64;
-    let reply_cases = reply_cases.max(1) as f64;
-    let report = json!({
-        "model": std::env::var("ENSU_TEST_MODEL").unwrap(),
-        "cases": cases.len(),
-        "route_cases": route_cases,
-        "route_accuracy": route_ok as f64 / route_cases.max(1) as f64,
-        "call_accuracy": calls_ok as f64 / route_cases.max(1) as f64,
-        "raw_call_accuracy": raw_calls_ok as f64 / route_cases.max(1) as f64,
-        "state_cases": state_cases,
-        "state_accuracy": state_ok as f64 / state_cases.max(1) as f64,
-        "state_failures": state_failures,
-        "unsafe_state_changes": unsafe_state_changes,
-        "guard_cases": guard_results.len(),
-        "guard_accuracy": guard_ok as f64 / guard_results.len().max(1) as f64,
-        "guard_results": guard_results,
-        "non_mutating_cases": non_mutating_cases(&cases),
-        "false_change_call_rate": false_changes as f64 / non_mutating_cases(&cases).max(1) as f64,
-        "false_call_rate_by_tool": false_by_tool
-            .iter()
-            .map(|(name, count)| ((*name).to_owned(), json!(*count as f64 / reply_cases)))
-            .collect::<serde_json::Map<_, _>>(),
-        "missed_tool_rate": misses as f64 / tool_cases,
-        "mean_prompt_tokens": prompt_tokens as f64 / n,
-        "mean_latency_ms": elapsed_ms as f64 / n,
-        "call_probability": probabilities
-            .iter()
-            .map(|(tool, p)| json!({"expected_tool": tool, "p": p}))
-            .collect::<Vec<Value>>(),
-        "failures": failures,
-    });
+    let n = cases.len() as f64;
+    let mut report = tally.report(&cases);
+    report["model"] = json!(std::env::var("ENSU_TEST_MODEL").unwrap());
+    report["mean_prompt_tokens"] = json!(prompt_tokens as f64 / n);
+    report["mean_latency_ms"] = json!(elapsed_ms as f64 / n);
+    report["guard_cases"] = json!(guard_results.len());
+    report["guard_accuracy"] = json!(guard_ok as f64 / guard_results.len().max(1) as f64);
+    report["guard_results"] = json!(guard_results);
+    report["partial_prompt_reuse"] = json!(context.supports_partial_prompt_reuse());
+    report["supports_tools"] = json!(context.supports_tools());
+    let state_cases = cases.iter().filter(|case| case.state.is_some()).count();
+    let state_ok = tally.state_ok;
     if let Ok(out) = std::env::var("ENSU_EVAL_RECORD") {
         let lines: Vec<String> = recorded
             .iter()
@@ -872,7 +926,7 @@ fn todo_tool_calls_meet_accuracy_targets() {
     for failure in report["failures"].as_array().unwrap() {
         println!("FAIL {failure}");
     }
-    for failure in &state_failures {
+    for failure in &tally.state_failures {
         println!("STATE FAIL {failure}");
     }
     println!(
@@ -1108,6 +1162,51 @@ fn accuracy_targets_reject_routing_argument_and_false_change_regressions() {
 }
 
 #[test]
+fn offers_and_applied_changes_are_tallied_apart() {
+    let change: Case = serde_json::from_value(json!({
+        "id": "correct_offer",
+        "user": "Add Buy milk to my to-do list",
+        "expect": "tool",
+        "calls": [{"name": "save_to_do", "title": ["buy milk"]}],
+        "initial": [],
+        "state": [{"title": "Buy milk", "completed": false}]
+    }))
+    .unwrap();
+    let reply: Case = serde_json::from_value(json!({
+        "id": "false_change",
+        "user": "Add Buy milk to my to-do list",
+        "expect": "reply",
+        "initial": []
+    }))
+    .unwrap();
+    let mut tally = Tally::default();
+    for (case, probability) in [(&change, 0.6), (&reply, 0.6), (&reply, 1.0)] {
+        let conversation = ConversationCase::new(case);
+        let completion = conversation.completion_context();
+        let outcome = llm::ToolOutcome {
+            calls: serde_json::from_value(json!([
+                {"name": "save_to_do", "arguments": {"title": "Buy milk"}}
+            ]))
+            .unwrap(),
+            call_probability: Some(probability),
+        };
+        let record = conversation.finish(case, &outcome, "");
+        assert_eq!(
+            tally.add(case, &outcome, &record, &completion),
+            case.expects_change()
+        );
+    }
+    assert_eq!(tally.state_ok, 1);
+    assert_eq!(tally.state_ok_unconfirmed, 0);
+    assert_eq!(tally.correct_changes, 1);
+    assert_eq!(tally.unnecessary_confirmations, 1);
+    assert_eq!(tally.offers, 2);
+    assert_eq!(tally.wrong_offers, 1);
+    assert_eq!(tally.applied_false_changes, 1);
+    assert_eq!(tally.offered_false_changes, 1);
+}
+
+#[test]
 fn labelled_cases_parse_and_their_deadlines_resolve() {
     let cases: Vec<Case> = [
         include_str!("data/todo_eval.jsonl"),
@@ -1133,6 +1232,9 @@ fn labelled_cases_parse_and_their_deadlines_resolve() {
             case.id
         );
         assert_eq!(case.expect == "tool", !case.calls.is_empty(), "{}", case.id);
+        if case.expects_change() {
+            assert!(case.confirmation.is_none(), "{}", case.id);
+        }
         if case.listed.is_some() || case.confirmation.is_some() {
             assert!(case.state.is_some(), "{}", case.id);
         }
@@ -1182,6 +1284,7 @@ fn recorded_model_calls_plan_the_same() {
         .map(|case| (case.id.clone(), case))
         .collect();
     let mut replayed = std::collections::BTreeSet::new();
+    let mut tally = Tally::default();
     for line in include_str!("data/todo_replay.jsonl")
         .lines()
         .filter(|line| !line.trim().is_empty())
@@ -1193,14 +1296,14 @@ fn recorded_model_calls_plan_the_same() {
             record.id
         );
         let case = &cases[&record.id];
-        let result = ConversationCase::new(case).finish(
-            case,
-            &llm::ToolOutcome {
-                calls: record.raw_calls.clone(),
-                call_probability: record.call_probability,
-            },
-            &record.reply,
-        );
+        let conversation = ConversationCase::new(case);
+        let completion = conversation.completion_context();
+        let outcome = llm::ToolOutcome {
+            calls: record.raw_calls.clone(),
+            call_probability: record.call_probability,
+        };
+        let result = conversation.finish(case, &outcome, &record.reply);
+        tally.add(case, &outcome, &result, &completion);
         assert_eq!(
             (result.calls, result.unsure, result.text, result.state),
             (record.calls, record.unsure, record.text, record.state),
@@ -1210,4 +1313,9 @@ fn recorded_model_calls_plan_the_same() {
         );
     }
     assert_eq!(replayed, cases.keys().cloned().collect());
+    assert_eq!(tally.offers, 2);
+    assert_eq!(tally.applied_false_changes, 0);
+    assert_eq!(tally.offered_false_changes, 0);
+    assert_eq!(tally.unnecessary_confirmations, 1);
+    assert_eq!(tally.wrong_offers, 1);
 }
