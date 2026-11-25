@@ -1,9 +1,9 @@
-use crate::tools::turn as tool_turn;
 use std::sync::{Arc, Mutex};
 
 use crate::db::{self, AttachmentMeta, Backend, ChatDb, chat::ConversationSnapshot};
 use crate::llm::{self, EventSink, GenerationEvent, GenerationSummary, ToolOutcome};
 use crate::todo::{Todo, follow_up::FollowUp};
+use crate::tools::turn as tool_turn;
 
 use super::prompt::{Answer, save_prepared_reply};
 use super::*;
@@ -302,32 +302,36 @@ impl Turn {
             }
             sink.add(event);
         };
-        let first = runner.pass(request.clone(), &mut tee)?;
-        let summary = if let Some(mut next) = self.tools.as_ref().and_then(|session| {
-            first
-                .tools
-                .as_ref()
-                .and_then(|outcome| session.follow_up.next(&request, outcome, zone))
-        }) {
-            let output = request
-                .max_tokens
-                .unwrap_or(8192)
-                .saturating_sub(first.generated_tokens.unwrap_or(i32::MAX))
-                .max(0);
-            if output > 0
-                && runner.measure(&next)?.saturating_add(output as usize) <= runner.context_size()
-            {
-                if runner.cancelled() {
-                    return Err(llm::Error::Cancelled);
-                }
-                next.max_tokens = Some(output);
-                merge(first, runner.pass(next, &mut tee)?)
-            } else {
-                first
+        let max_tokens = request.max_tokens.unwrap_or(8192);
+        let follow_up = self
+            .tools
+            .as_ref()
+            .map(|session| (&session.follow_up, request.clone()));
+        let first = runner.pass(request, &mut tee)?;
+        if runner.cancelled() {
+            return Err(llm::Error::Cancelled);
+        }
+        let remaining = max_tokens
+            .saturating_sub(first.generated_tokens.unwrap_or(i32::MAX))
+            .max(0);
+        let next = follow_up
+            .zip(first.tools.as_ref())
+            .filter(|_| remaining > 0)
+            .and_then(|((follow_up, request), outcome)| follow_up.next(request, outcome, zone));
+        let summary = if let Some(mut next) = next
+            && runner.measure(&next)?.saturating_add(remaining as usize) <= runner.context_size()
+        {
+            if runner.cancelled() {
+                return Err(llm::Error::Cancelled);
             }
+            next.max_tokens = Some(remaining);
+            merge(first, runner.pass(next, &mut tee)?)
         } else {
             first
         };
+        if runner.cancelled() {
+            return Err(llm::Error::Cancelled);
+        }
         {
             let mut state = self.state();
             state.outcome = summary.tools.clone();

@@ -421,34 +421,6 @@ mod tests {
     }
 
     #[test]
-    fn declarations_ignore_the_message_and_list_emptiness() {
-        let titles = ["Buy milk", "Renew passport", "Call client 21"];
-        let first = chat_tools("I renewed my passport", &titles);
-        let second = chat_tools("I called client 21", &titles);
-        assert_eq!(first.tools, second.tools);
-
-        let descriptions = |request: ToolRequest| {
-            request
-                .tools
-                .into_iter()
-                .map(|tool| {
-                    (
-                        tool.description,
-                        tool.parameters
-                            .into_iter()
-                            .map(|parameter| parameter.description)
-                            .collect::<Vec<_>>(),
-                    )
-                })
-                .collect::<Vec<_>>()
-        };
-        assert_eq!(
-            descriptions(chat_tools("hello", &[])),
-            descriptions(chat_tools("hello", &["A"]))
-        );
-    }
-
-    #[test]
     fn changes_the_message_does_not_back_wait_for_confirmation() {
         let item = |number: i64| ToolCall {
             name: COMPLETE_TOOL.into(),

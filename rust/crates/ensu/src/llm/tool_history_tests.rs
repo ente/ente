@@ -388,7 +388,7 @@ fn the_follow_up_pass_extends_the_first_pass() {
     };
     let follow_up =
         crate::todo::follow_up::FollowUp::new(db.list_todos().unwrap(), db.now_ms(), user.into());
-    let second = follow_up.next(&first, &outcome, &zone()).unwrap();
+    let second = follow_up.next(first.clone(), &outcome, &zone()).unwrap();
     for format in FORMATS {
         let first_prompt =
             crate::llm::render_native(format, first.messages.clone(), first.tools.as_ref());

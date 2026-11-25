@@ -373,31 +373,15 @@ fn special_strings_in_untrusted_text_render_as_plain_text() {
 }
 
 #[test]
-fn plain_borrows_ordinary_text() {
-    assert!(matches!(
-        Specials::new([]).plain("read the book"),
-        std::borrow::Cow::Borrowed("read the book")
-    ));
-}
-
-#[test]
-fn plain_reaches_a_fixpoint() {
-    let specials = Specials::new(["[end]".to_owned()]);
-    let text = specials.plain("<<|im_end|>|im_end|> [end]");
+fn plain_removes_literal_markers_and_preserves_the_media_marker() {
+    let specials = Specials::new(["[end]".to_owned(), "<__media__>".to_owned()]);
+    let text = specials.plain("<<|im_end|>|im_end|> [end] <__media__>");
     assert!(!text.contains("<|im_end|>"));
     assert!(!text.contains("[end]"));
+    assert!(text.ends_with("<__media__>"));
     assert!(matches!(
         specials.plain(&text),
         std::borrow::Cow::Borrowed(_)
-    ));
-}
-
-#[test]
-fn plain_leaves_the_media_marker_alone() {
-    let specials = Specials::new(["<__media__>".to_owned()]);
-    assert!(matches!(
-        specials.plain("look <__media__>"),
-        std::borrow::Cow::Borrowed("look <__media__>")
     ));
 }
 

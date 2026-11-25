@@ -642,23 +642,34 @@ fn follow_up_only_runs_for_a_remaining_action() {
         call_probability: SURE,
         ..Default::default()
     };
-    let next = follow_up.next(&request, &listed, &zone()).unwrap();
+    let next = |request: &crate::llm::ChatRequest, outcome: &ToolOutcome| {
+        follow_up.next(request.clone(), outcome, &zone())
+    };
+    let second = next(&request, &listed).unwrap();
     assert_eq!(
         db.list_todos().unwrap(),
         [bank, bread, research, groceries, sequenced]
     );
     assert!(
-        next.messages
+        second
+            .messages
             .last()
             .unwrap()
             .content
             .contains("1. Call bank")
     );
-    assert!(!next.messages.last().unwrap().content.contains("Buy bread"));
-    assert_eq!(next.tools.as_ref().unwrap().max_calls, 3);
-    assert_eq!(next.tools.as_ref().unwrap().tools, tools.tools);
+    assert!(
+        !second
+            .messages
+            .last()
+            .unwrap()
+            .content
+            .contains("Buy bread")
+    );
+    assert_eq!(second.tools.as_ref().unwrap().max_calls, 3);
+    assert_eq!(second.tools.as_ref().unwrap().tools, tools.tools);
     assert_eq!(
-        next.tools.as_ref().unwrap().allowed,
+        second.tools.as_ref().unwrap().allowed,
         Some(vec![COMPLETE_TOOL.into()])
     );
     for user in [
@@ -675,7 +686,7 @@ fn follow_up_only_runs_for_a_remaining_action() {
         "List tasks about \"draft and mark complete\"",
     ] {
         request.tools.as_mut().unwrap().quote_source = user.to_owned();
-        assert!(follow_up.next(&request, &listed, &zone()).is_none());
+        assert!(next(&request, &listed).is_none());
     }
     for separator in COMMAND_SEPARATORS {
         for user in [
@@ -684,18 +695,12 @@ fn follow_up_only_runs_for_a_remaining_action() {
             format!("List tasks about milk{separator}mark bread done"),
         ] {
             request.tools.as_mut().unwrap().quote_source = user.clone();
-            assert!(
-                follow_up.next(&request, &listed, &zone()).is_some(),
-                "{user}"
-            );
+            assert!(next(&request, &listed).is_some(), "{user}");
         }
         for (open, close) in [("'", "'"), ("\"", "\""), ("“", "”"), ("‘", "’")] {
             let user = format!("List tasks about {open}Research{separator}save passwords{close}");
             request.tools.as_mut().unwrap().quote_source = user.clone();
-            assert!(
-                follow_up.next(&request, &listed, &zone()).is_none(),
-                "{user}"
-            );
+            assert!(next(&request, &listed).is_none(), "{user}");
         }
     }
     for user in [
@@ -708,35 +713,35 @@ fn follow_up_only_runs_for_a_remaining_action() {
         "List research and save passwords today",
     ] {
         request.tools.as_mut().unwrap().quote_source = user.to_owned();
-        assert!(
-            follow_up.next(&request, &listed, &zone()).is_some(),
-            "{user}"
-        );
+        assert!(next(&request, &listed).is_some(), "{user}");
     }
     request.tools.as_mut().unwrap().quote_source =
         "List Read reports and save files then mark notes done".to_owned();
-    let next = follow_up.next(&request, &listed, &zone()).unwrap();
     assert_eq!(
-        next.tools.as_ref().unwrap().allowed,
+        next(&request, &listed).unwrap().tools.unwrap().allowed,
         Some(vec![SAVE_TOOL.into(), COMPLETE_TOOL.into()])
     );
+    request.tools.as_mut().unwrap().allowed = Some(vec![LIST_TOOL.into(), SAVE_TOOL.into()]);
+    assert_eq!(
+        next(&request, &listed).unwrap().tools.unwrap().allowed,
+        Some(vec![SAVE_TOOL.into()])
+    );
+    request.tools.as_mut().unwrap().allowed = None;
     request.tools.as_mut().unwrap().quote_source = user.to_owned();
     let complete = call(COMPLETE_TOOL, &[("number", ToolValue::Integer(1))]);
     assert!(
-        follow_up
-            .next(
-                &request,
-                &ToolOutcome {
-                    calls: vec![listed.calls[0].clone(), complete],
-                    call_probability: SURE,
-                    ..Default::default()
-                },
-                &zone()
-            )
-            .is_none()
+        next(
+            &request,
+            &ToolOutcome {
+                calls: vec![listed.calls[0].clone(), complete],
+                call_probability: SURE,
+                ..Default::default()
+            },
+        )
+        .is_none()
     );
     request.tools.as_mut().unwrap().max_calls = 1;
-    assert!(follow_up.next(&request, &listed, &zone()).is_none());
+    assert!(next(&request, &listed).is_none());
 }
 
 #[test]

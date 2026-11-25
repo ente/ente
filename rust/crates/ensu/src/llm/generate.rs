@@ -431,7 +431,7 @@ impl ToolDecode {
         Ok(pick)
     }
 
-    fn finish(self, reason: FinishReason) -> Result<ToolOutcome, Error> {
+    fn finish(&self, reason: FinishReason) -> Result<ToolOutcome, Error> {
         let calls = if self.state == ToolState::Call && !self.abstained {
             tools::finished_calls(
                 self.format,
@@ -882,12 +882,10 @@ pub(super) fn generate_pass(
             };
 
             if image_paths.is_empty() {
-                let prompt_tokens = if let Some((tail, suffix)) = tail
-                    .as_ref()
-                    .and_then(|tail| prompt.strip_prefix(&tail.text).map(|suffix| (tail, suffix)))
-                    .filter(|(_, suffix)| !suffix.is_empty())
+                let prompt_tokens = if let Some(Tail { text, mut tokens }) = tail
+                    && let Some(suffix) = prompt.strip_prefix(&text)
+                    && !suffix.is_empty()
                 {
-                    let mut tokens = tail.tokens.clone();
                     tokens.extend(ctx.model.vocab().tokenize(suffix.as_bytes(), false, true));
                     tokens
                 } else {
@@ -1115,15 +1113,14 @@ pub(super) fn generate_pass(
     let mut next_tail = None;
 
     let tools = match job.tool.take() {
-        Some(mut tool) => {
-            let sampled = std::mem::take(&mut tool.tokens);
-            let raw = String::from_utf8(tool.raw.clone()).ok();
+        Some(tool) => {
             let outcome = tool.finish(job.finish_reason)?;
             if !outcome.calls.is_empty()
-                && let (Some((mut text, mut tokens)), Some(raw)) = (prompt, raw)
+                && let Some((mut text, mut tokens)) = prompt
+                && let Ok(raw) = std::str::from_utf8(&tool.raw)
             {
-                text.push_str(&raw);
-                tokens.extend(sampled);
+                text.push_str(raw);
+                tokens.extend(tool.tokens);
                 next_tail = Some(Tail { text, tokens });
             }
             Some(outcome)

@@ -1,7 +1,11 @@
+use std::collections::VecDeque;
+
 use super::{tests::Fake, *};
 use crate::db::chat::ConversationSnapshot;
 use crate::db::{self, ChatDb, SqliteBackend};
-use crate::llm::{self, GenerationEvent, GenerationSummary, ToolValue};
+use crate::llm::{
+    self, EventSink, GenerationEvent, GenerationSummary, ToolCall, ToolOutcome, ToolValue,
+};
 use crate::todo::{COMPLETE_TOOL, LIST_TOOL, SAVE_TOOL};
 use crate::tools::test_support::*;
 use crate::tools::turn::{self as tool_turn, Confirm, Undo};
@@ -76,77 +80,24 @@ fn save(probability: Option<f32>) -> Pass {
 }
 
 #[test]
-fn a_plain_reply_is_saved_as_text() {
+fn a_plain_turn_ignores_client_tools_and_saves_client_text() {
     let db = db();
     let mut chat = Chat::new(&db);
     chat.user("Hi");
     let snapshot = chat.snapshot();
-    let turn = prepare(&db, &snapshot, "Hi", false);
-    execute(
-        &turn,
-        &mut ScriptedRunner::new([Pass {
-            text: "Hi",
-            ..Default::default()
-        }]),
-        128,
-    )
-    .0
-    .unwrap();
+    let turn = prepare(&db, &snapshot, "Hi", true);
+    let mut runner = ScriptedRunner::new([Pass {
+        text: "Hi",
+        ..Default::default()
+    }]);
+    assert!(execute(&turn, &mut runner, 128).0.unwrap().tools.is_none());
+    assert!(runner.seen[0].tools.is_none());
     let finished = turn
         .finish(&db, &snapshot, "Client reply", vec![], &zone())
         .unwrap();
     assert_eq!(finished.reply.message.text, "Client reply");
     assert!(finished.reply.tool_turn.is_none());
     assert!(db.list_todos().unwrap().is_empty());
-}
-
-#[test]
-fn save_is_applied_or_offered_at_the_recorded_probability() {
-    for probability in [SURE, UNSURE] {
-        let db = db();
-        let mut chat = Chat::new(&db);
-        chat.user("Add buy milk.");
-        let snapshot = chat.snapshot();
-        let turn = prepare(&db, &snapshot, "Add buy milk.", false);
-        execute(&turn, &mut ScriptedRunner::new([save(probability)]), 128)
-            .0
-            .unwrap();
-        let finished = turn
-            .finish(&db, &snapshot, "Client reply", vec![], &zone())
-            .unwrap();
-        let state = finished.reply.tool_turn.unwrap();
-        if probability == SURE {
-            assert_eq!(finished.reply.message.text, "Saved “Buy milk”.");
-            assert_eq!(state.undo, Undo::Available);
-        } else {
-            assert_eq!(state.confirm, Confirm::Offered);
-            assert!(db.list_todos().unwrap().is_empty());
-            tool_turn::confirm(&db, finished.reply.message.uuid).unwrap();
-        }
-        assert_eq!(db.list_todos().unwrap().len(), 1);
-    }
-}
-
-#[test]
-fn a_list_only_turn_runs_one_pass() {
-    let db = db();
-    db.create_todo("Call Ana", None).unwrap();
-    let mut chat = Chat::new(&db);
-    let user = "What's on my list?";
-    chat.user(user);
-    let snapshot = chat.snapshot();
-    let turn = prepare(&db, &snapshot, user, false);
-    execute(&turn, &mut ScriptedRunner::new([list()]), 128)
-        .0
-        .unwrap();
-    assert!(
-        turn.finish(&db, &snapshot, "Ignored", vec![], &zone())
-            .unwrap()
-            .reply
-            .message
-            .text
-            .contains("1. Call Ana")
-    );
 }
 
 #[test]
@@ -194,13 +145,19 @@ fn list_then_save_merges_both_passes() {
         assert!(tool_message.content.contains("1. Call Ana"));
         assert!(tool_message.content.contains("The listing is complete."));
         let finished = turn
-            .finish(&db, &snapshot, "", vec![], &zone())
+            .finish(&db, &snapshot, "Client reply", vec![], &zone())
             .unwrap()
             .reply;
-        assert_eq!(
-            finished.tool_turn.unwrap().confirm == Confirm::Offered,
-            probability == UNSURE
-        );
+        let state = finished.tool_turn.unwrap();
+        if probability == UNSURE {
+            assert_eq!(state.confirm, Confirm::Offered);
+            assert_eq!(db.list_todos().unwrap().len(), 1);
+        } else {
+            assert_eq!(state.undo, Undo::Available);
+            assert!(finished.message.text.ends_with("Saved “Buy milk”."));
+            assert!(!finished.message.text.contains("Client reply"));
+            assert_eq!(db.list_todos().unwrap().len(), 2);
+        }
     }
 }
 
@@ -231,6 +188,7 @@ fn list_then_reply_keeps_probability_and_stores_streamed_text() {
         .unwrap()
         .reply;
     assert_eq!(reply.tool_turn.unwrap().confirm, Confirm::None);
+    assert!(reply.message.text.contains("1. Call Ana"));
     assert!(reply.message.text.ends_with("\n\nWhat else?"));
 }
 
@@ -243,7 +201,7 @@ fn the_follow_up_is_skipped_when_the_budget_is_spent_or_would_overflow() {
         let snapshot = chat.snapshot();
         let turn = prepare(&db, &snapshot, MIXED, false);
         let mut runner = ScriptedRunner::new([list()]);
-        runner.measured.push_back(measured);
+        runner.measured = measured;
         assert_eq!(
             execute(&turn, &mut runner, budget)
                 .0
@@ -258,22 +216,29 @@ fn the_follow_up_is_skipped_when_the_budget_is_spent_or_would_overflow() {
 
 #[test]
 fn interrupted_follow_up_keeps_no_outcome_and_emits_no_done() {
-    for cancelled in [true, false] {
+    let mut between_passes = list();
+    between_passes.cancel_after = true;
+    let mut during_measurement = ScriptedRunner::new([list()]);
+    during_measurement.measured = 4090;
+    during_measurement.cancel_on_measure = true;
+    let failed_pass = ScriptedRunner::new([
+        list(),
+        Pass {
+            fail: true,
+            ..Default::default()
+        },
+    ]);
+    for (mut runner, cancelled) in [
+        (ScriptedRunner::new([between_passes]), true),
+        (during_measurement, true),
+        (failed_pass, false),
+    ] {
         let db = db();
         let mut chat = Chat::new(&db);
         chat.user(MIXED);
         let snapshot = chat.snapshot();
         let turn = prepare(&db, &snapshot, MIXED, false);
-        let mut first = list();
-        first.cancel_after = cancelled;
-        let mut passes = vec![first];
-        if !cancelled {
-            passes.push(Pass {
-                fail: true,
-                ..Default::default()
-            });
-        }
-        let (result, events) = execute(&turn, &mut ScriptedRunner::new(passes), 128);
+        let (result, events) = execute(&turn, &mut runner, 128);
         assert!(
             matches!(result, Err(llm::Error::Cancelled) if cancelled)
                 || matches!(result, Err(llm::Error::Panicked) if !cancelled)
@@ -380,17 +345,6 @@ fn a_list_changed_before_commit_is_refused() {
 }
 
 #[test]
-fn a_turn_without_tools_clears_the_clients_tools() {
-    let db = db();
-    let mut chat = Chat::new(&db);
-    chat.user("Hi");
-    let turn = prepare(&db, &chat.snapshot(), "Hi", true);
-    let mut runner = ScriptedRunner::new([Pass::default()]);
-    assert!(execute(&turn, &mut runner, 128).0.unwrap().tools.is_none());
-    assert!(runner.seen[0].tools.is_none());
-}
-
-#[test]
 fn a_time_qualified_save_after_a_title_is_kept() {
     let db = db();
     let done = db.create_todo("Research and save passwords", None).unwrap();
@@ -430,4 +384,88 @@ fn a_time_qualified_save_after_a_title_is_kept() {
             .text
             .contains("Saved “Save passwords”")
     );
+}
+
+#[derive(Default)]
+struct Pass {
+    text: &'static str,
+    calls: Vec<ToolCall>,
+    probability: Option<f32>,
+    generated: i32,
+    abstained: bool,
+    fail: bool,
+    cancel_after: bool,
+}
+
+struct ScriptedRunner {
+    passes: VecDeque<Pass>,
+    seen: Vec<ChatRequest>,
+    measured: usize,
+    cancel_on_measure: bool,
+    cancel: bool,
+}
+
+impl ScriptedRunner {
+    fn new(passes: impl IntoIterator<Item = Pass>) -> Self {
+        Self {
+            passes: passes.into_iter().collect(),
+            seen: Vec::new(),
+            measured: 16,
+            cancel_on_measure: false,
+            cancel: false,
+        }
+    }
+
+    fn assert_done(&self) {
+        assert!(self.passes.is_empty());
+    }
+}
+
+impl PassRunner for ScriptedRunner {
+    fn context_size(&self) -> usize {
+        4096
+    }
+
+    fn measure(&mut self, _: &ChatRequest) -> Result<usize, llm::Error> {
+        self.cancel |= self.cancel_on_measure;
+        Ok(self.measured)
+    }
+
+    fn pass(
+        &mut self,
+        request: ChatRequest,
+        sink: &mut dyn EventSink,
+    ) -> Result<GenerationSummary, llm::Error> {
+        let pass = self.passes.pop_front().unwrap();
+        let tools = request.tools.is_some();
+        self.seen.push(request);
+        if pass.fail {
+            return Err(llm::Error::Panicked);
+        }
+        if !pass.text.is_empty() {
+            sink.add(GenerationEvent::Text {
+                job_id: 1,
+                text: pass.text.into(),
+                token_id: None,
+            });
+        }
+        self.cancel = pass.cancel_after;
+        Ok(GenerationSummary {
+            job_id: 1,
+            prompt_tokens: Some(16),
+            generated_tokens: Some(pass.generated),
+            total_time_ms: None,
+            finish_reason: llm::FinishReason::Eog,
+            tools: tools.then_some(ToolOutcome {
+                calls: pass.calls,
+                call_probability: pass.probability,
+                abstained: pass.abstained,
+                ..Default::default()
+            }),
+        })
+    }
+
+    fn cancelled(&self) -> bool {
+        self.cancel
+    }
 }

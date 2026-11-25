@@ -1,4 +1,3 @@
-use std::collections::VecDeque;
 use std::sync::{
     Arc,
     atomic::{AtomicI64, Ordering},
@@ -7,13 +6,9 @@ use std::sync::{
 use chrono::NaiveDateTime;
 use uuid::Uuid;
 
-use crate::conversation::PassRunner;
 use crate::db::chat::ConversationSnapshot;
 use crate::db::{ChatDb, Clock, Message, RandomUuidGen, SqliteBackend};
-use crate::llm::{
-    self, ChatRequest, EventSink, GenerationEvent, GenerationSummary, ToolCall, ToolOutcome,
-    ToolValue,
-};
+use crate::llm::{ToolCall, ToolOutcome, ToolValue};
 use crate::todo::timing;
 use crate::tools::turn::{self as tool_turn, ToolTurnState};
 
@@ -171,87 +166,4 @@ pub(crate) fn state(db: &ChatDb<SqliteBackend>, reply: &Message) -> Option<ToolT
     tool_turn::states(db, reply.session_uuid)
         .unwrap()
         .remove(&reply.uuid)
-}
-
-#[derive(Default)]
-pub(crate) struct Pass {
-    pub text: &'static str,
-    pub calls: Vec<ToolCall>,
-    pub probability: Option<f32>,
-    pub generated: i32,
-    pub abstained: bool,
-    pub fail: bool,
-    pub cancel_after: bool,
-}
-
-pub(crate) struct ScriptedRunner {
-    passes: VecDeque<Pass>,
-    pub seen: Vec<ChatRequest>,
-    pub context: usize,
-    pub measured: VecDeque<usize>,
-    cancel: bool,
-}
-
-impl ScriptedRunner {
-    pub fn new(passes: impl IntoIterator<Item = Pass>) -> Self {
-        Self {
-            passes: passes.into_iter().collect(),
-            seen: Vec::new(),
-            context: 4096,
-            measured: VecDeque::new(),
-            cancel: false,
-        }
-    }
-
-    pub fn assert_done(&self) {
-        assert!(self.passes.is_empty());
-    }
-}
-
-impl PassRunner for ScriptedRunner {
-    fn context_size(&self) -> usize {
-        self.context
-    }
-
-    fn measure(&mut self, _: &ChatRequest) -> Result<usize, llm::Error> {
-        Ok(self.measured.pop_front().unwrap_or(16))
-    }
-
-    fn pass(
-        &mut self,
-        request: ChatRequest,
-        sink: &mut dyn EventSink,
-    ) -> Result<GenerationSummary, llm::Error> {
-        let pass = self.passes.pop_front().unwrap();
-        let tools = request.tools.is_some();
-        self.seen.push(request);
-        if pass.fail {
-            return Err(llm::Error::Panicked);
-        }
-        if !pass.text.is_empty() {
-            sink.add(GenerationEvent::Text {
-                job_id: 1,
-                text: pass.text.into(),
-                token_id: None,
-            });
-        }
-        self.cancel = pass.cancel_after;
-        Ok(GenerationSummary {
-            job_id: 1,
-            prompt_tokens: Some(16),
-            generated_tokens: Some(pass.generated),
-            total_time_ms: None,
-            finish_reason: llm::FinishReason::Eog,
-            tools: tools.then_some(ToolOutcome {
-                calls: pass.calls,
-                call_probability: pass.probability,
-                abstained: pass.abstained,
-                ..Default::default()
-            }),
-        })
-    }
-
-    fn cancelled(&self) -> bool {
-        self.cancel
-    }
 }
