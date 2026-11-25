@@ -48,7 +48,7 @@ abstract class RewindCopy {
     "fr" => const FrenchRewindCopy(),
     "it" => const ItalianRewindCopy(),
     "nl" => const DutchRewindCopy(),
-    "pt" => const PortugueseRewindCopy(),
+    "pt" => PortugueseRewindCopy(portugal: locale?.countryCode == "PT"),
     _ => const EnglishRewindCopy(),
   };
 

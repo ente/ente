@@ -5,7 +5,8 @@ import "package:photos/ui/rewind/copy/rewind_city_names.dart";
 import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/copy/rewind_copy_en.dart";
 
-final _decimal = NumberFormat.decimalPattern("pt_BR");
+final _brazilDecimal = NumberFormat.decimalPattern("pt_BR");
+final _portugalDecimal = NumberFormat.decimalPattern("pt_PT");
 
 const _months = [
   "janeiro",
@@ -59,14 +60,17 @@ String _onWeekdays(int weekday) =>
     "${_isFeminine(weekday) ? "às" : "aos"} ${_weekdays[weekday - 1]}s";
 
 class PortugueseRewindCopy extends RewindCopy {
-  const PortugueseRewindCopy();
+  const PortugueseRewindCopy({this.portugal = false});
+
+  final bool portugal;
 
   String _counted(int value, String one, String many) =>
       "${number(value)} ${value == 1 ? one : many}";
 
   @override
-  String number(int value) =>
-      _decimal.format(value).replaceAll(RegExp("[\u00A0\u202F]"), " ");
+  String number(int value) => (portugal ? _portugalDecimal : _brazilDecimal)
+      .format(value)
+      .replaceAll("\u202F", "\u00A0");
 
   @override
   String photoTally(String number, int count) => "$number ${photoUnit(count)}";
