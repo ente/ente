@@ -115,8 +115,14 @@ pub struct LlmToolCall {
     pub arguments: Vec<LlmToolArgument>,
 }
 
-#[derive(Debug, uniffi::Object)]
-pub struct LlmToolRequest(pub(crate) llm::ToolExchange);
+#[derive(uniffi::Object)]
+pub struct LlmToolRequest(pub(crate) Arc<ente_ensu::conversation::Turn>);
+
+impl std::fmt::Debug for LlmToolRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LlmToolRequest").finish_non_exhaustive()
+    }
+}
 
 impl From<llm::ToolValue> for LlmToolValue {
     fn from(value: llm::ToolValue) -> Self {
@@ -314,14 +320,16 @@ impl LlmContext {
     ) -> Result<LlmGenerationSummary, LlmError> {
         let mut sink = CallbackSink { callback };
         let tools = request.tools.clone();
-        self.handle
-            .generate_with_tools(
-                request.into(),
-                tools.as_ref().map(|tools| &tools.0),
-                &mut sink,
-            )
-            .map(Into::into)
-            .map_err(LlmError::from)
+        match tools {
+            Some(tools) => {
+                let mut runner =
+                    ente_ensu::conversation::ContextRunner::begin(&self.handle, &mut sink);
+                tools.0.generate(&mut runner, request.into(), &mut sink)
+            }
+            None => self.handle.generate_chat_stream(request.into(), &mut sink),
+        }
+        .map(Into::into)
+        .map_err(LlmError::from)
     }
 
     pub fn prewarm_multimodal(

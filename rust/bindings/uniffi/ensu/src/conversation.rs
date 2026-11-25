@@ -82,9 +82,7 @@ enum Work {
 
 struct PreparedWork {
     snapshot: db::chat::ConversationSnapshot,
-    result: core::PreparationResult,
-    max_tokens: u32,
-    grounded: Option<retrieval::GroundedPromptContext>,
+    turn: Arc<core::Turn>,
     tools: Option<Arc<LlmToolRequest>>,
 }
 
@@ -130,7 +128,7 @@ impl ConversationPreparation {
     fn check(&self, work: &Work) -> Result<(), ConversationError> {
         self.check_cancelled()?;
         if let Work::Ready(work) = work
-            && (work.result.is_saved()
+            && (work.turn.is_saved()
                 || !self
                     .db
                     .conversation_snapshot_matches(&work.snapshot)
@@ -185,39 +183,31 @@ impl ConversationPreparation {
             input.searched.into_iter().map(Into::into).collect(),
             core::MAX_GROUNDING_BYTES,
         )?;
-        let turn_tools = self
-            .db
-            .turn_tools(&snapshot, &input.expected_user_text)
-            .map_err(error)?;
-        let input = core::TurnInput {
-            session,
-            messages: snapshot.messages().to_vec(),
-            expected_user_text: input.expected_user_text,
-            system: input.system,
-            current: input.current,
-            history_query: input.history_query,
-            context: self.context.context_size() as usize,
-            output: input.max_tokens.map(|value| value as usize),
-            state: snapshot.state().cloned(),
-            candidates,
-            tools: turn_tools,
-        };
+        let draft = core::Turn::begin(
+            &self.db,
+            &snapshot,
+            core::TurnRequest {
+                session,
+                expected_user_text: input.expected_user_text,
+                system: input.system,
+                current: input.current,
+                history_query: input.history_query,
+                context: self.context.context_size() as usize,
+                output: input.max_tokens.map(|value| value as usize),
+                candidates,
+            },
+        )
+        .map_err(error)?;
         let mut effects = NativeEffects {
             owner: self,
             snapshot: &mut snapshot,
             callback,
         };
-        let mut prepared = self.grounding.prepare_turn(input, &mut effects)?;
-        let result = prepared.preparation.run(&mut effects)?;
-        core::Effects::check_current(&mut effects)?;
-        let tools = prepared
-            .tools
-            .map(|tools| Arc::new(LlmToolRequest(self.db.tool_exchange(&snapshot, tools))));
+        let turn = Arc::new(draft.prepare(Some(self.grounding.clone()), &mut effects)?);
+        let tools = turn.tools().map(|_| Arc::new(LlmToolRequest(turn.clone())));
         Ok(PreparedWork {
             snapshot,
-            result,
-            max_tokens: prepared.budget.output as u32,
-            grounded: prepared.grounding.context,
+            turn,
             tools,
         })
     }
@@ -247,14 +237,8 @@ impl ConversationPreparation {
             return Err(ConversationError::Stale);
         };
         Ok(ConversationResult {
-            messages: work
-                .result
-                .messages
-                .iter()
-                .cloned()
-                .map(Into::into)
-                .collect(),
-            max_tokens: work.max_tokens,
+            messages: work.turn.messages().into_iter().map(Into::into).collect(),
+            max_tokens: work.turn.max_tokens() as u32,
             tools: work.tools.clone(),
         })
     }
@@ -278,23 +262,13 @@ impl ConversationPreparation {
         let Work::Ready(work) = &mut *work else {
             return Err(error("Conversation preparation is not complete"));
         };
-        let (sources, passages) = match &work.grounded {
-            Some(grounded) => (grounded.sources.clone(), grounded.included_passages.clone()),
-            None => Default::default(),
-        };
-        let finished = self
-            .grounding
+        let finished = work
+            .turn
             .finish(
                 &self.db,
                 &work.snapshot,
-                &mut work.result,
-                core::Reply {
-                    text: &text,
-                    sources: &sources,
-                    passages,
-                    attachments: attachments.into_iter().map(Into::into).collect(),
-                    tools: work.tools.as_ref().map(|tools| &tools.0),
-                },
+                &text,
+                attachments.into_iter().map(Into::into).collect(),
             )
             .map_err(|cause| match cause {
                 db::Error::Refused(refusal) => ConversationError::Refused {
