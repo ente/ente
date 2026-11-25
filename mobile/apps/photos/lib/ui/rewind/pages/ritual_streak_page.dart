@@ -3,8 +3,7 @@ import "dart:ui" show ImageFilter;
 
 import "package:flutter/material.dart";
 import "package:flutter_svg/flutter_svg.dart";
-import "package:intl/intl.dart";
-import "package:photos/services/rewind/rewind_edition.dart";
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/story/rewind_rituals.dart";
@@ -14,7 +13,6 @@ import "package:photos/ui/rewind/theme/rewind_motion.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
-import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
 import "package:photos/ui/rewind/widgets/rewind_reveal_layer.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
@@ -82,10 +80,9 @@ class RitualStreakPage extends RewindPage {
     double position, {
     required bool isActive,
   }) {
-    final streak = rewindCount(rituals.longestStreak);
-    final month = DateFormat.MMMM(
-      "en_US",
-    ).format(DateTime(RewindEdition.year, rituals.busiestMonth));
+    final copy = RewindCopy.of(context);
+    final streak = copy.number(rituals.longestStreak);
+    final month = copy.monthName(rituals.busiestMonth);
     final icons = [
       ...rituals.icons,
       ..._defaultIcons.where((icon) => !rituals.icons.contains(icon)),
@@ -105,12 +102,12 @@ class RitualStreakPage extends RewindPage {
             grain: 0.045,
           ),
           Semantics(
-            label:
-                "Your longest ritual streak: $streak. "
-                "${rewindCounted(rituals.checkIns, "check-in", "check-ins")} "
-                "this year, most in $month. "
-                "${rewindCounted(rituals.continued, "ritual", "rituals")} "
-                "still going.",
+            label: copy.streakLabel(
+              streak: rituals.longestStreak,
+              checkIns: rituals.checkIns,
+              month: rituals.busiestMonth,
+              continued: rituals.continued,
+            ),
             child: ExcludeSemantics(
               child: RewindStage(
                 children: [
@@ -158,8 +155,7 @@ class RitualStreakPage extends RewindPage {
                     delayMs: 150,
                     child: Center(
                       child: RewindVoice(
-                        you: "YOUR LONGEST STREAK",
-                        me: "MY LONGEST STREAK",
+                        copy.streakKicker,
                         builder: (text) => RewindOutlinedText(
                           text,
                           style: RewindTextStyles.display(
@@ -196,26 +192,22 @@ class RitualStreakPage extends RewindPage {
                   ),
                   _tile(
                     _leftTile,
-                    rewindCount(rituals.checkIns),
-                    rituals.checkIns == 1
-                        ? "Check-in\nthis year"
-                        : "Check-ins\nthis year",
+                    copy.number(rituals.checkIns),
+                    copy.checkInsLabel(rituals.checkIns),
                     position,
                     isActive,
                   ),
                   _tile(
                     _rightTile,
-                    rewindCount(rituals.continued),
-                    rituals.continued == 1
-                        ? "Ritual\ncontinued"
-                        : "Rituals\ncontinued",
+                    copy.number(rituals.continued),
+                    copy.ritualsContinuedLabel(rituals.continued),
                     position,
                     isActive,
                   ),
                   _tile(
                     _middleTile,
                     month,
-                    "Most active\nmonth",
+                    copy.mostActiveMonthLabel,
                     position,
                     isActive,
                   ),

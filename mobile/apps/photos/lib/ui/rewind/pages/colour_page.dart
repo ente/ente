@@ -1,6 +1,7 @@
 import "package:flutter/material.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/story/rewind_colours.dart";
@@ -63,7 +64,7 @@ class ColourPage extends RewindPage {
                 child: RewindEntrance(
                   preset: RewindPreset.flip,
                   active: isActive,
-                  child: _card(look, isActive),
+                  child: _card(look, RewindCopy.of(context), isActive),
                 ),
               ),
               RewindLayer(
@@ -74,12 +75,7 @@ class ColourPage extends RewindPage {
                   active: isActive,
                   delayMs: 800,
                   child: RewindVoice(
-                    you:
-                        "${colour.percent}% of your photos were mostly "
-                        "${look.word}.",
-                    me:
-                        "${colour.percent}% of my photos were mostly "
-                        "${look.word}.",
+                    RewindCopy.of(context).colourLine(colour.percent, look),
                     builder: (text) => Text(
                       text,
                       style: RewindTextStyles.body(
@@ -98,7 +94,7 @@ class ColourPage extends RewindPage {
     );
   }
 
-  Widget _card(rust.RewindColour look, bool isActive) {
+  Widget _card(rust.RewindColour look, RewindCopy copy, bool isActive) {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: RewindColors.cream,
@@ -134,7 +130,7 @@ class ColourPage extends RewindPage {
             child: RewindFitWidth(
               width: 302,
               child: Text(
-                look.label,
+                copy.colourName(look),
                 style: RewindTextStyles.display(
                   32,
                   color: RewindColors.ink,

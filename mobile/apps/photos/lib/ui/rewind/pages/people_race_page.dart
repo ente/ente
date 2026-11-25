@@ -7,6 +7,7 @@ import "package:flutter/services.dart";
 import "package:flutter_svg/flutter_svg.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/pages/setup_pages.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
@@ -19,7 +20,6 @@ import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
 import "package:photos/ui/rewind/widgets/rewind_confetti.dart";
 import "package:photos/ui/rewind/widgets/rewind_keyframes.dart";
-import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_swap_in.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
@@ -140,8 +140,9 @@ class _PeopleRaceState extends State<_PeopleRace>
   late var _phase = _pick == null || _reel ? _Phase.pick : _Phase.done;
   late final _replayed = _phase == _Phase.done;
   late var _order = List.of(widget.page._start);
-  late var _cue = _question;
-  late var _cueDetail = _reel ? "" : "Tap a face to guess.";
+  late final _copy = RewindCopy.of(context);
+  late var _cue = _copy.raceQuestion;
+  late var _cueDetail = _reel ? "" : _copy.raceHint;
   var _world = 0.0;
   var _speedFactor = 0.0;
   var _lastMs = 0.0;
@@ -150,8 +151,6 @@ class _PeopleRaceState extends State<_PeopleRace>
   List<RaceRunner> get _runners => widget.page.runners;
 
   int? get _pick => _reel && !_clip ? null : widget.page._pick;
-
-  static const _question = "WHO SHOWED UP MOST?";
 
   double get _top => _runners
       .map((runner) => runner.person.photoCount)
@@ -207,7 +206,7 @@ class _PeopleRaceState extends State<_PeopleRace>
     widget.page._pick = runner;
     setState(() {
       _phase = _Phase.picked;
-      _cueDetail = "${_runners[runner].face.name}? bold choice";
+      _cueDetail = _copy.racePicked("${_runners[runner].face.name}");
     });
     _later(const Duration(milliseconds: _pickedMs), () {
       setState(() => _phase = _Phase.race);
@@ -256,9 +255,10 @@ class _PeopleRaceState extends State<_PeopleRace>
       );
       if (passer >= 0 && month > 0) {
         final passed = _order[ranked.indexOf(passer)];
-        _cue =
-            "${_nameOf(passer).toUpperCase()} OVERTAKES "
-            "${_nameOf(passed).toUpperCase()}!";
+        _cue = _copy.raceOvertakes(
+          _nameOf(passer).toUpperCase(),
+          _nameOf(passed).toUpperCase(),
+        );
         _cueDetail = "";
         if (!_reel) unawaited(HapticFeedback.selectionClick());
       }
@@ -331,12 +331,12 @@ class _PeopleRaceState extends State<_PeopleRace>
 
   String _verdict({bool firstPerson = false}) {
     if (_pick == null) {
-      return "${_nameOf(_order.first).toUpperCase()} SHOWED UP MOST!";
+      return _copy.raceWinner(_nameOf(_order.first).toUpperCase());
     }
     return switch (_pick) {
-      0 => firstPerson ? "I CALLED IT!" : "YOU CALLED IT!",
-      1 => "SO CLOSE!",
-      _ => "NOT THIS YEAR!",
+      0 => firstPerson ? _copy.raceCalledIt.me : _copy.raceCalledIt.you,
+      1 => _copy.raceClose,
+      _ => _copy.raceMissed,
     };
   }
 
@@ -424,8 +424,10 @@ class _PeopleRaceState extends State<_PeopleRace>
             width: 370,
             alignment: Alignment.center,
             child: RewindVoice(
-              you: _cue,
-              me: _phase == _Phase.done ? _verdict(firstPerson: true) : _cue,
+              (
+                you: _cue,
+                me: _phase == _Phase.done ? _verdict(firstPerson: true) : _cue,
+              ),
               builder: (text) => Text(
                 text,
                 textAlign: TextAlign.center,
@@ -529,7 +531,7 @@ class _PeopleRaceState extends State<_PeopleRace>
                 duration: const Duration(milliseconds: 200),
                 child: Center(
                   child: RewindOutlinedText(
-                    rewindCount(lane.count.round()),
+                    _copy.number(lane.count.round()),
                     style: RewindTextStyles.display(27),
                     outline: 2.4,
                     shadow: const Offset(1.5, 2),
@@ -756,8 +758,7 @@ class _PickTag extends StatelessWidget {
         borderRadius: BorderRadius.circular(7),
       ),
       child: RewindVoice(
-        you: "YOUR PICK",
-        me: "MY PICK",
+        RewindCopy.of(context).racePick,
         builder: (text) => Text(
           text,
           style: RewindTextStyles.display(13, height: 1, letterSpacing: 0.3),

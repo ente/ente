@@ -4,6 +4,7 @@ import "dart:ui" show lerpDouble;
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:photos/models/file/file.dart";
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
@@ -30,8 +31,6 @@ _Pose _lerp(_Pose a, _Pose b, double t) => (
   opacity: lerpDouble(a.opacity, b.opacity, t)!,
 );
 
-const _line = "Memories to cherish.";
-const _sharedLine = "A memory to cherish.";
 const _titleRect = Rect.fromLTWH(28, 664, 334, 40);
 const _lineRect = Rect.fromLTWH(28, 718, 334, 22);
 const _sparkleAt = Offset(38.9, 110.9);
@@ -241,11 +240,12 @@ class _FavouritesState extends State<_Favourites> {
     final isActive = widget.isActive || capturing;
     final covered = RewindPageScope.coveredOf(context);
     final media = MediaQuery.of(context);
+    final copy = RewindCopy.of(context);
     final title = capturing
-        ? "MY FAVORITE"
+        ? copy.myFavouriteTitle
         : RewindPageScope.reelOf(context)
-        ? "MY FAVORITES"
-        : "YOUR FAVORITES";
+        ? copy.myFavouritesTitle
+        : copy.favouritesTitle;
     return MediaQuery(
       data: media.copyWith(
         disableAnimations: media.disableAnimations || capturing,
@@ -255,7 +255,7 @@ class _FavouritesState extends State<_Favourites> {
         children: [
           _backdrop(),
           Semantics(
-            label: "Your favorites. $_line",
+            label: copy.favouritesLabel,
             child: ExcludeSemantics(
               child: RewindStage(
                 children: [
@@ -341,7 +341,7 @@ class _FavouritesState extends State<_Favourites> {
                     active: isActive,
                     delayMs: 1600,
                     child: Text(
-                      capturing ? _sharedLine : _line,
+                      capturing ? copy.favouriteLine : copy.favouritesLine,
                       textAlign: TextAlign.center,
                       style: RewindTextStyles.body(17),
                     ),

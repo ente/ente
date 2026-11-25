@@ -152,19 +152,24 @@ RewindChapter _mosaic(rust.RewindReport report) =>
           await media.cluster(id, mosaic.clusterFaceIds),
         _ => null,
       };
-      final (subject, subjectName) = switch ((
+      final (subject, subjectName, isFamiliar) = switch ((
         me?.crop,
         favourite?.crop,
         familiar?.crop,
       )) {
-        (final crop?, _, _) => (crop, null),
-        (_, final crop?, _) => (crop, favourite?.name),
-        (_, _, final crop?) => (crop, MosaicPage.familiarFace),
-        _ => (null, null),
+        (final crop?, _, _) => (crop, null, false),
+        (_, final crop?, _) => (crop, favourite?.name, false),
+        (_, _, final crop?) => (crop, null, true),
+        _ => (null, null, false),
       };
       return [
         mosaicSetupPage,
-        MosaicPage(files: files, subject: subject, subjectName: subjectName),
+        MosaicPage(
+          files: files,
+          subject: subject,
+          subjectName: subjectName,
+          familiar: isFamiliar,
+        ),
       ];
     });
 
@@ -347,7 +352,7 @@ RewindChapter _scrapbook(rust.RewindReport report) {
         report: report,
         photos: photos,
         people: people,
-        cityNames: [for (final city in cities.take(3)) city.name],
+        cities: cities.take(3).toList(),
       ),
     ];
   });

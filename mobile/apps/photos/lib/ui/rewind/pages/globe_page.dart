@@ -8,6 +8,7 @@ import "package:flutter/scheduler.dart";
 import "package:flutter/services.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
@@ -19,7 +20,6 @@ import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
 import "package:photos/ui/rewind/widgets/rewind_count_up.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
 import "package:photos/ui/rewind/widgets/rewind_hint.dart";
-import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
 import "package:photos/ui/rewind/widgets/rewind_pixels.dart";
 import "package:photos/ui/rewind/widgets/rewind_reveal_layer.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
@@ -82,11 +82,11 @@ class GlobePage extends RewindPage {
     double position, {
     required bool isActive,
   }) {
+    final copy = RewindCopy.of(context);
     final km = globe.distanceKm;
     final lap = km >= earthKm
-        ? "That’s ${(km / earthKm).toStringAsFixed(1)} laps around the globe."
-        : "That’s ${max(1, (100 * km / earthKm).round())}% of a lap "
-              "around the globe.";
+        ? copy.globeLaps(km / earthKm)
+        : copy.globeLapShare(max(1, (100 * km / earthKm).round()));
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -98,7 +98,7 @@ class GlobePage extends RewindPage {
           lap,
         ),
         RewindHint(
-          "DRAG TO SPIN",
+          copy.globeHint,
           centerY: 540,
           active: isActive,
           position: position,
@@ -132,7 +132,7 @@ class GlobePage extends RewindPage {
               ),
             ),
             Semantics(
-              label: "Your photos flew ${rewindCount(km)} kilometers. $body",
+              label: RewindCopy.of(context).globeLabel(km, body),
               child: ExcludeSemantics(
                 child: RewindStage(
                   children: [
@@ -159,8 +159,7 @@ class GlobePage extends RewindPage {
                       active: isActive,
                       delayMs: 500,
                       child: RewindVoice(
-                        you: "YOUR PHOTOS FLEW",
-                        me: "MY PHOTOS FLEW",
+                        RewindCopy.of(context).globeKicker,
                         builder: (text) => Text(
                           text,
                           style: RewindTextStyles.display(17, height: 1.05),
@@ -904,10 +903,11 @@ class _GlobeViewState extends State<_GlobeView>
               opacity: (_ms / _World.introMs - 0.6).clamp(0.0, 1.0),
               child: _Board(
                 done
-                    ? "${rewindCounted(widget.globe.cityCount, "CITY", "CITIES")}"
-                          "  ·  "
-                          "${rewindCounted(widget.globe.countryCount, "COUNTRY", "COUNTRIES")}"
-                    : "${here.name.toUpperCase()}"
+                    ? RewindCopy.of(context).globeTally(
+                        widget.globe.cityCount,
+                        widget.globe.countryCount,
+                      )
+                    : "${RewindCopy.of(context).city(here.name, here.countryCode).toUpperCase()}"
                           "${here.countryCode.isEmpty ? "" : ", ${here.countryCode}"}",
                 tally: done
                     ? null

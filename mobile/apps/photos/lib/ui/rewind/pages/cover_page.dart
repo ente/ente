@@ -4,6 +4,7 @@ import "dart:ui" show lerpDouble;
 
 import "package:flutter/material.dart";
 import "package:flutter_svg/flutter_svg.dart";
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
@@ -70,6 +71,7 @@ class CoverPage extends RewindPage {
     double position, {
     required bool isActive,
   }) {
+    final copy = RewindCopy.of(context);
     Widget layer(Rect rect, Widget child) => Positioned.fromRect(
       rect: rect,
       child: RewindLeave(
@@ -140,8 +142,7 @@ class CoverPage extends RewindPage {
                     width: _tagline.width,
                     alignment: Alignment.center,
                     child: RewindVoice(
-                      you: "YOUR YEAR IN PHOTOS",
-                      me: "MY YEAR IN PHOTOS",
+                      copy.coverTagline,
                       builder: (text) => Text(
                         text,
                         style: RewindTextStyles.display(
@@ -169,7 +170,7 @@ class CoverPage extends RewindPage {
                         child: Transform.rotate(
                           angle: -3.7 * pi / 180,
                           child: RewindCandyButton(
-                            label: "Tap to start",
+                            label: copy.tapToStart,
                             onTap: () =>
                                 RewindPageScope.navigatorOf(context)?.next(),
                           ),

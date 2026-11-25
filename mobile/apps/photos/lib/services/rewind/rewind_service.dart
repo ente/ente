@@ -30,6 +30,7 @@ import "package:photos/services/sync/offline_import_metadata_service.dart";
 import "package:photos/services/sync/remote_sync_service.dart";
 import "package:photos/src/rust/api/ml_db_api.dart" show MlStore;
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/story/rewind_rituals.dart";
 import "package:photos/ui/rewind/story/rewind_story.dart";
 import "package:shared_preferences/shared_preferences.dart";
@@ -597,10 +598,11 @@ class RewindService {
         !await NotificationService.instance.hasGrantedPermissions()) {
       return;
     }
+    final copy = await RewindCopy.current();
     if (await _scheduleNotification(
       _notificationId,
-      "Your ${RewindEdition.year} Rewind is ready",
-      "Your year in photos. Ready when you are.",
+      copy.readyTitle,
+      copy.readyBody,
       _notificationTime(DateTime.now()),
     )) {
       await _progress.markNotificationScheduled();
@@ -626,10 +628,11 @@ class RewindService {
     }
     final now = DateTime.now();
     final slot = _notificationTime(now);
+    final copy = await RewindCopy.current();
     if (await _scheduleNotification(
       _newCardsNotificationId,
-      "Your ${RewindEdition.year} Rewind has new cards",
-      "Open it again to see what's new.",
+      copy.newCardsTitle,
+      copy.newCardsBody,
       slot.isBefore(RewindEdition.availableUntil)
           ? slot
           : now.add(_notificationLeadTime),
