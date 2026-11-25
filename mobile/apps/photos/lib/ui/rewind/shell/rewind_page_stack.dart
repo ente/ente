@@ -68,7 +68,7 @@ class RewindPageStack extends StatelessWidget {
     );
     final entering = !page.pinned && position < 0;
     return ClipPath(
-      key: ValueKey(page.key),
+      key: ObjectKey(page),
       clipper: _WaveClipper(entering ? 1 + position : 1),
       clipBehavior: entering ? Clip.antiAlias : Clip.none,
       child: content,
