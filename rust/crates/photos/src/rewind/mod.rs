@@ -13,7 +13,8 @@ mod report;
 mod state;
 
 pub use input::{
-    RewindFile, RewindFileType, RewindLocation, RewindPerson, RewindRequest, RewindVisibility,
+    RewindCoverageFile, RewindFile, RewindFileType, RewindLocation, RewindPerson, RewindRequest,
+    RewindVisibility,
 };
 pub use report::{
     Badge, BusiestDay, ColourOfTheYear, CrowdFavourite, Favourites, Finale, Globe, GlobePlace,
@@ -63,9 +64,14 @@ pub fn compute_rewind(
     RewindState::evaluate(request, &library, store, cities, &readiness, previous)
 }
 
-pub fn rewind_has_enough_ml(request: &RewindRequest, store: &MlStore) -> Result<bool> {
-    let library = Library::of_year(request)?;
-    Ok(has_enough_ml(library.ml_coverage(store)?))
+pub fn rewind_has_enough_ml(
+    year: i32,
+    files: &[RewindCoverageFile],
+    store: &MlStore,
+) -> Result<bool> {
+    Ok(has_enough_ml(library::ml_coverage_for_year(
+        year, files, store,
+    )?))
 }
 
 pub fn encode_rewind_state(state: &RewindState) -> Result<Vec<u8>> {
@@ -121,9 +127,9 @@ mod tests {
     };
     use super::library::MICROS_PER_DAY;
     use super::{
-        Mosaic, REWIND_VERSION, RewindColour, RewindFile, RewindFileType, RewindReport,
-        RewindRequest, RewindState, RewindStatus, compute_rewind, decode_rewind_state,
-        encode_rewind_request, encode_rewind_state, rewind_has_enough_ml,
+        Mosaic, REWIND_VERSION, RewindColour, RewindCoverageFile, RewindFile, RewindFileType,
+        RewindReport, RewindRequest, RewindState, RewindStatus, RewindVisibility, compute_rewind,
+        decode_rewind_state, encode_rewind_request, encode_rewind_state, rewind_has_enough_ml,
     };
     use crate::ml_db::{
         CLIP_EMBEDDING_DIMENSIONS, CLIP_ML_VERSION, ClipEmbedding, FACE_ML_VERSION, FaceRow,
@@ -383,16 +389,49 @@ mod tests {
     }
 
     #[test]
-    fn enough_ml_means_ninety_percent_of_the_year_is_indexed() {
-        let mut files = photos(10);
-        files.push(photo(11, "2025-06-01T12:00:00"));
+    fn readiness_uses_the_same_ninety_percent_year_coverage_as_the_report() {
+        let mut files = photos(8);
+        let mut edited = photo(9, "2025-06-01T12:00:00");
+        edited.local_date_time = Some("2026-01-01T00:00:00".into());
+        edited.visibility = RewindVisibility::Hidden;
+        let mut video = photo(10, "2025-12-31T23:59:00");
+        video.utc_offset_seconds = 3600;
+        video.local_date_time = Some("invalid date".into());
+        video.file_type = RewindFileType::Video;
+        let mut other = photo(12, "2026-06-01T12:00:00");
+        other.file_type = RewindFileType::Other;
+        files.extend([
+            edited,
+            video,
+            photo(11, "2025-06-01T12:00:00"),
+            photo(11, "2026-06-01T12:00:00"),
+            other,
+            photo(13, "2027-01-01T00:00:00"),
+        ]);
         let request = request_at(BEFORE_NEW_YEAR, files);
+        let coverage_files: Vec<_> = request
+            .files
+            .iter()
+            .map(|file| RewindCoverageFile {
+                id: file.id,
+                creation_time: file.creation_time,
+                local_date_time: file.local_date_time.clone(),
+                utc_offset_seconds: file.utc_offset_seconds,
+                file_type: file.file_type,
+            })
+            .collect();
 
-        let (_directory, store) = indexed_store(1..=8);
-        assert!(!rewind_has_enough_ml(&request, &store).unwrap());
-
-        let (_directory, store) = indexed_store(1..=9);
-        assert!(rewind_has_enough_ml(&request, &store).unwrap());
+        for (count, expected) in [(8, false), (9, true)] {
+            let (_directory, store) = indexed_store(1..=count);
+            let state = compute_rewind(&request, Some(&store), None, None).unwrap();
+            assert_eq!(state.ml_coverage, Some(count as f32 / 10.0));
+            assert_eq!(
+                rewind_has_enough_ml(request.year, &coverage_files, &store).unwrap(),
+                expected,
+            );
+        }
+        let (_directory, store) = indexed_store([]);
+        assert!(rewind_has_enough_ml(request.year, &[], &store).unwrap());
     }
 
     #[test]

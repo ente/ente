@@ -157,7 +157,8 @@ class RewindService {
     if (!rewindUsesMl) return false;
     try {
       return await rust.rewindHasEnoughMl(
-        request: await buildRewindRequest(DateTime.now()),
+        year: RewindEdition.year,
+        files: await buildRewindCoverageFiles(),
         store: await _mlStore,
       );
     } catch (e, s) {

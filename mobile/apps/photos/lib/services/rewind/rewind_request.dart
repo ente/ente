@@ -63,11 +63,38 @@ Future<rust.RewindRequest> buildRewindRequest(
   );
 }
 
+Future<List<rust.RewindCoverageFile>> buildRewindCoverageFiles() async {
+  if (isLocalGalleryMode) {
+    final files = await _localFilesByID();
+    return [
+      for (final MapEntry(key: id, value: file) in files.entries)
+        _coverageFile(
+          id,
+          file.creationTime!,
+          file.pubMagicMetadata?.dateTime,
+          file.fileType,
+        ),
+    ];
+  }
+  final userID = Configuration.instance.getUserID();
+  if (userID == null) return const [];
+  final files = await FilesDB.instance.getOwnedFileDates(userID);
+  return [
+    for (final file in files)
+      _coverageFile(
+        file.id,
+        file.creationTime,
+        file.localDateTime,
+        file.fileType,
+      ),
+  ];
+}
+
+Future<Map<int, EnteFile>> _localFilesByID() =>
+    getFilesAndMapForMemories(useLocalIntIds: true, requireLocalId: true);
+
 Future<List<rust.RewindFile>> _localFiles() async {
-  final files = await getFilesAndMapForMemories(
-    useLocalIntIds: true,
-    requireLocalId: true,
-  );
+  final files = await _localFilesByID();
   return [
     for (final MapEntry(key: id, value: file) in files.entries)
       _rewindFile(
@@ -154,15 +181,8 @@ rust.RewindFile _rewindFile(
     id: id,
     creationTime: creationTime,
     localDateTime: file.pubMagicMetadata?.dateTime,
-    utcOffsetSeconds: DateTime.fromMicrosecondsSinceEpoch(
-      creationTime,
-    ).timeZoneOffset.inSeconds,
-    fileType: switch (file.fileType) {
-      FileType.image => rust.RewindFileType.image,
-      FileType.video => rust.RewindFileType.video,
-      FileType.livePhoto => rust.RewindFileType.livePhoto,
-      FileType.other => rust.RewindFileType.other,
-    },
+    utcOffsetSeconds: _utcOffsetSeconds(creationTime),
+    fileType: _rewindFileType(file.fileType),
     location: _location(file),
     visibility: visibility,
     isFavourite: isFavourite,
@@ -172,6 +192,29 @@ rust.RewindFile _rewindFile(
     likeCount: likeCount,
   );
 }
+
+rust.RewindCoverageFile _coverageFile(
+  int id,
+  int creationTime,
+  String? localDateTime,
+  FileType fileType,
+) => rust.RewindCoverageFile(
+  id: id,
+  creationTime: creationTime,
+  localDateTime: localDateTime,
+  utcOffsetSeconds: _utcOffsetSeconds(creationTime),
+  fileType: _rewindFileType(fileType),
+);
+
+int _utcOffsetSeconds(int creationTime) =>
+    DateTime.fromMicrosecondsSinceEpoch(creationTime).timeZoneOffset.inSeconds;
+
+rust.RewindFileType _rewindFileType(FileType fileType) => switch (fileType) {
+  FileType.image => rust.RewindFileType.image,
+  FileType.video => rust.RewindFileType.video,
+  FileType.livePhoto => rust.RewindFileType.livePhoto,
+  FileType.other => rust.RewindFileType.other,
+};
 
 rust.RewindLocation? _location(EnteFile file) {
   final latitude = file.location?.latitude;
