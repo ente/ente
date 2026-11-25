@@ -17,7 +17,10 @@ import "package:photos/ui/rewind/widgets/rewind_year_duckies.dart";
 
 const _actionsDelayMs = 700;
 const _headlineWidth = 435.06;
+const _headlineFitWidth = 360.0;
 const _headlineCenterX = 197.54;
+const _accentDrop = 24.0;
+final _accentedCapital = RegExp("[\u00C0-\u00DD\u0100-\u017F]");
 
 const _confetti = [
   (RewindAssets.limeConfetti, Offset(156, 94.02), 450),
@@ -117,7 +120,9 @@ class _FinaleCardState extends State<FinaleCard>
                         copy.finaleBottom,
                         size: 118.196,
                         color: const Color(0xFFFFCE00),
-                        centerY: 314.02,
+                        centerY: _accentedCapital.hasMatch(copy.finaleBottom)
+                            ? 314.02 + _accentDrop
+                            : 314.02,
                         boxHeight: 145.858,
                         delayMs: 150,
                       ),
@@ -196,8 +201,9 @@ class _FinaleCardState extends State<FinaleCard>
         active: widget.launched,
         delayMs: delayMs,
         child: Center(
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
+          child: RewindFitWidth(
+            width: _headlineFitWidth,
+            alignment: Alignment.center,
             child: RewindOutlinedText(
               text,
               style: RewindTextStyles.display(

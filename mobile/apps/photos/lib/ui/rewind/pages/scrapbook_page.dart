@@ -53,13 +53,13 @@ class ScrapbookPage extends RewindPage {
     required this.report,
     required this.photos,
     required this.people,
-    required this.cityNames,
+    required this.cities,
   });
 
   final rust.RewindReport report;
   final List<EnteFile> photos;
   final List<RewindFace> people;
-  final List<String> cityNames;
+  final List<rust.RewindCity> cities;
 
   @override
   String get key => "scrapbook";
@@ -248,7 +248,10 @@ class _Summary extends StatelessWidget {
           ].take(3).toList();
     final places = report.places == null
         ? const <String>[]
-        : page.cityNames.take(3).toList();
+        : [
+            for (final city in page.cities.take(3))
+              copy.city(city.name, city.country),
+          ];
     final firstRow = totals != null || colour != null;
     final secondTop = firstRow ? 620.0 : 520.0;
     return Stack(

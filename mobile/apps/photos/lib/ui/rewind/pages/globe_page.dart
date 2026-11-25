@@ -907,7 +907,7 @@ class _GlobeViewState extends State<_GlobeView>
                         widget.globe.cityCount,
                         widget.globe.countryCount,
                       )
-                    : "${here.name.toUpperCase()}"
+                    : "${RewindCopy.of(context).city(here.name, here.countryCode).toUpperCase()}"
                           "${here.countryCode.isEmpty ? "" : ", ${here.countryCode}"}",
                 tally: done
                     ? null

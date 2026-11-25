@@ -286,12 +286,15 @@ class _ExploreTag extends StatelessWidget {
                       ),
                       child: Center(
                         widthFactor: 1,
-                        child: Text(
-                          RewindCopy.of(context).mosaicHint,
-                          style: RewindTextStyles.display(
-                            17.794,
-                            color: RewindColors.ink,
-                            height: 1.15,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            RewindCopy.of(context).mosaicHint,
+                            style: RewindTextStyles.display(
+                              17.794,
+                              color: RewindColors.ink,
+                              height: 1.15,
+                            ),
                           ),
                         ),
                       ),

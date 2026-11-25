@@ -604,16 +604,20 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage> {
                     right: 0,
                     top: 84,
                     child: Center(
-                      child: RewindOutlinedText(
-                        _copy.videoTitle,
-                        style: RewindTextStyles.display(
-                          31,
-                          color: RewindColors.yellow,
-                          height: 1,
-                          letterSpacing: 0.4,
+                      child: RewindFitWidth(
+                        width: 350,
+                        alignment: Alignment.center,
+                        child: RewindOutlinedText(
+                          _copy.videoTitle,
+                          style: RewindTextStyles.display(
+                            31,
+                            color: RewindColors.yellow,
+                            height: 1,
+                            letterSpacing: 0.4,
+                          ),
+                          outline: 2.6,
+                          shadow: const Offset(2, 3),
                         ),
-                        outline: 2.6,
-                        shadow: const Offset(2, 3),
                       ),
                     ),
                   ),

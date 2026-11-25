@@ -12,6 +12,7 @@ import "package:photos/ui/rewind/theme/rewind_colors.dart";
 import "package:photos/ui/rewind/theme/rewind_motion.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
+import "package:photos/ui/rewind/widgets/rewind_count_lockup.dart";
 import "package:photos/ui/rewind/widgets/rewind_count_up.dart";
 import "package:photos/ui/rewind/widgets/rewind_elapsed.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
@@ -75,6 +76,11 @@ class PhotosCountPage extends RewindPage {
       style: number,
       outline: 2.8,
       shadow: const Offset(3.5, 4.2),
+    );
+    final unitStyle = RewindTextStyles.display(
+      44.228,
+      color: RewindColors.white,
+      letterSpacing: -1.77,
     );
     final covered = RewindPageScope.coveredOf(context);
     final playing = isActive && !covered;
@@ -178,14 +184,18 @@ class PhotosCountPage extends RewindPage {
                   active: isActive,
                   delayMs: 700,
                   child: Center(
-                    child: RewindVoice(
-                      copy.photosCountKicker,
-                      builder: (text) => Text(
-                        text,
-                        style: RewindTextStyles.display(
-                          22,
-                          color: RewindColors.ink,
-                          letterSpacing: -0.88,
+                    child: RewindFitWidth(
+                      width: 224,
+                      alignment: Alignment.center,
+                      child: RewindVoice(
+                        copy.photosCountKicker,
+                        builder: (text) => Text(
+                          text,
+                          style: RewindTextStyles.display(
+                            22,
+                            color: RewindColors.ink,
+                            letterSpacing: -0.88,
+                          ),
                         ),
                       ),
                     ),
@@ -200,58 +210,51 @@ class PhotosCountPage extends RewindPage {
                   child: RewindFitWidth(
                     width: 310,
                     alignment: Alignment.topCenter,
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(top: 6, right: 7),
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(minWidth: 170),
-                            child: RewindEntrance(
-                              preset: RewindPreset.slap,
-                              active: isActive,
-                              delayMs: 850,
-                              child: Stack(
-                                alignment: Alignment.centerRight,
-                                children: [
-                                  Opacity(
-                                    opacity: 0,
-                                    child: big(copy.number(count)),
-                                  ),
-                                  RewindCountUp(
-                                    value: count,
-                                    active: playing,
-                                    delayMs: 900,
-                                    builder: (context, text) => big(text),
-                                  ),
-                                ],
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: RewindCountLockup(
+                        numberText: copy.number(count),
+                        numberStyle: number,
+                        labelText: copy.memoriesUnit(count),
+                        labelStyle: unitStyle,
+                        overhang: 7,
+                        drop: 22.1,
+                        minNumberWidth: 170,
+                        number: RewindEntrance(
+                          preset: RewindPreset.slap,
+                          active: isActive,
+                          delayMs: 850,
+                          child: Stack(
+                            alignment: Alignment.centerRight,
+                            children: [
+                              Opacity(
+                                opacity: 0,
+                                child: big(copy.number(count)),
                               ),
+                              RewindCountUp(
+                                value: count,
+                                active: playing,
+                                delayMs: 900,
+                                builder: (context, text) => big(text),
+                              ),
+                            ],
+                          ),
+                        ),
+                        label: RewindEntrance(
+                          preset: RewindPreset.pop,
+                          active: isActive,
+                          delayMs: 1150,
+                          child: Transform.rotate(
+                            angle: -1.7 * pi / 180,
+                            child: RewindOutlinedText(
+                              copy.memoriesUnit(count),
+                              style: unitStyle,
+                              outline: 4,
+                              ink: const Color(0xFF0A0A0A),
                             ),
                           ),
                         ),
-                        Positioned(
-                          right: 0,
-                          top: 66,
-                          child: RewindEntrance(
-                            preset: RewindPreset.pop,
-                            active: isActive,
-                            delayMs: 1150,
-                            child: Transform.rotate(
-                              angle: -1.7 * pi / 180,
-                              child: RewindOutlinedText(
-                                copy.memoriesUnit(count),
-                                style: RewindTextStyles.display(
-                                  44.228,
-                                  color: RewindColors.white,
-                                  letterSpacing: -1.77,
-                                ),
-                                outline: 4,
-                                ink: const Color(0xFF0A0A0A),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),

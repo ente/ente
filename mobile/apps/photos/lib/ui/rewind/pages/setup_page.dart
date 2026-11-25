@@ -118,6 +118,7 @@ class SetupPage extends RewindPage {
     required bool isActive,
   }) {
     final lines = RewindCopy.of(context).setup(setup);
+    final fit = _headlineFit(lines.headlines, MediaQuery.textScalerOf(context));
     final calloutLayer = _callout(lines.callout, position, isActive);
     return Stack(
       fit: StackFit.expand,
@@ -126,7 +127,7 @@ class SetupPage extends RewindPage {
         RewindStage(
           children: [
             for (final (i, headline) in headlines.indexed)
-              _headline(headline, lines.headlines[i], position, isActive),
+              _headline(headline, lines.headlines[i], fit, position, isActive),
             if (!callout.onTop) calloutLayer,
             _art(position, isActive),
             if (callout.onTop) calloutLayer,
@@ -136,24 +137,44 @@ class SetupPage extends RewindPage {
     );
   }
 
+  TextStyle _headlineStyle(SetupHeadline headline, double fit) =>
+      RewindTextStyles.display(
+        headline.size * fit,
+        color: ink,
+        height: headline.height,
+      );
+
+  double _headlineFit(List<String> texts, TextScaler scaler) {
+    var fit = 1.0;
+    for (final (i, headline) in headlines.indexed) {
+      final painter = TextPainter(
+        text: TextSpan(text: texts[i], style: _headlineStyle(headline, 1)),
+        textDirection: TextDirection.ltr,
+        textScaler: scaler,
+      )..layout();
+      fit = min(fit, headline.width / painter.width);
+      painter.dispose();
+    }
+    return fit;
+  }
+
   Widget _headline(
     SetupHeadline headline,
     String text,
+    double fit,
     double position,
     bool isActive,
   ) {
-    final style = RewindTextStyles.display(
-      headline.size,
-      color: ink,
-      height: headline.height,
-    );
+    final style = _headlineStyle(headline, fit);
     final lines = "\n".allMatches(text).length + 1;
+    final origin = headlines.first.at.dy;
+    final top = origin + (headline.at.dy - origin) * fit;
     return Positioned(
       left: headline.at.dx,
-      top: headline.at.dy,
+      top: top,
       child: RewindLeave(
         position: position,
-        centerY: headline.at.dy + lines * headline.size * headline.height / 2,
+        centerY: top + lines * headline.size * fit * headline.height / 2,
         child: RewindEntrance(
           preset: RewindPreset.rise,
           active: isActive,

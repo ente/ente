@@ -1,6 +1,7 @@
 import "package:intl/intl.dart";
 import "package:photos/services/rewind/rewind_edition.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
+import "package:photos/ui/rewind/copy/rewind_city_names.dart";
 import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/copy/rewind_copy_en.dart";
 
@@ -63,6 +64,9 @@ class DutchRewindCopy extends RewindCopy {
 
   @override
   String photoUnit(int count) => count == 1 ? "foto" : "foto’s";
+
+  @override
+  Map<String, String> get cityNames => dutchCityNames;
 
   @override
   String shortDate(int day, int month, int year) =>
@@ -541,7 +545,7 @@ class DutchRewindCopy extends RewindCopy {
         rust.RewindBadge.eventHopper =>
           "Degene met de volste agenda. Was er iets te doen, dan was die erbij.",
         rust.RewindBadge.alwaysRolling =>
-          "Iemand die meer video’s dan foto’s maakt, want elk frame is goud waard.",
+          "Iemand die meer video’s dan foto’s maakt. Elk frame is goud waard.",
         rust.RewindBadge.fitCheck =>
           "Iemand die geen goede outfit laat verloren gaan. Elke look wordt vastgelegd.",
         rust.RewindBadge.artLover =>

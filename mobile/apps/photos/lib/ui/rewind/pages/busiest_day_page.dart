@@ -12,6 +12,7 @@ import "package:photos/ui/rewind/theme/rewind_colors.dart";
 import "package:photos/ui/rewind/theme/rewind_motion.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
+import "package:photos/ui/rewind/widgets/rewind_count_lockup.dart";
 import "package:photos/ui/rewind/widgets/rewind_elapsed.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo.dart";
@@ -191,56 +192,34 @@ class _Count extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scaler = MediaQuery.textScalerOf(context);
-    final grow = scaler.scale(_numberSize) / _numberSize;
     final numberStyle = RewindTextStyles.display(
       _numberSize,
       color: RewindColors.white,
     );
     final labelStyle = RewindTextStyles.display(44.228, color: _label);
-    final number = _measure(count, numberStyle, scaler);
-    final label = _measure(unit, labelStyle, scaler);
-    final left = max(0.0, number.width + _overhang * grow - label.width);
-    final top = number.height + _drop * grow - label.height;
-    return SizedBox(
-      width: max(number.width, left + label.width),
-      height: top + label.height,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          RewindOutlinedText(
-            count,
-            style: numberStyle,
-            outline: 3.5,
-            shadow: const Offset(5, 6),
-          ),
-          Positioned(
-            left: left,
-            top: top,
-            child: Transform.rotate(
-              angle: _turn * pi / 180,
-              child: RewindOutlinedText(
-                unit,
-                style: labelStyle,
-                outline: 4,
-                ink: _labelInk,
-              ),
-            ),
-          ),
-        ],
+    return RewindCountLockup(
+      numberText: count,
+      numberStyle: numberStyle,
+      labelText: unit,
+      labelStyle: labelStyle,
+      overhang: _overhang,
+      drop: _drop,
+      number: RewindOutlinedText(
+        count,
+        style: numberStyle,
+        outline: 3.5,
+        shadow: const Offset(5, 6),
+      ),
+      label: Transform.rotate(
+        angle: _turn * pi / 180,
+        child: RewindOutlinedText(
+          unit,
+          style: labelStyle,
+          outline: 4,
+          ink: _labelInk,
+        ),
       ),
     );
-  }
-
-  static Size _measure(String text, TextStyle style, TextScaler scaler) {
-    final painter = TextPainter(
-      text: TextSpan(text: text, style: style),
-      textDirection: TextDirection.ltr,
-      textScaler: scaler,
-    )..layout();
-    final size = painter.size;
-    painter.dispose();
-    return size;
   }
 }
 

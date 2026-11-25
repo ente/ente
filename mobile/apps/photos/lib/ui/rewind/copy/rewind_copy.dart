@@ -1,8 +1,14 @@
 import "package:flutter/widgets.dart";
 import "package:photos/locale.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
+import "package:photos/ui/rewind/copy/rewind_city_names.dart";
+import "package:photos/ui/rewind/copy/rewind_copy_de.dart";
 import "package:photos/ui/rewind/copy/rewind_copy_en.dart";
+import "package:photos/ui/rewind/copy/rewind_copy_es.dart";
+import "package:photos/ui/rewind/copy/rewind_copy_fr.dart";
+import "package:photos/ui/rewind/copy/rewind_copy_it.dart";
 import "package:photos/ui/rewind/copy/rewind_copy_nl.dart";
+import "package:photos/ui/rewind/copy/rewind_copy_pt.dart";
 
 typedef RewindLines = ({String you, String me});
 
@@ -37,7 +43,12 @@ abstract class RewindCopy {
   static Future<RewindCopy> current() async => forLocale(await getLocale());
 
   static RewindCopy forLocale(Locale? locale) => switch (locale?.languageCode) {
+    "de" => const GermanRewindCopy(),
+    "es" => const SpanishRewindCopy(),
+    "fr" => const FrenchRewindCopy(),
+    "it" => const ItalianRewindCopy(),
     "nl" => const DutchRewindCopy(),
+    "pt" => const PortugueseRewindCopy(),
     _ => const EnglishRewindCopy(),
   };
 
@@ -45,6 +56,9 @@ abstract class RewindCopy {
   String photoTally(String number, int count);
   String photos(int count) => photoTally(number(count), count);
   String photoUnit(int count);
+  Map<String, String> get cityNames => const {};
+  String city(String name, String country) =>
+      cityNames[rewindCityKey(name, country)] ?? name;
   String shortDate(int day, int month, int year);
   String monthBanner(int month);
   String monthName(int month);

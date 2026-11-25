@@ -584,7 +584,7 @@ class EnglishRewindCopy extends RewindCopy {
       title: "ALWAYS\nROLLING",
       pronunciation: "/ˈȯl-wāz ˈrō-liŋ/",
       definition:
-          "Someone who shoots more videos than photos, every frame is priceless.",
+          "Someone who shoots more videos than photos. Every frame is priceless.",
     ),
     rust.RewindBadge.fitCheck => (
       title: "FIT CHECK",

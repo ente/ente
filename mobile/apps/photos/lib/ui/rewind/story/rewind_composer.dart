@@ -352,7 +352,7 @@ RewindChapter _scrapbook(rust.RewindReport report) {
         report: report,
         photos: photos,
         people: people,
-        cityNames: [for (final city in cities.take(3)) city.name],
+        cities: cities.take(3).toList(),
       ),
     ];
   });

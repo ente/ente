@@ -138,6 +138,8 @@ class _PlacesQuiz extends StatefulWidget {
 class _PlacesQuizState extends State<_PlacesQuiz> {
   RewindCopy get _copy => RewindCopy.of(context);
 
+  String _cityOf(rust.RewindCity city) => _copy.city(city.name, city.country);
+
   static const _background = Color(0xFF123E97);
   static const _stripes = Color(0xFF0C3B9B);
   static const _revealMs = 1250;
@@ -355,10 +357,10 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
           child: _leave(
             150,
             RewindSwapIn(
-              text: _stamps[picked].city.name,
+              text: _cityOf(_stamps[picked].city),
               alignment: Alignment.centerLeft,
               child: Text(
-                _copy.placesPicked(_stamps[picked].city.name),
+                _copy.placesPicked(_cityOf(_stamps[picked].city)),
                 style: RewindTextStyles.body(19, height: 1.15),
               ),
             ),
@@ -459,7 +461,7 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
                 placeholder: const Color(0xFFD9D9D9),
                 zoomable: _phase == _Phase.done && !_opensGallery(rank),
               ),
-        label: _stamps[rank].city.name,
+        label: _cityOf(_stamps[rank].city),
         portrait: slot.portrait,
         width: size.width,
         lift: lift * 139.6 / size.width,
@@ -528,13 +530,13 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
               ? const ColoredBox(color: Color(0xFFD9D9D9))
               : RewindPhoto(photo, placeholder: const Color(0xFFD9D9D9)),
           label: stamp.city.country.isEmpty
-              ? stamp.city.name
+              ? _cityOf(stamp.city)
               : stamp.city.country,
           width: width,
         ),
       ),
       headerSize: const Size(width, width * 93.9 / 139.6),
-      title: stamp.city.name,
+      title: _cityOf(stamp.city),
       photos: stamp.gallery,
     );
   }
@@ -706,7 +708,7 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
               child: RewindOutlinedText(
                 travelled
                     ? _copy.distance(places.distanceKm)
-                    : winner.name.toUpperCase(),
+                    : _cityOf(winner).toUpperCase(),
                 style: RewindTextStyles.display(
                   71.872,
                   color: RewindColors.yellow,
@@ -735,15 +737,15 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
     final guess = _guess ?? 0;
     final cities = [for (final stamp in _stamps) stamp.city];
     final winner = cities.first;
-    final won = _copy.placesWon(winner.name, winner.photoCount);
+    final won = _copy.placesWon(_cityOf(winner), winner.photoCount);
     if (guess == 0) {
-      final next = cities.skip(1).take(2).map((city) => city.name).toList();
+      final next = cities.skip(1).take(2).map(_cityOf).toList();
       return next.isEmpty ? won : "$won ${_copy.placesNext(next)}";
     }
     final pick = cities[guess];
     final placing = guess < 3
-        ? _copy.placesPlaced(pick.name, guess + 1)
-        : _copy.placesHad(pick.name, pick.photoCount);
+        ? _copy.placesPlaced(_cityOf(pick), guess + 1)
+        : _copy.placesHad(_cityOf(pick), pick.photoCount);
     return "$placing $won";
   }
 }
