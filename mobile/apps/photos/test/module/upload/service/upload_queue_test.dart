@@ -347,6 +347,13 @@ void main() {
     final queue = UploadQueue((_) {});
     final item = queue.add(_file('local-1'), 10).item;
 
+    // No-op while item is still queued or unknown.
+    queue.resetBackupProgress('local-1');
+    queue.resetBackupProgress('missing');
+    expect(queue.backupItems['local-1']!.progressPercent, isNull);
+
+    expect(_start(queue), same(item));
+
     queue.updateBackupProgress(item, 'local-1', 99, 100);
     expect(queue.backupItems['local-1']!.progressPercent, 99);
 
