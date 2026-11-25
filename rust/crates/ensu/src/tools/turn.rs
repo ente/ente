@@ -1,3 +1,4 @@
+use crate::todo::Refusal;
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
@@ -7,7 +8,7 @@ use crate::conversation::{ToolTurnHistory, TurnTools};
 use crate::db::backend::{Backend, BackendTx};
 use crate::db::chat::ConversationSnapshot;
 use crate::db::models::{AttachmentMeta, EntityType, Message, Sender};
-use crate::db::{ChatDb, Error, Refusal, Result};
+use crate::db::{ChatDb, Error, Result};
 use crate::llm::{ToolCall, ToolOutcome};
 use crate::todo::tool::{self, TodoTurnData};
 

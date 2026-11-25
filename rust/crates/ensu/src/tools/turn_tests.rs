@@ -1,5 +1,6 @@
-use crate::db::{ChatDb, Error, Refusal, SqliteBackend};
+use crate::db::{ChatDb, Error, SqliteBackend};
 use crate::llm::{ToolOutcome, ToolValue};
+use crate::todo::Refusal;
 use crate::todo::{COMPLETE_TOOL, LIST_TOOL, SAVE_TOOL, Todo};
 use crate::tools::test_support::*;
 use crate::tools::turn::{self as tool_turn, Confirm, ToolTurnState, Undo};

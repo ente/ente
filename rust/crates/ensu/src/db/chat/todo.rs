@@ -1,9 +1,10 @@
+use crate::todo::Refusal;
 use uuid::Uuid;
 
 use super::ChatDb;
 use crate::db::backend::{Backend, BackendTx, RowExt, Value};
 use crate::db::models::EntityType;
-use crate::db::{Error, Refusal, Result};
+use crate::db::{Error, Result};
 use crate::todo::{self, Todo};
 
 fn conflict() -> Error {

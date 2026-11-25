@@ -544,7 +544,6 @@ mod tests {
 }
 
 pub(crate) fn typed_title(title: &str) -> crate::db::Result<String> {
-    use crate::db::Refusal;
     let title = clean_title(title).ok_or(Refusal::TitleMissing)?;
     if title.chars().count() > MAX_TITLE_CHARS {
         return Err(Refusal::TitleTooLong {
@@ -553,4 +552,24 @@ pub(crate) fn typed_title(title: &str) -> crate::db::Result<String> {
         .into());
     }
     Ok(title)
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+pub enum Refusal {
+    #[error("todo changed since it was read")]
+    TodoChanged,
+    #[error("todo title is missing")]
+    TitleMissing,
+    #[error("todo title exceeds {max} characters")]
+    TitleTooLong { max: usize },
+    #[error("todo changes can no longer be undone")]
+    UndoStale,
+    #[error("todo offer is stale")]
+    OfferStale,
+    #[error("an earlier reply to this message has active todo changes")]
+    EarlierReplyStands,
+    #[error("reply has no offered todo changes")]
+    NothingOffered,
+    #[error("reply has no applied todo changes")]
+    NothingChanged,
 }

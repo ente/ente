@@ -314,7 +314,7 @@ fn a_refused_finish_keeps_the_outcome() {
         .unwrap();
     assert!(matches!(
         turn.finish(&db, &snapshot, "", vec![]),
-        Err(db::Error::Refused(db::Refusal::EarlierReplyStands))
+        Err(db::Error::Refused(crate::todo::Refusal::EarlierReplyStands))
     ));
     assert!(turn.has_outcome());
     tool_turn::undo(&db, first.reply.uuid).unwrap();

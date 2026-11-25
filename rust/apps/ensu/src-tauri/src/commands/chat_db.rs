@@ -48,16 +48,16 @@ fn image_thread_error() -> ApiError {
     ApiError::new("image_thread", "Image task failed")
 }
 
-fn refusal_name(refusal: db::Refusal) -> &'static str {
+fn refusal_name(refusal: ente_ensu::todo::Refusal) -> &'static str {
     match refusal {
-        db::Refusal::TodoChanged => "refused.todo_changed",
-        db::Refusal::TitleMissing => "refused.title_missing",
-        db::Refusal::TitleTooLong { .. } => "refused.title_too_long",
-        db::Refusal::UndoStale => "refused.undo_stale",
-        db::Refusal::OfferStale => "refused.offer_stale",
-        db::Refusal::EarlierReplyStands => "refused.earlier_reply_stands",
-        db::Refusal::NothingOffered => "refused.nothing_offered",
-        db::Refusal::NothingChanged => "refused.nothing_changed",
+        ente_ensu::todo::Refusal::TodoChanged => "refused.todo_changed",
+        ente_ensu::todo::Refusal::TitleMissing => "refused.title_missing",
+        ente_ensu::todo::Refusal::TitleTooLong { .. } => "refused.title_too_long",
+        ente_ensu::todo::Refusal::UndoStale => "refused.undo_stale",
+        ente_ensu::todo::Refusal::OfferStale => "refused.offer_stale",
+        ente_ensu::todo::Refusal::EarlierReplyStands => "refused.earlier_reply_stands",
+        ente_ensu::todo::Refusal::NothingOffered => "refused.nothing_offered",
+        ente_ensu::todo::Refusal::NothingChanged => "refused.nothing_changed",
     }
 }
 
