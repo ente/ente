@@ -59,7 +59,8 @@ func (c *CollectionController) GetDiffV2(ctx *gin.Context, cID int64, userID int
 func scrubDeletedFiles(files []ente.File) {
 	for idx := range files {
 		file := &files[idx]
-		if !file.IsDeleted {
+		if !file.IsDeleted && (file.ModerationStatus == nil || *file.ModerationStatus != ente.ModerationPending) {
+			file.ModerationStatus = nil
 			continue
 		}
 		files[idx] = ente.File{

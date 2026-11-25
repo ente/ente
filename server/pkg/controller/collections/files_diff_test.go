@@ -2,6 +2,7 @@ package collections
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http/httptest"
 	"strconv"
 	"testing"
@@ -12,9 +13,10 @@ import (
 	"github.com/ente/museum/pkg/utils/auth"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
+	log "github.com/sirupsen/logrus"
 )
 
-func TestFileDiffScrubsDeletedFiles(t *testing.T) {
+func TestFileDiffScrubsDeletedAndPendingFiles(t *testing.T) {
 	db, collectionRepo, collectionOwnerID, viewerID := setupCollectionShareTest(t)
 	collectionRepo.LatencyLogger = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{},
@@ -24,6 +26,22 @@ func TestFileDiffScrubsDeletedFiles(t *testing.T) {
 	addShareTestShare(t, collectionRepo, collectionID, collectionOwnerID, viewerID, ente.VIEWER)
 	activeFileID := addShareTestOwnerFile(t, db, collectionID, collectionOwnerID)
 	deletedFileID := addShareTestOwnerFile(t, db, collectionID, collectionOwnerID)
+	pendingFileID := addShareTestOwnerFile(t, db, collectionID, collectionOwnerID)
+	restoredFileID := addShareTestOwnerFile(t, db, collectionID, collectionOwnerID)
+	if _, err := db.Exec(
+		`UPDATE collection_files SET moderation_status = $1, anon_user_id = 'guest', updation_time = 2
+		 WHERE collection_id = $2 AND file_id = $3`,
+		ente.ModerationPending, collectionID, pendingFileID,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(
+		`UPDATE collection_files SET moderation_status = $1, anon_user_id = 'guest', updation_time = 3
+		 WHERE collection_id = $2 AND file_id = $3`,
+		ente.ModerationRejected, collectionID, restoredFileID,
+	); err != nil {
+		t.Fatal(err)
+	}
 
 	if _, err := db.Exec(
 		`UPDATE collection_files SET is_deleted = TRUE, updation_time = 2
@@ -41,8 +59,8 @@ func TestFileDiffScrubsDeletedFiles(t *testing.T) {
 			magic_metadata = '{"version":2,"count":1,"data":"current-private-metadata","header":"private-header"}'::jsonb,
 			pub_magic_metadata = '{"version":2,"count":1,"data":"current-public-metadata","header":"public-header"}'::jsonb,
 			info = '{"fileSize":123,"thumbSize":45}'::jsonb
-		 WHERE file_id = $1`,
-		deletedFileID,
+		 WHERE file_id IN ($1, $2)`,
+		deletedFileID, pendingFileID,
 	); err != nil {
 		t.Fatal(err)
 	}
@@ -61,6 +79,12 @@ func TestFileDiffScrubsDeletedFiles(t *testing.T) {
 				ctx := newFileDiffTestContext("/collections/v2/diff")
 				ctx.Request.Header.Set("X-Auth-User-ID", strconv.FormatInt(viewerID, 10))
 				return controller.GetDiffV2(ctx, collectionID, viewerID, 0)
+			},
+		},
+		{
+			name: "owner",
+			fetch: func() ([]ente.File, bool, error) {
+				return controller.GetDiffV2(newBatchShareTestContext(collectionOwnerID), collectionID, collectionOwnerID, 0)
 			},
 		},
 		{
@@ -96,19 +120,53 @@ func TestFileDiffScrubsDeletedFiles(t *testing.T) {
 				t.Fatalf("active file was scrubbed: %+v", active)
 			}
 
-			deleted := findFileDiffTestFile(t, files, deletedFileID)
-			if !deleted.IsDeleted || deleted.OwnerID != collectionOwnerID || deleted.CollectionID != collectionID || deleted.UpdationTime != 2 {
-				t.Fatalf("invalid tombstone identity: %+v", deleted)
+			restored := findFileDiffTestFile(t, files, restoredFileID)
+			if restored.IsDeleted || restored.EncryptedKey != "collection-file-key" || restored.AnonUserID != nil || restored.ModerationStatus != nil {
+				t.Fatalf("unexpected restored file: %+v", restored)
 			}
-			wantMetadata := ente.FileAttributes{EncryptedData: "-"}
-			if deleted.EncryptedKey != "" || deleted.KeyDecryptionNonce != "" ||
-				deleted.File != (ente.FileAttributes{}) || deleted.Thumbnail != (ente.FileAttributes{}) ||
-				deleted.Metadata != wantMetadata || deleted.MagicMetadata != nil ||
-				deleted.PublicMagicMetadata != nil || deleted.Info != nil {
-				t.Fatalf("deleted file contents were returned: %+v", deleted)
+
+			for _, id := range []int64{deletedFileID, pendingFileID} {
+				deleted := findFileDiffTestFile(t, files, id)
+				if !deleted.IsDeleted || deleted.OwnerID != collectionOwnerID || deleted.CollectionID != collectionID || deleted.UpdationTime != 2 {
+					t.Fatalf("invalid tombstone identity: %+v", deleted)
+				}
+				wantMetadata := ente.FileAttributes{EncryptedData: "-"}
+				if deleted.EncryptedKey != "" || deleted.KeyDecryptionNonce != "" ||
+					deleted.File != (ente.FileAttributes{}) || deleted.Thumbnail != (ente.FileAttributes{}) ||
+					deleted.Metadata != wantMetadata || deleted.MagicMetadata != nil ||
+					deleted.PublicMagicMetadata != nil || deleted.Info != nil ||
+					deleted.ModerationStatus != nil || deleted.AnonUserID != nil || deleted.Action != nil || deleted.ActionUserID != nil {
+					t.Fatalf("tombstone contents were returned: %+v", deleted)
+				}
+				assertFileDiffTestWireShape(t, deleted)
 			}
-			assertFileDiffTestWireShape(t, deleted)
 		})
+	}
+	t.Run("equal timestamp across page boundary", func(t *testing.T) {
+		files, hasMore, err := controller.getDiff(collectionID, 1, 1, log.NewEntry(log.StandardLogger()))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !hasMore || len(files) != 2 {
+			t.Fatalf("got %d files, hasMore=%t; expected both rows at time 2", len(files), hasMore)
+		}
+		scrubDeletedFiles(files)
+		pending := findFileDiffTestFile(t, files, pendingFileID)
+		if !pending.IsDeleted || pending.EncryptedKey != "" {
+			t.Fatalf("pending file at page boundary was not scrubbed: %+v", pending)
+		}
+	})
+
+	for _, actor := range []int64{viewerID, collectionOwnerID} {
+		ctx := newBatchShareTestContext(actor)
+		file, err := controller.GetFile(ctx, collectionID, pendingFileID)
+		if file != nil || !errors.Is(err, &ente.ErrFileNotFoundInAlbum) {
+			t.Fatalf("pending file lookup for user %d = (%+v, %v), want file not found", actor, file, err)
+		}
+		file, err = controller.GetFile(ctx, collectionID, restoredFileID)
+		if err != nil || file == nil || file.AnonUserID != nil || file.ModerationStatus != nil || file.EncryptedKey == "" {
+			t.Fatalf("restored file lookup for user %d = (%+v, %v)", actor, file, err)
+		}
 	}
 }
 
