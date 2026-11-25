@@ -89,8 +89,6 @@ func (c *ObjectCleanupController) removeUnreportedObjects() int {
 		return 0
 	}
 
-	// Commit the DB claim/lease updates before any S3 I/O so we don't hold
-	// pool connections or pin PostgreSQL's xmin horizon across S3 calls.
 	if cerr := tx.Commit(); cerr != nil {
 		cerr = stacktrace.Propagate(cerr, "Failed to commit transaction")
 		logger.Error(cerr)
