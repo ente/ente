@@ -674,8 +674,12 @@ func (c *CollectionController) GetPublicDiff(ctx *gin.Context, sinceTime int64) 
 	if err != nil {
 		return nil, false, stacktrace.Propagate(err, "")
 	}
+	guestID, _ := auth.GetPublicAnonUserID(ctx)
 	// Don't expose private metadata in a public diff.
 	for idx := range diff {
+		if isPendingUpload(diff[idx]) && (guestID == nil || diff[idx].AnonUserID == nil || *diff[idx].AnonUserID != *guestID) {
+			diff[idx].IsDeleted = true
+		}
 		if diff[idx].MagicMetadata != nil {
 			diff[idx].MagicMetadata = nil
 		}
@@ -696,6 +700,6 @@ func (c *CollectionController) GetPublicDiff(ctx *gin.Context, sinceTime int64) 
 			diff[idx].IsDeleted = true
 		}
 	}
-	scrubDeletedFiles(diff, false)
+	scrubDeletedFiles(diff, true)
 	return diff, hasMore, nil
 }

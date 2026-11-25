@@ -32,10 +32,14 @@ func TestPendingUploadVisibility(t *testing.T) {
 	album := insertObjectTestCollection(t, db, owner)
 	member := testutil.InsertUser(t, db, testutil.UserFixture{UserID: 2, Email: "album-member@example.com", CreationTime: 1})
 	insertObjectTestCollectionShare(t, db, album, owner, member)
+	admin := testutil.InsertUser(t, db, testutil.UserFixture{UserID: 3, Email: "album-admin@example.com", CreationTime: 1})
+	insertObjectTestCollectionShare(t, db, album, owner, admin)
+	_, err := db.Exec(`UPDATE collection_shares SET role_type = $1 WHERE collection_id = $2 AND to_user_id = $3`, ente.ADMIN, album, admin)
+	require.NoError(t, err)
 	files := insertCollectionMembershipTestFiles(t, db, owner, 2)
 	pending, published := files[0], files[1]
 	linkObjectTestFileToCollection(t, db, album, pending, owner)
-	_, err := db.Exec(`UPDATE collection_files SET moderation_status = 'PENDING' WHERE file_id = $1`, pending)
+	_, err = db.Exec(`UPDATE collection_files SET moderation_status = 'PENDING', anon_user_id = 'guest' WHERE file_id = $1`, pending)
 	require.NoError(t, err)
 	linkObjectTestFileToCollection(t, db, album, published, owner)
 
@@ -56,9 +60,17 @@ func TestPendingUploadVisibility(t *testing.T) {
 		insertObjectTestKey(t, db, pending, objType, "pending-"+string(objType), 100, []string{"b2-eu-cen"})
 		_, err = objects.GetAccessibleObject(ctx, pending, member, objType)
 		require.ErrorIs(t, err, ente.ErrPermissionDenied)
-		_, err = objects.GetCollectionObject(ctx, album, pending, objType)
+		_, err = objects.GetCollectionObject(ctx, album, pending, objType, nil)
 		require.ErrorIs(t, err, ente.ErrPermissionDenied)
+		otherGuest := "other"
+		_, err = objects.GetCollectionObject(ctx, album, pending, objType, &otherGuest)
+		require.ErrorIs(t, err, ente.ErrPermissionDenied)
+		guest := "guest"
+		_, err = objects.GetCollectionObject(ctx, album, pending, objType, &guest)
+		require.NoError(t, err)
 		_, err = objects.GetAccessibleObject(ctx, pending, owner, objType)
+		require.NoError(t, err)
+		_, err = objects.GetAccessibleObject(ctx, pending, admin, objType)
 		require.NoError(t, err)
 	}
 }

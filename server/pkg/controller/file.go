@@ -523,7 +523,8 @@ func (c *FileController) getSignedURLForOwnedObject(ctx *gin.Context, ownerID in
 }
 
 func (c *FileController) getSignedURLForCollectionObject(ctx *gin.Context, collectionID int64, fileID int64, objType ente.ObjectType) (string, error) {
-	s3Object, dcs, err := c.ObjectRepo.GetCollectionObjectWithDCs(ctx, collectionID, fileID, objType)
+	anonUserID, _ := auth.GetPublicAnonUserID(ctx)
+	s3Object, dcs, err := c.ObjectRepo.GetCollectionObjectWithDCs(ctx, collectionID, fileID, objType, anonUserID)
 	if err != nil {
 		return "", stacktrace.Propagate(err, "")
 	}

@@ -239,6 +239,54 @@ func TestFileDiffReturnsPendingUploadsToModerators(t *testing.T) {
 	}
 }
 
+func TestPublicDiffReturnsGuestOwnPendingUploads(t *testing.T) {
+	db, collectionRepo, ownerID, _ := setupCollectionShareTest(t)
+	collectionRepo.LatencyLogger = prometheus.NewHistogramVec(prometheus.HistogramOpts{}, []string{"method"})
+	collectionID := createShareTestCollection(t, collectionRepo, ownerID)
+	pendingFileID := addShareTestOwnerFile(t, db, collectionID, ownerID)
+	if _, err := db.Exec(
+		`UPDATE collection_files SET moderation_status = $1, anon_user_id = 'guest' WHERE collection_id = $2 AND file_id = $3`,
+		ente.ModerationPending, collectionID, pendingFileID,
+	); err != nil {
+		t.Fatal(err)
+	}
+	controller := &CollectionController{CollectionRepo: collectionRepo}
+
+	for _, tc := range []struct {
+		name     string
+		guestID  string
+		wantFull bool
+	}{
+		{name: "uploading guest", guestID: "guest", wantFull: true},
+		{name: "other guest", guestID: "other"},
+		{name: "no identity"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := newFileDiffTestContext("/public-collection/diff")
+			ctx.Set(auth.PublicAccessKey, ente.PublicAccessContext{CollectionID: collectionID})
+			if tc.guestID != "" {
+				auth.SetPublicAnonUserID(ctx, tc.guestID)
+			}
+			files, _, err := controller.GetPublicDiff(ctx, 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := findFileDiffTestFile(t, files, pendingFileID)
+			if !tc.wantFull {
+				if !got.IsDeleted || got.EncryptedKey != "" || got.ModerationStatus != nil || got.AnonUserID != nil {
+					t.Fatalf("pending upload was not a tombstone: %+v", got)
+				}
+				return
+			}
+			if got.IsDeleted || got.EncryptedKey != "collection-file-key" || got.MagicMetadata != nil ||
+				got.ModerationStatus == nil || *got.ModerationStatus != ente.ModerationPending ||
+				got.AnonUserID == nil || *got.AnonUserID != "guest" {
+				t.Fatalf("unexpected pending upload: %+v", got)
+			}
+		})
+	}
+}
+
 func newFileDiffTestContext(path string) *gin.Context {
 	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
 	ctx.Request = httptest.NewRequest("GET", path, nil)
