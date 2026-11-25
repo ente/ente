@@ -143,7 +143,7 @@ Future<void> shareRewindClip(
 }) async {
   final video = await _export(
     context,
-    cacheKey: page,
+    cacheKey: page.clipKey,
     start: () => RewindVideoJob(
       context,
       pages: [?page.clipIntro, page],

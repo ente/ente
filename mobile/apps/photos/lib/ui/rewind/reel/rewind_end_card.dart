@@ -79,7 +79,7 @@ class RewindCardExit extends StatelessWidget {
 class RewindEndCard extends StatelessWidget {
   const RewindEndCard({required this.elapsed, super.key});
 
-  static const duration = Duration(milliseconds: 3400);
+  static const duration = Duration(milliseconds: 5000);
 
   final Duration elapsed;
 

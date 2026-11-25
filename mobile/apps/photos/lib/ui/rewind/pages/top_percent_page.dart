@@ -86,7 +86,8 @@ class TopPercentPage extends RewindPage {
                       preset: RewindPreset.line,
                       active: isActive,
                       delayMs: _textDelayMs,
-                      child: Center(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
                         child: RewindVoice(
                           you: "ACROSS ENTE, YOU’RE IN THE",
                           me: "ACROSS ENTE, I’M IN THE",

@@ -48,6 +48,8 @@ abstract class RewindPage {
 
   RewindPage? get clipIntro => null;
 
+  Object get clipKey => this;
+
   bool get hasOwnVideoButton => false;
 
   void resetAnswer() {}

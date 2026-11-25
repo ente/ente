@@ -188,15 +188,10 @@ class MosaicPage extends RewindPage {
                     active: isActive,
                     preset: RewindPreset.twinkle,
                     delayMs: sparkle.delayMs,
-                    child: RewindIdleLoop(
-                      idle: RewindIdle.twinkle,
-                      active: isActive,
-                      delayMs: sparkle.delayMs + 700,
-                      child: SvgPicture.file(
-                        RewindAssets.file(sparkle.asset),
-                        width: sparkle.rect.width,
-                        height: sparkle.rect.height,
-                      ),
+                    child: SvgPicture.file(
+                      RewindAssets.file(sparkle.asset),
+                      width: sparkle.rect.width,
+                      height: sparkle.rect.height,
                     ),
                   ),
                 if (count != null)
