@@ -20,7 +20,7 @@ func (c *CollectionController) RejectPendingFiles(ctx *gin.Context, req ente.Pen
 	if err != nil {
 		return err
 	}
-	_, err = c.trashPendingFiles(ctx, collection, req.FileIDs, nil)
+	_, err = c.trashPendingFiles(ctx, collection, req.FileIDs, nil, ente.ModerationRejected)
 	return err
 }
 
@@ -33,9 +33,12 @@ func (c *CollectionController) RemovePendingFile(ctx *gin.Context, fileID int64)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
-	fileIDs, err := c.trashPendingFiles(ctx, collection, []int64{fileID}, guestID)
-	if err != nil || len(fileIDs) == 0 {
+	fileIDs, err := c.trashPendingFiles(ctx, collection, []int64{fileID}, guestID, ente.ModerationRemoved)
+	if err != nil {
 		return err
+	}
+	if len(fileIDs) == 0 {
+		return stacktrace.Propagate(ente.ErrNotFound, "")
 	}
 	return stacktrace.Propagate(c.TrashRepo.Delete(ctx, collection.Owner.ID, fileIDs), "")
 }
@@ -57,7 +60,7 @@ func (c *CollectionController) getModeratedCollection(ctx *gin.Context, collecti
 	return resp.Collection, nil
 }
 
-func (c *CollectionController) trashPendingFiles(ctx *gin.Context, collection ente.Collection, fileIDs []int64, anonUserID *string) ([]int64, error) {
+func (c *CollectionController) trashPendingFiles(ctx *gin.Context, collection ente.Collection, fileIDs []int64, anonUserID *string, pendingStatus string) ([]int64, error) {
 	pending, err := c.CollectionRepo.GetPendingFileIDs(ctx, collection.ID, fileIDs, anonUserID)
 	if err != nil || len(pending) == 0 {
 		return nil, stacktrace.Propagate(err, "")
@@ -66,6 +69,6 @@ func (c *CollectionController) trashPendingFiles(ctx *gin.Context, collection en
 	for _, fileID := range pending {
 		items = append(items, ente.TrashItemRequest{FileID: fileID, CollectionID: collection.ID})
 	}
-	err = c.TrashRepo.TrashFiles(ctx, collection.Owner.ID, ente.TrashRequest{OwnerID: collection.Owner.ID, TrashItems: items})
+	err = c.TrashRepo.TrashFiles(ctx, collection.Owner.ID, ente.TrashRequest{OwnerID: collection.Owner.ID, TrashItems: items}, pendingStatus)
 	return pending, stacktrace.Propagate(err, "")
 }

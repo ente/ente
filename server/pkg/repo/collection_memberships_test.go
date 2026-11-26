@@ -228,7 +228,7 @@ func TestAddFilesAndTrashFilesSerializeOnFile(t *testing.T) {
 					FileID:       fileID,
 					CollectionID: sourceCollectionID,
 				}},
-			})
+			}, ente.ModerationRejected)
 		}()
 	})
 
@@ -304,7 +304,7 @@ func TestRestoreFilesPreservesMembershipBeforeCollectionLockOrder(t *testing.T) 
 	repository.TrashRepo.FileLinkRepo = public.NewFileLinkRepo(db)
 	if err := repository.TrashRepo.TrashFiles(t.Context(), ownerID, ente.TrashRequest{
 		TrashItems: []ente.TrashItemRequest{{FileID: fileID, CollectionID: collectionID}},
-	}); err != nil {
+	}, ente.ModerationRejected); err != nil {
 		t.Fatal(err)
 	}
 
@@ -511,7 +511,7 @@ func TestMoveFilesAndTrashFilesSerializeOnFile(t *testing.T) {
 					FileID:       fileID,
 					CollectionID: sourceCollectionID,
 				}},
-			})
+			}, ente.ModerationRejected)
 		}()
 	})
 

@@ -1236,7 +1236,7 @@ func (repo *CollectionRepository) TrashV3(ctx context.Context, collectionID int6
 				CollectionID: collectionID,
 			})
 		}
-		err = repo.TrashRepo.TrashFiles(ctx, ownerID, ente.TrashRequest{OwnerID: ownerID, TrashItems: items})
+		err = repo.TrashRepo.TrashFiles(ctx, ownerID, ente.TrashRequest{OwnerID: ownerID, TrashItems: items}, ente.ModerationRejected)
 		if err != nil {
 			log.WithError(err).Error("failed to trash file")
 			return stacktrace.Propagate(err, "")

@@ -24,7 +24,7 @@ func TestRestoreTrashedPendingUpload(t *testing.T) {
 
 	err = trash.TrashFiles(ctx, owner, ente.TrashRequest{
 		OwnerID: owner, TrashItems: []ente.TrashItemRequest{{CollectionID: album, FileID: file}},
-	})
+	}, ente.ModerationRejected)
 	require.NoError(t, err)
 	collections := &CollectionRepository{DB: db, TrashRepo: trash}
 	require.NoError(t, collections.RestoreFiles(ctx, owner, album, []ente.CollectionFileItem{collectionMembershipTestItem(file)}))
@@ -58,7 +58,7 @@ func TestTrashFilesUsesRequestItemsAsItsScope(t *testing.T) {
 			FileID:       requestedFileID,
 			CollectionID: collectionID,
 		}},
-	})
+	}, ente.ModerationRejected)
 	if err != nil {
 		t.Fatalf("TrashFiles() error = %v", err)
 	}
@@ -145,7 +145,7 @@ func TestTrashFilesRollsBackWhenFileLinkCleanupFails(t *testing.T) {
 			FileID:       fileID,
 			CollectionID: collectionID,
 		}},
-	})
+	}, ente.ModerationRejected)
 	if err == nil {
 		t.Fatal("TrashFiles() succeeded despite public file link cleanup failure")
 	}

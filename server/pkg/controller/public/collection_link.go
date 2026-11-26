@@ -112,9 +112,13 @@ func (c *CollectionLinkController) CreateFile(ctx *gin.Context, file ente.File, 
 	file.IsDeleted = false
 	file.ModerationStatus, file.AnonUserID = nil, nil
 	if collection.PublicURLs[0].RequireApproval {
+		anonUserID, ok := auth.GetPublicAnonUserID(ctx)
+		if !ok {
+			return ente.File{}, stacktrace.Propagate(ente.ErrAuthenticationRequired, "moderated uploads need a guest identity")
+		}
 		pending := ente.ModerationPending
 		file.ModerationStatus = &pending
-		file.AnonUserID, _ = auth.GetPublicAnonUserID(ctx)
+		file.AnonUserID = anonUserID
 	}
 	createdFile, err := c.FileController.Create(ctx, collectionOwnerID, file, ctx.Request.UserAgent(), app)
 	if err != nil {

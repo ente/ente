@@ -139,7 +139,7 @@ func TestInitializeFileCountsRejectsStaleSnapshots(t *testing.T) {
 	}
 	if err := repository.TrashRepo.TrashFiles(t.Context(), userID, ente.TrashRequest{
 		TrashItems: []ente.TrashItemRequest{{FileID: fileID, CollectionID: collectionID}},
-	}); err != nil {
+	}, ente.ModerationRejected); err != nil {
 		t.Fatal(err)
 	}
 	if initialized, err := usageRepo.publishInitialFileCounts(t.Context(), userID, counts); err != nil || initialized {

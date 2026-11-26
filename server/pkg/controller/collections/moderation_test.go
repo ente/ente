@@ -70,9 +70,6 @@ func TestModeratePendingFiles(t *testing.T) {
 	require.True(t, isDeleted)
 	_, isDeleted, _ = state(normal)
 	require.False(t, isDeleted)
-	var trashDeleted bool
-	require.NoError(t, db.QueryRow(`SELECT is_deleted FROM trash WHERE file_id = $1`, rejected).Scan(&trashDeleted))
-	require.False(t, trashDeleted)
 
 	guestContext := func(guestID string) *gin.Context {
 		ctx := newFileDiffTestContext("/public-collection/pending-files")
@@ -83,13 +80,19 @@ func TestModeratePendingFiles(t *testing.T) {
 		return ctx
 	}
 	require.ErrorIs(t, controller.RemovePendingFile(guestContext(""), removed), ente.ErrPermissionDenied)
-	require.NoError(t, controller.RemovePendingFile(guestContext("guest"), otherGuests))
+	require.ErrorIs(t, controller.RemovePendingFile(guestContext("guest"), otherGuests), ente.ErrNotFound)
 	status, isDeleted, _ = state(otherGuests)
 	require.Equal(t, ente.ModerationPending, *status)
 	require.False(t, isDeleted)
 	require.NoError(t, controller.RemovePendingFile(guestContext("guest"), removed))
-	_, isDeleted, _ = state(removed)
+	status, isDeleted, _ = state(removed)
+	require.Equal(t, ente.ModerationRemoved, *status)
 	require.True(t, isDeleted)
+	require.ErrorIs(t, controller.RemovePendingFile(guestContext("guest"), removed), ente.ErrNotFound)
+	require.ErrorIs(t, controller.RemovePendingFile(guestContext("guest"), rejected), ente.ErrNotFound)
+	var trashDeleted bool
+	require.NoError(t, db.QueryRow(`SELECT is_deleted FROM trash WHERE file_id = $1`, rejected).Scan(&trashDeleted))
+	require.False(t, trashDeleted)
 	require.NoError(t, db.QueryRow(`SELECT is_deleted FROM trash WHERE file_id = $1`, removed).Scan(&trashDeleted))
 	require.True(t, trashDeleted)
 }

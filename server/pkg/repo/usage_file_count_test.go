@@ -50,7 +50,7 @@ func TestTrashAndRestoreMaintainReadyLockerCount(t *testing.T) {
 
 	if err := repository.TrashRepo.TrashFiles(t.Context(), userID, ente.TrashRequest{
 		TrashItems: []ente.TrashItemRequest{{FileID: fileID, CollectionID: firstCollectionID}},
-	}); err != nil {
+	}, ente.ModerationRejected); err != nil {
 		t.Fatalf("TrashFiles() error = %v", err)
 	}
 	assertReadyFileCounts(t, db, userID, 0, 0, 1)
@@ -77,7 +77,7 @@ func TestTrashInvalidatesCrossAppFileCounts(t *testing.T) {
 
 	if err := repository.TrashRepo.TrashFiles(t.Context(), userID, ente.TrashRequest{
 		TrashItems: []ente.TrashItemRequest{{FileID: fileID, CollectionID: photosCollectionID}},
-	}); err != nil {
+	}, ente.ModerationRejected); err != nil {
 		t.Fatalf("TrashFiles() error = %v", err)
 	}
 

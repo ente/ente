@@ -115,7 +115,7 @@ func (t *TrashRepository) GetFilesWithVersion(userID int64, updateAtTime int64, 
 	return convertRowsToTrash(rows)
 }
 
-func (t *TrashRepository) TrashFiles(ctx context.Context, userID int64, trash ente.TrashRequest) error {
+func (t *TrashRepository) TrashFiles(ctx context.Context, userID int64, trash ente.TrashRequest, pendingStatus string) error {
 	fileIDs := make([]int64, 0, len(trash.TrashItems))
 	for _, item := range trash.TrashItems {
 		fileIDs = append(fileIDs, item.FileID)
@@ -157,7 +157,7 @@ func (t *TrashRepository) TrashFiles(ctx context.Context, userID int64, trash en
 			SET is_deleted = $1, updation_time = $2,
 				moderation_status = CASE WHEN moderation_status = $4 THEN $5::collection_file_moderation ELSE moderation_status END
 			WHERE file_id = ANY($3)`,
-		true, updationTime, pq.Array(fileIDs), ente.ModerationPending, ente.ModerationRejected)
+		true, updationTime, pq.Array(fileIDs), ente.ModerationPending, pendingStatus)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
