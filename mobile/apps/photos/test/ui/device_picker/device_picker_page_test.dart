@@ -8,10 +8,13 @@ import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_easyloading/flutter_easyloading.dart";
 import "package:flutter_test/flutter_test.dart";
+import "package:media_extension/media_extension_action_types.dart";
 import "package:package_info_plus/package_info_plus.dart";
+import "package:path_provider_platform_interface/path_provider_platform_interface.dart";
 import "package:photo_manager/photo_manager.dart";
 import "package:photos/app_mode.dart";
 import "package:photos/core/cache/image_cache.dart";
+import "package:photos/core/cache/thumbnail_in_memory_cache.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/core/constants.dart";
 import "package:photos/ente_theme_data.dart";
@@ -23,10 +26,13 @@ import "package:photos/ui/components/bottom_action_bar/action_bar_widget.dart";
 import "package:photos/ui/components/selection_preview_button.dart";
 import "package:photos/ui/device_picker/device_picker_gallery.dart";
 import "package:photos/ui/device_picker/device_picker_page.dart";
+import "package:photos/ui/picker/external_media_picker_page.dart";
 import "package:photos/ui/viewer/file/detail_page.dart";
 import "package:photos/ui/viewer/file/file_widget.dart";
 import "package:photos/ui/viewer/file/image_zoom/image_zoom_viewer.dart";
 import "package:photos/ui/viewer/gallery/component/gallery_file_widget.dart";
+import "package:photos/ui/viewer/gallery/gallery.dart";
+import "package:photos/ui/viewer/gallery/state/gallery_boundaries_provider.dart";
 import "package:shared_preferences/shared_preferences.dart";
 
 import "device_picker_test_helpers.dart";
@@ -36,6 +42,7 @@ void main() {
   final navigatorKey = GlobalKey<NavigatorState>();
   late FakeDeviceLibrary library;
   late Future<List<AssetEntity>?> result;
+  var firstPhotoTrashed = false;
 
   setUpAll(() async {
     SharedPreferences.setMockInitialValues({});
@@ -69,18 +76,30 @@ void main() {
         .setMockMethodCallHandler(
           const MethodChannel('com.fluttercandies/photo_manager'),
           (call) async {
-            if (call.method == 'fetchEntityProperties') {
-              final id = (call.arguments as Map)['id'] as String;
-              return {
-                'id': id,
-                'type': 1,
-                'width': 1200,
-                'height': 800,
-                'title': '$id.jpg',
-                'createDt': 1700000000,
-              };
+            final args = call.arguments;
+            final id = args is Map ? args['id'] as String? : null;
+            if (call.method == 'getAssetPathList') {
+              expect((args as Map)['type'], RequestType.image.value);
             }
             return switch (call.method) {
+              'requestPermissionExtend' => PermissionState.authorized.index,
+              'getAssetPathList' => {
+                'data': [
+                  {'id': 'recent', 'name': 'Recent', 'isAll': true},
+                  {'id': 'camera', 'name': 'Camera', 'isAll': false},
+                ],
+              },
+              'getAssetCountFromPath' => id == 'recent' ? 3 : 1,
+              'getAssetListRange' || 'getAssetListPaged' => {
+                'data': [
+                  if (id == 'recent' && !firstPhotoTrashed) _assetData('0'),
+                  if (id == 'recent') _assetData('1'),
+                  _assetData('2'),
+                ],
+              },
+              'fetchEntityProperties' when id != 'cloud' => _assetData(id!),
+              'getMediaUrl' when id != '1' =>
+                'content://media/external/images/media/$id',
               'getThumb' || 'getOriginBytes' => bytes,
               'assetExists' => true,
               _ => null,
@@ -90,6 +109,7 @@ void main() {
   });
 
   setUp(() async {
+    firstPhotoTrashed = false;
     await localSettings.setGalleryLayoutType(GalleryLayoutType.grid);
     await localSettings.setPhotoGridSize(5);
     await localSettings.setAppMode(AppMode.localGallery);
@@ -106,6 +126,7 @@ void main() {
     int? selectionLimit = maxPickAssetLimit,
     bool allowEmptySelection = false,
     Iterable<AssetEntity> initialSelection = const [],
+    Widget? picker,
   }) async {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -139,21 +160,183 @@ void main() {
     }
     result = navigatorKey.currentState!.push<List<AssetEntity>>(
       MaterialPageRoute(
-        builder: (_) => DevicePickerPage(
-          library: library,
-          selectionLimit: selectionLimit,
-          allowEmptySelection: allowEmptySelection,
-          initialSelection: initialSelection,
-        ),
+        builder: (_) =>
+            picker ??
+            DevicePickerPage(
+              library: library,
+              selectionLimit: selectionLimit,
+              allowEmptySelection: allowEmptySelection,
+              initialSelection: initialSelection,
+            ),
       ),
     );
     await _settleImages(tester);
     await tester.pump(const Duration(seconds: 5));
   }
 
+  List<MethodCall> capturePickerResults(WidgetTester tester) {
+    final paths = PathProviderPlatform.instance;
+    PathProviderPlatform.instance = _NoLocalDatabase();
+    addTearDown(() => PathProviderPlatform.instance = paths);
+    final calls = <MethodCall>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('media_extension'),
+      (call) async => calls.add(call),
+    );
+    return calls;
+  }
+
   tearDown(() async {
     await EasyLoading.dismiss(animation: false);
     FileLruCache.clearAll();
+  });
+
+  testWidgets(
+    'local external picker shares selection across Photos and folders',
+    (tester) async {
+      final calls = capturePickerResults(tester);
+      tester.view.systemGestureInsets = const FakeViewPadding(left: 24);
+      addTearDown(tester.view.resetSystemGestureInsets);
+      final localFile = File('assets/memories.jpg').absolute;
+      final file = fileFromAsset('', media('1'));
+      FileLruCache.put('${file.tag}falsefalse', localFile);
+      for (final allowMultiple in [false, true]) {
+        await mount(
+          tester,
+          picker: ExternalMediaPickerPage(
+            requestedType: MediaType.image,
+            allowMultiple: allowMultiple,
+          ),
+        );
+        final tiles = find.byType(GalleryFileWidget);
+        final grid = find.byType(DevicePickerGallery);
+        expect(
+          GalleryBoundariesProvider.of(
+            tester.element(grid),
+          )!.topBoundaryNotifier.value,
+          tester.getTopLeft(grid).dy,
+        );
+        await tester.tap(tiles.first);
+        if (allowMultiple) {
+          final edge = Offset(1, tester.getCenter(tiles.first).dy);
+          await tester.timedDragFrom(
+            edge,
+            tester.getCenter(tiles.at(2)) - edge,
+            const Duration(milliseconds: 200),
+          );
+          await tester.pump();
+          expect(find.widgetWithText(SelectionPreviewButton, '1'), findsOne);
+          await tester.tap(tiles.at(1));
+        }
+        await tester.tap(find.text('Albums'));
+        await _settleImages(tester);
+        await tester.tap(find.text('Camera'));
+        await _settleImages(tester);
+        await tester.tap(tiles);
+        await tester.pumpAndSettle();
+        if (allowMultiple) {
+          firstPhotoTrashed = true;
+          await tester.tap(find.text('Add selected'));
+          await _settleImages(tester);
+          await tester.pump(const Duration(seconds: 5));
+          await tester.pumpAndSettle();
+          expect(
+            find.widgetWithText(SelectionPreviewButton, '2'),
+            findsOneWidget,
+          );
+        }
+        await tester.tap(find.text('Add selected'));
+        await _settleImages(tester);
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pumpAndSettle();
+      }
+      const prefix = 'content://media/external/images/media/';
+      expect(calls, [
+        isMethodCall('setResult', arguments: {'uri': '${prefix}2'}),
+        isMethodCall(
+          'setResults',
+          arguments: {
+            'uris': [localFile.uri.toString(), '${prefix}2'],
+          },
+        ),
+      ]);
+    },
+  );
+
+  testWidgets('Device shares and submits the external picker selection', (
+    tester,
+  ) async {
+    final calls = capturePickerResults(tester);
+    await localSettings.setAppMode(AppMode.enteGallery);
+    final cloud = fileFromAsset('', media('cloud'))..uploadedFileID = 42;
+    final cached = File('assets/memories.jpg').absolute;
+    FileLruCache.put('${cloud.tag}falsefalse', cached);
+    final deviceFile = fileFromAsset('', media('2'));
+    FileLruCache.put('${deviceFile.tag}falsefalse', cached);
+    final bytes = cached.readAsBytesSync();
+    ThumbnailInMemoryLruCache.put(cloud, bytes, thumbnailSmallSize);
+    ThumbnailInMemoryLruCache.put(cloud, bytes);
+    addTearDown(() => ThumbnailInMemoryLruCache.clearCache(cloud));
+    await mount(
+      tester,
+      picker: const ExternalMediaPickerPage(
+        requestedType: MediaType.image,
+        allowMultiple: true,
+      ),
+    );
+    tester.widget<Gallery>(find.byType(Gallery)).selectedFiles!.selectAll({
+      cloud,
+    });
+    await tester.pump();
+    Future<void> tap(Finder target) async {
+      await tester.tap(target);
+      await _settleImages(tester);
+    }
+
+    await tap(find.text('Device'));
+    expect(find.widgetWithText(SelectionPreviewButton, '1'), findsOneWidget);
+    await tap(find.byType(GalleryFileWidget).last);
+    await tap(find.byTooltip('Back'));
+    expect(find.widgetWithText(SelectionPreviewButton, '2'), findsOneWidget);
+    await tap(find.text('Device'));
+    await tap(find.byTooltip('Preview'));
+    expect(find.text('2 selected'), findsOneWidget);
+    await tap(find.text('Add selected'));
+    expect(calls, [
+      isMethodCall(
+        'setResults',
+        arguments: {
+          'uris': [
+            cached.uri.toString(),
+            'content://media/external/images/media/2',
+          ],
+        },
+      ),
+    ]);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('Back cancels the local picker during a media refresh', (
+    tester,
+  ) async {
+    final calls = capturePickerResults(tester);
+    await mount(
+      tester,
+      picker: const ExternalMediaPickerPage(requestedType: MediaType.image),
+    );
+    final model = tester
+        .widget<DevicePickerGallery>(find.byType(DevicePickerGallery))
+        .model;
+    final back = await tester.startGesture(
+      tester.getCenter(find.byTooltip('Back')),
+    );
+    final refresh = model.refresh(requestPermission: true);
+    await back.up();
+    await refresh;
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+    expect(calls.single.method, 'cancelResult');
   });
 
   testWidgets('editing can return an empty selection while closing cancels', (
@@ -567,4 +750,18 @@ Future<void> _settleImages(WidgetTester tester) async {
     EnginePhase.sendSemanticsUpdate,
     const Duration(seconds: 10),
   );
+}
+
+Map<String, Object> _assetData(String id) => {
+  'id': id,
+  'type': 1,
+  'width': 1200,
+  'height': 800,
+  'title': '$id.jpg',
+  'createDt': 1700000000,
+};
+
+class _NoLocalDatabase extends PathProviderPlatform {
+  @override
+  Future<String?> getApplicationDocumentsPath() async => null;
 }

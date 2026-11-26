@@ -339,9 +339,9 @@
   "authToManageLegacy": "Veuillez vous authentifier pour gérer vos contacts de confiance",
   "authToSetBackupPassword": "Authentification pour définir le mot de passe de sauvegarde",
   "authToUpdateBackupPassword": "Authentification pour mettre à jour le mot de passe de sauvegarde",
-  "authToViewPasskey": "Veuillez vous authentifier pour afficher votre clé de récupération",
+  "authToViewPasskey": "Veuillez vous authentifier pour afficher votre clé d'accès",
   "authToViewPasskeyGeneric": "Veuillez vous authentifier pour afficher la clé d'accès",
-  "authToViewSecrets": "Veuillez vous authentifier pour voir vos souvenirs",
+  "authToViewSecrets": "Veuillez vous authentifier pour voir vos secrets",
   "@authToViewSecrets": {
     "description": "Message prompting authentication to view secrets"
   },
@@ -511,7 +511,7 @@
     }
   },
   "cleanUncategorized": "Effacer les éléments non classés",
-  "cleanUncategorizedDescription": "Supprimer tous les fichiers non-catégorisés étant présents dans d'autres albums",
+  "cleanUncategorizedDescription": "Retirer de « Aucune catégorie » tous les fichiers présents dans d'autres albums",
   "cleanupComplete": "Nettoyage terminé",
   "cleanupHiddenFiles": "Nettoyer les fichiers cachés",
   "cleanupHiddenFilesDescription": "Certains fichiers dans les albums cachés existant toujours dans les albums non cachés les rendent visibles en dehors de la section cachée. Nettoyer-les, cela les supprimera des albums non cachés.",
@@ -528,8 +528,8 @@
     "description": "Appears in the similar images page, to indicate that the images are close in terms of appearance"
   },
   "closeFamilyConfirmBody": "Tous les membres perdront l'accès au stockage partagé. Cela ne peut pas être annulé.",
-  "closeFamilyConfirmTitle": "Quitter l'abonnement famille ?",
-  "closeFamilyPlan": "Quitter l'abonnement famille",
+  "closeFamilyConfirmTitle": "Fermer l'abonnement famille ?",
+  "closeFamilyPlan": "Fermer l'abonnement famille",
   "closest": "Le plus proche",
   "cloudOnly": "Supprimer hors-ligne",
   "clusteringProgress": "Progression du regroupement",
@@ -1973,7 +1973,7 @@
   "noExifData": "Aucune donnée EXIF",
   "noFacesFound": "Aucun visage détecté",
   "noFilesFound": "Aucun element ici",
-  "noHiddenFilesOnDevice": "Supprimer les fichiers cachés de l'appareil",
+  "noHiddenFilesOnDevice": "Aucun fichier caché sur l'appareil",
   "noImagesWithLocation": "Aucune image avec localisation",
   "noInternetConnection": "Aucune connexion internet",
   "@noInternetConnection": {
@@ -2368,7 +2368,7 @@
       }
     }
   },
-  "recoverAccountDesc": "Vous pouvez restaurer le compte de {email} pendant {days} jours après avoir démarré le processus de récupération.",
+  "recoverAccountDesc": "Vous pouvez récupérer le compte de {email} {days} jours après avoir démarré le processus de récupération.",
   "@recoverAccountDesc": {
     "description": "Description for recover account page when recovery not started",
     "placeholders": {
@@ -3086,7 +3086,7 @@
   "stargazing": "Sous les étoiles",
   "startBackup": "Démarrer la sauvegarde",
   "startRecovery": "Démarrer la récupération",
-  "startRecoveryDesc": "Êtes-vous sûr de vouloir annuler la récupération du compte de {email}?",
+  "startRecoveryDesc": "Êtes-vous sûr de vouloir démarrer la récupération du compte de {email} ?",
   "@startRecoveryDesc": {
     "description": "Description for start recovery confirmation dialog",
     "placeholders": {
@@ -3299,7 +3299,7 @@
   "tropicalParadise": "Évasions tropicales",
   "troubleshooting": "Dépannage",
   "troubleshootingDesc": "Problèmes courants et leurs solutions",
-  "trustedContactAccepted": "Vous avez invité {email} à être un contact de confiance. Il doit encore accepter votre invitation.",
+  "trustedContactAccepted": "Vous avez ajouté {email} en tant que contact de confiance. Votre invitation a été acceptée.",
   "@trustedContactAccepted": {
     "description": "Description shown when a trusted contact has accepted the invite",
     "placeholders": {

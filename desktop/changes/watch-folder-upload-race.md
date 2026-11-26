@@ -1,1 +1,0 @@
-- Fixed manual uploads being cancelled when a new file appeared in a watched folder.

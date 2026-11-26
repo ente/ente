@@ -2,6 +2,7 @@ import "dart:math";
 
 import "package:flutter/material.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
@@ -15,21 +16,6 @@ import "package:photos/ui/rewind/widgets/rewind_reveal_layer.dart";
 import "package:photos/ui/rewind/widgets/rewind_rive.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
-
-const _weekdays = [
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-  "Sunday",
-];
-
-String _clockHour(int hour) {
-  final twelve = hour % 12 == 0 ? 12 : hour % 12;
-  return "$twelve ${hour < 12 ? "AM" : "PM"}";
-}
 
 class WeeklyHabitPage extends RewindPage {
   const WeeklyHabitPage(this.habit);
@@ -55,12 +41,10 @@ class WeeklyHabitPage extends RewindPage {
     double position, {
     required bool isActive,
   }) {
+    final copy = RewindCopy.of(context);
     final day = (habit.weekday - 1).clamp(0, 6);
-    final hour = _clockHour(habit.hour);
-    final title = "${_weekdays[day]}s, $hour";
-    final share = "${habit.percent}%";
-    final weekdays = "${_weekdays[day]}s";
-    final line = "$share of your photos were taken on $weekdays.";
+    final title = copy.habitTitle(day + 1, habit.hour);
+    final line = copy.habitLine(habit.percent, day + 1);
     final dayLeft = 37.0 + 46 * day;
     return RewindShareable(
       child: Stack(
@@ -73,7 +57,7 @@ class WeeklyHabitPage extends RewindPage {
             ),
           ),
           Semantics(
-            label: "Your weekly ritual: $title. $line",
+            label: copy.habitLabel(title, line.you),
             child: ExcludeSemantics(
               child: RewindStage(
                 children: [
@@ -109,7 +93,7 @@ class WeeklyHabitPage extends RewindPage {
                                 top: 173 - 117.9,
                                 child: FractionalTranslation(
                                   translation: const Offset(-0.5, -0.5),
-                                  child: _HourTag(hour),
+                                  child: _HourTag(copy.clockHour(habit.hour)),
                                 ),
                               ),
                             ],
@@ -133,7 +117,7 @@ class WeeklyHabitPage extends RewindPage {
                         delayMs: 1900 + 140 * (i + 1),
                         origin: Alignment.bottomCenter,
                         child: _DayTile(
-                          letter: _weekdays[i][0],
+                          letter: copy.weekdayInitial(i + 1),
                           percent: i == day ? habit.percent : null,
                         ),
                       ),
@@ -164,8 +148,7 @@ class WeeklyHabitPage extends RewindPage {
                     active: isActive,
                     delayMs: 4000,
                     child: RewindVoice(
-                      you: "YOUR WEEKLY RITUAL",
-                      me: "MY WEEKLY RITUAL",
+                      copy.habitKicker,
                       builder: (text) => Text(
                         text,
                         style: RewindTextStyles.display(
@@ -179,7 +162,6 @@ class WeeklyHabitPage extends RewindPage {
                   RewindRevealLayer(
                     left: 28,
                     top: 627,
-                    width: 316,
                     maxWidth: 316,
                     height: 40,
                     position: position,
@@ -206,8 +188,7 @@ class WeeklyHabitPage extends RewindPage {
                     active: isActive,
                     delayMs: 4500,
                     child: RewindVoice(
-                      you: line,
-                      me: "$share of my photos were taken on $weekdays.",
+                      line,
                       builder: (text) => Text(
                         text,
                         style: RewindTextStyles.body(

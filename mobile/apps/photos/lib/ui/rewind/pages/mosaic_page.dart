@@ -8,6 +8,7 @@ import "package:flutter/services.dart";
 import "package:flutter_svg/flutter_svg.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/services/rewind/rewind_edition.dart";
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
@@ -18,7 +19,6 @@ import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
 import "package:photos/ui/rewind/widgets/rewind_elapsed.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
-import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
 import "package:photos/ui/rewind/widgets/rewind_pixels.dart";
 import "package:photos/ui/rewind/widgets/rewind_reveal_layer.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
@@ -29,12 +29,12 @@ typedef _Sparkle = ({String asset, Rect rect, int delayMs});
 const List<_Sparkle> _sparkles = [
   (
     asset: RewindAssets.pinkSparkle,
-    rect: Rect.fromLTWH(331.75, 96.75, 42.5, 42.5),
+    rect: Rect.fromLTWH(346.75, 89.75, 42.5, 42.5),
     delayMs: 700,
   ),
   (
     asset: RewindAssets.creamSparkle,
-    rect: Rect.fromLTWH(6.75, 543.75, 32.5, 32.5),
+    rect: Rect.fromLTWH(0, 560.75, 32.5, 32.5),
     delayMs: 850,
   ),
 ];
@@ -44,16 +44,17 @@ class MosaicPage extends RewindPage {
     required this.files,
     this.subject,
     this.subjectName,
+    this.familiar = false,
     this.bytes = rewindThumbnailBytes,
   });
 
   static const pageKey = "mosaic";
   static const minimumTiles = 120;
-  static const familiarFace = "FAMILIAR FACE";
 
   final List<EnteFile> files;
   final Uint8List? subject;
   final String? subjectName;
+  final bool familiar;
   final RewindBytes bytes;
 
   var _isOnScreen = false;
@@ -96,7 +97,13 @@ class MosaicPage extends RewindPage {
     return RewindWarmBuilder<_Tiling>(
       warm: _tiling,
       builder: (context, tiling) {
-        final card = _card(position, isActive, tiling);
+        final card = _card(
+          RewindCopy.of(context),
+          position,
+          isActive,
+          tiling,
+          tagTaps: RewindPageScope.reelOf(context) ? null : _tagTaps,
+        );
         return Stack(
           fit: StackFit.expand,
           children: [
@@ -120,8 +127,10 @@ class MosaicPage extends RewindPage {
     );
   }
 
-  String _subjectLine(String self) =>
-      "ONE ${subject == null ? "YEAR" : subjectName?.toUpperCase() ?? self}.";
+  String _subjectLine(RewindCopy copy, String self) {
+    final name = familiar ? copy.familiarFace : subjectName?.toUpperCase();
+    return "${subject == null ? "${RewindEdition.year}" : name ?? self},";
+  }
 
   static Widget _titleLine(String text) => RewindFitWidth(
     width: 342,
@@ -136,10 +145,14 @@ class MosaicPage extends RewindPage {
     ),
   );
 
-  Widget _card(double position, bool isActive, _Tiling? tiling) {
-    final count = tiling == null
-        ? null
-        : "${rewindCount(tiling.photos)} PHOTOS.";
+  Widget _card(
+    RewindCopy copy,
+    double position,
+    bool isActive,
+    _Tiling? tiling, {
+    required Listenable? tagTaps,
+  }) {
+    final count = tiling == null ? null : copy.mosaicMoments(tiling.photos);
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -148,7 +161,9 @@ class MosaicPage extends RewindPage {
           pattern: RewindStripes(Color(0xFFFF7638)),
         ),
         Semantics(
-          label: count == null ? null : "$count ${_subjectLine("YOU")}",
+          label: count == null
+              ? null
+              : "${_subjectLine(copy, copy.mosaicSelf.you)} $count",
           child: ExcludeSemantics(
             child: RewindStage(
               children: [
@@ -164,7 +179,7 @@ class MosaicPage extends RewindPage {
                         key: ValueKey(tiling),
                         tiling: tiling,
                         active: isActive,
-                        tagTaps: _tagTaps,
+                        tagTaps: tagTaps,
                       ),
                     ),
                   ),
@@ -178,21 +193,16 @@ class MosaicPage extends RewindPage {
                     active: isActive,
                     preset: RewindPreset.twinkle,
                     delayMs: sparkle.delayMs,
-                    child: RewindIdleLoop(
-                      idle: RewindIdle.twinkle,
-                      active: isActive,
-                      delayMs: sparkle.delayMs + 700,
-                      child: SvgPicture.file(
-                        RewindAssets.file(sparkle.asset),
-                        width: sparkle.rect.width,
-                        height: sparkle.rect.height,
-                      ),
+                    child: SvgPicture.file(
+                      RewindAssets.file(sparkle.asset),
+                      width: sparkle.rect.width,
+                      height: sparkle.rect.height,
                     ),
                   ),
                 if (count != null)
                   RewindRevealLayer(
                     left: 24,
-                    top: 636,
+                    top: 653,
                     width: 342,
                     height: 82,
                     position: position,
@@ -202,12 +212,11 @@ class MosaicPage extends RewindPage {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        RewindVoice((
+                          you: _subjectLine(copy, copy.mosaicSelf.you),
+                          me: _subjectLine(copy, copy.mosaicSelf.me),
+                        ), builder: _titleLine),
                         _titleLine(count),
-                        RewindVoice(
-                          you: _subjectLine("YOU"),
-                          me: _subjectLine("ME"),
-                          builder: _titleLine,
-                        ),
                       ],
                     ),
                   ),
@@ -228,7 +237,7 @@ class _ExploreTag extends StatelessWidget {
     required this.onTap,
   });
 
-  static const _center = Offset(192.7, 566.6);
+  static const _center = Offset(192.7, 583.6);
   static const _turn = -3.28;
   static const _showMs = 5000;
   static const _fadeMs = 420;
@@ -277,12 +286,15 @@ class _ExploreTag extends StatelessWidget {
                       ),
                       child: Center(
                         widthFactor: 1,
-                        child: Text(
-                          "Tap or pinch to explore",
-                          style: RewindTextStyles.display(
-                            17.794,
-                            color: RewindColors.ink,
-                            height: 1.15,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            RewindCopy.of(context).mosaicHint,
+                            style: RewindTextStyles.display(
+                              17.794,
+                              color: RewindColors.ink,
+                              height: 1.15,
+                            ),
                           ),
                         ),
                       ),
@@ -630,10 +642,10 @@ class _Wall extends StatefulWidget {
   });
 
   static const frame = Rect.fromLTWH(
-    48,
-    143,
-    293,
-    293 * _Tiling.rows / _Tiling.columns,
+    41,
+    140,
+    308,
+    308 * _Tiling.rows / _Tiling.columns,
   );
   static const border = 29.0;
   static const _opening = 10.0;
@@ -643,7 +655,7 @@ class _Wall extends StatefulWidget {
 
   final _Tiling? tiling;
   final bool active;
-  final Listenable tagTaps;
+  final Listenable? tagTaps;
 
   @override
   State<_Wall> createState() => _WallState();
@@ -671,20 +683,20 @@ class _WallState extends State<_Wall> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    widget.tagTaps.addListener(_onTagTap);
+    widget.tagTaps?.addListener(_onTagTap);
   }
 
   @override
   void didUpdateWidget(_Wall oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.tagTaps == widget.tagTaps) return;
-    oldWidget.tagTaps.removeListener(_onTagTap);
-    widget.tagTaps.addListener(_onTagTap);
+    oldWidget.tagTaps?.removeListener(_onTagTap);
+    widget.tagTaps?.addListener(_onTagTap);
   }
 
   @override
   void dispose() {
-    widget.tagTaps.removeListener(_onTagTap);
+    widget.tagTaps?.removeListener(_onTagTap);
     _glide.dispose();
     super.dispose();
   }

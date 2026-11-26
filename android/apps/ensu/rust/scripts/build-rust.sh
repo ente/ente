@@ -32,6 +32,10 @@ for tool in cargo rustup cmake; do
     command -v "$tool" >/dev/null || { echo "error: $tool not on PATH" >&2; exit 1; }
 done
 
+# TODO: Remove once llama-cpp-sys-2's build script stops panicking on the
+# build directory layout Cargo 1.100 switched to.
+export __CARGO_TEMPORARY_BUILD_DIR_NEW_LAYOUT_OPT_OUT=1
+
 export ANDROID_API_LEVEL=24
 export CMAKE_SHARED_LINKER_FLAGS="${CMAKE_SHARED_LINKER_FLAGS:-} -Wl,-z,max-page-size=16384"
 export CMAKE_MODULE_LINKER_FLAGS="${CMAKE_MODULE_LINKER_FLAGS:-} -Wl,-z,max-page-size=16384"

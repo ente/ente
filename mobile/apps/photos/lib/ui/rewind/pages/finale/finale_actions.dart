@@ -5,6 +5,7 @@ import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:photos/core/configuration.dart";
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
@@ -84,6 +85,7 @@ class _FinaleActionsState extends State<FinaleActions> {
 
   @override
   Widget build(BuildContext context) {
+    final copy = RewindCopy.of(context);
     final videoSaved = RewindPageScope.navigatorOf(context)?.videoSaved;
     final still = MediaQuery.disableAnimationsOf(context);
     final saveAtMs = widget.delayMs + _saveDelayMs;
@@ -105,7 +107,7 @@ class _FinaleActionsState extends State<FinaleActions> {
                       videoSaved ?? const AlwaysStoppedAnimation(false),
                   builder: (context, saved, _) => _ArtworkButton(
                     artwork: _saveArtwork,
-                    label: saved ? "Saved to Ente" : "Save to Ente",
+                    label: saved ? copy.savedVideo : copy.saveVideo,
                     icon: saved
                         ? HugeIcons.strokeRoundedTick02
                         : HugeIcons.strokeRoundedDownload04,
@@ -128,7 +130,7 @@ class _FinaleActionsState extends State<FinaleActions> {
               child: _ArtworkButton(
                 key: _shareButton,
                 artwork: _shareArtwork,
-                label: "Share your Rewind",
+                label: copy.shareRewind,
                 icon: HugeIcons.strokeRoundedVideo01,
                 onTap: _share,
               ),
@@ -172,10 +174,40 @@ class _ArtworkButtonState extends State<_ArtworkButton> {
     if (pressed != _pressed) setState(() => _pressed = pressed);
   }
 
+  Rect _labelRect(TextStyle style, TextScaler scaler) {
+    final artwork = widget.artwork;
+    final painter = TextPainter(
+      text: TextSpan(text: widget.label, style: style),
+      textDirection: TextDirection.ltr,
+      textScaler: scaler,
+    )..layout();
+    final width = painter.width;
+    painter.dispose();
+    final margin = artwork.icon.left - artwork.face.left;
+    final left = artwork.icon.right + artwork.icon.width * 0.4;
+    final right = artwork.face.right - margin;
+    final fitted = min(width, right - left);
+    final start = max(
+      left,
+      min(artwork.textCenter.dx - fitted / 2, right - fitted),
+    );
+    return Rect.fromLTWH(
+      start,
+      artwork.textCenter.dy - artwork.face.height / 4,
+      fitted,
+      artwork.face.height / 2,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final artwork = widget.artwork;
     final onTap = widget.onTap;
+    final labelStyle = RewindTextStyles.body(
+      artwork.textSize,
+      color: artwork.color,
+      height: 1.1,
+    );
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -198,21 +230,13 @@ class _ArtworkButtonState extends State<_ArtworkButton> {
                   ),
                 ),
                 Positioned.fromRect(
-                  rect: Rect.fromCenter(
-                    center: artwork.textCenter,
-                    width: artwork.face.width * 0.8,
-                    height: artwork.face.height / 2,
+                  rect: _labelRect(
+                    labelStyle,
+                    MediaQuery.textScalerOf(context),
                   ),
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
-                    child: Text(
-                      widget.label,
-                      style: RewindTextStyles.body(
-                        artwork.textSize,
-                        color: artwork.color,
-                        height: 1.1,
-                      ),
-                    ),
+                    child: Text(widget.label, style: labelStyle),
                   ),
                 ),
               ],

@@ -62,8 +62,6 @@ PODS:
   - local_auth_darwin (0.0.1):
     - Flutter
     - FlutterMacOS
-  - open_file_ios (1.0.3):
-    - Flutter
   - package_info_plus (0.4.5):
     - Flutter
   - rive_native (0.0.1):
@@ -135,7 +133,6 @@ DEPENDENCIES:
   - fluttertoast (from `.symlinks/plugins/fluttertoast/ios`)
   - listen_sharing_intent (from `.symlinks/plugins/listen_sharing_intent/ios`)
   - local_auth_darwin (from `.symlinks/plugins/local_auth_darwin/darwin`)
-  - open_file_ios (from `.symlinks/plugins/open_file_ios/ios`)
   - package_info_plus (from `.symlinks/plugins/package_info_plus/ios`)
   - rive_native (from `.symlinks/plugins/rive_native/ios`)
   - sentry_flutter (from `.symlinks/plugins/sentry_flutter/ios`)
@@ -189,8 +186,6 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/listen_sharing_intent/ios"
   local_auth_darwin:
     :path: ".symlinks/plugins/local_auth_darwin/darwin"
-  open_file_ios:
-    :path: ".symlinks/plugins/open_file_ios/ios"
   package_info_plus:
     :path: ".symlinks/plugins/package_info_plus/ios"
   rive_native:
@@ -231,7 +226,6 @@ SPEC CHECKSUMS:
   fluttertoast: 2c67e14dce98bbdb200df9e1acf610d7a6264ea1
   listen_sharing_intent: fe0b9a59913cc124dd6cbd55cd9f881de5f75759
   local_auth_darwin: c3ee6cce0a8d56be34c8ccb66ba31f7f180aaebb
-  open_file_ios: 46184d802ee7959203f6392abcfa0dd49fdb5be0
   package_info_plus: af8e2ca6888548050f16fa2f1938db7b5a5df499
   rive_native: a57df296c558867395bfe82fafe857ec67640f58
   SDWebImage: e9c98383c7572d713c1a0d7dd2783b10599b9838

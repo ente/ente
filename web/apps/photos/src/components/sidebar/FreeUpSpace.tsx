@@ -69,17 +69,17 @@ export const FreeUpSpace: React.FC<FreeUpSpaceProps> = ({
             {...{ open, onClose }}
             onRootClose={handleRootClose}
             title={t("free_up_space")}
-            caption="Review large files and duplicates to reclaim storage."
+            caption={t("free_up_space_caption")}
         >
             <Stack sx={{ px: 2, py: 1, gap: 1 }}>
                 <RowCard
-                    title="Duplicates"
-                    subtitle="Remove exact duplicates"
+                    title={t("duplicates")}
+                    subtitle={t("duplicates_subtitle")}
                     onClick={handleDeduplicate}
                 />
                 <RowCard
                     title={t("large_files_title")}
-                    subtitle="Identify items using the most space"
+                    subtitle={t("large_files_subtitle")}
                     onClick={handleLargeFiles}
                 />
             </Stack>

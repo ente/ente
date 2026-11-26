@@ -108,23 +108,6 @@ export const BaseTileButton = styled(UnstyledButton)`
     }
 `;
 
-export const LargeTileButton = styled(BaseTileButton)`
-    width: 150px;
-    height: 150px;
-`;
-
-export const LargeTileTextOverlay = styled(Overlay)`
-    padding: 8px;
-    color: white;
-    background: linear-gradient(
-        -10deg,
-        rgba(0, 0, 0, 0.1) 0%,
-        rgba(0, 0, 0, 0.2) 50%,
-        rgba(0, 0, 0, 0.4) 60%,
-        rgba(0, 0, 0, 0.6) 100%
-    );
-`;
-
 export const TileBottomTextOverlay = styled(Overlay)`
     display: flex;
     justify-content: center;

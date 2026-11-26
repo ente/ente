@@ -430,6 +430,10 @@ func (repo *UserRepository) GetPublicKey(userID int64) (string, error) {
 }
 
 func (repo *UserRepository) GetUsersWithIndividualPlanWhoHaveExceededStorageQuota() ([]ente.User, error) {
+	refBonus, addOnBonus, bonusErr := repo.StorageBonusRepo.GetAllUsersSurplusBonus(context.Background())
+	if bonusErr != nil {
+		return nil, stacktrace.Propagate(bonusErr, "failed to fetch bonusInfo")
+	}
 	rows, err := repo.DB.Query(`
 		SELECT users.user_id, users.encrypted_email, users.email_decryption_nonce, users.email_hash, usage.storage_consumed, subscriptions.storage
 		FROM users 
@@ -441,10 +445,6 @@ func (repo *UserRepository) GetUsersWithIndividualPlanWhoHaveExceededStorageQuot
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
-	refBonus, addOnBonus, bonusErr := repo.StorageBonusRepo.GetAllUsersSurplusBonus(context.Background())
-	if bonusErr != nil {
-		return nil, stacktrace.Propagate(bonusErr, "failed to fetch bonusInfo")
-	}
 	defer rows.Close()
 	users := make([]ente.User, 0)
 	for rows.Next() {
@@ -455,7 +455,7 @@ func (repo *UserRepository) GetUsersWithIndividualPlanWhoHaveExceededStorageQuot
 		if err != nil {
 			return users, stacktrace.Propagate(err, "")
 		}
-		if strings.EqualFold(user.Hash, fmt.Sprintf(DELETED_EMAIL_HASH_FORMAT, &user.ID)) || len(encryptedEmail) == 0 {
+		if strings.EqualFold(user.Hash, fmt.Sprintf(DELETED_EMAIL_HASH_FORMAT, user.ID)) || len(encryptedEmail) == 0 {
 			continue
 		}
 		if refBonusStorage, ok := refBonus[user.ID]; ok {
@@ -473,6 +473,9 @@ func (repo *UserRepository) GetUsersWithIndividualPlanWhoHaveExceededStorageQuot
 		}
 		user.Email = email
 		users = append(users, user)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, stacktrace.Propagate(err, "")
 	}
 	return users, nil
 }

@@ -5,6 +5,7 @@ mod args;
 mod auth;
 mod core_db;
 mod db;
+mod family;
 mod feedback;
 mod home;
 mod login;
@@ -191,6 +192,17 @@ async fn account_command(command: AccountCommand, options: &Options) -> Result<(
             app,
             command,
         } => account::session(command, selector.account.as_deref(), app, options).await,
+        AccountCommand::Family {
+            selector,
+            app,
+            command,
+        } => family::run(command, selector.account.as_deref(), app, options).await,
+        AccountCommand::EmailMfa {
+            selector,
+            app,
+            command,
+        } => account::email_mfa(command, selector.account.as_deref(), app, options).await,
+        AccountCommand::ChangeEmail(args) => account::change_email(args, options).await,
         AccountCommand::RecoveryKey { name } => {
             let state = State::load()?;
             let account = &state.accounts[state.resolve(name.as_deref())?];

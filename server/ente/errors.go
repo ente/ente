@@ -8,11 +8,19 @@ import (
 
 var ErrPermissionDenied = errors.New("insufficient permissions to perform this action")
 
-var ErrIncorrectOTT = errors.New("incorrect OTT")
+var ErrIncorrectOTT = &ApiError{
+	Code:           IncorrectOTT,
+	Message:        "Incorrect OTT",
+	HttpStatusCode: http.StatusUnauthorized,
+}
 
 var ErrExpiredOTT = errors.New("no active OTT")
 
-var ErrIncorrectTOTP = errors.New("incorrect TOTP")
+var ErrIncorrectTOTP = &ApiError{
+	Code:           IncorrectTOTP,
+	Message:        "Incorrect TOTP",
+	HttpStatusCode: http.StatusUnauthorized,
+}
 
 var ErrNotFound = errors.New("not found")
 
@@ -314,6 +322,9 @@ const (
 	FileInTrash ErrorCode = "FILE_IN_TRASH"
 
 	SessionExpired ErrorCode = "SESSION_EXPIRED"
+
+	IncorrectOTT  ErrorCode = "INCORRECT_OTT"
+	IncorrectTOTP ErrorCode = "INCORRECT_TOTP"
 
 	LinkEditNotAllowed ErrorCode = "LINK_EDIT_NOT_ALLOWED"
 

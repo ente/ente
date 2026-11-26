@@ -52,4 +52,5 @@ data class GenerationSummary(
     val jobId: Long,
     val generatedTokens: Int,
     val totalTimeMs: Long?,
+    val calledTools: Boolean = false,
 )

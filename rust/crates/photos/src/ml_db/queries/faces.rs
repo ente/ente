@@ -178,7 +178,10 @@ impl MlDb {
                 self.read_all(&sql, parameters.as_slice(), read_face_without_embedding)?;
             if !faces.is_empty() {
                 if let Some(avatar_file_id) = avatar_file_id
-                    && let Some(face) = faces.iter().find(|face| face.file_id == avatar_file_id)
+                    && let Some(face) = faces
+                        .iter()
+                        .find(|face| Some(face.face_id.as_str()) == avatar_face_id)
+                        .or_else(|| faces.iter().find(|face| face.file_id == avatar_file_id))
                 {
                     return Ok(Some(face.clone()));
                 }
@@ -237,13 +240,16 @@ impl MlDb {
 
     pub(crate) fn for_each_face_without_embedding(
         &self,
+        mut accepts_file: impl FnMut(i64) -> bool,
         mut visit: impl FnMut(FaceWithoutEmbedding),
     ) -> Result<()> {
         self.read_each(
             &format!("SELECT {FACE_WITHOUT_EMBEDDING_COLUMNS} FROM faces"),
             (),
             |row| {
-                visit(read_face_without_embedding(row)?);
+                if accepts_file(row.get(1)?) {
+                    visit(read_face_without_embedding(row)?);
+                }
                 Ok(())
             },
         )
@@ -444,6 +450,29 @@ impl MlDb {
                     AND fc.face_id IS NULL
                 "#,
             (MINIMUM_QUALITY_FACE_SCORE, LAPLACIAN_HARD_THRESHOLD),
+        )
+    }
+
+    pub(crate) fn for_each_unclustered_face_embedding(
+        &self,
+        mut visit: impl FnMut(i64, &[u8]),
+    ) -> Result<()> {
+        self.read_each(
+            r#"
+                SELECT f.file_id, f.embedding
+                FROM faces f
+                LEFT JOIN face_clusters fc
+                    ON f.face_id = fc.face_id
+                WHERE f.score > ?
+                    AND f.blur > ?
+                    AND fc.face_id IS NULL
+                "#,
+            (MINIMUM_QUALITY_FACE_SCORE, LAPLACIAN_HARD_THRESHOLD),
+            |row| {
+                let embedding: Vec<u8> = row.get(1)?;
+                visit(row.get(0)?, &embedding);
+                Ok(())
+            },
         )
     }
 
@@ -725,6 +754,30 @@ pub(in crate::ml_db) mod tests {
     }
 
     #[test]
+    fn visits_all_face_metadata_for_matching_files() {
+        let (_directory, db) = seeded();
+        let mut faces = Vec::new();
+
+        db.for_each_face_without_embedding(
+            |file_id| matches!(file_id, 1 | 10),
+            |face| faces.push(face),
+        )
+        .unwrap();
+
+        faces.sort_by(|left, right| {
+            (left.file_id, &left.face_id).cmp(&(right.file_id, &right.face_id))
+        });
+        assert_eq!(
+            faces,
+            vec![
+                without_embedding(good_face(1, 0)),
+                without_embedding(face(1, 1, 0.95, 300.0, false)),
+                without_embedding(good_face(10, 0)),
+            ],
+        );
+    }
+
+    #[test]
     fn face_embedding_rows_for_faces() {
         let (_directory, db) = seeded();
         assert_eq!(
@@ -852,6 +905,14 @@ pub(in crate::ml_db) mod tests {
         assert_eq!(by_score, without_embedding(face(2, 0, 0.85, 300.0, false)));
         assert_eq!(
             cover(2, Some("p1"), Some("1_1"), None),
+            Some("1_1".to_string())
+        );
+        assert_eq!(
+            cover(1, Some("p1"), Some("1_0"), None),
+            Some("1_0".to_string())
+        );
+        assert_eq!(
+            cover(2, Some("p1"), Some("1_9"), None),
             Some("1_1".to_string())
         );
         assert_eq!(

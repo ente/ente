@@ -1,0 +1,1 @@
+- List the people in your photos with `photos person list`, and filter `photos file list` by `--person`.

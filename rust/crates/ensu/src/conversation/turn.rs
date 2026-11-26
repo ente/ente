@@ -11,12 +11,21 @@ pub struct TurnInput {
     pub output: Option<usize>,
     pub state: Option<ConversationState>,
     pub candidates: GroundingCandidates,
+    pub tools: TurnTools,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct TurnTools {
+    pub tools: Option<ToolRequest>,
+    pub history: std::collections::HashMap<Uuid, ToolTurnHistory>,
+    pub current_override: Option<String>,
 }
 
 pub struct PreparedTurn {
     pub preparation: Preparation,
     pub budget: GenerationBudget,
     pub grounding: FittedGrounding,
+    pub tools: Option<ToolRequest>,
 }
 
 pub fn prepare_turn(
@@ -45,6 +54,24 @@ pub(super) fn prepare_turn_with_anchor(
         return Err(PrepareError::Stale);
     }
     let budget = resolve_generation_budget(input.context, input.output)?;
+    let asked = input
+        .tools
+        .current_override
+        .take()
+        .unwrap_or_else(|| input.current.clone());
+    let tools = match input.tools.tools.take() {
+        Some(tools)
+            if effects.supports_tools()
+                && effects.measure(
+                    &answer_messages(&input.system, None, &[], &asked),
+                    Some(&tools),
+                )? <= budget.input =>
+        {
+            input.current = asked;
+            Some(tools)
+        }
+        _ => None,
+    };
     let required = input
         .history_query
         .as_deref()
@@ -73,7 +100,7 @@ pub(super) fn prepare_turn_with_anchor(
         placement,
         |messages| {
             effects.check_cancelled()?;
-            let tokens = effects.measure(messages)?;
+            let tokens = effects.measure(messages, tools.as_ref())?;
             effects.check_cancelled()?;
             Ok(tokens)
         },
@@ -104,11 +131,13 @@ pub(super) fn prepare_turn_with_anchor(
         input.state,
     )?
     .with_history_query(input.history_query)
-    .with_grounding(prompt_grounding);
+    .with_grounding(prompt_grounding)
+    .with_tools(input.tools.history, tools.clone());
     effects.check_current()?;
     Ok(PreparedTurn {
         preparation,
         budget,
         grounding,
+        tools,
     })
 }

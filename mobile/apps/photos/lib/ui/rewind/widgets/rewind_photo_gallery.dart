@@ -4,6 +4,7 @@ import "dart:math";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:photos/models/file/file.dart";
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
@@ -24,7 +25,7 @@ void showRewindPhotoGallery(
     showGeneralDialog<void>(
       context: context,
       barrierDismissible: true,
-      barrierLabel: "Close",
+      barrierLabel: RewindCopy.of(context).close,
       barrierColor: const Color(0xD9000000),
       transitionDuration: const Duration(milliseconds: 220),
       pageBuilder: (context, _, _) => Material(

@@ -15,12 +15,12 @@ const BADGE_MINIMUM_TAKEN: usize = 50;
 
 const CONSISTENCY_CHAMP: Scale = Scale::new(0.5, 0.8);
 const CONSISTENCY_CHAMP_MONTHLY_MINIMUM: usize = 10;
-const UNPAID_PHOTOGRAPHER: Scale = Scale::new(8.0, 30.0);
+const UNPAID_PHOTOGRAPHER: Scale = Scale::new(8.0, 40.0);
 const UNPAID_PHOTOGRAPHER_ALBUM_PHOTOS: usize = 5;
 const MAIN_CHARACTER: Scale = Scale::new(0.25, 0.5);
 const MAIN_CHARACTER_MINIMUM: usize = 30;
 const EARLY_BIRD_HOURS: [u32; 4] = [4, 5, 6, 7];
-const EARLY_BIRD: Scale = Scale::new(0.06, 0.15);
+const EARLY_BIRD: Scale = Scale::new(0.06, 0.1);
 const NIGHT_OWL_HOURS: [u32; 6] = [22, 23, 0, 1, 2, 3];
 const NIGHT_OWL: Scale = Scale::new(0.15, 0.3);
 const WEEKEND_DAYS: [u32; 2] = [6, 7];
@@ -31,16 +31,17 @@ const HOBBY_HOPPER: Scale = Scale::new(3.0, 4.0);
 const HOBBY_HOPPER_QUARTER_MINIMUM: usize = 15;
 const INDOOR_KID: Scale = Scale::new(0.65, 0.85);
 const INDOOR_KID_MINIMUM_CLASSIFIED: usize = 100;
-const OUT_OF_OFFICE: Scale = Scale::new(4.0, 12.0);
+const OUT_OF_OFFICE: Scale = Scale::new(6.0, 18.0);
 const EVENT_HOPPER: Scale = Scale::new(8.0, 25.0);
 const EVENT_HOPPER_PHOTOS_PER_DATE: usize = 3;
 const ALWAYS_ROLLING: Scale = Scale::new(0.12, 0.3);
 const ALWAYS_ROLLING_MINIMUM: usize = 50;
 const LIMITED_EDITION_MAXIMUM_TAKEN: usize = 300;
+const GUEST_STAR: Scale = Scale::new(0.5, 0.8);
+const GUEST_STAR_MINIMUM_TAKEN: usize = LIMITED_EDITION_MAXIMUM_TAKEN;
 const GUEST_STAR_MAXIMUM_DATES: usize = 60;
 const GUEST_STAR_BUSIEST_DATES: usize = 5;
-const GUEST_STAR_BUSIEST_SHARE: f64 = 0.5;
-const HAPPY_SNAPPER_MINIMUM_TAKEN: usize = 3000;
+const HAPPY_SNAPPER_MINIMUM_TAKEN: usize = 1000;
 const TRIP_AWAY_KM: f64 = 100.0;
 const TRIP_MAXIMUM_GAP_DAYS: i64 = 2;
 const TRIP_MINIMUM_DATES: usize = 2;
@@ -59,7 +60,7 @@ const SUBJECT_BADGES: [SubjectBadge; 8] = [
     SubjectBadge {
         id: RewindBadge::Pawparazzi,
         subject: Subject::Pets,
-        scale: Scale::new(0.05, 0.2),
+        scale: Scale::new(0.025, 0.04),
         minimum: 40,
     },
     SubjectBadge {
@@ -71,7 +72,7 @@ const SUBJECT_BADGES: [SubjectBadge; 8] = [
     SubjectBadge {
         id: RewindBadge::PlantParent,
         subject: Subject::Plants,
-        scale: Scale::new(0.03, 0.1),
+        scale: Scale::new(0.025, 0.1),
         minimum: 30,
     },
     SubjectBadge {
@@ -100,7 +101,7 @@ const SUBJECT_BADGES: [SubjectBadge; 8] = [
     },
 ];
 
-const RAREST_FIRST: [RewindBadge; 20] = [
+const RAREST_FIRST: [RewindBadge; 21] = [
     RewindBadge::FitCheck,
     RewindBadge::ArtLover,
     RewindBadge::FullThrottle,
@@ -118,6 +119,7 @@ const RAREST_FIRST: [RewindBadge; 20] = [
     RewindBadge::OutOfOffice,
     RewindBadge::ScreenshotCollector,
     RewindBadge::IndoorKid,
+    RewindBadge::GuestStar,
     RewindBadge::WeekendStar,
     RewindBadge::NightOwl,
     RewindBadge::UnpaidPhotographer,
@@ -238,16 +240,6 @@ fn rarity_rank(badge: RewindBadge) -> usize {
         .iter()
         .position(|&rarer| rarer == badge)
         .unwrap_or(RAREST_FIRST.len())
-}
-
-pub(in crate::rewind) fn badge_uses_ml(badge: RewindBadge) -> bool {
-    matches!(
-        badge,
-        RewindBadge::MainCharacter
-            | RewindBadge::HobbyHopper
-            | RewindBadge::IndoorKid
-            | RewindBadge::EventHopper
-    ) || SUBJECT_BADGES.iter().any(|subject| subject.id == badge)
 }
 
 pub(in crate::rewind) fn badge(
@@ -392,6 +384,7 @@ fn readings(
         share_of_hours(RewindBadge::EarlyBird, taken, &EARLY_BIRD_HOURS, EARLY_BIRD),
         share_of_hours(RewindBadge::NightOwl, taken, &NIGHT_OWL_HOURS, NIGHT_OWL),
         weekend_star(taken),
+        guest_star(taken),
         share(
             RewindBadge::ScreenshotCollector,
             eligible
@@ -452,8 +445,6 @@ fn generic(request: &RewindRequest, library: &Library<'_>, taken: &[&YearFile<'_
         RewindBadge::OpeningCredits
     } else if taken.len() < LIMITED_EDITION_MAXIMUM_TAKEN {
         RewindBadge::LimitedEdition
-    } else if is_bursty(taken) {
-        RewindBadge::GuestStar
     } else if taken.len() >= HAPPY_SNAPPER_MINIMUM_TAKEN {
         RewindBadge::HappySnapper
     } else {
@@ -462,16 +453,26 @@ fn generic(request: &RewindRequest, library: &Library<'_>, taken: &[&YearFile<'_
     Badge { id, value: None }
 }
 
-fn is_bursty(taken: &[&YearFile<'_>]) -> bool {
+fn guest_star(taken: &[&YearFile<'_>]) -> Option<Reading> {
+    if taken.len() < GUEST_STAR_MINIMUM_TAKEN {
+        return None;
+    }
     let mut per_date: HashMap<i64, usize> = HashMap::new();
     for file in taken {
         *per_date.entry(file.day).or_default() += 1;
     }
+    if per_date.len() > GUEST_STAR_MAXIMUM_DATES {
+        return None;
+    }
     let mut counts: Vec<usize> = per_date.into_values().collect();
     counts.sort_unstable_by(|first, second| second.cmp(first));
     let busiest: usize = counts.iter().take(GUEST_STAR_BUSIEST_DATES).sum();
-    counts.len() <= GUEST_STAR_MAXIMUM_DATES
-        && busiest as f64 >= GUEST_STAR_BUSIEST_SHARE * taken.len() as f64
+    Some(Reading::new(
+        RewindBadge::GuestStar,
+        busiest as f64 / taken.len() as f64,
+        GUEST_STAR,
+        None,
+    ))
 }
 
 fn share(
@@ -751,7 +752,7 @@ mod tests {
     use crate::rewind::people::People;
     use crate::rewind::report::{Badge, RewindBadge};
 
-    use super::{badge, badge_signals, badge_uses_ml};
+    use super::{badge, badge_signals};
 
     const HOUR: i64 = 3_600_000_000;
     const DAY: i64 = 24 * HOUR;
@@ -772,25 +773,6 @@ mod tests {
     fn with_history(mut files: Vec<RewindFile>) -> Vec<RewindFile> {
         files.push(photo(0, "2024-05-01T12:00:00"));
         files
-    }
-
-    #[test]
-    fn only_badges_from_faces_or_clip_count_as_ml() {
-        for id in [
-            RewindBadge::MainCharacter,
-            RewindBadge::Foodie,
-            RewindBadge::SunChaser,
-            RewindBadge::IndoorKid,
-        ] {
-            assert!(badge_uses_ml(id), "{id:?}");
-        }
-        for id in [
-            RewindBadge::NightOwl,
-            RewindBadge::OutOfOffice,
-            RewindBadge::MixedBag,
-        ] {
-            assert!(!badge_uses_ml(id), "{id:?}");
-        }
     }
 
     fn badge_of(files: Vec<RewindFile>) -> Option<Badge> {
@@ -860,14 +842,8 @@ mod tests {
 
     #[test]
     fn generic_badges_follow_the_shape_of_the_year() {
-        let mut bursty = weekday_shots(1, 5, 50);
-        bursty.extend(weekday_shots(1000, 15, 10));
         assert_eq!(
-            badge_of(with_history(bursty)),
-            generic(RewindBadge::GuestStar)
-        );
-        assert_eq!(
-            badge_of(with_history(weekday_shots(1, 100, 30))),
+            badge_of(with_history(weekday_shots(1, 100, 10))),
             generic(RewindBadge::HappySnapper)
         );
         assert_eq!(
@@ -877,8 +853,38 @@ mod tests {
     }
 
     #[test]
+    fn guest_star_needs_three_hundred_photos_mostly_on_a_few_of_at_most_sixty_dates() {
+        let bursty = |busy_shots: i64, quiet_dates: i64| {
+            let mut files = weekday_shots(1, 5, busy_shots);
+            files.extend(weekday_shots(1000, quiet_dates, 2));
+            badge_of(with_history(files))
+        };
+        assert_eq!(bursty(60, 15), generic(RewindBadge::GuestStar));
+        assert_eq!(bursty(50, 15), generic(RewindBadge::LimitedEdition));
+        assert_eq!(bursty(80, 61), generic(RewindBadge::MixedBag));
+    }
+
+    #[test]
+    fn guest_star_beats_a_weekend_star_made_of_the_same_bursts() {
+        let saturday = micros("2026-03-07T12:00:00");
+        let mut files: Vec<RewindFile> = (0..400)
+            .map(|position| {
+                let mut file = photo(1 + position, "2026-03-07T12:00:00");
+                file.creation_time =
+                    saturday + position / 80 * 7 * DAY + position % 80 * 60_000_000;
+                file
+            })
+            .collect();
+        files.extend(weekday_shots(1000, 10, 5));
+        assert_eq!(
+            badge_of(with_history(files)),
+            generic(RewindBadge::GuestStar)
+        );
+    }
+
+    #[test]
     fn a_standout_badge_beats_one_that_only_just_qualifies_and_ties_go_to_the_rarer_badge() {
-        let mut files = weekday_shots(1, 150, 1);
+        let mut files = weekday_shots(1, 100, 2);
         for (position, file) in files.iter_mut().enumerate() {
             file.creation_time += 11 * HOUR;
             file.shared_album_ids = vec![position as i64 / 5];
@@ -895,7 +901,7 @@ mod tests {
             badge_of(with_history(files)),
             Some(Badge {
                 id: RewindBadge::UnpaidPhotographer,
-                value: Some(30),
+                value: Some(40),
             })
         );
     }
@@ -911,6 +917,22 @@ mod tests {
         };
         assert_eq!(at_dawn(8), generic(RewindBadge::EarlyBird));
         assert_eq!(at_dawn(5), generic(RewindBadge::LimitedEdition));
+    }
+
+    #[test]
+    fn early_bird_peaks_at_ten_percent_of_photos_between_four_and_eight() {
+        let against_night_owl = |dawn_photos: usize| {
+            let mut files = weekday_shots(1, 100, 1);
+            for file in files.iter_mut().take(dawn_photos) {
+                file.creation_time -= 6 * HOUR;
+            }
+            for file in files.iter_mut().skip(dawn_photos).take(27) {
+                file.creation_time += 11 * HOUR;
+            }
+            badge_of(with_history(files))
+        };
+        assert_eq!(against_night_owl(10), generic(RewindBadge::EarlyBird));
+        assert_eq!(against_night_owl(9), generic(RewindBadge::NightOwl));
     }
 
     #[test]
@@ -1026,27 +1048,77 @@ mod tests {
             })
         );
 
-        let mut files: Vec<RewindFile> = weekday_shots(1, 40, 1)
-            .into_iter()
-            .map(|file| located(file, 52.0, 4.9))
-            .collect();
-        let first_trip = micros("2026-06-06T12:00:00");
-        for trip in 0..4 {
-            for day in 0..2 {
-                for shot in 0..3 {
-                    let id = 1000 + trip * 10 + day * 3 + shot;
-                    let mut file = located(photo(id, "2026-06-06T12:00:00"), 48.85, 2.35);
-                    file.creation_time = first_trip + (trip * 14 + day) * DAY + shot * 60_000_000;
-                    files.push(file);
+        let trips = |count: i64| {
+            let mut files: Vec<RewindFile> = weekday_shots(1, 40, 1)
+                .into_iter()
+                .map(|file| located(file, 52.0, 4.9))
+                .collect();
+            let first_trip = micros("2026-06-06T12:00:00");
+            for trip in 0..count {
+                for day in 0..2 {
+                    for shot in 0..3 {
+                        let id = 1000 + trip * 10 + day * 3 + shot;
+                        let mut file = located(photo(id, "2026-06-06T12:00:00"), 48.85, 2.35);
+                        file.creation_time =
+                            first_trip + (trip * 14 + day) * DAY + shot * 60_000_000;
+                        files.push(file);
+                    }
                 }
             }
-        }
+            badge_of(with_history(files))
+        };
         assert_eq!(
-            badge_of(with_history(files)),
+            trips(6),
             Some(Badge {
                 id: RewindBadge::OutOfOffice,
-                value: Some(4),
+                value: Some(6),
             })
+        );
+        assert_eq!(trips(5), generic(RewindBadge::LimitedEdition));
+    }
+
+    #[test]
+    fn pets_and_plants_count_from_two_and_a_half_percent_of_photos() {
+        let subject_request = request(with_history(weekday_shots(1, 100, 16)));
+        let library = Library::of_year(&subject_request).unwrap();
+        let first_showing = |subject: Subject, count: i64| {
+            clip_of((1..=1600).map(|id| {
+                let subjects: &[Subject] = if id <= count { &[subject] } else { &[] };
+                (id, showing(subjects))
+            }))
+        };
+        assert_eq!(
+            badge(
+                &subject_request,
+                &library,
+                None,
+                Some(&first_showing(Subject::Pets, 40))
+            ),
+            Some(Badge {
+                id: RewindBadge::Pawparazzi,
+                value: Some(40),
+            })
+        );
+        assert_eq!(
+            badge(
+                &subject_request,
+                &library,
+                None,
+                Some(&first_showing(Subject::Plants, 40))
+            ),
+            Some(Badge {
+                id: RewindBadge::PlantParent,
+                value: Some(40),
+            })
+        );
+        assert_eq!(
+            badge(
+                &subject_request,
+                &library,
+                None,
+                Some(&first_showing(Subject::Plants, 39))
+            ),
+            generic(RewindBadge::HappySnapper)
         );
     }
 

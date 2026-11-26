@@ -9,7 +9,7 @@ use uuid::Uuid;
 use super::*;
 
 const GB: i64 = 1 << 30;
-const PASSWORD: &str = "disposable-cli-integration-password";
+pub(super) const PASSWORD: &str = "disposable-cli-integration-password";
 
 #[test]
 fn login_and_photos_across_processes() -> TestResult {
@@ -1559,3 +1559,6 @@ mod export;
 
 #[path = "duplicates_museum.rs"]
 mod duplicates;
+
+#[path = "people_museum.rs"]
+mod people;

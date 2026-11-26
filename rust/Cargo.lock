@@ -2548,7 +2548,7 @@ dependencies = [
 
 [[package]]
 name = "ente-cli"
-version = "0.4.6"
+version = "0.4.7"
 dependencies = [
  "anyhow",
  "chrono",
@@ -2566,6 +2566,7 @@ dependencies = [
  "ente-photos-export",
  "ente-test-support",
  "env_logger",
+ "flate2",
  "futures-util",
  "keyring",
  "mockito",
@@ -2618,6 +2619,7 @@ dependencies = [
  "base64 0.23.1",
  "blake2b_simd",
  "bytes",
+ "chacha20poly1305",
  "crypto_secretbox",
  "crypto_secretstream",
  "futures-core",
@@ -2630,6 +2632,8 @@ dependencies = [
  "mockito",
  "rand_core 0.6.4",
  "reqwest 0.12.28",
+ "rustls",
+ "rustls-platform-verifier",
  "salsa20 0.10.2",
  "serde",
  "serde_json",
@@ -2646,6 +2650,7 @@ dependencies = [
 name = "ente-ensu"
 version = "0.0.0"
 dependencies = [
+ "chrono",
  "ente-assets",
  "ente-core",
  "ente-ensu-crypto",
@@ -2942,6 +2947,7 @@ dependencies = [
  "ente-location",
  "ente-test-support",
  "ente-vecdb",
+ "flate2",
  "futures-util",
  "log",
  "mockito",
@@ -3088,6 +3094,7 @@ dependencies = [
 name = "ente-vecdb"
 version = "0.0.0"
 dependencies = [
+ "ente-core",
  "log",
  "tempfile",
  "thiserror 2.0.21",
@@ -4230,7 +4237,7 @@ checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 [[package]]
 name = "heic_decoder"
 version = "0.2.0"
-source = "git+https://github.com/ente/heic-decoder.git?rev=5fbe1d24fe0708d9e4a8ed1e9c4891108fbbffaf#5fbe1d24fe0708d9e4a8ed1e9c4891108fbbffaf"
+source = "git+https://github.com/ente/heic-decoder.git?rev=5b0a6af9f4acce2af2e68decb5e6137d6fa45ee1#5b0a6af9f4acce2af2e68decb5e6137d6fa45ee1"
 dependencies = [
  "archmage",
  "brotli 8.0.2",

@@ -664,10 +664,10 @@ mod tests {
         )
         .unwrap();
         let request = ChatRequest {
-            messages: vec![ChatMessage {
-                role: "user".to_owned(),
-                content: "Describe the color of this image, then count from one to ten.".to_owned(),
-            }],
+            messages: vec![ChatMessage::new(
+                "user",
+                "Describe the color of this image, then count from one to ten.",
+            )],
             image_paths: Some(vec![image.to_str().unwrap().to_owned()]),
             mmproj_path: Some(std::env::var("ENSU_TEST_MMPROJ").unwrap()),
             temperature: Some(0.0),

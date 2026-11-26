@@ -78,7 +78,6 @@ List<RewindChapter> rewindPhotoCardChapters(rust.RewindReport report) => [
 
 const _quizCities = 6;
 const _podiumPlaces = 3;
-const _stampsPerPlace = 3;
 const _galleryPhotos = 9;
 const _boothStrips = 3;
 const _newFaceBubbles = 6;
@@ -94,7 +93,11 @@ RewindChapter _totals(rust.Totals? totals) {
     return [
       PhotosCountPage(
         totals.files,
-        media.glimpses(totals.fileIds, PhotosCountPage.maxPhotos),
+        media.extraPhotos(
+          totals.fileIds,
+          PhotosCountPage.maxPhotos,
+          preload: true,
+        ),
       ),
       if (top != null) TopPercentPage(percent: top, count: totals.files),
     ];
@@ -109,7 +112,7 @@ RewindChapter _warp(rust.RewindReport report) =>
       final panels = media.extraPhotos(
         warp.fileIds,
         warp.fileIds.length,
-        preloadRemote: true,
+        preload: true,
       );
       if (first == null || panels.length < WarpPage.minimumPanels) {
         return const [];
@@ -149,19 +152,24 @@ RewindChapter _mosaic(rust.RewindReport report) =>
           await media.cluster(id, mosaic.clusterFaceIds),
         _ => null,
       };
-      final (subject, subjectName) = switch ((
+      final (subject, subjectName, isFamiliar) = switch ((
         me?.crop,
         favourite?.crop,
         familiar?.crop,
       )) {
-        (final crop?, _, _) => (crop, null),
-        (_, final crop?, _) => (crop, favourite?.name),
-        (_, _, final crop?) => (crop, MosaicPage.familiarFace),
-        _ => (null, null),
+        (final crop?, _, _) => (crop, null, false),
+        (_, final crop?, _) => (crop, favourite?.name, false),
+        (_, _, final crop?) => (crop, null, true),
+        _ => (null, null, false),
       };
       return [
         mosaicSetupPage,
-        MosaicPage(files: files, subject: subject, subjectName: subjectName),
+        MosaicPage(
+          files: files,
+          subject: subject,
+          subjectName: subjectName,
+          familiar: isFamiliar,
+        ),
       ];
     });
 
@@ -198,14 +206,10 @@ PlacesQuizPage? _placesQuiz(
 }
 
 PlaceStamp _placeStamp(RewindMedia media, rust.RewindCity city, bool podium) {
-  final picked = media.photos(city.fileIds, podium ? _stampsPerPlace : 1);
   return (
     city: city,
-    photo: picked.firstOrNull,
-    extras: picked.skip(1).toList(),
-    gallery: podium
-        ? media.extraPhotos(city.fileIds, _galleryPhotos)
-        : const [],
+    photo: media.photos(city.fileIds, 1).firstOrNull,
+    gallery: podium ? media.gallery(city.fileIds, _galleryPhotos) : const [],
   );
 }
 
@@ -287,10 +291,7 @@ Future<NewFaceBubble?> _newFace(RewindMedia media, rust.NewFace newFace) async {
     _ => null,
   };
   if (face?.crop == null) return null;
-  return (
-    face: face!,
-    photos: media.extraPhotos(newFace.fileIds, _newFacePhotos),
-  );
+  return (face: face!, photos: media.gallery(newFace.fileIds, _newFacePhotos));
 }
 
 RewindChapter _favourites(rust.Favourites? favourites) {
@@ -351,7 +352,7 @@ RewindChapter _scrapbook(rust.RewindReport report) {
         report: report,
         photos: photos,
         people: people,
-        cityNames: [for (final city in cities.take(3)) city.name],
+        cities: cities.take(3).toList(),
       ),
     ];
   });

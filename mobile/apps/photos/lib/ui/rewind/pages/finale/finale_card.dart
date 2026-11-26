@@ -2,6 +2,7 @@ import "dart:math";
 
 import "package:flutter/material.dart";
 import "package:flutter/scheduler.dart";
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/pages/finale/finale_actions.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
@@ -12,10 +13,14 @@ import "package:photos/ui/rewind/widgets/rewind_rive.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_svg.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
+import "package:photos/ui/rewind/widgets/rewind_year_duckies.dart";
 
 const _actionsDelayMs = 700;
 const _headlineWidth = 435.06;
+const _headlineFitWidth = 360.0;
 const _headlineCenterX = 197.54;
+const _accentDrop = 24.0;
+final _accentedCapital = RegExp("[\u00C0-\u00DD\u0100-\u017F]");
 
 const _confetti = [
   (RewindAssets.limeConfetti, Offset(156, 94.02), 450),
@@ -78,13 +83,14 @@ class _FinaleCardState extends State<FinaleCard>
 
   @override
   Widget build(BuildContext context) {
+    final copy = RewindCopy.of(context);
     final still = MediaQuery.disableAnimationsOf(context);
     return Stack(
       fit: StackFit.expand,
       children: [
         IgnorePointer(
           child: Semantics(
-            label: "What a year!",
+            label: copy.finaleLabel,
             child: ExcludeSemantics(
               child: Stack(
                 fit: StackFit.expand,
@@ -102,7 +108,7 @@ class _FinaleCardState extends State<FinaleCard>
                       ),
                       _fire(),
                       _headline(
-                        "WHAT A",
+                        copy.finaleTop,
                         size: 81.731,
                         color: RewindColors.cream,
                         letterSpacing: -4.0865,
@@ -111,10 +117,12 @@ class _FinaleCardState extends State<FinaleCard>
                         delayMs: 0,
                       ),
                       _headline(
-                        "YEAR!",
+                        copy.finaleBottom,
                         size: 118.196,
                         color: const Color(0xFFFFCE00),
-                        centerY: 314.02,
+                        centerY: _accentedCapital.hasMatch(copy.finaleBottom)
+                            ? 314.02 + _accentDrop
+                            : 314.02,
                         boxHeight: 145.858,
                         delayMs: 150,
                       ),
@@ -136,7 +144,7 @@ class _FinaleCardState extends State<FinaleCard>
                         ),
                     ],
                   ),
-                  const _Duckies(),
+                  const RewindYearDuckies(),
                 ],
               ),
             ),
@@ -193,8 +201,9 @@ class _FinaleCardState extends State<FinaleCard>
         active: widget.launched,
         delayMs: delayMs,
         child: Center(
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
+          child: RewindFitWidth(
+            width: _headlineFitWidth,
+            alignment: Alignment.center,
             child: RewindOutlinedText(
               text,
               style: RewindTextStyles.display(
@@ -209,25 +218,6 @@ class _FinaleCardState extends State<FinaleCard>
               textAlign: TextAlign.center,
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Duckies extends StatelessWidget {
-  const _Duckies();
-
-  static const _size = Size(390, 230);
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) => Align(
-        alignment: Alignment.bottomCenter,
-        child: SizedBox.fromSize(
-          size: _size * RewindStage.scaleFor(constraints.biggest),
-          child: const RewindDucky(RewindAssets.yearDuckies),
         ),
       ),
     );

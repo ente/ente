@@ -376,6 +376,12 @@ No. ML results sync to your account and are available on your phone without re-r
 
 Not currently. There is no built-in option to reset the ML database and detected faces.
 
+### Will I lose my faces and search results if I turn machine learning off? {#ml-turn-back-on}
+
+No. Turning machine learning off pauses indexing, but it doesn't delete what Ente has already learned. When you turn it back on, your existing face groups, the names you've given people, your corrections and search results come back, and Ente continues indexing from where it left off.
+
+This makes it safe to turn machine learning off for a while, for example during a large upload.
+
 ### Does Ente adapt as I name people and clean up duplicate face clusters? {#ml-adapts-to-corrections}
 
 Yes. Naming a person triggers automatic merging of the closest matching clusters. Beyond that, Ente surfaces less-confident matches as suggestions for you to accept or reject, and rejected clusters won't be suggested again. All corrections sync across devices.
@@ -468,6 +474,12 @@ You can then search for words in those descriptions to find the photos.
 
 Learn more in [Metadata and Editing FAQ](/photos/faq/metadata-and-editing#descriptions).
 
+### Can I search for keywords or tags I added in Lightroom or Apple Photos? {#search-keyword-tags}
+
+Not currently. Ente doesn't import keyword or tag fields from your photos, so you can't search for them.
+
+Ente does read the description (caption) saved in a photo, and you can search for words in descriptions. If your photo editor can copy keywords into the description or caption field before you export, those words become searchable in Ente.
+
 ## Memories
 
 ### How do I mute the music in Memories? {#mute-memories-music}
@@ -480,6 +492,15 @@ To watch a memory without music in the mobile app:
 Tap the speaker icon again to turn the music back on.
 
 Ente remembers this choice the next time you open a memory on the same device.
+
+### How do I keep screenshots or chat images out of Memories? {#exclude-from-memories}
+
+You can't choose which albums Memories use, but Memories skip anything you've archived or hidden.
+
+- To keep a whole album out, such as Screenshots or WhatsApp Images, archive the album.
+- To keep individual photos out, select them and archive them.
+
+Archived photos are also removed from your home timeline, but they still appear in their albums and in search. See [Archive](/photos/features/albums-and-organization/archive) and [Hide vs Archive](/photos/faq/albums-and-organization#hide-vs-archive).
 
 ## General Search
 

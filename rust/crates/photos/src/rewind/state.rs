@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::Result;
 use super::input::RewindRequest;
-use super::library::Library;
+use super::library::{Library, MICROS_PER_DAY};
 use super::report::RewindReport;
 use crate::memories::CityLookup;
 use crate::ml_store::MlStore;
@@ -11,6 +11,10 @@ pub const REWIND_VERSION: u32 = 1;
 
 const REQUIRED_ML_COVERAGE: f32 = 0.9;
 
+pub(super) fn has_enough_ml(coverage: f32) -> bool {
+    coverage >= REQUIRED_ML_COVERAGE
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct RewindState {
     pub year: i32,
@@ -18,15 +22,53 @@ pub struct RewindState {
     pub computed_at: i64,
     pub local_gallery_mode: bool,
     pub ml_coverage: Option<f32>,
+    pub ml_chapters_pending: bool,
     pub is_final: bool,
     pub status: RewindStatus,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RewindStatus {
-    WaitingForMl,
     NothingToShow,
     Ready { report: Box<RewindReport> },
+}
+
+pub(super) struct MlReadiness {
+    coverage: Option<f32>,
+    earlier_years_indexed: bool,
+    earlier_years_clustered: bool,
+}
+
+impl MlReadiness {
+    pub(super) fn of(
+        request: &RewindRequest,
+        library: &Library<'_>,
+        store: Option<&MlStore>,
+    ) -> Result<Self> {
+        let Some(store) = store else {
+            return Ok(Self {
+                coverage: None,
+                earlier_years_indexed: true,
+                earlier_years_clustered: true,
+            });
+        };
+        let earlier_years_indexed = has_enough_ml(library.earlier_ml_coverage(request, store)?);
+        Ok(Self {
+            coverage: Some(library.ml_coverage(store)?),
+            earlier_years_indexed,
+            earlier_years_clustered: earlier_years_indexed
+                && (request.just_clustered
+                    || !store.has_faces_to_cluster(&library.file_ids_before_year(request))?),
+        })
+    }
+
+    fn year_indexed(&self) -> bool {
+        self.coverage.is_none_or(has_enough_ml)
+    }
+
+    fn new_faces_ready(&self, showed_new_faces: bool) -> bool {
+        self.earlier_years_indexed && (self.earlier_years_clustered || showed_new_faces)
+    }
 }
 
 impl RewindState {
@@ -36,41 +78,71 @@ impl RewindState {
             && self.local_gallery_mode == request.local_gallery_mode
     }
 
+    fn report(&self) -> Option<&RewindReport> {
+        match &self.status {
+            RewindStatus::Ready { report } => Some(report),
+            RewindStatus::NothingToShow => None,
+        }
+    }
+
     pub(super) fn evaluate(
         request: &RewindRequest,
         library: &Library<'_>,
         store: Option<&MlStore>,
         cities: Option<&dyn CityLookup>,
-        ml_coverage: Option<f32>,
-        was_ready: bool,
-        showed_ml_chapters: bool,
+        readiness: &MlReadiness,
+        previous: Option<&RewindState>,
     ) -> Result<Self> {
-        let ml_ready = ml_coverage.is_none_or(|coverage| coverage >= REQUIRED_ML_COVERAGE);
-        let shows_without_ml =
-            library.year_has_ended() && request.installed_at < request.season_start;
-        let status = if was_ready || ml_ready || shows_without_ml {
-            let ml_chapters = ml_ready || showed_ml_chapters;
-            let report = RewindReport::of(request, library, store, ml_chapters, cities)?;
-            if report.is_empty() {
-                RewindStatus::NothingToShow
-            } else {
-                RewindStatus::Ready {
-                    report: Box::new(report),
-                }
+        let showed_new_faces = previous
+            .filter(|previous| previous.ml_coverage.is_some())
+            .and_then(RewindState::report)
+            .is_some_and(|report| report.new_faces.is_some());
+        let report = RewindReport::of(
+            request,
+            library,
+            store,
+            readiness.new_faces_ready(showed_new_faces),
+            cities,
+        )?;
+        let year_files = |report: &RewindReport| report.totals.as_ref().map(|totals| totals.files);
+        let settled = previous.is_some_and(|previous| {
+            let Some(previous_report) = previous.report() else {
+                return false;
+            };
+            if previous.is_final {
+                return year_files(previous_report)
+                    .is_some_and(|files| year_files(&report) == Some(files));
             }
+            library.had_ended_at(previous.computed_at)
+                && request.now - previous.computed_at >= MICROS_PER_DAY
+                && previous_report == &report
+        });
+        let status = if report.is_empty() {
+            RewindStatus::NothingToShow
         } else {
-            RewindStatus::WaitingForMl
+            RewindStatus::Ready {
+                report: Box::new(report),
+            }
         };
-        let is_final = ml_ready
+        let would_freeze = readiness.year_indexed()
+            && readiness.earlier_years_indexed
             && cities.is_some()
             && library.year_has_ended()
+            && settled
             && matches!(status, RewindStatus::Ready { .. });
+        let is_final = would_freeze
+            && store.map_or(Ok(true), |store| {
+                store
+                    .has_faces_to_cluster(&library.file_ids_until_year_end(request))
+                    .map(|found| !found)
+            })?;
         Ok(Self {
             year: request.year,
             version: REWIND_VERSION,
             computed_at: request.now,
             local_gallery_mode: request.local_gallery_mode,
-            ml_coverage,
+            ml_coverage: readiness.coverage,
+            ml_chapters_pending: !readiness.year_indexed(),
             is_final,
             status,
         })

@@ -59,6 +59,7 @@ pub fn start(
             HARDCODED_OTT,
         )
         .env("ENTE_JOBS_CRON_SKIP", "true")
+        .env("ENTE_HTTP_HOST", LOCAL_HOST)
         .envs(env.iter().copied());
 
     let log_dir = config_file.with_file_name("logs");

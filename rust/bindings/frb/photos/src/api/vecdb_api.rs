@@ -25,7 +25,9 @@ impl From<vecdb::VecDbError> for RustVecDbError {
         let message = value.to_string();
         match value {
             vecdb::VecDbError::Io { .. } => Self::Io { message },
-            vecdb::VecDbError::Corrupt(_) => Self::Corrupt { message },
+            vecdb::VecDbError::Corrupt(_) | vecdb::VecDbError::Encryption { .. } => {
+                Self::Corrupt { message }
+            }
             vecdb::VecDbError::Locked(_) => Self::Locked { message },
             vecdb::VecDbError::ReadOnly => Self::ReadOnly { message },
             vecdb::VecDbError::Closed => Self::Closed { message },

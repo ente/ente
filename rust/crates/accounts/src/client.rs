@@ -368,18 +368,6 @@ impl AccountsClient {
         })
     }
 
-    pub async fn change_email(&self, email: &str, ott: &str) -> Result<()> {
-        let body = serde_json::json!({ "email": email, "ott": ott });
-        self.api
-            .post("/users/change-email")
-            .json(&body)
-            .send()
-            .await?
-            .error_for_code()
-            .await?;
-        Ok(())
-    }
-
     pub async fn logout(&self) -> Result<()> {
         let body = serde_json::json!({});
         Ok(http::retry(|| async {

@@ -66,7 +66,7 @@ struct MarkdownBlock: Identifiable, Equatable {
         case blockquote(text: InlineContent)
         case code(text: String)
         case math(text: String)
-        case list(items: [InlineContent])
+        case list(items: [InlineContent], firstNumber: Int?)
         case divider
     }
 
@@ -269,11 +269,12 @@ struct MarkdownParser {
         case let orderedList as OrderedList:
             let items = orderedList.children.compactMap { $0 as? ListItem }.map(renderListItem)
                 .filter { !$0.isEmpty }
-            return items.isEmpty ? [] : [.list(items: items)]
+            return items.isEmpty
+                ? [] : [.list(items: items, firstNumber: Int(orderedList.startIndex))]
         case let unorderedList as UnorderedList:
             let items = unorderedList.children.compactMap { $0 as? ListItem }.map(renderListItem)
                 .filter { !$0.isEmpty }
-            return items.isEmpty ? [] : [.list(items: items)]
+            return items.isEmpty ? [] : [.list(items: items, firstNumber: nil)]
         default:
             var nestedBlocks: [MarkdownBlock.Kind] = []
             for child in markup.children {

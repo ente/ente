@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/ente/stacktrace"
+	"github.com/lib/pq"
 
 	"github.com/ente/museum/ente"
 	"github.com/ente/museum/pkg/utils/time"
@@ -166,36 +167,42 @@ func (repo *ObjectCleanupRepository) GetAndLockExpiredObjects() (*sql.Tx, []ente
 	return tx, tempObjects, nil
 }
 
-func (repo *ObjectCleanupRepository) SetExpiryForTempObject(tx *sql.Tx, tempObject ente.TempObject, expirationTime int64) error {
-	if tempObject.IsMultipart {
-		_, err := tx.Exec(`
-			UPDATE temp_objects SET expiration_time = $1 WHERE object_key = $2 AND upload_id = $3
-			`, expirationTime, tempObject.ObjectKey, tempObject.UploadID)
-		return stacktrace.Propagate(err, "")
-	} else {
-		_, err := tx.Exec(`
-			UPDATE temp_objects SET expiration_time = $1 WHERE object_key = $2
-			`, expirationTime, tempObject.ObjectKey)
-		return stacktrace.Propagate(err, "")
+func (repo *ObjectCleanupRepository) SetExpiryForTempObjects(tx *sql.Tx, objectKeys []string, expirationTime int64) error {
+	if len(objectKeys) == 0 {
+		return nil
 	}
+	_, err := tx.Exec(`
+		UPDATE temp_objects SET expiration_time = $1 WHERE object_key = ANY($2::text[])
+		`, expirationTime, pq.Array(objectKeys))
+	return stacktrace.Propagate(err, "")
 }
 
-func (repo *ObjectCleanupRepository) RemoveTempObject(tx *sql.Tx, tempObject ente.TempObject) error {
+func (repo *ObjectCleanupRepository) SetCleanupStateForTempObjects(tx *sql.Tx, objectKeys []string, state ente.TempObjectCleanupState, expirationTime int64) error {
+	if len(objectKeys) == 0 {
+		return nil
+	}
+	_, err := tx.Exec(`UPDATE temp_objects SET cleanup_state = $1, expiration_time = $2 WHERE object_key = ANY($3::text[])`,
+		state, expirationTime, pq.Array(objectKeys))
+	return stacktrace.Propagate(err, "")
+}
+
+func (repo *ObjectCleanupRepository) RemoveTempObject(tempObject ente.TempObject) error {
 	if tempObject.IsMultipart {
-		_, err := tx.Exec(`
+		_, err := repo.DB.Exec(`
 			DELETE FROM temp_objects WHERE object_key = $1 AND upload_id = $2
 			`, tempObject.ObjectKey, tempObject.UploadID)
 		return stacktrace.Propagate(err, "")
-	} else {
-		_, err := tx.Exec(`
-			DELETE FROM temp_objects WHERE object_key = $1
-			`, tempObject.ObjectKey)
-		return stacktrace.Propagate(err, "")
 	}
+	_, err := repo.DB.Exec(`
+		DELETE FROM temp_objects WHERE object_key = $1
+		`, tempObject.ObjectKey)
+	return stacktrace.Propagate(err, "")
 }
 
-func (repo *ObjectCleanupRepository) SetCleanupState(tx *sql.Tx, objectKey string, state ente.TempObjectCleanupState, expirationTime int64) error {
-	_, err := tx.Exec(`UPDATE temp_objects SET cleanup_state = $1, expiration_time = $2 WHERE object_key = $3`,
-		state, expirationTime, objectKey)
+func (repo *ObjectCleanupRepository) CompleteHoldRelease(objectKey string, expirationTime int64) error {
+	_, err := repo.DB.Exec(
+		`UPDATE temp_objects SET cleanup_state = $1, expiration_time = $2, is_multipart = FALSE WHERE object_key = $3`,
+		ente.TempObjectDelete, expirationTime, objectKey,
+	)
 	return stacktrace.Propagate(err, "")
 }

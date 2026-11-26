@@ -63,7 +63,7 @@ fn encode_jpeg(decoded: &DecodedImage, quality: Option<u8>) -> Result<Vec<u8>, I
         &decoded.rgb,
         decoded.dimensions.width,
         decoded.dimensions.height,
-        EncodedImageFormat::Jpeg {
+        EncodedImageFormat::Jpeg420 {
             quality: quality.unwrap_or(95),
         },
     )

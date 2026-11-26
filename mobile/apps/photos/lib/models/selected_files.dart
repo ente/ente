@@ -37,14 +37,16 @@ class SelectedFiles extends ChangeNotifier {
     if (nonDummyFiles.isEmpty) {
       return;
     }
-    if (dedupeByUploadID
-        ? nonDummyFiles.every(isFileSelected)
-        : files.containsAll(nonDummyFiles)) {
+    if (areAllSelected(nonDummyFiles)) {
       unSelectAll(nonDummyFiles);
     } else {
       selectAll(nonDummyFiles);
     }
   }
+
+  bool areAllSelected(Iterable<EnteFile> candidates) => dedupeByUploadID
+      ? candidates.every(isFileSelected)
+      : files.containsAll(candidates);
 
   void selectAll(Set<EnteFile> filesToSelect) {
     final nonDummyFiles = _selectableFiles(filesToSelect);

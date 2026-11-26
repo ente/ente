@@ -6,6 +6,7 @@ import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_svg/flutter_svg.dart";
 import "package:photos/models/file/file.dart";
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
@@ -18,7 +19,6 @@ import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
 import "package:photos/ui/rewind/widgets/rewind_keyframes.dart";
 import "package:photos/ui/rewind/widgets/rewind_layer.dart";
-import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo_frames.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
@@ -33,20 +33,7 @@ class PhotoBoothPage extends RewindPage {
     this.place = 0,
   });
 
-  static const _billings = [
-    (key: "people_booth", you: "YOUR NO. 1", me: "MY NO. 1"),
-    (
-      key: "people_booth_2",
-      you: "ALWAYS IN THE PICTURE",
-      me: "ALWAYS IN THE PICTURE",
-    ),
-    (
-      key: "people_booth_3",
-      you: "NEVER OUT OF FRAME",
-      me: "NEVER OUT OF FRAME",
-    ),
-  ];
-  static final pageKeys = [for (final billing in _billings) billing.key];
+  static const pageKeys = ["people_booth", "people_booth_2", "people_booth_3"];
 
   final RewindFace person;
   final int count;
@@ -55,7 +42,7 @@ class PhotoBoothPage extends RewindPage {
   final int place;
 
   @override
-  String get key => _billings[place].key;
+  String get key => pageKeys[place];
 
   @override
   Duration? get reelHold => place == 0
@@ -76,8 +63,8 @@ class PhotoBoothPage extends RewindPage {
     double position, {
     required bool isActive,
   }) {
+    final copy = RewindCopy.of(context);
     final name = (person.name ?? "").toUpperCase();
-    final billing = _billings[place];
     final covered = RewindPageScope.coveredOf(context);
     return RewindShareable(
       child: Stack(
@@ -125,8 +112,7 @@ class PhotoBoothPage extends RewindPage {
                   active: isActive,
                   delayMs: 150,
                   child: RewindVoice(
-                    you: billing.you,
-                    me: billing.me,
+                    copy.boothBilling(place),
                     builder: (text) => Text(
                       text,
                       style: RewindTextStyles.display(20, letterSpacing: 0.3),
@@ -198,7 +184,7 @@ class PhotoBoothPage extends RewindPage {
                   active: isActive,
                   delayMs: 450,
                   child: Text(
-                    "${rewindCounted(count, "photo", "photos")} this year!",
+                    copy.boothPhotos(count),
                     style: RewindTextStyles.body(18),
                   ),
                 ),

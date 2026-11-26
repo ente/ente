@@ -9,6 +9,7 @@ import "package:logging/logging.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/wake_lock_service.dart";
 import "package:photos/ui/rewind/reel/rewind_video_export.dart";
+import "package:photos/ui/rewind/reel/rewind_video_job.dart";
 import "package:photos/ui/rewind/shell/rewind_chrome.dart";
 import "package:photos/ui/rewind/shell/rewind_music.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
@@ -60,6 +61,7 @@ class _RewindViewerState extends State<RewindViewer>
   static final _logger = Logger("RewindViewer");
   static const _tapZoneTop = 70 / 844;
   static const _tapZoneBottom = 770 / 844;
+  static const _turnPause = Duration(milliseconds: 400);
   static var _openViewers = 0;
 
   late final _starts = RewindPageStack.startsOf(widget.pages);
@@ -74,8 +76,12 @@ class _RewindViewerState extends State<RewindViewer>
   var _settledStep = -1;
   int? _resizeStep;
   int? _targetStep;
+  final _sinceTurn = Stopwatch();
+  var _lastTurn = 0;
   final _videoSaved = ValueNotifier(false);
   var _busy = false;
+  var _inFront = true;
+  RewindVideoJob? _videoJob;
 
   @override
   void initState() {
@@ -90,6 +96,9 @@ class _RewindViewerState extends State<RewindViewer>
     _settle(_initialStep);
     WidgetsBinding.instance.addObserver(this);
     unawaited(_music.start());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => unawaited(_pregenerateVideo()),
+    );
     if (_openViewers++ == 0) {
       wakeLockService.updateWakeLock(
         enable: true,
@@ -99,7 +108,17 @@ class _RewindViewerState extends State<RewindViewer>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _inFront =
+        TickerMode.valuesOf(context).enabled &&
+        ModalRoute.of(context)?.isCurrent != false;
+    _videoJob?.inFront = _inFront;
+  }
+
+  @override
   void dispose() {
+    final ended = _videoJob?.abort();
     if (--_openViewers == 0) {
       wakeLockService.updateWakeLock(
         enable: false,
@@ -110,15 +129,34 @@ class _RewindViewerState extends State<RewindViewer>
     _music.dispose();
     _videoSaved.dispose();
     _controller?.dispose();
-    for (final page in widget.pages) {
-      page.release();
+    final pages = widget.pages;
+    if (ended == null) {
+      _release(pages);
+    } else {
+      unawaited(ended.whenComplete(() => _release(pages)));
     }
     super.dispose();
+  }
+
+  static void _release(List<RewindPage> pages) {
+    for (final page in pages) {
+      page.release();
+    }
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _music.appActive = state == AppLifecycleState.resumed;
+  }
+
+  Future<void> _pregenerateVideo() async {
+    _videoJob = await pregenerateRewindVideo(
+      context,
+      pages: widget.pages,
+      loadMedia: widget.loadVideoMedia,
+      track: _music.track,
+      wanted: () => mounted && _inFront && !_busy,
+    );
   }
 
   @override
@@ -213,6 +251,7 @@ class _RewindViewerState extends State<RewindViewer>
         shareKey: _shareButton,
         videoKey: _videoButton,
         onClose: () => Navigator.of(context).maybePop(),
+        onNext: next,
         onShare: _shareAction(context, page, card, layout),
         onShareVideo: index < widget.pages.length - 1 || page.hasOwnVideoButton
             ? null
@@ -300,6 +339,16 @@ class _RewindViewerState extends State<RewindViewer>
     final controller = _controller;
     final height = _height;
     if (controller == null || height == null || !controller.hasClients) return;
+    final turn = (step - _currentStep).sign;
+    if (turn == _lastTurn &&
+        _sinceTurn.isRunning &&
+        _sinceTurn.elapsed < _turnPause) {
+      return;
+    }
+    _lastTurn = turn;
+    _sinceTurn
+      ..reset()
+      ..start();
     if (MediaQuery.disableAnimationsOf(context)) {
       controller.jumpTo(step * height);
       return;
@@ -345,6 +394,7 @@ class _RewindViewerState extends State<RewindViewer>
         pages: widget.pages,
         loadMedia: widget.loadVideoMedia,
         track: _music.track,
+        job: _videoJob,
         origin: origin,
       );
     } catch (error, stackTrace) {
@@ -369,6 +419,7 @@ class _RewindViewerState extends State<RewindViewer>
         pages: widget.pages,
         loadMedia: widget.loadVideoMedia,
         track: _music.track,
+        job: _videoJob,
       );
       if (saved && mounted) _videoSaved.value = true;
     } catch (error, stackTrace) {

@@ -914,7 +914,9 @@ fn fatal_cause(cause: &(dyn std::error::Error + 'static)) -> bool {
         match error {
             ente_live_photo::Error::Io(error) => return fatal_cause(error),
             ente_live_photo::Error::Zip(error) => return fatal_cause(error),
-            ente_live_photo::Error::Components | ente_live_photo::Error::ExpansionLimit => {}
+            ente_live_photo::Error::Components
+            | ente_live_photo::Error::ExpansionLimit
+            | ente_live_photo::Error::Unsupported => {}
         }
     }
     cause.source().is_some_and(fatal_cause)

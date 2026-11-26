@@ -83,7 +83,10 @@ class NetworkClient {
     final fallbackAdapter = IOHttpClientAdapter();
     final fallbackPolicy = _http2FallbackPolicy;
     final http2Adapter = Http2Adapter(
-      ConnectionManager(handshakeTimout: connectTimeout),
+      ConnectionManager(
+        handshakeTimeout: connectTimeout,
+        supportedProtocols: const ['h2', 'http/1.1'],
+      ),
       fallbackAdapter: fallbackAdapter,
       onNotSupported: (options, requestStream, cancelFuture, exception) {
         _logHttp2UnsupportedOriginOnce(

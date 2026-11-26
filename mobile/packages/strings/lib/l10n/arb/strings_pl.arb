@@ -251,7 +251,7 @@
   "backupLocationChoiceDescription": "Gdzie chcesz zapisać kopie zapasowe?",
   "backupOnlyNewPhotos": "Utwórz kopię zapasową tylko nowych zdjęć",
   "backupOnlyNewPhotosAllFoldersSelected": "Wszystkie foldery są obecnie wybrane do tworzenia kopii zapasowej.\n\nMożesz kontynuować lub zaktualizować wybrane foldery.",
-  "backupOnlyNewPhotosNoFoldersSelectedContinue": "Wszystkie foldery są obecnie wybrane do tworzenia kopii zapasowej.\n\nMożesz kontynuować lub zaktualizować wybrane foldery.",
+  "backupOnlyNewPhotosNoFoldersSelectedContinue": "Nie wybrano folderów do kopii zapasowej.\n\nMożesz kontynuować lub zaktualizować wybrane foldery.",
   "backupOnlyNewPhotosNoFoldersSelectedRequire": "Nie wybrano folderów do kopii zapasowej.\n\nWybierz foldery, aby kontynuować.",
   "backupOnlyNewPhotosWarningBody": "Wykonujesz kopię zapasową zdjęć z {formattedDate}. Zaktualizuj ustawienia, aby wykonać kopię zapasową wszystkich zdjęć.",
   "@backupOnlyNewPhotosWarningBody": {
@@ -1639,7 +1639,7 @@
       }
     }
   },
-  "passwordToEncryptExport": "Hasło do odszyfrowania eksportu",
+  "passwordToEncryptExport": "Hasło do zaszyfrowania eksportu",
   "passwordTooShort": "Hasło musi mieć co najmniej 8 znaków.",
   "passwordWarning": "Nie przechowujemy tego hasła, więc jeśli go zapomnisz, <underline>nie będziemy w stanie odszyfrować Twoich danych</underline>",
   "@passwordWarning": {

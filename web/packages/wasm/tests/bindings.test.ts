@@ -560,9 +560,9 @@ test("Photos location radius checks and distances match the Rust crate", async (
     const north = { latitude: 60, longitude: 0 };
     expect(
         isWithinRadius({ latitude: 61.5, longitude: 0 }, north, 111.16),
-    ).toBe(true);
+    ).toBe(false);
     expect(
         isWithinRadius({ latitude: 60, longitude: 1.5 }, north, 111.16),
-    ).toBe(false);
+    ).toBe(true);
     expect(isWithinRadius(equator, equator, 0)).toBe(false);
 });

@@ -97,6 +97,9 @@ class _ZoomableImageState extends State<ZoomableImage> {
   // for the original.
   bool _firedOnReady = false;
   bool _interactionLocked = false;
+  bool _sheetOpen = false;
+  bool _ignoreDrag = false;
+  Offset? _downPosition;
   final _imageFrameReady = ValueNotifier(false);
   final _imageZoomController = ImageZoomController();
   late final StreamSubscription<ResetZoomOfPhotoView> _resetZoomSubscription;
@@ -211,12 +214,27 @@ class _ZoomableImageState extends State<ZoomableImage> {
     }
   }
 
+  void _onVerticalDragStart(DragStartDetails details) {
+    final size = MediaQuery.sizeOf(context);
+    final insets = MediaQuery.systemGestureInsetsOf(context);
+    final p = _downPosition ?? details.globalPosition;
+    _ignoreDrag =
+        p.dy > size.height - insets.bottom ||
+        p.dx < insets.left ||
+        p.dx > size.width - insets.right;
+  }
+
   void _onVerticalDragUpdate(DragUpdateDetails details) {
-    if (_imageZoomController.isZoomed) return;
+    if (_ignoreDrag || _imageZoomController.isZoomed) return;
     if (details.delta.dy > dragSensitivity) {
       unawaited(Navigator.maybePop(context));
     } else if (details.delta.dy < -dragSensitivity) {
-      showDetailsSheet(context, widget.photo);
+      if (_sheetOpen) return;
+      _sheetOpen = true;
+      showDetailsSheet(
+        context,
+        widget.photo,
+      ).whenComplete(() => _sheetOpen = false);
     }
   }
 
@@ -296,9 +314,17 @@ class _ZoomableImageState extends State<ZoomableImage> {
             !widget.enableVerticalSwipeActions
         ? null
         : _onVerticalDragUpdate;
-    return GestureDetector(
-      onVerticalDragUpdate: verticalDragCallback,
-      child: content,
+    return Listener(
+      onPointerDown: verticalDragCallback == null
+          ? null
+          : (event) => _downPosition = event.position,
+      child: GestureDetector(
+        onVerticalDragStart: verticalDragCallback == null
+            ? null
+            : _onVerticalDragStart,
+        onVerticalDragUpdate: verticalDragCallback,
+        child: content,
+      ),
     );
   }
 
@@ -473,7 +499,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
       return;
     }
     // Android's HEIC decoder can produce a glitched image without throwing.
-    if (_isAndroidHeic()) {
+    if (_isAndroidHeic(file)) {
       unawaited(_loadAndroidHeic(file));
       return;
     }
@@ -561,7 +587,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
   }
 
   Future<void> _loadAndroidHeic(File file) async {
-    if (_shouldUseRustHeicDecoder()) {
+    if (_shouldUseRustHeicDecoder(file)) {
       await _loadHeicWithRust(file);
       return;
     }
@@ -684,16 +710,16 @@ class _ZoomableImageState extends State<ZoomableImage> {
 
   bool _isGIF() => _photo.displayName.toLowerCase().endsWith(".gif");
 
-  bool _isAndroidHeic() => Platform.isAndroid && _isHeic();
+  bool _isAndroidHeic(File file) => Platform.isAndroid && _isHeic(file);
 
-  bool _shouldUseRustHeicDecoder() =>
-      _isAndroidHeic() && flagService.useRustForHeicDecoder;
+  bool _shouldUseRustHeicDecoder(File file) =>
+      _isAndroidHeic(file) && flagService.useRustForHeicDecoder;
 
   Future<ImageProvider<Object>?> _tryDecodeHeicWithRust(
     File file, {
     int? quality,
   }) async {
-    if (!_shouldUseRustHeicDecoder()) {
+    if (!_shouldUseRustHeicDecoder(file)) {
       return null;
     }
 
@@ -805,8 +831,8 @@ class _ZoomableImageState extends State<ZoomableImage> {
     _notifyReadyOnce();
   }
 
-  bool _isHeic() {
-    final ext = _photo.displayName.toLowerCase().split('.').last;
+  bool _isHeic(File file) {
+    final ext = file.path.toLowerCase().split('.').last;
     return ext == 'heic' || ext == 'heif';
   }
 

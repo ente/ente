@@ -52,6 +52,8 @@ pub enum Error {
     Components,
     #[error("Live Photo archive expands beyond limit")]
     ExpansionLimit,
+    #[error("Live Photo archive uses unsupported compression or encryption")]
+    Unsupported,
 }
 
 impl Error {
@@ -60,13 +62,13 @@ impl Error {
             Self::Io(error) | Self::Zip(zip::result::ZipError::Io(error)) => {
                 error.kind() == std::io::ErrorKind::StorageFull
             }
-            Self::Components | Self::ExpansionLimit | Self::Zip(_) => false,
+            Self::Components | Self::ExpansionLimit | Self::Unsupported | Self::Zip(_) => false,
         }
     }
 
     pub fn is_invalid_archive(&self) -> bool {
         match self {
-            Self::Components | Self::ExpansionLimit => true,
+            Self::Components | Self::ExpansionLimit | Self::Unsupported => true,
             Self::Io(error) | Self::Zip(zip::result::ZipError::Io(error)) => matches!(
                 error.kind(),
                 std::io::ErrorKind::InvalidData | std::io::ErrorKind::UnexpectedEof
@@ -104,7 +106,7 @@ fn extract_with<R: Read + Seek, W: Write>(
     let mut video = None;
     let mut declared_remaining = limit;
     for index in 0..archive.len() {
-        let entry = archive.by_index(index)?;
+        let entry = archive.by_index_raw(index)?;
         let unix_type = entry.unix_mode().map(|mode| mode & 0o170000);
         if entry.is_dir() {
             if unix_type.is_some_and(|file_type| !matches!(file_type, 0 | 0o040000)) {
@@ -115,6 +117,14 @@ fn extract_with<R: Read + Seek, W: Write>(
         if !entry.is_file() || unix_type.is_some_and(|file_type| !matches!(file_type, 0 | 0o100000))
         {
             return Err(Error::Components);
+        }
+        if entry.encrypted()
+            || !matches!(
+                entry.compression(),
+                zip::CompressionMethod::Stored | zip::CompressionMethod::Deflated
+            )
+        {
+            return Err(Error::Unsupported);
         }
         let name = entry.name()?;
         let (component, extension) = parse_name(&name).ok_or(Error::Components)?;
@@ -357,6 +367,32 @@ mod tests {
         });
         assert!(matches!(result, Err(Error::Components)));
         assert_eq!(opened, 0);
+    }
+
+    #[test]
+    fn rejects_unsupported_entries_before_opening_output() {
+        for (local_offset, central_offset, bits) in [(8, 10, 12u16), (6, 8, 1)] {
+            let mut bytes = sized_archive([5, 5], zip::CompressionMethod::Stored);
+            for (signature, offset) in [
+                ([0x50, 0x4b, 0x03, 0x04], local_offset),
+                ([0x50, 0x4b, 0x01, 0x02], central_offset),
+            ] {
+                let start = bytes
+                    .windows(4)
+                    .position(|window| window == signature)
+                    .unwrap()
+                    + offset;
+                let field = u16::from_le_bytes([bytes[start], bytes[start + 1]]) | bits;
+                bytes[start..start + 2].copy_from_slice(&field.to_le_bytes());
+            }
+            let mut opened = 0;
+            let result = extract(Cursor::new(bytes), |_, _| {
+                opened += 1;
+                Ok(std::io::sink())
+            });
+            assert!(matches!(result, Err(Error::Unsupported)));
+            assert_eq!(opened, 0);
+        }
     }
 
     #[test]

@@ -110,6 +110,8 @@ class NoLeftBounceScrollPhysics extends BouncingScrollPhysics {
 }
 
 class _PageViewState extends State<ExtentsPageView> {
+  static const double _drawerSwipeThreshold = 45;
+
   int _lastReportedPage = 0;
   double _leftOverscroll = 0;
 
@@ -146,10 +148,11 @@ class _PageViewState extends State<ExtentsPageView> {
       onNotification: (ScrollNotification notification) {
         if (notification.depth == 0 && widget.openDrawer != null) {
           if (notification is OverscrollNotification &&
+              notification.dragDetails != null &&
               notification.overscroll < 0 &&
-              _leftOverscroll > -90) {
+              _leftOverscroll > -_drawerSwipeThreshold) {
             _leftOverscroll += notification.overscroll;
-            if (_leftOverscroll <= -90) widget.openDrawer!();
+            if (_leftOverscroll <= -_drawerSwipeThreshold) widget.openDrawer!();
           } else if (notification is ScrollEndNotification) {
             _leftOverscroll = 0;
           }

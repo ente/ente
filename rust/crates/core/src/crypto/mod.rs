@@ -3,6 +3,7 @@ mod keypair;
 mod secret;
 mod types;
 
+pub mod aead;
 pub mod argon;
 pub mod blob;
 pub mod hash;

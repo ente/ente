@@ -94,10 +94,10 @@ class FileMagicService {
     Map<String, dynamic>? newMetadataUpdate, {
     Map<int, Map<String, dynamic>>? metadataUpdateMap,
   }) async {
-    final updates = <_PreparedMagicMetadataUpdate<PubMagicMetadata>>[];
     final int ownerID = Configuration.instance.getUserID()!;
-    try {
-      for (final file in files) {
+    await _updateInBatches<PubMagicMetadata>(
+      files,
+      prepare: (file) {
         _assertCanUpdate(file, ownerID);
         final newUpdates = metadataUpdateMap != null
             ? metadataUpdateMap[file.uploadedFileID]
@@ -109,37 +109,20 @@ class FileMagicService {
         final int currentVersion = file.pubMmdVersion == 0
             ? 1
             : file.pubMmdVersion;
-        updates.add(
-          await _prepareUpdate(
-            file: file,
-            encodedJson: file.pubMmdEncodedJson,
-            currentVersion: currentVersion,
-            newMetadata: newUpdates!,
-            decode: PubMagicMetadata.fromJson,
-          ),
+        return _prepareUpdate(
+          file: file,
+          encodedJson: file.pubMmdEncodedJson,
+          currentVersion: currentVersion,
+          newMetadata: newUpdates!,
+          decode: PubMagicMetadata.fromJson,
         );
-      }
-
-      await _gateway.updatePublicMagicMetadata(
-        updates.map((update) => update.request).toList(),
-      );
-      for (final update in updates) {
-        update.file
-          ..pubMmdEncodedJson = update.encodedJson
-          ..pubMagicMetadata = update.decodedMetadata
-          ..pubMmdVersion = update.nextVersion;
-      }
-      await _filesDB.insertMultiple(files);
-      RemoteSyncService.instance.sync(silently: true).ignore();
-    } on DioException catch (e) {
-      if (e.response != null && e.response!.statusCode == 409) {
-        RemoteSyncService.instance.sync(silently: true).ignore();
-      }
-      rethrow;
-    } catch (e, s) {
-      _logger.severe("failed to sync magic metadata", e, s);
-      rethrow;
-    }
+      },
+      send: _gateway.updatePublicMagicMetadata,
+      apply: (update) => update.file
+        ..pubMmdEncodedJson = update.encodedJson
+        ..pubMagicMetadata = update.decodedMetadata
+        ..pubMmdVersion = update.nextVersion,
+    );
   }
 
   Future<void> _updateMagicData(
@@ -156,44 +139,59 @@ class FileMagicService {
     Map<String, dynamic> newMetadataUpdate,
   ) async {
     final int ownerID = Configuration.instance.getUserID()!;
-    final batchedFiles = files.chunks(batchSize);
-    try {
-      for (final batch in batchedFiles) {
-        final updates = <_PreparedMagicMetadataUpdate<MagicMetadata>>[];
-        for (final file in batch) {
-          _assertCanUpdate(file, ownerID);
-          updates.add(
-            await _prepareUpdate(
-              file: file,
-              encodedJson: file.mMdEncodedJson,
-              currentVersion: file.mMdVersion,
-              newMetadata: newMetadataUpdate,
-              decode: MagicMetadata.fromJson,
-            ),
-          );
-        }
-
-        await _gateway.updateMagicMetadata(
-          updates.map((update) => update.request).toList(),
+    await _updateInBatches<MagicMetadata>(
+      files,
+      prepare: (file) {
+        _assertCanUpdate(file, ownerID);
+        return _prepareUpdate(
+          file: file,
+          encodedJson: file.mMdEncodedJson,
+          currentVersion: file.mMdVersion,
+          newMetadata: newMetadataUpdate,
+          decode: MagicMetadata.fromJson,
         );
+      },
+      send: _gateway.updateMagicMetadata,
+      apply: (update) => update.file
+        ..mMdEncodedJson = update.encodedJson
+        ..magicMetadata = update.decodedMetadata
+        ..mMdVersion = update.nextVersion,
+    );
+  }
+
+  Future<void> _updateInBatches<T>(
+    List<EnteFile> files, {
+    required Future<_PreparedMagicMetadataUpdate<T>> Function(EnteFile file)
+    prepare,
+    required Future<void> Function(List<UpdateMagicMetadataRequest> requests)
+    send,
+    required void Function(_PreparedMagicMetadataUpdate<T> update) apply,
+  }) async {
+    var committed = false;
+    var conflict = false;
+    try {
+      for (final batch in files.chunks(batchSize)) {
+        final updates = <_PreparedMagicMetadataUpdate<T>>[];
+        for (final file in batch) {
+          updates.add(await prepare(file));
+        }
+        await send(updates.map((update) => update.request).toList());
+        committed = true;
         for (final update in updates) {
-          update.file
-            ..mMdEncodedJson = update.encodedJson
-            ..magicMetadata = update.decodedMetadata
-            ..mMdVersion = update.nextVersion;
+          apply(update);
         }
         await _filesDB.insertMultiple(batch);
       }
-
-      RemoteSyncService.instance.sync(silently: true).ignore();
     } on DioException catch (e) {
-      if (e.response != null && e.response!.statusCode == 409) {
-        RemoteSyncService.instance.sync(silently: true).ignore();
-      }
+      conflict = e.response?.statusCode == 409;
       rethrow;
     } catch (e, s) {
       _logger.severe("failed to sync magic metadata", e, s);
       rethrow;
+    } finally {
+      if (committed || conflict) {
+        RemoteSyncService.instance.sync(silently: true).ignore();
+      }
     }
   }
 

@@ -1,6 +1,8 @@
 import "dart:math";
 
 import "package:flutter/material.dart";
+import "package:photos/models/file/file.dart";
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
@@ -12,8 +14,7 @@ import "package:photos/ui/rewind/widgets/rewind_stickers.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
 
 class SetupHeadline {
-  const SetupHeadline(
-    this.text, {
+  const SetupHeadline({
     required this.at,
     required this.size,
     this.height = 0.95,
@@ -22,7 +23,6 @@ class SetupHeadline {
     this.delayMs = 0,
   });
 
-  final String text;
   final Offset at;
   final double size;
   final double height;
@@ -32,8 +32,7 @@ class SetupHeadline {
 }
 
 class SetupCallout {
-  const SetupCallout(
-    this.text, {
+  const SetupCallout({
     required this.center,
     this.turn = 3,
     this.size = 38.72,
@@ -41,7 +40,6 @@ class SetupCallout {
     this.onTop = false,
   });
 
-  final String text;
   final Offset center;
   final double turn;
   final double size;
@@ -53,11 +51,11 @@ class SetupArt {
   const SetupArt.ducky(
     this.asset,
     this.rect, {
+    this.stateMachine = "Loop",
     this.ticks = const [],
     this.pivot,
     this.delayMs = 760,
-  }) : preset = RewindPreset.duck,
-       animated = true;
+  }) : preset = RewindPreset.duck;
 
   const SetupArt.image(
     this.asset,
@@ -66,20 +64,23 @@ class SetupArt {
     this.pivot,
     this.delayMs = 760,
     this.preset = RewindPreset.duck,
-  }) : animated = false;
+  }) : stateMachine = null;
 
   final String asset;
   final Rect rect;
+  final String? stateMachine;
   final List<(RewindTick, Rect)> ticks;
   final Offset? pivot;
   final int delayMs;
   final RewindPreset preset;
-  final bool animated;
+
+  bool get animated => stateMachine != null;
 }
 
 class SetupPage extends RewindPage {
   const SetupPage({
     required this.key,
+    required this.setup,
     required this.color,
     required this.pattern,
     required this.ink,
@@ -91,6 +92,7 @@ class SetupPage extends RewindPage {
 
   @override
   final String key;
+  final RewindSetup setup;
   @override
   final RewindChrome chrome;
   final Color color;
@@ -104,20 +106,28 @@ class SetupPage extends RewindPage {
   Duration? get reelHold => null;
 
   @override
+  Duration? get clipHold => const Duration(milliseconds: 3000);
+
+  @override
+  List<EnteFile> get reelThumbnails => const [];
+
+  @override
   Widget build(
     BuildContext context,
     double position, {
     required bool isActive,
   }) {
-    final calloutLayer = _callout(position, isActive);
+    final lines = RewindCopy.of(context).setup(setup);
+    final fit = _headlineFit(lines.headlines, MediaQuery.textScalerOf(context));
+    final calloutLayer = _callout(lines.callout, position, isActive);
     return Stack(
       fit: StackFit.expand,
       children: [
         RewindBackdrop(color: color, pattern: RewindZigzag(pattern)),
         RewindStage(
           children: [
-            for (final headline in headlines)
-              _headline(headline, position, isActive),
+            for (final (i, headline) in headlines.indexed)
+              _headline(headline, lines.headlines[i], fit, position, isActive),
             if (!callout.onTop) calloutLayer,
             _art(position, isActive),
             if (callout.onTop) calloutLayer,
@@ -127,19 +137,44 @@ class SetupPage extends RewindPage {
     );
   }
 
-  Widget _headline(SetupHeadline headline, double position, bool isActive) {
-    final style = RewindTextStyles.display(
-      headline.size,
-      color: ink,
-      height: headline.height,
-    );
-    final lines = "\n".allMatches(headline.text).length + 1;
+  TextStyle _headlineStyle(SetupHeadline headline, double fit) =>
+      RewindTextStyles.display(
+        headline.size * fit,
+        color: ink,
+        height: headline.height,
+      );
+
+  double _headlineFit(List<String> texts, TextScaler scaler) {
+    var fit = 1.0;
+    for (final (i, headline) in headlines.indexed) {
+      final painter = TextPainter(
+        text: TextSpan(text: texts[i], style: _headlineStyle(headline, 1)),
+        textDirection: TextDirection.ltr,
+        textScaler: scaler,
+      )..layout();
+      fit = min(fit, headline.width / painter.width);
+      painter.dispose();
+    }
+    return fit;
+  }
+
+  Widget _headline(
+    SetupHeadline headline,
+    String text,
+    double fit,
+    double position,
+    bool isActive,
+  ) {
+    final style = _headlineStyle(headline, fit);
+    final lines = "\n".allMatches(text).length + 1;
+    final origin = headlines.first.at.dy;
+    final top = origin + (headline.at.dy - origin) * fit;
     return Positioned(
       left: headline.at.dx,
-      top: headline.at.dy,
+      top: top,
       child: RewindLeave(
         position: position,
-        centerY: headline.at.dy + lines * headline.size * headline.height / 2,
+        centerY: top + lines * headline.size * fit * headline.height / 2,
         child: RewindEntrance(
           preset: RewindPreset.rise,
           active: isActive,
@@ -149,7 +184,7 @@ class SetupPage extends RewindPage {
             alignment: Alignment.topLeft,
             child: RewindFitWidth(
               width: headline.width,
-              child: Text(headline.text, style: style, softWrap: false),
+              child: Text(text, style: style, softWrap: false),
             ),
           ),
         ),
@@ -157,7 +192,7 @@ class SetupPage extends RewindPage {
     );
   }
 
-  Widget _callout(double position, bool isActive) {
+  Widget _callout(String text, double position, bool isActive) {
     const box = Size(380, 140);
     return Positioned.fromRect(
       rect: Rect.fromCenter(
@@ -178,7 +213,7 @@ class SetupPage extends RewindPage {
               child: RewindFitWidth(
                 width: box.width - 20,
                 alignment: Alignment.center,
-                child: RewindCallout(callout.text, size: callout.size),
+                child: RewindCallout(text, size: callout.size),
               ),
             ),
           ),
@@ -194,9 +229,16 @@ class SetupPage extends RewindPage {
       children: [
         Positioned.fromRect(
           rect: art.rect,
-          child: art.animated
-              ? RewindDucky(art.asset)
-              : Image.file(RewindAssets.file(art.asset), fit: BoxFit.contain),
+          child: switch (art.stateMachine) {
+            final stateMachine? => RewindDucky(
+              art.asset,
+              stateMachine: stateMachine,
+            ),
+            null => Image.file(
+              RewindAssets.file(art.asset),
+              fit: BoxFit.contain,
+            ),
+          },
         ),
         for (final (tick, rect) in art.ticks)
           Positioned.fromRect(rect: rect, child: RewindTickMark(tick)),

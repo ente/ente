@@ -19,9 +19,9 @@ impl Coordinate {
     }
 
     pub fn is_within_radius_km(self, center: Self, radius_km: f64) -> bool {
-        let latitude_scale = 1.0 / (center.latitude * (PI / 180.0)).cos();
-        let latitude_radius = (radius_km * latitude_scale) / KILOMETERS_PER_DEGREE;
-        let longitude_radius = radius_km / KILOMETERS_PER_DEGREE;
+        let longitude_scale = 1.0 / (center.latitude * (PI / 180.0)).cos();
+        let latitude_radius = radius_km / KILOMETERS_PER_DEGREE;
+        let longitude_radius = (radius_km * longitude_scale) / KILOMETERS_PER_DEGREE;
         let latitude_delta = center.latitude - self.latitude;
         let longitude_delta = center.longitude - self.longitude;
         (latitude_delta * latitude_delta) / (latitude_radius * latitude_radius)
@@ -65,18 +65,18 @@ mod tests {
     }
 
     #[test]
-    fn the_centre_latitude_stretches_the_latitude_axis_like_the_apps() {
+    fn high_latitudes_widen_the_longitude_axis() {
         let center = Coordinate::new(60.0, 0.0);
-        assert!(Coordinate::new(61.5, 0.0).is_within_radius_km(center, 111.16));
-        assert!(!Coordinate::new(62.5, 0.0).is_within_radius_km(center, 111.16));
-        assert!(!Coordinate::new(60.0, 1.5).is_within_radius_km(center, 111.16));
+        assert!(!Coordinate::new(61.5, 0.0).is_within_radius_km(center, 111.16));
+        assert!(Coordinate::new(60.0, 1.5).is_within_radius_km(center, 111.16));
+        assert!(!Coordinate::new(60.0, 2.5).is_within_radius_km(center, 111.16));
     }
 
     #[test]
-    fn a_pole_centre_bounds_longitude_only_and_a_zero_radius_matches_nothing() {
+    fn a_pole_centre_bounds_latitude_and_a_zero_radius_matches_nothing() {
         let pole = Coordinate::new(90.0, 0.0);
-        assert!(Coordinate::new(0.0, 0.5).is_within_radius_km(pole, 111.16));
-        assert!(!Coordinate::new(90.0, 1.5).is_within_radius_km(pole, 111.16));
+        assert!(!Coordinate::new(0.0, 0.5).is_within_radius_km(pole, 111.16));
+        assert!(Coordinate::new(90.0, 180.0).is_within_radius_km(pole, 111.16));
         let center = Coordinate::new(48.8566, 2.3522);
         assert!(!center.is_within_radius_km(center, 0.0));
         assert!(!Coordinate::new(48.86, 2.3522).is_within_radius_km(center, 0.0));

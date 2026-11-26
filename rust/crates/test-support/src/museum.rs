@@ -108,6 +108,10 @@ impl Museum {
     pub fn execute_sql(&self, sql: &str) -> TestResult {
         self._postgres.execute_sql(sql)
     }
+
+    pub fn query_sql(&self, sql: &str) -> TestResult<String> {
+        self._postgres.query_sql(sql)
+    }
 }
 
 fn server_dir() -> TestResult<PathBuf> {

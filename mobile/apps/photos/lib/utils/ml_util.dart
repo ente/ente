@@ -408,6 +408,7 @@ Stream<List<FileMLInstruction>> fetchEmbeddingsAndInstructions(
   int yieldSize, {
   required MLMode mode,
   MlRunControl? control,
+  Future<void> Function()? afterRemoteBatch,
 }) async* {
   if (control?.stopRequested ?? false) return;
   if (mode == MLMode.localGallery) {
@@ -442,6 +443,8 @@ Stream<List<FileMLInstruction>> fetchEmbeddingsAndInstructions(
       chunk,
       mlDataDB: mlDataDB,
     );
+    if (control?.stopRequested ?? false) return;
+    await afterRemoteBatch?.call();
     if (control?.stopRequested ?? false) return;
     for (final instruction in pendingInstructions) {
       if (instruction.pendingML) {
@@ -502,11 +505,9 @@ Future<RemoteMLHydrationSummary> hydrateOwnedRemoteMLData({
       mlDataDB: mlDataDB,
     );
     hydratedFaces +=
-        facePendingBefore -
-        pendingAfterHydration.where((i) => i.shouldRunFaces).length;
+        facePendingBefore - chunk.where((i) => i.shouldRunFaces).length;
     hydratedClips +=
-        clipPendingBefore -
-        pendingAfterHydration.where((i) => i.shouldRunClip).length;
+        clipPendingBefore - chunk.where((i) => i.shouldRunClip).length;
     remainingLocalMl += pendingAfterHydration.length;
   }
 
@@ -646,6 +647,9 @@ Future<List<FileMLInstruction>> hydrateRemoteMLDataForInstructions(
 
   await mlDataDB.bulkInsertFaces(faces);
   await mlDataDB.putClip(clipEmbeddings);
+  pendingIndex.removeWhere(
+    (fileID, _) => res.fetchErrorFileIDs.contains(fileID),
+  );
   return pendingIndex.values
       .where((instruction) => instruction.pendingML)
       .toList();

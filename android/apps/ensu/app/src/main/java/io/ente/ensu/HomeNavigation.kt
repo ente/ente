@@ -33,6 +33,7 @@ import io.ente.ensu.settings.AdvancedSettingsDataStore
 import io.ente.ensu.settings.KnowledgeSettingsScreen
 import io.ente.ensu.settings.SettingsScreen
 import io.ente.ensu.settings.SystemPromptSettingsScreen
+import io.ente.ensu.todo.TodoScreen
 
 @Composable
 internal fun HomeNavigation(
@@ -102,6 +103,9 @@ internal fun HomeNavigation(
                 HomeRoute.Knowledge -> {
                     SimpleTopBar(title = "Ensu Packs", onBack = goBack)
                 }
+                HomeRoute.Todos -> {
+                    SimpleTopBar(title = "To Do", onBack = goBack)
+                }
                 else -> Unit
             }
         },
@@ -154,6 +158,10 @@ internal fun HomeNavigation(
                         onDismissUnsupportedDeviceDialog = store::dismissUnsupportedDeviceDialog,
                         onOverflowTrim = store::confirmOverflowTrim,
                         onOverflowCancel = store::cancelOverflowDialog,
+                        onLoadTodoTurns = store::loadTodoTurns,
+                        onConfirmTodoTurn = store::confirmToolTurn,
+                        onUndoTodoTurn = store::undoToolTurn,
+                        onDismissTodoTurnError = store::dismissTodoTurnError,
                     )
                 }
                 composable(
@@ -207,6 +215,15 @@ internal fun HomeNavigation(
                         onCancel = store::cancelKnowledgePackDownload,
                         onSetEnabled = store::setKnowledgePackEnabled,
                     )
+                }
+                composable(
+                    route = HomeRoute.Todos,
+                    enterTransition = { forwardEnter() },
+                    exitTransition = { forwardExit() },
+                    popEnterTransition = { backEnter() },
+                    popExitTransition = { backExit() },
+                ) {
+                    TodoScreen(store.todoStore)
                 }
                 composable(
                     route = HomeRoute.Logs,
@@ -276,6 +293,7 @@ internal object HomeRoute {
     const val Knowledge = "knowledge"
     const val Notes = "notes"
     const val NotesSetup = "notes-setup"
+    const val Todos = "todos"
 }
 
 internal fun AnimatedContentTransitionScope<NavBackStackEntry>.forwardEnter() =

@@ -8,6 +8,7 @@ class RewindChrome {
     required this.foreground,
     this.wordmark,
     this.muteButton = true,
+    this.nextArrow = false,
   });
 
   static const light = RewindChrome(
@@ -22,6 +23,7 @@ class RewindChrome {
   final Color foreground;
   final Color? wordmark;
   final bool muteButton;
+  final bool nextArrow;
 
   bool get onLightPage => foreground.computeLuminance() < 0.5;
 }
@@ -43,6 +45,10 @@ abstract class RewindPage {
   List<EnteFile>? get reelThumbnails => null;
 
   Duration? get clipHold => null;
+
+  RewindPage? get clipIntro => null;
+
+  Object get clipKey => this;
 
   bool get hasOwnVideoButton => false;
 

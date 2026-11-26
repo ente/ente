@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.4.6 - Nov 2026
+
+- Added `account totp disable`, `account email-mfa` and `account change-email`, and `--purpose change` for `account request-otp`.
+- Added `account session list` and `account session revoke` to review and log out an app's logins on other devices.
+- Added `account family` to view, create and leave a family plan, and to invite, remove and limit its members.
+- Fixed distance filtering with `photos file list --near` and `--radius` at high latitudes.
+
 ## v0.4.5 - Nov 2026
 
 - Filter `photos file list` by distance from a point with `--near LAT,LON --radius KM`, using the location tag check shared with the Ente apps.

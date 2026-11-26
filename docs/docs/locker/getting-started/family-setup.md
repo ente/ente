@@ -190,6 +190,8 @@ Legacy Kits create 3 physical recovery sheets. Any 2 sheets can start recovery, 
 7. Select the recovery wait time
 8. Store the sheets separately
 
+![Locker menu button, Legacy row, then Create legacy kit highlighted on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-legacy-kits-callout-v1013.png){width=560px}
+
 ### Recommended Legacy setup for families
 
 - **Spouses**: Add each other as trusted contacts
@@ -231,6 +233,8 @@ Financial Contacts:
 - Financial advisor: [Name, Phone]
 - Accountant: [Name, Phone]
 ```
+
+![Note filled with the family emergency information template on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-note-emergency-info-v1013.png){width=560px}
 
 Share this note with all adult family members.
 

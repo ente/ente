@@ -1,1 +1,0 @@
-- Fixed searches for Sunday or midnight not showing a date suggestion. - @y9ndra

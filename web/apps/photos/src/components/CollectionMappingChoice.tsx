@@ -1,19 +1,15 @@
-import FolderIcon from "@mui/icons-material/Folder";
-import FolderCopyIcon from "@mui/icons-material/FolderCopy";
+import { Folder01Icon, FolderLibraryIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { ButtonBase, Stack, Typography } from "@mui/material";
 import {
-    Dialog,
-    DialogContent,
-    DialogTitle,
-    Stack,
-    Typography,
-} from "@mui/material";
-import { SpacedRow } from "ente-base/components/containers";
-import { DialogCloseIconButton } from "ente-base/components/mui/DialogCloseIconButton";
-import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
+    peopleActionFocusSx,
+    v2SubmitButtonSx,
+} from "ente-base/components/SingleInput.styles";
 import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
 import type { CollectionMapping } from "ente-base/types/ipc";
 import { t } from "i18next";
-import React from "react";
+import React, { useId } from "react";
+import { PhotosFormDialog } from "./PhotosFormDialog";
 
 type CollectionMappingChoiceProps = ModalVisibilityProps & {
     onSelect: (mapping: CollectionMapping) => void;
@@ -21,52 +17,53 @@ type CollectionMappingChoiceProps = ModalVisibilityProps & {
 
 export const CollectionMappingChoice: React.FC<
     CollectionMappingChoiceProps
-> = ({ open, onClose, onSelect }) => (
-    <Dialog
-        open={open}
-        onClose={onClose}
-        fullWidth
-        slotProps={{ paper: { sx: { maxWidth: "360px", padding: "12px" } } }}
-    >
-        <SpacedRow sx={{ pr: "4px" }}>
-            <DialogTitle>{t("multi_folder_upload")}</DialogTitle>
-            <DialogCloseIconButton {...{ onClose }} />
-        </SpacedRow>
+> = ({ open, onClose, onSelect }) => {
+    const descriptionID = useId();
 
-        <DialogContent
-            sx={{
-                display: "flex",
-                flexDirection: "column",
-                "&&": { paddingBlockStart: "12px" },
-                gap: "20px",
-            }}
+    const handleSelect = (mapping: CollectionMapping) => {
+        onClose();
+        onSelect(mapping);
+    };
+
+    return (
+        <PhotosFormDialog
+            open={open}
+            onClose={onClose}
+            title={t("multi_folder_upload")}
+            descriptionID={descriptionID}
         >
-            <Typography sx={{ color: "text.muted" }}>
+            <Typography id={descriptionID} sx={{ color: "text.muted" }}>
                 {t("upload_to_choice")}
             </Typography>
             <Stack sx={{ gap: "12px" }}>
-                <FocusVisibleButton
-                    color="accent"
-                    startIcon={<FolderIcon />}
-                    onClick={() => {
-                        onClose();
-                        onSelect("root");
-                    }}
+                <ButtonBase
+                    sx={[mappingButtonSx, peopleActionFocusSx]}
+                    onClick={() => handleSelect("root")}
                 >
+                    <HugeiconsIcon icon={Folder01Icon} size={20} aria-hidden />
                     {t("upload_to_single_album")}
-                </FocusVisibleButton>
-
-                <FocusVisibleButton
-                    color="accent"
-                    startIcon={<FolderCopyIcon />}
-                    onClick={() => {
-                        onClose();
-                        onSelect("parent");
-                    }}
+                </ButtonBase>
+                <ButtonBase
+                    sx={[mappingButtonSx, peopleActionFocusSx]}
+                    onClick={() => handleSelect("parent")}
                 >
+                    <HugeiconsIcon
+                        icon={FolderLibraryIcon}
+                        size={20}
+                        aria-hidden
+                    />
                     {t("upload_to_album_per_folder")}
-                </FocusVisibleButton>
+                </ButtonBase>
             </Stack>
-        </DialogContent>
-    </Dialog>
-);
+        </PhotosFormDialog>
+    );
+};
+
+const mappingButtonSx = {
+    ...v2SubmitButtonSx,
+    flex: "none",
+    height: "auto",
+    minHeight: 52,
+    p: "12px 16px",
+    gap: "8px",
+};

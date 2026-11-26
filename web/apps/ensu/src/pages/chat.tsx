@@ -5,6 +5,7 @@ import {
 import { ChatDialogs } from "@/components/chat/ChatDialogs";
 import { ChatMessageList } from "@/components/chat/ChatMessageList";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
+import { TodoDialog } from "@/components/chat/TodoDialog";
 import { useChatSources } from "@/hooks/use-chat-sources";
 import { useNotesCollections } from "@/hooks/use-notes-collections";
 import type { WithVoiceInput } from "@/hooks/use-voice-input";
@@ -67,6 +68,7 @@ import {
 import type {
     DownloadProgress,
     GenerateEvent,
+    GenerateSummary,
     LlmMessage,
     ModelInfo,
     ModelSettings,
@@ -74,6 +76,14 @@ import type {
 import { NotesIndexingIdleScheduler } from "@/services/notes-indexing-idle";
 import { tauriCommandError } from "@/services/tauri-error";
 import { isTauriRuntime as detectTauriAppRuntime } from "@/services/tauri-runtime";
+import {
+    confirmToolTurn,
+    loadTodoTurnStatuses,
+    refusalMessage,
+    undoToolTurn,
+    watchTodos,
+    type ToolTurnStatus,
+} from "@/services/todos";
 import { Menu01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -537,6 +547,9 @@ const Page: React.FC = () => {
     const [chatKey, setChatKey] = useState<string | undefined>();
     const [sessions, setSessions] = useState<ChatSession[]>([]);
     const [allMessages, setAllMessages] = useState<ChatMessage[]>([]);
+    const [todoTurns, setTodoTurns] = useState<Record<string, ToolTurnStatus>>(
+        {},
+    );
     const [branchSelections, setBranchSelections] = useState<
         Record<string, string>
     >({});
@@ -554,6 +567,7 @@ const Page: React.FC = () => {
     );
     const [showSessionSearch, setShowSessionSearch] = useState(false);
     const [showSettingsModal, setShowSettingsModal] = useState(false);
+    const [showTodos, setShowTodos] = useState(false);
     const [advancedUnlocked, setAdvancedUnlocked] = useState(false);
     const [isDraftSession, setIsDraftSession] = useState(false);
     const [stickToBottom, setStickToBottom] = useState(true);
@@ -570,6 +584,7 @@ const Page: React.FC = () => {
     const [isPreparingMessage, setIsPreparingMessage] = useState(false);
     const pendingSendRef = useRef(false);
     const voiceInputActiveRef = useRef(0);
+    const [voiceInputActive, setVoiceInputActive] = useState(false);
     const chatMountedRef = useRef(true);
     const settingsFlowOpenRef = useRef(false);
     const notesWarmupEpochRef = useRef(0);
@@ -1818,6 +1833,7 @@ const Page: React.FC = () => {
         async (operation, signal) => {
             signal.throwIfAborted();
             voiceInputActiveRef.current++;
+            setVoiceInputActive(true);
             notesWarmupEpochRef.current++;
             notesIdleScheduler.cancel();
             notesIndexingPausedRef.current = true;
@@ -1829,6 +1845,9 @@ const Page: React.FC = () => {
                 return await provider.withVoiceInput(operation, signal);
             } finally {
                 voiceInputActiveRef.current--;
+                if (chatMountedRef.current) {
+                    setVoiceInputActive(voiceInputActiveRef.current > 0);
+                }
                 if (
                     chatMountedRef.current &&
                     voiceInputActiveRef.current === 0
@@ -1855,7 +1874,8 @@ const Page: React.FC = () => {
     ]);
 
     const isIndexingBlocked = useCallback(
-        () => notesIndexingPausedRef.current || isChatBusy(),
+        (manual = false) =>
+            (!manual && notesIndexingPausedRef.current) || isChatBusy(),
         [isChatBusy],
     );
     const cancelNotesIndexing = useCallback(() => {
@@ -1892,7 +1912,10 @@ const Page: React.FC = () => {
     } = useNotesCollections({
         isTauriRuntime,
         isGenerating:
-            isPreparingMessage || isGenerating || isSessionSummaryGenerating,
+            isPreparingMessage ||
+            isGenerating ||
+            isSessionSummaryGenerating ||
+            voiceInputActive,
         isIndexingPaused: notesIndexingPaused,
         isIndexingBlocked,
         modelReady: modelGateStatus === "ready",
@@ -1957,7 +1980,11 @@ const Page: React.FC = () => {
         if (isNamedError(error, "prompt_too_long")) {
             return "Prompt exceeds the model context window. Reduce history or increase context length.";
         }
-        return tauriCommandError(error).message ?? "Unknown model error";
+        const { name, message } = tauriCommandError(error);
+        if (name === "conversation_changed") {
+            return "Conversation changed while generating the reply. Retry the reply.";
+        }
+        return refusalMessage(name) ?? message ?? "Unknown model error";
     }, []);
 
     const trimToWords = useCallback((text: string, maxWords: number) => {
@@ -2454,6 +2481,79 @@ const Page: React.FC = () => {
             return "";
         },
         [stripHiddenParts],
+    );
+
+    const reloadTodoTurns = useRef<(() => void) | undefined>(undefined);
+    const pendingTodoTurnChangeRef = useRef<
+        Promise<ToolTurnStatus> | undefined
+    >(undefined);
+
+    useEffect(() => {
+        if (!isTauriRuntime) return;
+        const watcher = watchTodos(
+            () =>
+                currentSessionId
+                    ? loadTodoTurnStatuses(currentSessionId)
+                    : Promise.resolve({}),
+            setTodoTurns,
+            (error) => log.error("Failed to load To Do turn statuses", error),
+        );
+        reloadTodoTurns.current = watcher.refresh;
+        return () => {
+            watcher.dispose();
+            reloadTodoTurns.current = undefined;
+        };
+    }, [isTauriRuntime, currentSessionId]);
+
+    const changeTodoTurn = useCallback(
+        async (
+            replyId: string,
+            change: (replyId: string) => Promise<ToolTurnStatus>,
+            failure: string,
+        ) => {
+            if (
+                generationActiveRef.current ||
+                generationStartingRef.current ||
+                generationStoppingRef.current ||
+                pendingTodoTurnChangeRef.current
+            )
+                return;
+            try {
+                const pending = change(replyId);
+                pendingTodoTurnChangeRef.current = pending;
+                const status = await pending;
+                setTodoTurns((prev) => ({ ...prev, [replyId]: status }));
+                reloadTodoTurns.current?.();
+            } catch (error) {
+                showMiniDialog({
+                    title: failure,
+                    message: formatErrorMessage(error),
+                });
+            } finally {
+                pendingTodoTurnChangeRef.current = undefined;
+            }
+        },
+        [showMiniDialog, formatErrorMessage],
+    );
+
+    const handleUndoTodoTurn = useCallback(
+        (message: ChatMessage) =>
+            void changeTodoTurn(
+                message.messageUuid,
+                undoToolTurn,
+                "Couldn't undo",
+            ),
+        [changeTodoTurn],
+    );
+
+    const handleConfirmTodoTurn = useCallback(
+        (message: ChatMessage) =>
+            void changeTodoTurn(
+                message.messageUuid,
+                confirmToolTurn,
+                "Couldn't confirm",
+            ),
+        [changeTodoTurn],
     );
 
     const appendMessageToState = useCallback((message: ChatMessage) => {
@@ -2979,7 +3079,9 @@ const Page: React.FC = () => {
             ) {
                 try {
                     const assistantMessage = await (preparedReply
-                        ? preparedReply.saveAnswer(finalText)
+                        ? preparedReply
+                              .finish(finalText)
+                              .then((finished) => finished.message)
                         : addMessage(
                               activeSessionId,
                               "assistant",
@@ -3119,6 +3221,8 @@ const Page: React.FC = () => {
             let previousSelection: string | null | undefined;
             let startupCompleted = false;
             try {
+                await pendingTodoTurnChangeRef.current?.catch(() => undefined);
+                if (!isActiveGeneration()) return;
                 provider = await ensureProvider();
                 if (provider.getBackendKind() === "tauri") {
                     await provider.cancelGeneration(-1);
@@ -3461,8 +3565,9 @@ const Page: React.FC = () => {
                             }
                         },
                     );
+                let summary: GenerateSummary | undefined;
                 try {
-                    await generate();
+                    summary = await generate();
                 } catch (error) {
                     const { name } = tauriCommandError(error);
                     if (
@@ -3476,7 +3581,7 @@ const Page: React.FC = () => {
                         activeKnowledgeSourcesRef.current = [];
                         messages = normalMessages;
                         try {
-                            await generate();
+                            summary = await generate();
                         } catch (retryError) {
                             errorMessage =
                                 retryError instanceof Error
@@ -3498,7 +3603,13 @@ const Page: React.FC = () => {
                 flushStreamingText();
                 const finalText = streamingBufferRef.current;
 
-                if (!finalText.trim()) {
+                const preparedReply = preparedReplyRef.current;
+                const appliesTools =
+                    !!summary?.tools?.calls.length &&
+                    !!preparedReply &&
+                    !errorMessage;
+
+                if (!finalText.trim() && !appliesTools) {
                     if (errorMessage) {
                         showMiniDialog({
                             title: "Generation failed",
@@ -3515,31 +3626,41 @@ const Page: React.FC = () => {
                 }
 
                 const rawAssistantText = finalText.replaceAll("\0", "");
-                setIsStreamingOutro(true);
+                if (!appliesTools) {
+                    setIsStreamingOutro(true);
 
-                await new Promise<void>((resolve) => {
-                    window.setTimeout(resolve, STREAMING_OUTRO_DURATION_MS);
-                });
+                    await new Promise<void>((resolve) => {
+                        window.setTimeout(resolve, STREAMING_OUTRO_DURATION_MS);
+                    });
 
-                if (!isActiveGeneration()) {
-                    return;
+                    if (!isActiveGeneration()) {
+                        return;
+                    }
+
+                    activeKnowledgeSourcesRef.current = [];
                 }
 
-                activeKnowledgeSourcesRef.current = [];
-
-                const assistantMessage = await (preparedReplyRef.current
-                    ? preparedReplyRef.current.saveAnswer(rawAssistantText)
-                    : addMessage(
-                          activeSessionId,
-                          "assistant",
-                          rawAssistantText,
-                          chatKey,
-                          parentMessageUuid,
-                          [],
-                          activeSources,
-                      ));
+                const { message: assistantMessage, toolTurn } =
+                    await (preparedReply
+                        ? preparedReply.finish(rawAssistantText)
+                        : addMessage(
+                              activeSessionId,
+                              "assistant",
+                              rawAssistantText,
+                              chatKey,
+                              parentMessageUuid,
+                              [],
+                              activeSources,
+                          ).then((message) => ({ message, toolTurn: null })));
 
                 if (!isActiveGeneration()) return;
+                if (toolTurn) {
+                    setTodoTurns((prev) => ({
+                        ...prev,
+                        [assistantMessage.messageUuid]: toolTurn,
+                    }));
+                    reloadTodoTurns.current?.();
+                }
                 void updateBranchSelectionState(
                     parentMessageUuid,
                     assistantMessage.messageUuid,
@@ -3568,7 +3689,12 @@ const Page: React.FC = () => {
                 } else {
                     const message = formatErrorMessage(error);
                     if (name !== "cancelled" && name !== "stale") {
-                        showMiniDialog({ title: "Model error", message });
+                        showMiniDialog({
+                            title: name?.startsWith("refused.")
+                                ? "Couldn't update To Dos"
+                                : "Model error",
+                            message,
+                        });
                     }
                 }
                 if (previousSelection) {
@@ -3728,6 +3854,16 @@ const Page: React.FC = () => {
     }, [handleCloseDrawer]);
 
     const openSettingsModal = useCallback(() => setShowSettingsModal(true), []);
+    const openTodos = useCallback(() => setShowTodos(true), []);
+    const closeTodos = useCallback(() => setShowTodos(false), []);
+    const showTodoError = useCallback(
+        (error: unknown) =>
+            showMiniDialog({
+                title: "To Do",
+                message: formatErrorMessage(error),
+            }),
+        [showMiniDialog, formatErrorMessage],
+    );
     const closeSettingsModal = useCallback(
         () => setShowSettingsModal(false),
         [],
@@ -4575,6 +4711,7 @@ const Page: React.FC = () => {
             requestRenameSession={requestRenameSession}
             requestDeleteSession={requestDeleteSession}
             openSettingsModal={openSettingsModal}
+            openTodos={isTauriRuntime ? openTodos : undefined}
         />
     );
 
@@ -4735,6 +4872,9 @@ const Page: React.FC = () => {
                             onEditMessage={handleEditMessage}
                             onCopyMessage={handleCopyMessage}
                             onRetryMessage={handleRetryMessage}
+                            todoTurns={todoTurns}
+                            onUndoTodoTurn={handleUndoTodoTurn}
+                            onConfirmTodoTurn={handleConfirmTodoTurn}
                             onPrevBranch={handlePrevBranch}
                             onNextBranch={handleNextBranch}
                             onRequestPreview={loadAttachmentPreview}
@@ -4858,6 +4998,13 @@ const Page: React.FC = () => {
                 </Box>
             </Box>
 
+            {isTauriRuntime && (
+                <TodoDialog
+                    open={showTodos}
+                    onClose={closeTodos}
+                    onError={showTodoError}
+                />
+            )}
             <ChatDialogs
                 showSettingsModal={showSettingsModal}
                 openSettingsModal={openSettingsModal}

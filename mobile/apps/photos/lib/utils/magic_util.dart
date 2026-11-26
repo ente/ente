@@ -342,11 +342,6 @@ Future<bool> editTime(
         null,
         metadataUpdateMap: fileIdToTimeUpdate,
       );
-      if (_shouldReloadGallery(editTimeKey)) {
-        Bus.instance.fire(
-          ForceReloadHomeGalleryEvent("FileMetadataChange-$editTimeKey"),
-        );
-      }
       await dialog.hide();
       if (context.mounted) {
         showShortToast(context, context.strings.done);
@@ -355,6 +350,12 @@ Future<bool> editTime(
       _logger.severe("failed to update times $fileIdToTimeUpdate", e, s);
       await dialog.hide();
       rethrow;
+    } finally {
+      if (_shouldReloadGallery(editTimeKey)) {
+        Bus.instance.fire(
+          ForceReloadHomeGalleryEvent("FileMetadataChange-$editTimeKey"),
+        );
+      }
     }
     return true;
   } catch (e) {
