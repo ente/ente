@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:ffi' show Pointer, Uint8, Uint8Pointer;
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data' show Uint8List;
+import 'dart:ui' as ui;
 
 import 'package:ente_ui/components/loading_widget.dart';
+import 'package:flutter/foundation.dart' show SynchronousFuture;
 import 'package:flutter/material.dart';
 import "package:flutter_image_compress/flutter_image_compress.dart";
 import 'package:logging/logging.dart';
@@ -231,6 +234,10 @@ class _ZoomableImageState extends State<ZoomableImage> {
       ..dispose();
     _resetZoomSubscription.cancel();
     _retryFailedLoadSubscription.cancel();
+    final imageProvider = _imageProvider;
+    if (imageProvider is _RustRgbaImageProvider) {
+      imageProvider.dispose();
+    }
     super.dispose();
   }
 
@@ -594,24 +601,19 @@ class _ZoomableImageState extends State<ZoomableImage> {
   bool _shouldUseRustHeicDecoder(File file) =>
       _isAndroidHeic(file) && flagService.useRustForHeicDecoder;
 
-  Future<ImageProvider<Object>?> _tryDecodeHeicWithRust(
-    File file, {
-    int? quality,
-  }) async {
+  Future<_RustRgbaImageProvider?> _tryDecodeHeicWithRust(File file) async {
     if (!_shouldUseRustHeicDecoder(file)) {
       return null;
     }
 
     try {
       _logger.info("Using Rust HEIC decoder for ${_photo.generatedID}");
-      final Uint8List rustBytes = await rust_image.decodeToJpeg(
+      final rgbaImage = await rust_image.decodeToRgba(
         imagePath: file.path,
         maxSide: _rustDecodeMaxSide,
-        quality: quality,
       );
-      final MemoryImage imageProvider = MemoryImage(rustBytes);
       _logger.info("Rust HEIC decode succeeded for ${_photo.generatedID}");
-      return imageProvider;
+      return _RustRgbaImageProvider(rgbaImage);
     } on rust_image.RustImageDecodeError_TooLarge catch (e) {
       _logger.warning(
         "Rust HEIC decode refused ${_photo.generatedID} as too large: ${e.message}",
@@ -619,14 +621,11 @@ class _ZoomableImageState extends State<ZoomableImage> {
       return null;
     } catch (e) {
       _logger.warning("Rust HEIC decode failed for ${_photo.generatedID}: $e");
-      return _tryFullDecodeHeicWithRust(file, quality: quality);
+      return _tryFullDecodeHeicWithRust(file);
     }
   }
 
-  Future<ImageProvider<Object>?> _tryFullDecodeHeicWithRust(
-    File file, {
-    int? quality,
-  }) async {
+  Future<_RustRgbaImageProvider?> _tryFullDecodeHeicWithRust(File file) async {
     if (!mounted) return null;
     if (!_photo.hasDimensions || isTooLargeImage) {
       _logger.info(
@@ -637,12 +636,9 @@ class _ZoomableImageState extends State<ZoomableImage> {
 
     try {
       _logger.info("Using full Rust HEIC decoder for ${_photo.generatedID}");
-      final Uint8List rustBytes = await rust_image.decodeFullToJpeg(
-        imagePath: file.path,
-        quality: quality,
-      );
+      final rgbaImage = await rust_image.decodeFullToRgba(imagePath: file.path);
       _logger.info("Full Rust HEIC decode succeeded for ${_photo.generatedID}");
-      return MemoryImage(rustBytes);
+      return _RustRgbaImageProvider(rgbaImage);
     } catch (e) {
       _logger.warning(
         "Full Rust HEIC decode failed for ${_photo.generatedID}: $e",
@@ -653,10 +649,11 @@ class _ZoomableImageState extends State<ZoomableImage> {
 
   Future<bool> _tryDisplayRustDecodedImage(
     File file,
-    ImageProvider<Object> imageProvider, {
+    _RustRgbaImageProvider imageProvider, {
     required bool fallbackToSupportedFormatOnFailure,
   }) async {
     if (!mounted) {
+      imageProvider.dispose();
       return false;
     }
 
@@ -664,12 +661,15 @@ class _ZoomableImageState extends State<ZoomableImage> {
     if (displayError == null) {
       if (mounted && !_loadedFinalImage) {
         await _updateViewWithFinalImage(imageProvider, file);
+      } else {
+        imageProvider.dispose();
       }
       return true;
     }
+    imageProvider.dispose();
 
     _logger.warning(
-      "Flutter failed to decode Rust JPEG bytes for ${_photo.generatedID}: $displayError",
+      "Flutter failed to decode Rust RGBA pixels for ${_photo.generatedID}: $displayError",
     );
     if (fallbackToSupportedFormatOnFailure) {
       unawaited(
@@ -805,6 +805,73 @@ class _ZoomableImageState extends State<ZoomableImage> {
       return;
     }
     await _updateViewWithFinalImage(imageProvider, file);
+  }
+}
+
+class _RustRgbaImageProvider extends ImageProvider<_RustRgbaImageProvider> {
+  _RustRgbaImageProvider(this._rgbaImage);
+
+  rust_image.RustRgbaImage? _rgbaImage;
+  Future<ui.Image>? _image;
+
+  @override
+  Future<_RustRgbaImageProvider> obtainKey(ImageConfiguration configuration) {
+    return SynchronousFuture<_RustRgbaImageProvider>(this);
+  }
+
+  @override
+  ImageStreamCompleter loadImage(
+    _RustRgbaImageProvider key,
+    ImageDecoderCallback decode,
+  ) {
+    return OneFrameImageStreamCompleter(
+      (_image ??= _decode()).then((image) => ImageInfo(image: image.clone())),
+    );
+  }
+
+  void dispose() {
+    _rgbaImage?.dispose();
+    _rgbaImage = null;
+    _image?.then((image) => image.dispose()).ignore();
+    _image = null;
+  }
+
+  Future<ui.Image> _decode() async {
+    final rgbaImage = _rgbaImage;
+    if (rgbaImage == null) {
+      throw StateError("Rust RGBA image was disposed");
+    }
+    _rgbaImage = null;
+    final width = rgbaImage.width();
+    final height = rgbaImage.height();
+    final ui.ImmutableBuffer buffer;
+    try {
+      buffer = await ui.ImmutableBuffer.fromUint8List(
+        Pointer<Uint8>.fromAddress(
+          rgbaImage.pixelsAddress(),
+        ).asTypedList(width * height * 4),
+      );
+    } finally {
+      rgbaImage.dispose();
+    }
+    final descriptor = ui.ImageDescriptor.raw(
+      buffer,
+      width: width,
+      height: height,
+      pixelFormat: ui.PixelFormat.rgba8888,
+    );
+    buffer.dispose();
+    try {
+      final codec = await descriptor.instantiateCodec();
+      try {
+        final frame = await codec.getNextFrame();
+        return frame.image;
+      } finally {
+        codec.dispose();
+      }
+    } finally {
+      descriptor.dispose();
+    }
   }
 }
 
