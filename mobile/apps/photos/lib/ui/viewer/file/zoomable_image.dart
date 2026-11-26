@@ -82,8 +82,8 @@ class _ZoomableImageState extends State<ZoomableImage> {
   ViewerJpegImage? _jpegFit;
   ImageProvider? _jpegDetail;
   ImageProvider? _requestedJpegImage;
-  Timer? _memoryPinchTimer;
-  double _memoryPinchAnchorScale = 1;
+  Timer? _pinchTimer;
+  double _pinchAnchorScale = 1;
   bool _loadedSmallThumbnail = false;
   bool _loadingLargeThumbnail = false;
   bool _loadedLargeThumbnail = false;
@@ -248,7 +248,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
       isAttached: false,
     );
     _imageFrameReady.dispose();
-    _memoryPinchTimer?.cancel();
+    _pinchTimer?.cancel();
     _imageZoomController
       ..removeListener(_onZoomChanged)
       ..dispose();
@@ -512,8 +512,8 @@ class _ZoomableImageState extends State<ZoomableImage> {
 
   void _updateJpegRequest() {
     if (widget.isFromMemories && widget.isSelectedViewerPage == false) {
-      _memoryPinchTimer?.cancel();
-      _memoryPinchTimer = null;
+      _pinchTimer?.cancel();
+      _pinchTimer = null;
       _requestedJpegImage = null;
       return;
     }
@@ -538,10 +538,13 @@ class _ZoomableImageState extends State<ZoomableImage> {
         source != null &&
         (source.width > _jpegFit!.width || source.height > _jpegFit!.height);
     final detailRequested = _requestedJpegImage == _jpegDetail;
-    final zoomSettled = widget.isFromMemories
-        ? _isMemoryPinchSteady(needsDetail: canUseDetail && !detailRequested)
-        : !_imageZoomController.isZoomInProgress;
-    final wantsDetail = canUseDetail && (detailRequested || zoomSettled);
+    final pinchSteady = _isPinchSteady(
+      needsDetail: canUseDetail && !detailRequested,
+    );
+    final zoomSettled =
+        !widget.isFromMemories && !_imageZoomController.isZoomInProgress;
+    final wantsDetail =
+        canUseDetail && (detailRequested || pinchSteady || zoomSettled);
     final desired = wantsDetail ? _jpegDetail! : _jpegFit!;
     if (desired == _requestedJpegImage) return;
     _requestedJpegImage = desired;
@@ -550,25 +553,24 @@ class _ZoomableImageState extends State<ZoomableImage> {
     }
   }
 
-  bool _isMemoryPinchSteady({required bool needsDetail}) {
+  bool _isPinchSteady({required bool needsDetail}) {
     if (!needsDetail ||
         !_imageZoomController.hasActivePointers ||
         _imageZoomController.stage != ImageZoomStage.gesture) {
-      _memoryPinchTimer?.cancel();
-      _memoryPinchTimer = null;
+      _pinchTimer?.cancel();
+      _pinchTimer = null;
       return false;
     }
     final scale = _imageZoomController.transform.scale;
-    if (_memoryPinchTimer == null ||
-        (scale / _memoryPinchAnchorScale - 1).abs() > 0.05) {
-      _memoryPinchAnchorScale = scale;
-      _memoryPinchTimer?.cancel();
-      _memoryPinchTimer = Timer(
+    if (_pinchTimer == null || (scale / _pinchAnchorScale - 1).abs() > 0.05) {
+      _pinchAnchorScale = scale;
+      _pinchTimer?.cancel();
+      _pinchTimer = Timer(
         const Duration(milliseconds: 250),
         _updateJpegRequest,
       );
     }
-    return !_memoryPinchTimer!.isActive;
+    return !_pinchTimer!.isActive;
   }
 
   Future<void> _displayJpeg(ImageProvider provider, File file) async {

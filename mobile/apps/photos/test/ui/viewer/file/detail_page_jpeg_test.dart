@@ -147,7 +147,7 @@ void main() {
           await tester.pump();
           await left.moveTo(center - const Offset(80, 0));
           await right.moveTo(center + const Offset(80, 0));
-          await tester.pump(const Duration(seconds: 1));
+          await tester.pump(const Duration(milliseconds: 60));
           expect(visible().controller!.transform.scale, closeTo(2.0, 0.01));
           expect(imageCache.statusForKey(detail).untracked, isTrue);
           if (returnToFit) {
@@ -164,6 +164,8 @@ void main() {
         expect(imageCache.statusForKey(detail).untracked, isTrue);
 
         await pinch(returnToFit: false);
+        await tester.pump();
+        expect(imageCache.statusForKey(detail).untracked, isFalse);
         await waitFor(tester, () => visible().imageProvider == detail);
         expect(visible().controller!.transform.scale, closeTo(2.0, 0.01));
         await visible().controller!.reset(animated: false);
@@ -185,6 +187,35 @@ void main() {
     );
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(seconds: 5));
+  });
+
+  testWidgets("a steady pinch sharpens the open JPEG before release", (
+    tester,
+  ) async {
+    await openPage(tester, detailPage(files));
+    final viewer = find.byType(ImageZoomViewer).hitTestable();
+    ImageZoomViewer visible() => tester.widget<ImageZoomViewer>(viewer);
+    await waitFor(tester, () => visible().imageProvider == previews[1]);
+    final detail = FileImage(previews[1].file);
+    final center = tester.getCenter(viewer);
+    final left = await tester.startGesture(center - const Offset(40, 0));
+    final right = await tester.startGesture(center + const Offset(40, 0));
+    for (var step = 0; step < 10; step++) {
+      await right.moveBy(const Offset(8, 0));
+      await tester.pump(const Duration(milliseconds: 40));
+    }
+    expect(imageCache.statusForKey(detail).untracked, isTrue);
+    await tester.pump(const Duration(milliseconds: 120));
+    await right.moveBy(const Offset(1, 1));
+    await left.up();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(imageCache.statusForKey(detail).untracked, isFalse);
+    await waitFor(tester, () => visible().imageProvider == detail);
+    await right.up();
+    await tester.pumpAndSettle();
+    expect(visible().controller!.isZoomed, isTrue);
+    expect(visible().imageProvider, detail);
+    await tester.pumpWidget(const SizedBox.shrink());
   });
 
   testWidgets("JPEG neighbors warm when a video page settles", (tester) async {
