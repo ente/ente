@@ -1,0 +1,1 @@
+- Improved HEIC viewing for Android users.
