@@ -234,6 +234,10 @@ class _ZoomableImageState extends State<ZoomableImage> {
       ..dispose();
     _resetZoomSubscription.cancel();
     _retryFailedLoadSubscription.cancel();
+    final imageProvider = _imageProvider;
+    if (imageProvider is _RustRgbaImageProvider) {
+      imageProvider.dispose();
+    }
     super.dispose();
   }
 
@@ -597,7 +601,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
   bool _shouldUseRustHeicDecoder(File file) =>
       _isAndroidHeic(file) && flagService.useRustForHeicDecoder;
 
-  Future<ImageProvider<Object>?> _tryDecodeHeicWithRust(File file) async {
+  Future<_RustRgbaImageProvider?> _tryDecodeHeicWithRust(File file) async {
     if (!_shouldUseRustHeicDecoder(file)) {
       return null;
     }
@@ -621,7 +625,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
     }
   }
 
-  Future<ImageProvider<Object>?> _tryFullDecodeHeicWithRust(File file) async {
+  Future<_RustRgbaImageProvider?> _tryFullDecodeHeicWithRust(File file) async {
     if (!mounted) return null;
     if (!_photo.hasDimensions || isTooLargeImage) {
       _logger.info(
@@ -645,10 +649,11 @@ class _ZoomableImageState extends State<ZoomableImage> {
 
   Future<bool> _tryDisplayRustDecodedImage(
     File file,
-    ImageProvider<Object> imageProvider, {
+    _RustRgbaImageProvider imageProvider, {
     required bool fallbackToSupportedFormatOnFailure,
   }) async {
     if (!mounted) {
+      imageProvider.dispose();
       return false;
     }
 
@@ -656,9 +661,12 @@ class _ZoomableImageState extends State<ZoomableImage> {
     if (displayError == null) {
       if (mounted && !_loadedFinalImage) {
         await _updateViewWithFinalImage(imageProvider, file);
+      } else {
+        imageProvider.dispose();
       }
       return true;
     }
+    imageProvider.dispose();
 
     _logger.warning(
       "Flutter failed to decode Rust RGBA pixels for ${_photo.generatedID}: $displayError",
@@ -804,6 +812,7 @@ class _RustRgbaImageProvider extends ImageProvider<_RustRgbaImageProvider> {
   _RustRgbaImageProvider(this._rgbaImage);
 
   rust_image.RustRgbaImage? _rgbaImage;
+  Future<ui.Image>? _image;
 
   @override
   Future<_RustRgbaImageProvider> obtainKey(ImageConfiguration configuration) {
@@ -815,13 +824,22 @@ class _RustRgbaImageProvider extends ImageProvider<_RustRgbaImageProvider> {
     _RustRgbaImageProvider key,
     ImageDecoderCallback decode,
   ) {
-    return OneFrameImageStreamCompleter(_decode());
+    return OneFrameImageStreamCompleter(
+      (_image ??= _decode()).then((image) => ImageInfo(image: image.clone())),
+    );
   }
 
-  Future<ImageInfo> _decode() async {
+  void dispose() {
+    _rgbaImage?.dispose();
+    _rgbaImage = null;
+    _image?.then((image) => image.dispose()).ignore();
+    _image = null;
+  }
+
+  Future<ui.Image> _decode() async {
     final rgbaImage = _rgbaImage;
     if (rgbaImage == null) {
-      throw StateError("Rust RGBA pixels were already handed to Flutter");
+      throw StateError("Rust RGBA image was disposed");
     }
     _rgbaImage = null;
     final width = rgbaImage.width();
@@ -847,7 +865,7 @@ class _RustRgbaImageProvider extends ImageProvider<_RustRgbaImageProvider> {
       final codec = await descriptor.instantiateCodec();
       try {
         final frame = await codec.getNextFrame();
-        return ImageInfo(image: frame.image);
+        return frame.image;
       } finally {
         codec.dispose();
       }
