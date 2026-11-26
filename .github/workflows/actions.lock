@@ -60,6 +60,11 @@ workflows:
         - 'openai/codex-action@306c6a196a99dcc6582530c396a19d2672d5e9ec'
     '.github/workflows/dependency-review.yml':
         - 'actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294'
+    '.github/workflows/deploy-web-apps.yml':
+        - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
+        - 'actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333'
+        - 'actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1'
+        - 'actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9'
     '.github/workflows/desktop-lint.yml':
         - 'actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9'
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
@@ -193,22 +198,10 @@ workflows:
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         - 'actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510'
         - 'crowdin/github-action@d651c77756acbe11a31d77a6fb79d8a239e1e05a'
-    '.github/workflows/web-deploy-2of3.yml':
-        - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
-        - 'actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1'
-        - 'cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0'
-    '.github/workflows/web-deploy-photobook.yml':
-        - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
-        - 'actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1'
-        - 'cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0'
-    '.github/workflows/web-deploy-space.yml':
-        - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
-        - 'actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1'
-        - 'cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0'
-    '.github/workflows/web-deploy.yml':
-        - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
-        - 'actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1'
-        - 'cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0'
+    '.github/workflows/web-deploy-2of3.yml': []
+    '.github/workflows/web-deploy-photobook.yml': []
+    '.github/workflows/web-deploy-space.yml': []
+    '.github/workflows/web-deploy.yml': []
     '.github/workflows/web-e2e.yml':
         - 'actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9'
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
