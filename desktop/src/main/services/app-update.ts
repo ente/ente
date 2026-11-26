@@ -6,9 +6,13 @@ import { allowWindowClose } from "../../main";
 import { AppUpdate } from "../../types/ipc";
 import log from "../log";
 import { userPreferences } from "../stores/user-preferences";
-import { isDev } from "../utils/electron";
+import { isDev, isFlatpak } from "../utils/electron";
 
 export const setupAutoUpdater = (mainWindow: BrowserWindow) => {
+    if (isFlatpak) {
+        log.info("Skipping auto updater (running as Flatpak)");
+        return;
+    }
     autoUpdater.logger = electronLog;
     autoUpdater.autoDownload = false;
     autoUpdater.disableWebInstaller = true;
@@ -25,6 +29,10 @@ export const setupAutoUpdater = (mainWindow: BrowserWindow) => {
 };
 
 export const forceCheckForAppUpdates = (mainWindow: BrowserWindow) => {
+    if (isFlatpak) {
+        log.info("Skipping update check (running as Flatpak)");
+        return;
+    }
     userPreferences.delete("skipAppVersion");
     userPreferences.delete("muteUpdateNotificationVersion");
     void checkForUpdatesAndNotify(mainWindow, { notifyImmediately: true });

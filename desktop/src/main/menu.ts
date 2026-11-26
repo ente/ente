@@ -8,6 +8,7 @@ import {
 import { allowWindowClose } from "../main";
 import { forceCheckForAppUpdates } from "./services/app-update";
 import { setShouldHideDockIcon, shouldHideDockIcon } from "./services/store";
+import { isFlatpak } from "./utils/electron";
 
 export const createApplicationMenu = (mainWindow: BrowserWindow) => {
     let hideDockIcon = shouldHideDockIcon();
@@ -31,7 +32,11 @@ export const createApplicationMenu = (mainWindow: BrowserWindow) => {
             submenu: [
                 ...macOSOnly([{ label: "About Ente", role: "about" }]),
                 { type: "separator" },
-                { label: "Check for Updates...", click: handleCheckForUpdates },
+                {
+                    label: "Check for Updates...",
+                    click: handleCheckForUpdates,
+                    visible: !isFlatpak,
+                },
                 { type: "separator" },
 
                 ...macOSOnly([
