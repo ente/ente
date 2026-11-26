@@ -146,7 +146,7 @@ func TestPhotoUploadURLsRejectFileLimitDespiteCachedRegistration(t *testing.T) {
 		}},
 		{"multipart", func() error {
 			_, err := controller.GetMultipartUploadURLWithMetadata(t.Context(), userID,
-				ente.MultipartUploadURLRequest{ContentLength: 5, PartLength: 5, PartMD5s: []string{checksum}}, ente.Photos, "test")
+				ente.MultipartUploadURLRequest{ContentLength: ente.MinMultipartUploadSize, PartLength: ente.MinMultipartUploadSize, PartMD5s: []string{checksum}}, ente.Photos, "test")
 			return err
 		}},
 		{"eligibility", func() error {
@@ -281,7 +281,7 @@ func setupPhotoUploadLimitTest(t *testing.T) (*FileController, *sql.DB, int64) {
 	})
 	users := &repo.UserRepository{DB: db}
 	bonuses := &storagebonusrepo.Repository{DB: db}
-	return &FileController{UsageCtrl: &UsageController{
+	return &FileController{UsageCtrl: &UsageController{UploadURLRepo: &repo.UploadURLRepository{DB: db},
 		UserRepo: users, UsageRepo: &repo.UsageRepository{DB: db},
 		FamilyRepo: &repo.FamilyRepository{DB: db},
 		BillingCtrl: &BillingController{

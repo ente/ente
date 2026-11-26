@@ -1283,7 +1283,7 @@
       }
     }
   },
-  "emailVerificationEnableWarning": "계정이 잠겨 손을 쓸 수 없는 상황에 대비하여, 이메일을 검증하기 전 메일로 전송된 Ente Auth의 2차 인증을 별도로 보관해두세요.",
+  "emailVerificationEnableWarning": "계정이 잠겨 손을 쓸 수 없는 상황에 대비하여, 이메일 검증을 활성화하기 전에 이메일 계정의 2단계 인증 정보를 Ente Auth 외부에 별도로 보관해두세요.",
   "emailVerificationToggle": "이메일 검증",
   "emailYourLogs": "로그를 이메일로 보내기",
   "@emailYourLogs": {
@@ -2147,7 +2147,7 @@
       }
     }
   },
-  "legacy": "기존",
+  "legacy": "레거시",
   "legacyAccounts": "레거시 계정",
   "legacyCongratulationsMessage": "레거시 설정을 완료했습니다.\n중요한 정보를 저장해 보세요.",
   "legacyDesc": "신뢰할 수 있는 연락처, 레거시 키트, 계정 복구 계획",

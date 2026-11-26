@@ -12,12 +12,26 @@ public final class SlideshowExportEngine: Sendable {
         try? FileManager.default.removeItem(at: request.outputURL)
         do {
             let timeline = try await SlideshowTimeline.prepare(request)
-            let session = try SlideshowWriterSession(
-                request: request,
-                timeline: timeline,
+            let session = try VideoWriterSession(
+                settings: VideoWriterSettings(
+                    outputURL: request.outputURL,
+                    width: request.width,
+                    height: request.height,
+                    frameRate: request.frameRate,
+                    bitrate: request.videoBitrate,
+                    audio: timeline.hasAudio
+                        ? VideoWriterAudioSettings(
+                            sampleRate: SlideshowAudioProducer.sampleRate,
+                            channelCount: SlideshowAudioProducer.channelCount
+                        )
+                        : nil
+                ),
                 onProgress: onProgress
             )
-            try await session.run()
+            try await session.run(
+                frames: { SlideshowFrameProducer(request: request, timeline: timeline, pool: $0) },
+                audio: { try SlideshowAudioProducer(timeline: timeline) }
+            )
             let outputSize =
                 (try? request.outputURL.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
             guard outputSize > 0 else {
@@ -44,6 +58,7 @@ struct SlideshowVideoSource: @unchecked Sendable {
     let audioTrack: AVAssetTrack?
     let orientation: CGImagePropertyOrientation
     let trackStart: CMTime
+    var readRange: CMTimeRange?
 }
 
 struct SlideshowSegment: @unchecked Sendable {
@@ -54,13 +69,8 @@ struct SlideshowSegment: @unchecked Sendable {
 
     var end: Double { start + duration }
 
-    var playsMusic: Bool {
-        if case .photo = item { return true }
-        return false
-    }
-
     var playsVideoAudio: Bool {
-        if case .video(_, let isMuted) = item, !isMuted, video?.audioTrack != nil {
+        if case .video(_, let isMuted, _) = item, !isMuted, video?.audioTrack != nil {
             return true
         }
         return false
@@ -72,6 +82,11 @@ struct SlideshowMusicSource: @unchecked Sendable {
     let track: AVAssetTrack
     let fadeIn: Double
     let fadeOut: Double
+    let duckedVolume: Double
+    let duckFade: Double
+
+    var videoAudioGain: Double { 1 / (1 + duckedVolume) }
+    var duckedMusicGain: Double { duckedVolume * videoAudioGain }
 }
 
 struct SlideshowTimeline: Sendable {
@@ -95,11 +110,18 @@ struct SlideshowTimeline: Sendable {
                 segments.append(
                     SlideshowSegment(item: item, start: cursor, duration: duration, video: nil))
                 cursor += duration
-            case .video(let url, _):
-                let source = try await loadVideo(url)
-                let duration = try await source.asset.load(.duration).seconds
+            case .video(let url, _, let maxDurationMs):
+                var source = try await loadVideo(url)
+                var duration = try await source.asset.load(.duration).seconds
                 guard duration.isFinite, duration > 0 else {
                     throw VideoEditorError.composition("Slideshow video has no duration")
+                }
+                if let maxDurationMs, Double(maxDurationMs) / 1000 < duration {
+                    duration = Double(maxDurationMs) / 1000
+                    source.readRange = CMTimeRange(
+                        start: source.trackStart,
+                        duration: CMTime(seconds: duration, preferredTimescale: 600)
+                    )
                 }
                 segments.append(
                     SlideshowSegment(item: item, start: cursor, duration: duration, video: source)
@@ -115,7 +137,9 @@ struct SlideshowTimeline: Sendable {
                     asset: asset,
                     track: track,
                     fadeIn: Double(requestedMusic.fadeInMs) / 1000,
-                    fadeOut: Double(requestedMusic.fadeOutMs) / 1000
+                    fadeOut: Double(requestedMusic.fadeOutMs) / 1000,
+                    duckedVolume: requestedMusic.duckedVolume,
+                    duckFade: Double(requestedMusic.duckFadeMs) / 1000
                 )
             }
         }
@@ -151,221 +175,13 @@ struct SlideshowTimeline: Sendable {
     }
 }
 
-private final class SlideshowWriterSession: @unchecked Sendable {
-    private let request: SlideshowExportRequest
-    private let timeline: SlideshowTimeline
-    private let onProgress: @Sendable (Double) -> Void
-    private let writer: AVAssetWriter
-    private let videoInput: AVAssetWriterInput
-    private let adaptor: AVAssetWriterInputPixelBufferAdaptor
-    private let audioInput: AVAssetWriterInput?
-    private let videoQueue = DispatchQueue(label: "io.ente.native_video_editor.slideshow.video")
-    private let audioQueue = DispatchQueue(label: "io.ente.native_video_editor.slideshow.audio")
-    private let lock = NSLock()
-    private let appendLock = NSLock()
-    private var terminalError: Error?
-    private var pendingInputs = 0
-    private var continuation: CheckedContinuation<Void, Error>?
-
-    init(
-        request: SlideshowExportRequest,
-        timeline: SlideshowTimeline,
-        onProgress: @escaping @Sendable (Double) -> Void
-    ) throws {
-        self.request = request
-        self.timeline = timeline
-        self.onProgress = onProgress
-        writer = try AVAssetWriter(outputURL: request.outputURL, fileType: .mp4)
-        writer.shouldOptimizeForNetworkUse = true
-
-        let bitsPerPixel = 0.12
-        let bitrate = Int(
-            Double(request.width * request.height * request.frameRate) * bitsPerPixel)
-        videoInput = AVAssetWriterInput(
-            mediaType: .video,
-            outputSettings: [
-                AVVideoCodecKey: AVVideoCodecType.h264,
-                AVVideoWidthKey: request.width,
-                AVVideoHeightKey: request.height,
-                AVVideoCompressionPropertiesKey: [
-                    AVVideoAverageBitRateKey: bitrate,
-                    AVVideoProfileLevelKey: AVVideoProfileLevelH264HighAutoLevel,
-                    AVVideoExpectedSourceFrameRateKey: request.frameRate,
-                    AVVideoMaxKeyFrameIntervalKey: request.frameRate * 2,
-                ],
-            ]
-        )
-        videoInput.expectsMediaDataInRealTime = false
-        adaptor = AVAssetWriterInputPixelBufferAdaptor(
-            assetWriterInput: videoInput,
-            sourcePixelBufferAttributes: [
-                kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
-                kCVPixelBufferWidthKey as String: request.width,
-                kCVPixelBufferHeightKey as String: request.height,
-                kCVPixelBufferIOSurfacePropertiesKey as String: [:],
-            ]
-        )
-        guard writer.canAdd(videoInput) else {
-            throw VideoEditorError.export("Cannot add slideshow video track")
-        }
-        writer.add(videoInput)
-
-        if timeline.hasAudio {
-            let input = AVAssetWriterInput(
-                mediaType: .audio,
-                outputSettings: [
-                    AVFormatIDKey: kAudioFormatMPEG4AAC,
-                    AVSampleRateKey: SlideshowAudioProducer.sampleRate,
-                    AVNumberOfChannelsKey: SlideshowAudioProducer.channelCount,
-                    AVEncoderBitRateKey: 128_000,
-                ]
-            )
-            input.expectsMediaDataInRealTime = false
-            guard writer.canAdd(input) else {
-                throw VideoEditorError.export("Cannot add slideshow audio track")
-            }
-            writer.add(input)
-            audioInput = input
-        } else {
-            audioInput = nil
-        }
-    }
-
-    func run() async throws {
-        guard writer.startWriting() else {
-            throw VideoEditorError.export("Failed to start slideshow export", writer.error)
-        }
-        writer.startSession(atSourceTime: .zero)
-        guard let pool = adaptor.pixelBufferPool else {
-            writer.cancelWriting()
-            throw VideoEditorError.export("Slideshow pixel buffer pool is unavailable")
-        }
-        let frames = SlideshowFrameProducer(request: request, timeline: timeline, pool: pool)
-        let audio = audioInput == nil ? nil : try SlideshowAudioProducer(timeline: timeline)
-
-        try await withTaskCancellationHandler(
-            operation: {
-                try await withCheckedThrowingContinuation { continuation in
-                    lock.lock()
-                    self.continuation = continuation
-                    pendingInputs = audio == nil ? 1 : 2
-                    let error = terminalError
-                    lock.unlock()
-                    if let error {
-                        resume(with: .failure(error))
-                        return
-                    }
-                    videoInput.requestMediaDataWhenReady(on: videoQueue) { [self] in
-                        pump(videoInput) {
-                            guard let frame = try frames.next() else { return false }
-                            guard append({ adaptor.append(frame.buffer, withPresentationTime: frame.time) })
-                            else {
-                                throw VideoEditorError.export(
-                                    "Failed to append slideshow frame", writer.error)
-                            }
-                            if let progress = frames.takeProgressUpdate() {
-                                onProgress(progress)
-                            }
-                            return true
-                        }
-                    }
-                    if let audio {
-                        audioInput?.requestMediaDataWhenReady(on: audioQueue) { [self] in
-                            guard let audioInput else { return }
-                            pump(audioInput) {
-                                guard let sample = try audio.next() else { return false }
-                                guard append({ audioInput.append(sample) }) else {
-                                    throw VideoEditorError.export(
-                                        "Failed to append slideshow audio", writer.error)
-                                }
-                                return true
-                            }
-                        }
-                    }
-                }
-            },
-            onCancel: {
-                terminate(with: CancellationError())
-            }
-        )
-    }
-
-    private func append(_ body: () -> Bool) -> Bool {
-        appendLock.lock()
-        defer { appendLock.unlock() }
-        return body()
-    }
-
-    private func pump(_ input: AVAssetWriterInput, appendNext: () throws -> Bool) {
-        while input.isReadyForMoreMediaData {
-            lock.lock()
-            let isRunning = terminalError == nil
-            lock.unlock()
-            guard isRunning else { return }
-            do {
-                guard try autoreleasepool(invoking: appendNext) else {
-                    finish(input)
-                    return
-                }
-            } catch {
-                terminate(with: error)
-                return
-            }
-        }
-    }
-
-    private func finish(_ input: AVAssetWriterInput) {
-        input.markAsFinished()
-        lock.lock()
-        defer { lock.unlock() }
-        guard terminalError == nil else { return }
-        pendingInputs -= 1
-        guard pendingInputs == 0 else { return }
-        writer.finishWriting { [self] in
-            if writer.status == .completed {
-                resume(with: .success(()))
-            } else {
-                resume(
-                    with: .failure(
-                        VideoEditorError.export("Failed to finish slideshow export", writer.error))
-                )
-            }
-        }
-    }
-
-    private func terminate(with error: Error) {
-        lock.lock()
-        guard terminalError == nil else {
-            lock.unlock()
-            return
-        }
-        terminalError = error
-        lock.unlock()
-        appendLock.lock()
-        writer.cancelWriting()
-        appendLock.unlock()
-        resume(with: .failure(error))
-    }
-
-    private func resume(with result: Result<Void, Error>) {
-        lock.lock()
-        let continuation = self.continuation
-        self.continuation = nil
-        lock.unlock()
-        continuation?.resume(with: result)
-    }
-}
-
 private func smoothstep(_ value: Double) -> Double {
     let t = min(max(value, 0), 1)
     return t * t * (3 - 2 * t)
 }
 
-private final class SlideshowFrameProducer: @unchecked Sendable {
-    struct Frame {
-        let buffer: CVPixelBuffer
-        let time: CMTime
-    }
+private final class SlideshowFrameProducer: VideoWriterFrameSource, @unchecked Sendable {
+    typealias Frame = VideoWriterFrame
 
     private struct PhotoState {
         let image: CIImage
@@ -378,11 +194,13 @@ private final class SlideshowFrameProducer: @unchecked Sendable {
     private struct VideoState {
         let reader: AVAssetReader
         let output: AVAssetReaderTrackOutput
+        var background: CIImage?
         var lastImage: CIImage?
         var lastFrameIndex: Int64 = -1
     }
 
     private static let timescale: CMTimeScale = 1_000_000
+    private static let backgroundSampleSize = 32
 
     private let request: SlideshowExportRequest
     private let segments: [SlideshowSegment]
@@ -447,11 +265,8 @@ private final class SlideshowFrameProducer: @unchecked Sendable {
                 (Double(max(request.width, request.height)) * maxScale).rounded(.up))
             let image = try loadImage(url, maxPixelSize: maxPixelSize)
             let background = try renderHold(
-                covered(try loadImage(url, maxPixelSize: 32))
-                    .clampedToExtent()
-                    .applyingGaussianBlur(sigma: 24)
-                    .cropped(to: frameRect)
-            )
+                blurredBackground(
+                    try loadImage(url, maxPixelSize: Self.backgroundSampleSize)))
             photo = PhotoState(
                 image: image,
                 background: background,
@@ -499,6 +314,9 @@ private final class SlideshowFrameProducer: @unchecked Sendable {
                 throw VideoEditorError.composition("Cannot read slideshow video frames")
             }
             reader.add(output)
+            if let readRange = source.readRange {
+                reader.timeRange = readRange
+            }
             guard reader.startReading() else {
                 throw VideoEditorError.composition(
                     "Failed to read slideshow video", reader.error)
@@ -518,8 +336,10 @@ private final class SlideshowFrameProducer: @unchecked Sendable {
             guard frameIndex > state.lastFrameIndex else { continue }
             let frameTime = time(segment.start + elapsed)
             guard !lastTime.isValid || CMTimeCompare(frameTime, lastTime) > 0 else { continue }
-            let image = contained(CIImage(cvPixelBuffer: imageBuffer).oriented(source.orientation))
-                .composited(over: CIImage(color: .black).cropped(to: frameRect))
+            let frame = CIImage(cvPixelBuffer: imageBuffer).oriented(source.orientation)
+            let background = try state.background ?? videoBackground(for: frame)
+            state.background = background
+            let image = contained(frame).composited(over: background)
             let buffer = try render(dissolved(image, elapsed: elapsed))
             state.lastImage = image
             state.lastFrameIndex = frameIndex
@@ -549,9 +369,7 @@ private final class SlideshowFrameProducer: @unchecked Sendable {
 
     private func fitted(_ image: CIImage, scale: Double, offset: CGPoint) -> CIImage {
         let extent = image.extent
-        let containScale = min(
-            frameRect.width / extent.width, frameRect.height / extent.height)
-        let totalScale = containScale * scale
+        let totalScale = containScale(for: extent) * scale
         let transform = CGAffineTransform(
             translationX: frameRect.midX + offset.x * frameRect.width,
             y: frameRect.midY - offset.y * frameRect.height
@@ -563,6 +381,42 @@ private final class SlideshowFrameProducer: @unchecked Sendable {
 
     private func contained(_ image: CIImage) -> CIImage {
         fitted(image, scale: 1, offset: .zero)
+    }
+
+    private func containScale(for extent: CGRect) -> CGFloat {
+        min(frameRect.width / extent.width, frameRect.height / extent.height)
+    }
+
+    private func videoBackground(for frame: CIImage) throws -> CIImage {
+        let extent = frame.extent
+        let scale = containScale(for: extent)
+        guard
+            frameRect.width - extent.width * scale >= 1
+                || frameRect.height - extent.height * scale >= 1
+        else { return CIImage(color: .black).cropped(to: frameRect) }
+        return try renderHold(blurredBackground(shrunk(frame, to: Self.backgroundSampleSize)))
+    }
+
+    private func blurredBackground(_ sample: CIImage) -> CIImage {
+        covered(sample)
+            .clampedToExtent()
+            .applyingGaussianBlur(sigma: 24)
+            .cropped(to: frameRect)
+    }
+
+    private func shrunk(_ image: CIImage, to maxPixelSize: Int) -> CIImage {
+        let longSide = max(image.extent.width, image.extent.height)
+        guard longSide > CGFloat(maxPixelSize) else { return image }
+        let scale = CGFloat(maxPixelSize) / longSide
+        return image.clampedToExtent()
+            .applyingFilter(
+                "CILanczosScaleTransform",
+                parameters: [
+                    kCIInputScaleKey: scale,
+                    kCIInputAspectRatioKey: 1,
+                ]
+            )
+            .cropped(to: image.extent.applying(CGAffineTransform(scaleX: scale, y: scale)).integral)
     }
 
     private func covered(_ image: CIImage) -> CIImage {
@@ -624,65 +478,55 @@ private final class SlideshowFrameProducer: @unchecked Sendable {
     }
 }
 
-private final class SlideshowAudioProducer: @unchecked Sendable {
+private final class SlideshowAudioProducer: VideoWriterAudioSource, @unchecked Sendable {
     static let sampleRate = 44_100
     static let channelCount = 2
-    private static let chunkFrames = 1024
+    private static let chunkFrames: Int64 = 1024
 
-    private enum Source {
-        case music
-        case video(SlideshowVideoSource)
-        case silence
-    }
-
-    private struct AudioSegment {
+    private struct VideoAudio {
         let start: Int64
         let end: Int64
-        let source: Source
-    }
-
-    private struct MusicRun {
-        let start: Int64
-        let end: Int64
+        let asset: AVAsset
+        let track: AVAssetTrack
     }
 
     private let formatDescription: CMAudioFormatDescription
-    private let segments: [AudioSegment]
-    private let musicRuns: [MusicRun]
+    private let totalFrames: Int64
+    private let videoAudio: [VideoAudio]
     private let music: PcmSource?
-    private let fadeInFrames: Double
-    private let fadeOutFrames: Double
-    private var videoAudio: PcmSource?
+    private let musicEnvelope: SlideshowMusicEnvelope?
+    private let videoAudioGain: Float
+    private var videoReader: PcmSource?
+    private var videoReaderIndex: Int?
     private var position: Int64 = 0
 
     init(timeline: SlideshowTimeline) throws {
         let sampleRate = Double(Self.sampleRate)
-        var segments: [AudioSegment] = []
-        var runs: [MusicRun] = []
-        for segment in timeline.segments {
+        let totalFrames = Int64((timeline.duration * sampleRate).rounded())
+        let audibleSegments = timeline.segments.filter(\.playsVideoAudio)
+        let videoAudio: [VideoAudio] = audibleSegments.compactMap { segment in
+            guard let video = segment.video, let track = video.audioTrack else { return nil }
             let start = Int64((segment.start * sampleRate).rounded())
             let end = Int64((segment.end * sampleRate).rounded())
-            guard end > start else { continue }
-            let source: Source
-            if segment.playsMusic, timeline.music != nil {
-                source = .music
-                if let last = runs.last, last.end == start {
-                    runs[runs.count - 1] = MusicRun(start: last.start, end: end)
-                } else {
-                    runs.append(MusicRun(start: start, end: end))
-                }
-            } else if segment.playsVideoAudio, let video = segment.video {
-                source = .video(video)
-            } else {
-                source = .silence
-            }
-            segments.append(AudioSegment(start: start, end: end, source: source))
+            guard end > start else { return nil }
+            return VideoAudio(start: start, end: end, asset: video.asset, track: track)
         }
-        self.segments = segments
-        musicRuns = runs
+        self.totalFrames = totalFrames
+        self.videoAudio = videoAudio
         music = timeline.music.map { PcmSource(asset: $0.asset, track: $0.track) }
-        fadeInFrames = (timeline.music?.fadeIn ?? 0) * sampleRate
-        fadeOutFrames = (timeline.music?.fadeOut ?? 0) * sampleRate
+        videoAudioGain = Float(timeline.music?.videoAudioGain ?? 1)
+        musicEnvelope = timeline.music.map { music in
+            SlideshowMusicEnvelope(
+                totalFrames: Double(totalFrames),
+                fadeInFrames: music.fadeIn * sampleRate,
+                fadeOutFrames: music.fadeOut * sampleRate,
+                duckedMusicGain: music.duckedMusicGain,
+                duckFadeFrames: music.duckFade * sampleRate,
+                videoAudio: audibleSegments.map {
+                    (start: $0.start * sampleRate, end: $0.end * sampleRate)
+                }
+            )
+        }
 
         var description = AudioStreamBasicDescription(
             mSampleRate: sampleRate,
@@ -713,48 +557,52 @@ private final class SlideshowAudioProducer: @unchecked Sendable {
     }
 
     func next() throws -> CMSampleBuffer? {
-        guard let segment = segments.first(where: { position >= $0.start && position < $0.end })
-        else {
-            return nil
+        guard position < totalFrames else { return nil }
+        let videoIndex = videoAudio.firstIndex { position >= $0.start && position < $0.end }
+        var chunkEnd = min(position + Self.chunkFrames, totalFrames)
+        if let videoIndex {
+            chunkEnd = min(chunkEnd, videoAudio[videoIndex].end)
+        } else if let upcoming = videoAudio.first(where: { $0.start > position }) {
+            chunkEnd = min(chunkEnd, upcoming.start)
         }
-        let frames = Int(min(Int64(Self.chunkFrames), segment.end - position))
+        let frames = Int(chunkEnd - position)
         var samples = [Int16](repeating: 0, count: frames * Self.channelCount)
-        switch segment.source {
-        case .music:
-            if let music {
-                try music.read(into: &samples, frames: frames, loops: true)
-                applyMusicGain(to: &samples, frames: frames)
-            }
-        case .video(let source):
-            if videoAudio == nil, let track = source.audioTrack {
-                videoAudio = PcmSource(asset: source.asset, track: track)
-            }
-            try videoAudio?.read(into: &samples, frames: frames, loops: false)
-        case .silence:
-            break
+        if let music, let musicEnvelope {
+            try music.read(into: &samples, frames: frames, loops: true)
+            applyMusicGain(musicEnvelope, to: &samples, frames: frames)
+        }
+        if let videoIndex {
+            try mixVideoAudio(videoIndex, into: &samples, frames: frames)
+        } else {
+            videoReader = nil
+            videoReaderIndex = nil
         }
         let sample = try makeSampleBuffer(samples, frames: frames, at: position)
-        position += Int64(frames)
-        if position >= segment.end {
-            videoAudio = nil
-        }
+        position = chunkEnd
         return sample
     }
 
-    private func applyMusicGain(to samples: inout [Int16], frames: Int) {
-        guard let run = musicRuns.first(where: { position >= $0.start && position < $0.end })
-        else {
-            return
+    private func mixVideoAudio(_ index: Int, into samples: inout [Int16], frames: Int) throws {
+        if videoReaderIndex != index {
+            let video = videoAudio[index]
+            videoReader = PcmSource(asset: video.asset, track: video.track)
+            videoReaderIndex = index
         }
+        var video = [Int16](repeating: 0, count: samples.count)
+        try videoReader?.read(into: &video, frames: frames, loops: false)
+        for sample in samples.indices {
+            let scaled = Int32((Float(video[sample]) * videoAudioGain).rounded())
+            samples[sample] = Int16(clamping: Int32(samples[sample]) + scaled)
+        }
+    }
+
+    private func applyMusicGain(
+        _ envelope: SlideshowMusicEnvelope,
+        to samples: inout [Int16],
+        frames: Int
+    ) {
         for frame in 0..<frames {
-            let absolute = Double(position + Int64(frame))
-            var gain = 1.0
-            if fadeInFrames > 0 {
-                gain = min(gain, (absolute - Double(run.start)) / fadeInFrames)
-            }
-            if fadeOutFrames > 0 {
-                gain = min(gain, (Double(run.end) - absolute) / fadeOutFrames)
-            }
+            let gain = envelope.gain(at: Double(position + Int64(frame)))
             guard gain < 1 else { continue }
             let clamped = Float(max(gain, 0))
             for channel in 0..<Self.channelCount {
@@ -810,6 +658,86 @@ private final class SlideshowAudioProducer: @unchecked Sendable {
             throw VideoEditorError.export("Failed to build slideshow audio")
         }
         return sampleBuffer
+    }
+}
+
+private struct SlideshowMusicEnvelope {
+    let totalFrames: Double
+    let fadeInFrames: Double
+    let fadeOutFrames: Double
+    let duckedMusicGain: Double
+    let duckFadeFrames: Double
+    let ducks: [(start: Double, end: Double)]
+
+    init(
+        totalFrames: Double,
+        fadeInFrames: Double,
+        fadeOutFrames: Double,
+        duckedMusicGain: Double,
+        duckFadeFrames: Double,
+        videoAudio: [(start: Double, end: Double)]
+    ) {
+        self.totalFrames = totalFrames
+        self.fadeInFrames = fadeInFrames
+        self.fadeOutFrames = fadeOutFrames
+        self.duckedMusicGain = duckedMusicGain
+        self.duckFadeFrames = duckFadeFrames
+        var ducks: [(start: Double, end: Double)] = []
+        for range in videoAudio {
+            if let last = ducks.last, (range.start - last.end).rounded() <= 2 * duckFadeFrames {
+                ducks[ducks.count - 1] = (last.start, range.end)
+            } else {
+                ducks.append(range)
+            }
+        }
+        self.ducks = ducks
+    }
+
+    func gain(at frame: Double) -> Double {
+        var gain = 1.0
+        if fadeInFrames > 0 {
+            gain = min(gain, frame / fadeInFrames)
+        }
+        if fadeOutFrames > 0 {
+            gain = min(gain, (totalFrames - frame) / fadeOutFrames)
+        }
+        return max(gain, 0) * duckLevel(at: frame)
+    }
+
+    private func duckLevel(at frame: Double) -> Double {
+        var level = 1.0
+        var index = firstDuck(endingAfter: frame - duckFadeFrames)
+        while index < ducks.count, ducks[index].start - duckFadeFrames <= frame {
+            let duck = ducks[index]
+            index += 1
+            let depth: Double
+            if frame >= duck.start, frame < duck.end {
+                depth = 1
+            } else if duckFadeFrames <= 0 {
+                depth = 0
+            } else if frame < duck.start {
+                depth = 1 - (duck.start - frame) / duckFadeFrames
+            } else {
+                depth = 1 - (frame - duck.end) / duckFadeFrames
+            }
+            guard depth > 0 else { continue }
+            level = min(level, 1 - depth * (1 - duckedMusicGain))
+        }
+        return level
+    }
+
+    private func firstDuck(endingAfter frame: Double) -> Int {
+        var low = 0
+        var high = ducks.count
+        while low < high {
+            let middle = (low + high) / 2
+            if ducks[middle].end <= frame {
+                low = middle + 1
+            } else {
+                high = middle
+            }
+        }
+        return low
     }
 }
 

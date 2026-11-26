@@ -1,22 +1,15 @@
 package passkey
 
-import (
-	"time"
+import "github.com/ente/museum/ente"
 
-	"github.com/ente/museum/ente"
-	"github.com/google/uuid"
-)
-
-func (r *Repository) createPasskey(userID int64, friendlyName string) (newPasskey *ente.Passkey, err error) {
-
-	newPasskey = &ente.Passkey{
-		ID:           uuid.New(),
-		UserID:       userID,
-		FriendlyName: friendlyName,
-		CreatedAt:    time.Now().UnixMicro(),
+func (r *Repository) createPasskey(newPasskey *ente.Passkey, credential *ente.PasskeyCredential) error {
+	tx, err := r.DB.Begin()
+	if err != nil {
+		return err
 	}
+	defer tx.Rollback()
 
-	_, err = r.DB.Exec(`
+	_, err = tx.Exec(`
 		INSERT INTO passkeys (
 			id,
 			user_id,
@@ -35,11 +28,11 @@ func (r *Repository) createPasskey(userID int64, friendlyName string) (newPasske
 		newPasskey.CreatedAt,
 	)
 
-	return
-}
+	if err != nil {
+		return err
+	}
 
-func (r *Repository) createPasskeyCredential(credential *ente.PasskeyCredential) (err error) {
-	_, err = r.DB.Exec(`
+	_, err = tx.Exec(`
 		INSERT INTO passkey_credentials(
 			passkey_id,
 			rp_id,
@@ -72,8 +65,8 @@ func (r *Repository) createPasskeyCredential(credential *ente.PasskeyCredential)
 		credential.CredentialID,
 	)
 	if err != nil {
-		return
+		return err
 	}
 
-	return
+	return tx.Commit()
 }

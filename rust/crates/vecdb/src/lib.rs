@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use thiserror::Error;
 
 mod arena;
+mod cipher;
 mod crc;
 mod graph;
 mod kernel;
@@ -12,7 +13,7 @@ mod snapshot;
 mod store;
 
 pub use arena::validate_key;
-pub use store::{OpenCost, Stats, VecDb};
+pub use store::{Stats, VecDb};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StorageKind {
@@ -56,6 +57,23 @@ impl std::fmt::Display for StorageKind {
         formatter.write_str(match self {
             Self::F32 => "f32",
             Self::I8 => "i8",
+        })
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EncryptionMismatch {
+    MissingKey,
+    UnexpectedKey,
+    WrongKey,
+}
+
+impl std::fmt::Display for EncryptionMismatch {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(match self {
+            Self::MissingKey => "the vector db is encrypted but no encryption key was given",
+            Self::UnexpectedKey => "the vector db is not encrypted but an encryption key was given",
+            Self::WrongKey => "the encryption key does not match the vector db",
         })
     }
 }
@@ -106,6 +124,11 @@ pub enum VecDbError {
     Corrupt(String),
     #[error("{}: locked by another writer", .0.display())]
     Locked(PathBuf),
+    #[error("{}: {mismatch}", path.display())]
+    Encryption {
+        path: PathBuf,
+        mismatch: EncryptionMismatch,
+    },
     #[error("vector db was opened read-only")]
     ReadOnly,
     #[error("vector db was deleted")]
@@ -118,8 +141,12 @@ pub enum VecDbError {
     InvalidAttributes(String),
     #[error("dimension mismatch: expected {expected}, got {actual}")]
     DimensionMismatch { expected: usize, actual: usize },
-    #[error("invalid dimensions {dims}: {storage} storage needs a nonzero multiple of {} no larger than {}", .storage.lane_width(), .storage.max_dims())]
-    InvalidDimensions { dims: usize, storage: StorageKind },
+    #[error("invalid dimensions {dims}: {storage} storage needs a nonzero multiple of {} no larger than {max_dims}", .storage.lane_width())]
+    InvalidDimensions {
+        dims: usize,
+        storage: StorageKind,
+        max_dims: usize,
+    },
     #[error("storage mismatch: expected {expected}, found {actual}")]
     StorageMismatch {
         expected: StorageKind,
@@ -136,6 +163,13 @@ impl VecDbError {
         Self::Io {
             path: path.to_path_buf(),
             source,
+        }
+    }
+
+    pub(crate) fn encryption_mismatch(path: &Path, mismatch: EncryptionMismatch) -> Self {
+        Self::Encryption {
+            path: path.to_path_buf(),
+            mismatch,
         }
     }
 }

@@ -520,16 +520,15 @@ func (repo *CollectionRepository) Share(
 	encryptedKey string,
 	role ente.CollectionParticipantRole,
 	updationTime int64) error {
+	if role != ente.VIEWER && role != ente.COLLABORATOR && role != ente.ADMIN {
+		return stacktrace.Propagate(ente.NewBadRequestError(nil), "invalid share role")
+	}
 	context := context.Background()
 	tx, err := repo.DB.BeginTx(context, nil)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
 	defer tx.Rollback()
-	if role != ente.VIEWER && role != ente.COLLABORATOR && role != ente.ADMIN {
-		err = fmt.Errorf("invalid role %s", string(role))
-		return stacktrace.Propagate(err, "")
-	}
 	_, err = tx.ExecContext(context, `INSERT INTO collection_shares(collection_id, from_user_id, to_user_id, encrypted_key, updation_time, role_type, shared_at) VALUES($1, $2, $3, $4, $5, $6, $7)
 			ON CONFLICT (collection_id, from_user_id, to_user_id)
 			DO UPDATE SET
@@ -1138,6 +1137,24 @@ func (repo *CollectionRepository) GetFile(collectionID int64, fileID int64) ([]e
 		return nil, stacktrace.Propagate(err, "")
 	}
 	return files, nil
+}
+
+func (repo *CollectionRepository) GetPhotoActivityRecipients(ctx context.Context, collectionID, actorID int64) ([]int64, error) {
+	var recipients pq.Int64Array
+	err := repo.DB.QueryRowContext(ctx, `
+		SELECT ARRAY(
+			SELECT c.owner_id WHERE c.owner_id <> $2
+			UNION
+			SELECT to_user_id FROM collection_shares
+			WHERE collection_id = c.collection_id AND NOT is_deleted AND to_user_id <> $2
+		)
+		FROM collections c
+		WHERE c.collection_id = $1 AND NOT c.is_deleted AND c.app = 'photos'
+	`, collectionID, actorID).Scan(&recipients)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	return recipients, stacktrace.Propagate(err, "")
 }
 
 func (repo *CollectionRepository) GetSharees(cID int64) ([]ente.CollectionUser, error) {

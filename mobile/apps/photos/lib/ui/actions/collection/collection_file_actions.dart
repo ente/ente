@@ -188,7 +188,7 @@ extension CollectionFileActions on CollectionActions {
         await dialog?.hide();
         if (!context.mounted) return false;
         if (_isStorageLimitError(e)) {
-          await _showStorageFullSheet(context);
+          await showStorageFullSheet(context);
         } else {
           await showGenericErrorDialog(context: context, error: e);
         }
@@ -314,7 +314,7 @@ extension CollectionFileActions on CollectionActions {
       await dialog?.hide();
       if (context.mounted) {
         if (_isStorageLimitError(e)) {
-          await _showStorageFullSheet(context);
+          await showStorageFullSheet(context);
         } else {
           await showGenericErrorDialog(context: context, error: e);
         }
@@ -362,7 +362,7 @@ extension CollectionFileActions on CollectionActions {
 
 enum _StorageFullAction { upgrade, freeUpSpace }
 
-Future<void> _showStorageFullSheet(BuildContext context) async {
+Future<void> showStorageFullSheet(BuildContext context) async {
   final action = await showBottomSheetComponent<_StorageFullAction>(
     context: context,
     builder: (sheetContext) => BottomSheetComponent(

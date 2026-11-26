@@ -1,11 +1,11 @@
 import "dart:async";
 
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/components/loading_widget.dart";
 import 'package:flutter/material.dart';
-import "package:hugeicons/hugeicons.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/event.dart";
@@ -399,6 +399,7 @@ class _PeopleSectionAllWidgetState extends State<PeopleSectionAllWidget> {
   final _searchController = TextEditingController();
   final _searchFocusNode = FocusNode();
   int _suggestionReloadToken = 0;
+  bool _suggestionReloadPending = false;
   final Debouncer _peopleReloadDebouncer = Debouncer(
     const Duration(milliseconds: 400),
   );
@@ -477,25 +478,18 @@ class _PeopleSectionAllWidgetState extends State<PeopleSectionAllWidget> {
             setState(() {
               _suggestionReloadToken++;
             });
-          } else if (event is PeopleChangedEvent &&
-              event.type == PeopleEventType.syncDone) {
-            _peopleReloadDebouncer.run(() async {
-              if (!mounted) {
-                return;
-              }
-              setState(() {
-                _isInitialLoad = false;
-                _isLoaded = false;
-                sectionData = getResults();
-              });
-            });
           } else {
+            _suggestionReloadPending =
+                _suggestionReloadPending ||
+                event is! PeopleChangedEvent ||
+                event.type != PeopleEventType.syncDone;
             _peopleReloadDebouncer.run(() async {
-              if (!mounted) {
-                return;
-              }
+              if (!mounted) return;
               setState(() {
-                _suggestionReloadToken++;
+                if (_suggestionReloadPending) {
+                  _suggestionReloadToken++;
+                  _suggestionReloadPending = false;
+                }
                 _isInitialLoad = false;
                 _isLoaded = false;
                 sectionData = getResults();
@@ -590,7 +584,7 @@ class _PeopleSectionAllWidgetState extends State<PeopleSectionAllWidget> {
           final bool bPinned = b.params[kPersonPinned] as bool? ?? false;
           if (aPinned && !bPinned) return -1;
           if (!aPinned && bPinned) return 1;
-          return a.name().compareTo(b.name());
+          return compareNames(a.name(), b.name());
         });
       }
     }
@@ -991,6 +985,7 @@ class _PeopleSectionAllWidgetState extends State<PeopleSectionAllWidget> {
 
   Widget _buildSearchAction() {
     return IconButtonComponent(
+      tooltip: context.strings.search,
       variant: IconButtonComponentVariant.primary,
       shouldSurfaceExecutionStates: false,
       icon: const HugeIcon(icon: HugeIcons.strokeRoundedSearch01),
@@ -1024,6 +1019,7 @@ class _PeopleSectionAllWidgetState extends State<PeopleSectionAllWidget> {
   Widget _buildSortMenu() {
     return Builder(
       builder: (buttonContext) => IconButtonComponent(
+        tooltip: context.strings.sort,
         variant: IconButtonComponentVariant.primary,
         shouldSurfaceExecutionStates: false,
         icon: const HugeIcon(icon: HugeIcons.strokeRoundedFilterHorizontal),

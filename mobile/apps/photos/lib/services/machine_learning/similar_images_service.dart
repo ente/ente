@@ -16,6 +16,7 @@ import "package:photos/services/search_service.dart";
 import "package:photos/utils/cache_util.dart";
 
 class SimilarImagesService {
+  static const double closeDistanceThreshold = 0.001;
   static const double _groupedClipEmbeddingLossRefreshRatio = 0.05;
 
   final _logger = Logger("SimilarImagesService");
@@ -97,21 +98,13 @@ class SimilarImagesService {
     w?.log("getFileIDToPersonIDs");
 
     if (forceRefresh) {
-      final result = await _performFullSearch(
+      return _performFullSearch(
         fileIDs,
         allFileIdsToFile,
         fileIDToPersonIDs,
         distanceThreshold,
         exact,
       );
-      await _cacheSimilarFiles(
-        result,
-        fileIDs.toSet(),
-        distanceThreshold,
-        exact,
-        DateTime.now().millisecondsSinceEpoch,
-      );
-      return result;
     }
 
     final SimilarFilesCache? cachedData = await _readCachedSimilarFiles();
@@ -128,7 +121,8 @@ class SimilarImagesService {
       final Set<int> cachedFileIDs = cachedData.allCheckedFileIDs;
       final currentFileIDs = fileIDs.toSet();
 
-      if (cachedData.distanceThreshold != distanceThreshold ||
+      if (cachedData.version != SimilarFilesCache.currentVersion ||
+          cachedData.distanceThreshold != distanceThreshold ||
           cachedData.exact != exact) {
         needsFullRefresh = true;
       }
@@ -177,21 +171,13 @@ class SimilarImagesService {
     }
 
     if (cachedData == null || needsFullRefresh) {
-      final result = await _performFullSearch(
+      return _performFullSearch(
         fileIDs,
         allFileIdsToFile,
         fileIDToPersonIDs,
         distanceThreshold,
         exact,
       );
-      await _cacheSimilarFiles(
-        result,
-        fileIDs.toSet(),
-        distanceThreshold,
-        exact,
-        DateTime.now().millisecondsSinceEpoch,
-      );
-      return result;
     } else {
       return await _performIncrementalUpdate(
         cachedData,
@@ -213,9 +199,18 @@ class SimilarImagesService {
     bool exact,
   ) async {
     _logger.info("Performing incremental update for similar files");
-    final existingGroups = await cachedData.similarFilesList();
     final cachedFileIDs = cachedData.allCheckedFileIDs;
     final currentFileIDsSet = currentFileIDs.toSet();
+    if (_closeGroupLostFile(cachedData, currentFileIDsSet)) {
+      return _performFullSearch(
+        currentFileIDs,
+        allFileIdsToFile,
+        fileIDToPersonIDs,
+        distanceThreshold,
+        exact,
+      );
+    }
+    final existingGroups = await cachedData.similarFilesList();
     final deletedFiles = cachedFileIDs.difference(currentFileIDsSet);
 
     if (deletedFiles.isNotEmpty) {
@@ -253,86 +248,30 @@ class SimilarImagesService {
       exact: exact,
     );
 
-    final unassignedNewFiles = <int, List<(int, double)>>{};
-    for (final entry in newFileMatches.entries) {
-      final newFileID = entry.key;
-      final newFile = allFileIdsToFile[newFileID];
-      if (newFile == null) continue;
-      final newFilePersonIDs = fileIDToPersonIDs[newFileID] ?? <String>{};
-      bool assigned = false;
-      for (final (otherFileID, distance) in entry.value) {
-        if (otherFileID == newFileID) continue;
-        if (distance > distanceThreshold) break;
-        for (final group in existingGroups) {
-          if (group.fileIds.contains(otherFileID)) {
-            final otherPersonIDs = fileIDToPersonIDs[otherFileID] ?? <String>{};
-            if (setsAreEqual(newFilePersonIDs, otherPersonIDs)) {
-              group.addFile(newFile);
-              group.furthestDistance = max(group.furthestDistance, distance);
-              group.files.sort((a, b) {
-                if (FavoritesService.instance.isFavoriteCache(a)) {
-                  return -1;
-                } else if (FavoritesService.instance.isFavoriteCache(b)) {
-                  return 1;
-                }
-                final sizeComparison = (b.fileSize ?? 0).compareTo(
-                  a.fileSize ?? 0,
-                );
-                if (sizeComparison != 0) return sizeComparison;
-                return a.displayName.compareTo(b.displayName);
-              });
-              assigned = true;
-              break;
-            }
-          }
-        }
-        if (assigned) break;
-      }
-      if (!assigned) {
-        unassignedNewFiles[newFileID] = entry.value;
-      }
+    if (_newFilesNeedFullSearch(
+      newFileMatches,
+      existingGroups,
+      cachedFileIDs,
+      allFileIdsToFile,
+      fileIDToPersonIDs,
+      distanceThreshold,
+    )) {
+      return _performFullSearch(
+        currentFileIDs,
+        allFileIdsToFile,
+        fileIDToPersonIDs,
+        distanceThreshold,
+        exact,
+      );
     }
 
-    if (unassignedNewFiles.isNotEmpty) {
-      final alreadyUsedNewFiles = <int>{};
-      for (final entry in unassignedNewFiles.entries) {
-        final newFileID = entry.key;
-        if (alreadyUsedNewFiles.contains(newFileID)) continue;
-        final newFile = allFileIdsToFile[newFileID];
-        if (newFile == null) continue;
-        final newFilePersonIDs = fileIDToPersonIDs[newFileID] ?? <String>{};
-        final similarNewFiles = <EnteFile>[];
-        double furthestDistance = 0.0;
-        for (final (otherFileID, distance) in entry.value) {
-          if (otherFileID == newFileID) continue;
-          if (!unassignedNewFiles.containsKey(otherFileID)) continue;
-          if (alreadyUsedNewFiles.contains(otherFileID)) continue;
-          if (distance > distanceThreshold) break;
-          final otherFile = allFileIdsToFile[otherFileID];
-          if (otherFile == null) continue;
-          final otherPersonIDs = fileIDToPersonIDs[otherFileID] ?? <String>{};
-          if (!setsAreEqual(newFilePersonIDs, otherPersonIDs)) continue;
-          similarNewFiles.add(otherFile);
-          alreadyUsedNewFiles.add(otherFileID);
-          furthestDistance = max(furthestDistance, distance);
-        }
-        if (similarNewFiles.isNotEmpty) {
-          similarNewFiles.add(newFile);
-          alreadyUsedNewFiles.add(newFileID);
-          similarNewFiles.sort((a, b) {
-            if (FavoritesService.instance.isFavoriteCache(a)) {
-              return -1;
-            } else if (FavoritesService.instance.isFavoriteCache(b)) {
-              return 1;
-            }
-            final sizeComparison = (b.fileSize ?? 0).compareTo(a.fileSize ?? 0);
-            if (sizeComparison != 0) return sizeComparison;
-            return a.displayName.compareTo(b.displayName);
-          });
-          existingGroups.add(SimilarFiles(similarNewFiles, furthestDistance));
-        }
-      }
-    }
+    _addNewFilesToGroups(
+      existingGroups,
+      newFileMatches,
+      allFileIdsToFile,
+      fileIDToPersonIDs,
+      distanceThreshold,
+    );
     await _cacheSimilarFiles(
       existingGroups,
       currentFileIDsSet,
@@ -342,6 +281,121 @@ class SimilarImagesService {
     );
 
     return existingGroups;
+  }
+
+  bool _closeGroupLostFile(
+    SimilarFilesCache cachedData,
+    Set<int> currentFileIDs,
+  ) {
+    return cachedData
+        .fileIDGroupsWithin(closeDistanceThreshold)
+        .any(
+          (fileIDs) =>
+              fileIDs.any(currentFileIDs.contains) &&
+              !currentFileIDs.containsAll(fileIDs),
+        );
+  }
+
+  bool _newFilesNeedFullSearch(
+    Map<int, List<(int, double)>> newFileMatches,
+    List<SimilarFiles> existingGroups,
+    Set<int> cachedFileIDs,
+    Map<int, EnteFile> allFileIdsToFile,
+    Map<int, Set<String>> fileIDToPersonIDs,
+    double distanceThreshold,
+  ) {
+    final groupedFileIDs = existingGroups
+        .expand((group) => group.fileIds)
+        .toSet();
+    for (final entry in newFileMatches.entries) {
+      final newFileID = entry.key;
+      if (!allFileIdsToFile.containsKey(newFileID)) continue;
+      final newFilePersonIDs = fileIDToPersonIDs[newFileID] ?? <String>{};
+      for (final (otherFileID, distance) in entry.value) {
+        if (otherFileID == newFileID) continue;
+        if (distance > distanceThreshold) break;
+        if (!allFileIdsToFile.containsKey(otherFileID)) continue;
+        if (distance <= closeDistanceThreshold) return true;
+        if (cachedFileIDs.contains(otherFileID) &&
+            !groupedFileIDs.contains(otherFileID) &&
+            setsAreEqual(
+              newFilePersonIDs,
+              fileIDToPersonIDs[otherFileID] ?? <String>{},
+            )) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  void _addNewFilesToGroups(
+    List<SimilarFiles> groups,
+    Map<int, List<(int, double)>> newFileMatches,
+    Map<int, EnteFile> allFileIdsToFile,
+    Map<int, Set<String>> fileIDToPersonIDs,
+    double distanceThreshold,
+  ) {
+    final ungroupedNewFileMatches = <int, List<(int, double)>>{};
+    for (final entry in newFileMatches.entries) {
+      final newFileID = entry.key;
+      final newFile = allFileIdsToFile[newFileID];
+      if (newFile == null) continue;
+      final similarGroup = _findSimilarGroup(
+        newFileID,
+        entry.value,
+        groups,
+        fileIDToPersonIDs,
+        distanceThreshold,
+      );
+      if (similarGroup == null) {
+        ungroupedNewFileMatches[newFileID] = entry.value;
+        continue;
+      }
+      final (group, distance) = similarGroup;
+      group.addFile(newFile);
+      group.furthestDistance = max(group.furthestDistance, distance);
+      _sortGroupFiles(group.files);
+    }
+    final usedFileIDs = allFileIdsToFile.keys.toSet().difference(
+      ungroupedNewFileMatches.keys.toSet(),
+    );
+    groups.addAll(
+      _groupAroundSeeds(
+        ungroupedNewFileMatches,
+        allFileIdsToFile,
+        fileIDToPersonIDs,
+        distanceThreshold,
+        usedFileIDs,
+        requireSamePeople: true,
+      ),
+    );
+  }
+
+  (SimilarFiles, double)? _findSimilarGroup(
+    int fileID,
+    List<(int, double)> matches,
+    List<SimilarFiles> groups,
+    Map<int, Set<String>> fileIDToPersonIDs,
+    double distanceThreshold,
+  ) {
+    final personIDs = fileIDToPersonIDs[fileID] ?? <String>{};
+    for (final (otherFileID, distance) in matches) {
+      if (otherFileID == fileID) continue;
+      if (distance > distanceThreshold) break;
+      if (!setsAreEqual(
+        personIDs,
+        fileIDToPersonIDs[otherFileID] ?? <String>{},
+      )) {
+        continue;
+      }
+      for (final group in groups) {
+        if (!_isCloseGroup(group) && group.fileIds.contains(otherFileID)) {
+          return (group, distance);
+        }
+      }
+    }
+    return null;
   }
 
   Future<List<SimilarFiles>> _performFullSearch(
@@ -360,54 +414,109 @@ class SimilarImagesService {
     );
     w?.log("bulkSearchVectors");
 
-    final alreadyUsedFileIDs = <int>{};
-    final allSimilarFiles = <SimilarFiles>[];
+    final allSimilarFiles = _groupFileMatches(
+      fileMatches,
+      allFileIdsToFile,
+      fileIDToPersonIDs,
+      distanceThreshold,
+      <int>{},
+    );
+    w?.log("going through files");
+
+    await _cacheSimilarFiles(
+      allSimilarFiles,
+      fileIDs.toSet(),
+      distanceThreshold,
+      exact,
+      DateTime.now().millisecondsSinceEpoch,
+    );
+    return allSimilarFiles;
+  }
+
+  List<SimilarFiles> _groupFileMatches(
+    Map<int, List<(int, double)>> fileMatches,
+    Map<int, EnteFile> allFileIdsToFile,
+    Map<int, Set<String>> fileIDToPersonIDs,
+    double distanceThreshold,
+    Set<int> usedFileIDs,
+  ) {
+    final closeGroups = _groupAroundSeeds(
+      fileMatches,
+      allFileIdsToFile,
+      fileIDToPersonIDs,
+      closeDistanceThreshold,
+      usedFileIDs,
+      requireSamePeople: false,
+    );
+    final similarGroups = _groupAroundSeeds(
+      fileMatches,
+      allFileIdsToFile,
+      fileIDToPersonIDs,
+      distanceThreshold,
+      usedFileIDs,
+      requireSamePeople: true,
+    );
+    return [...closeGroups, ...similarGroups];
+  }
+
+  List<SimilarFiles> _groupAroundSeeds(
+    Map<int, List<(int, double)>> fileMatches,
+    Map<int, EnteFile> allFileIdsToFile,
+    Map<int, Set<String>> fileIDToPersonIDs,
+    double maxDistance,
+    Set<int> usedFileIDs, {
+    required bool requireSamePeople,
+  }) {
+    final groups = <SimilarFiles>[];
     for (final entry in fileMatches.entries) {
       final fileID = entry.key;
-      if (alreadyUsedFileIDs.contains(fileID)) continue;
-      final firstLoopFile = allFileIdsToFile[fileID];
-      if (firstLoopFile == null || firstLoopFile.uploadedFileID == null) {
-        continue;
-      }
-      final similarFilesList = <EnteFile>[];
+      if (usedFileIDs.contains(fileID)) continue;
+      final seedFile = allFileIdsToFile[fileID];
+      if (seedFile == null) continue;
       final personIDs = fileIDToPersonIDs[fileID] ?? <String>{};
+      final groupFiles = <EnteFile>[];
       double furthestDistance = 0.0;
       for (final (otherFileID, distance) in entry.value) {
         if (otherFileID == fileID) continue;
-        if (alreadyUsedFileIDs.contains(otherFileID)) continue;
-        if (distance > distanceThreshold) break;
+        if (usedFileIDs.contains(otherFileID)) continue;
+        if (distance > maxDistance) break;
         final otherFile = allFileIdsToFile[otherFileID];
-        if (otherFile == null || otherFile.uploadedFileID == null) {
+        if (otherFile == null) continue;
+        if (requireSamePeople &&
+            !setsAreEqual(
+              personIDs,
+              fileIDToPersonIDs[otherFileID] ?? <String>{},
+            )) {
           continue;
         }
-        final otherPersonIDs = fileIDToPersonIDs[otherFileID] ?? <String>{};
-        if (!setsAreEqual(personIDs, otherPersonIDs)) continue;
-        similarFilesList.add(otherFile);
+        groupFiles.add(otherFile);
         furthestDistance = max(furthestDistance, distance);
-        alreadyUsedFileIDs.add(otherFileID);
+        usedFileIDs.add(otherFileID);
       }
-      if (similarFilesList.isNotEmpty) {
-        similarFilesList.add(firstLoopFile);
-        for (final file in similarFilesList) {
-          alreadyUsedFileIDs.add(file.uploadedFileID!);
-        }
-        similarFilesList.sort((a, b) {
-          if (FavoritesService.instance.isFavoriteCache(a)) {
-            return -1;
-          } else if (FavoritesService.instance.isFavoriteCache(b)) {
-            return 1;
-          }
-          final sizeComparison = (b.fileSize ?? 0).compareTo(a.fileSize ?? 0);
-          if (sizeComparison != 0) return sizeComparison;
-          return a.displayName.compareTo(b.displayName);
-        });
-        final similarFiles = SimilarFiles(similarFilesList, furthestDistance);
-        allSimilarFiles.add(similarFiles);
-      }
+      if (groupFiles.isEmpty) continue;
+      groupFiles.add(seedFile);
+      usedFileIDs.add(fileID);
+      _sortGroupFiles(groupFiles);
+      groups.add(SimilarFiles(groupFiles, furthestDistance));
     }
-    w?.log("going through files");
+    return groups;
+  }
 
-    return allSimilarFiles;
+  bool _isCloseGroup(SimilarFiles group) {
+    return group.furthestDistance <= closeDistanceThreshold;
+  }
+
+  void _sortGroupFiles(List<EnteFile> files) {
+    files.sort((a, b) {
+      if (FavoritesService.instance.isFavoriteCache(a)) {
+        return -1;
+      } else if (FavoritesService.instance.isFavoriteCache(b)) {
+        return 1;
+      }
+      final sizeComparison = (b.fileSize ?? 0).compareTo(a.fileSize ?? 0);
+      if (sizeComparison != 0) return sizeComparison;
+      return a.displayName.compareTo(b.displayName);
+    });
   }
 
   Future<String> _getCachePath() async {

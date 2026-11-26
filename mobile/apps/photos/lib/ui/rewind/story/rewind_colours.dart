@@ -4,32 +4,6 @@ import "package:photos/src/rust/api/rewind_api.dart" as rust;
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
 
 extension RewindColourLook on rust.RewindColour {
-  String get label => switch (this) {
-    rust.RewindColour.cherryBomb => "CHERRY BOMB",
-    rust.RewindColour.tangerinePop => "TANGERINE POP",
-    rust.RewindColour.lemonDrop => "LEMON DROP",
-    rust.RewindColour.pistachio => "PISTACHIO",
-    rust.RewindColour.berryBlue => "BERRY BLUE",
-    rust.RewindColour.lavenderFizz => "LAVENDER FIZZ",
-    rust.RewindColour.bubblegum => "BUBBLEGUM",
-    rust.RewindColour.hotCocoa => "HOT COCOA",
-    rust.RewindColour.marshmallow => "MARSHMALLOW",
-    rust.RewindColour.midnightCola => "MIDNIGHT COLA",
-  };
-
-  String get word => switch (this) {
-    rust.RewindColour.cherryBomb => "red",
-    rust.RewindColour.tangerinePop => "orange",
-    rust.RewindColour.lemonDrop => "yellow",
-    rust.RewindColour.pistachio => "green",
-    rust.RewindColour.berryBlue => "blue",
-    rust.RewindColour.lavenderFizz => "purple",
-    rust.RewindColour.bubblegum => "pink",
-    rust.RewindColour.hotCocoa => "brown",
-    rust.RewindColour.marshmallow => "white",
-    rust.RewindColour.midnightCola => "black",
-  };
-
   Color get color => switch (this) {
     rust.RewindColour.cherryBomb => const Color(0xFF920000),
     rust.RewindColour.tangerinePop => const Color(0xFFD9560B),

@@ -85,7 +85,10 @@ fpm -s dir -t rpm \
   --category "Application/Utility" \
   --depends sqlite-libs \
   --depends libsecret \
-  --depends libappindicator \
+  --depends 'libcurl.so.4()(64bit)' \
+  --depends 'libayatana-appindicator3.so.1()(64bit)' \
+  --depends 'libayatana-indicator3.so.7()(64bit)' \
+  --depends 'libayatana-ido3-0.4.so.0()(64bit)' \
   --depends polkit \
   -C "$STAGING_DIR" \
   -p "$OUTPUT_DIR/enteauth-VERSION.ARCH.rpm" \

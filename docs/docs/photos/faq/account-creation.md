@@ -43,6 +43,12 @@ Yes. Ente Photos is also available on the web at [photos.ente.com](https://photo
 
 You don't need to install anything - just log in with your email and password.
 
+### Can I use Ente Photos on a Chromebook? {#chromebook}
+
+There's no separate Ente Photos app made for ChromeOS. On a Chromebook, use the web app at [photos.ente.com](https://photos.ente.com) and sign in with your Ente account.
+
+If your Chromebook can install Android apps, you may also find Ente Photos in the Google Play Store. It only appears there if Google Play lists it as compatible with your Chromebook.
+
 ### Why is the latest version not available on F-Droid? {#fdroid-delay}
 
 Releases over F-Droid are generally slower than other stores since they run their own build servers. The latest updates are usually available within 2 weeks of release.
@@ -303,3 +309,7 @@ Check whether you may have signed up using:
 If you have a paid account, also check how the payment was made. App Store and Stripe payments can help identify which account was used.
 
 An App Store purchase may already be linked to a different Ente account. Making another purchase does not transfer that subscription or its storage to the account you are currently using. If the purchase appears on the wrong account, contact [support@ente.com](mailto:support@ente.com) so we can check the association before you buy again.
+
+### Why does Ente say "Account setup incomplete"? {#account-setup-incomplete}
+
+You started creating an account with this email but didn't finish, for example before you set a password and saved your recovery key. Tap **Sign up**, enter the same email and complete the steps.

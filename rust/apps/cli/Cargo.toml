@@ -1,6 +1,6 @@
 [package]
 name = "ente-cli"
-version = "0.4.5"
+version = "0.4.7"
 edition.workspace = true
 publish = false
 
@@ -45,6 +45,7 @@ rusqlite = { workspace = true, features = ["bundled-sqlcipher-vendored-openssl"]
 
 [dev-dependencies]
 ente-test-support.workspace = true
+flate2.workspace = true
 futures-util.workspace = true
 mockito.workspace = true
 same-file.workspace = true

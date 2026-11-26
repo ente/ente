@@ -1,5 +1,6 @@
 import type { GroundedSource } from "@/services/knowledge";
 import { isTauriRuntime } from "@/services/tauri-runtime";
+import type { ToolTurnStatus } from "@/services/todos";
 import { getKV, removeKV, setKV } from "ente-base/kv";
 import log from "ente-base/log";
 import { ensureArrayBufferBacked } from "ente-utils/bytes";
@@ -144,6 +145,22 @@ interface NativeMessage {
     attachments?: NativeAttachment[];
     sources?: GroundedSource[];
 }
+
+const fromNativeMessage = (message: NativeMessage): ChatMessage => ({
+    messageUuid: message.messageUuid,
+    sessionUuid: message.sessionUuid,
+    parentMessageUuid: message.parentMessageUuid ?? undefined,
+    sender: message.sender,
+    text: message.text,
+    createdAt: message.createdAt,
+    attachments: message.attachments?.map((attachment) => ({
+        id: attachment.id,
+        kind: attachment.kind,
+        name: attachment.name,
+        size: attachment.size,
+    })),
+    sources: message.sources,
+});
 
 const nowMicros = () => Date.now() * 1000;
 
@@ -412,21 +429,7 @@ const listMessagesNative = async (
         sessionUuid,
     });
 
-    return messages.map((message) => ({
-        messageUuid: message.messageUuid,
-        sessionUuid: message.sessionUuid,
-        parentMessageUuid: message.parentMessageUuid ?? undefined,
-        sender: message.sender,
-        text: message.text,
-        createdAt: message.createdAt,
-        attachments: message.attachments?.map((attachment) => ({
-            id: attachment.id,
-            kind: attachment.kind,
-            name: attachment.name,
-            size: attachment.size,
-        })),
-        sources: message.sources,
-    }));
+    return messages.map(fromNativeMessage);
 };
 
 const createSessionNative = async () => {
@@ -447,7 +450,6 @@ const addMessageNative = async (
     parentMessageUuid?: string,
     attachments: ChatAttachment[] = [],
     sources: GroundedSource[] = [],
-    preparationToken?: string,
 ): Promise<ChatMessage> => {
     const message = await invokeChat<NativeMessage>("chat_db_insert_message", {
         input: {
@@ -456,7 +458,6 @@ const addMessageNative = async (
             text,
             parentMessageUuid,
             sources,
-            preparationToken,
             attachments: attachments.map((attachment) => ({
                 id: attachment.id,
                 kind: attachment.kind,
@@ -484,21 +485,7 @@ const addMessageNative = async (
         }
     }
 
-    return {
-        messageUuid: message.messageUuid,
-        sessionUuid: message.sessionUuid,
-        parentMessageUuid: message.parentMessageUuid ?? undefined,
-        sender: message.sender,
-        text: message.text,
-        createdAt: message.createdAt,
-        attachments: message.attachments?.map((attachment) => ({
-            id: attachment.id,
-            kind: attachment.kind,
-            name: attachment.name,
-            size: attachment.size,
-        })),
-        sources: message.sources,
-    };
+    return fromNativeMessage(message);
 };
 
 const deleteSessionNative = async (sessionUuid: string) => {
@@ -633,26 +620,24 @@ export const createSession = async (chatKey: string) => {
     return sessionUuid;
 };
 
-export interface PreparedAnswer {
-    token: string;
-    sessionUuid: string;
-    parentMessageUuid: string;
-    sources: GroundedSource[];
+export interface FinishedReply {
+    message: ChatMessage;
+    toolTurn: ToolTurnStatus | null;
 }
 
-export const addPreparedAnswer = (
-    preparation: PreparedAnswer,
+export const finishPreparedReply = async (
+    preparationToken: string,
     text: string,
-): Promise<ChatMessage> =>
-    addMessageNative(
-        preparation.sessionUuid,
-        "assistant",
-        text,
-        preparation.parentMessageUuid,
-        [],
-        preparation.sources,
-        preparation.token,
-    );
+): Promise<FinishedReply> => {
+    const finished = await invokeChat<{
+        message: NativeMessage;
+        toolTurn: ToolTurnStatus | null;
+    }>("chat_db_finish_reply", { input: { preparationToken, text } });
+    return {
+        message: fromNativeMessage(finished.message),
+        toolTurn: finished.toolTurn,
+    };
+};
 
 export const addMessage = async (
     sessionUuid: string,

@@ -1,10 +1,10 @@
 import "dart:async";
 import "dart:math";
 
+import "package:ente_components/hugeicons.dart";
 import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
-import "package:hugeicons/hugeicons.dart";
 import 'package:logging/logging.dart';
 import "package:path_provider/path_provider.dart";
 import "package:photos/core/configuration.dart";
@@ -1064,20 +1064,15 @@ class SearchService {
       }
     }
     final allFiles = await getAllFilesForSearch();
-    final filesWithLocation = <EnteFile>[];
-    for (EnteFile file in allFiles) {
-      if (file.hasLocation) {
-        filesWithLocation.add(file);
-        for (LocalEntity<LocationTag> tag in result.keys) {
-          if (isFileInsideLocationTag(
-            tag.item.centerPoint,
-            file.location!,
-            tag.item.radius,
-          )) {
-            result[tag]!.add(file);
-          }
-        }
-      }
+    final filesWithLocation = allFiles
+        .where((file) => file.hasLocation)
+        .toList();
+    for (LocalEntity<LocationTag> tag in result.keys) {
+      result[tag] = filesInsideLocationTag(
+        filesWithLocation,
+        tag.item.centerPoint,
+        tag.item.radius,
+      );
     }
     if (showNoLocation) {
       final noLocationFiles = allFiles.where((file) {
@@ -1102,18 +1097,19 @@ class SearchService {
     }
     if (showNoLocationTag) {
       _logger.info("finding photos with no location tag");
-      final noLocationTagFiles = filesWithLocation.where((file) {
-        for (LocalEntity<LocationTag> tag in locationTagEntities) {
-          if (isFileInsideLocationTag(
+      final taggedFiles = <EnteFile>{};
+      for (LocalEntity<LocationTag> tag in locationTagEntities) {
+        taggedFiles.addAll(
+          filesInsideLocationTag(
+            filesWithLocation,
             tag.item.centerPoint,
-            file.location!,
             tag.item.radius,
-          )) {
-            return false;
-          }
-        }
-        return true;
-      }).toList();
+          ),
+        );
+      }
+      final noLocationTagFiles = filesWithLocation
+          .where((file) => !taggedFiles.contains(file))
+          .toList();
       if (noLocationTagFiles.isNotEmpty) {
         searchResults.add(
           GenericSearchResult(
@@ -1665,31 +1661,28 @@ class SearchService {
       final List<GenericSearchResult> tagSearchResults = [];
       final locationTagEntities = (await locationService.getLocationTags());
       final allFiles = await getAllFilesForSearch();
-      final List<EnteFile> filesWithNoLocTag = [];
 
       for (int i = 0; i < locationTagEntities.length; i++) {
         if (limit != null && i >= limit) break;
         tagToItemsMap[locationTagEntities.elementAt(i)] = [];
       }
 
-      for (EnteFile file in allFiles) {
-        if (file.hasLocation) {
-          bool hasLocationTag = false;
-          for (LocalEntity<LocationTag> tag in tagToItemsMap.keys) {
-            if (isFileInsideLocationTag(
-              tag.item.centerPoint,
-              file.location!,
-              tag.item.radius,
-            )) {
-              hasLocationTag = true;
-              tagToItemsMap[tag]!.add(file);
-            }
-          }
-          if (!hasLocationTag) {
-            filesWithNoLocTag.add(file);
-          }
-        }
+      final filesWithLocation = allFiles
+          .where((file) => file.hasLocation)
+          .toList();
+      final taggedFiles = <EnteFile>{};
+      for (LocalEntity<LocationTag> tag in tagToItemsMap.keys) {
+        final filesInTag = filesInsideLocationTag(
+          filesWithLocation,
+          tag.item.centerPoint,
+          tag.item.radius,
+        );
+        tagToItemsMap[tag] = filesInTag;
+        taggedFiles.addAll(filesInTag);
       }
+      final filesWithNoLocTag = filesWithLocation
+          .where((file) => !taggedFiles.contains(file))
+          .toList();
 
       for (MapEntry<LocalEntity<LocationTag>, List<EnteFile>> entry
           in tagToItemsMap.entries) {
@@ -2000,11 +1993,10 @@ class SearchService {
           return countComparison;
         }
 
-        final aName =
-            a.key.displayName?.toLowerCase() ?? a.key.email.toLowerCase();
-        final bName =
-            b.key.displayName?.toLowerCase() ?? b.key.email.toLowerCase();
-        return aName.compareTo(bName);
+        return compareNames(
+          a.key.displayName ?? a.key.email,
+          b.key.displayName ?? b.key.email,
+        );
       });
 
       final limitedEntries = limit == null

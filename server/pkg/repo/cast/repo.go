@@ -7,6 +7,7 @@ import (
 
 	"github.com/ente/museum/ente"
 	"github.com/ente/museum/ente/cast"
+	baserepo "github.com/ente/museum/pkg/repo"
 	"github.com/ente/museum/pkg/utils/random"
 	"github.com/ente/stacktrace"
 	"github.com/google/uuid"
@@ -51,9 +52,17 @@ func (r *Repository) GetAllDevices(ctx context.Context, userID int64) ([]cast.Ca
 }
 
 func (r *Repository) InsertCastData(ctx context.Context, castUserID int64, code string, collectionID int64, castToken string, encryptedPayload string) (uuid.UUID, error) {
+	tx, err := r.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return uuid.Nil, stacktrace.Propagate(err, "")
+	}
+	defer tx.Rollback()
+	if err = baserepo.LockUserForSession(ctx, tx, castUserID); err != nil {
+		return uuid.Nil, err
+	}
 	code = strings.ToUpper(code)
 	var deviceID uuid.UUID
-	err := r.DB.QueryRowContext(
+	err = tx.QueryRowContext(
 		ctx,
 		"UPDATE casting SET collection_id = $1, cast_user = $2, token = $3, encrypted_payload = $4 WHERE code = $5 and is_deleted=false and cast_user IS NULL RETURNING id",
 		collectionID,
@@ -65,7 +74,10 @@ func (r *Repository) InsertCastData(ctx context.Context, castUserID int64, code 
 	if err == sql.ErrNoRows {
 		return uuid.Nil, ente.NewConflictError("cast code unavailable or already paired")
 	}
-	return deviceID, err
+	if err != nil {
+		return uuid.Nil, stacktrace.Propagate(err, "")
+	}
+	return deviceID, stacktrace.Propagate(tx.Commit(), "")
 }
 
 func (r *Repository) GetDeviceInfoAndIP(ctx context.Context, code string) (*cast.DeviceInfo, string, error) {
@@ -103,7 +115,9 @@ func (r *Repository) GetEncCastData(ctx context.Context, code string) (*string, 
 
 func (r *Repository) GetCollectionAndCasterIDForToken(ctx context.Context, token string) (int64, int64, error) {
 	var collection, userID int64
-	row := r.DB.QueryRowContext(ctx, "SELECT collection_id, cast_user FROM casting WHERE token = $1 and is_deleted=false", token)
+	row := r.DB.QueryRowContext(ctx, `SELECT c.collection_id, c.cast_user FROM casting c
+		JOIN users u ON u.user_id = c.cast_user AND u.is_suspended = false
+		WHERE c.token = $1 AND c.is_deleted = false`, token)
 	err := row.Scan(&collection, &userID)
 	if err != nil {
 		if err == sql.ErrNoRows {

@@ -3,6 +3,8 @@ package user
 import (
 	"sync"
 	"time"
+
+	"github.com/ente/museum/pkg/utils/config"
 )
 
 const (
@@ -26,6 +28,7 @@ type OTTSendLimiter struct {
 
 	now func() time.Time
 
+	disabled      bool
 	attempts      []time.Time
 	ipNextAllowed map[string]time.Time
 	blockedUntil  time.Time
@@ -38,11 +41,15 @@ func NewOTTSendLimiter() *OTTSendLimiter {
 func newOTTSendLimiter(now func() time.Time) *OTTSendLimiter {
 	return &OTTSendLimiter{
 		now:           now,
+		disabled:      config.IsRateLimitDisabled(),
 		ipNextAllowed: make(map[string]time.Time),
 	}
 }
 
 func (l *OTTSendLimiter) IsGloballyBlocked() bool {
+	if l.disabled {
+		return false
+	}
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
@@ -50,6 +57,9 @@ func (l *OTTSendLimiter) IsGloballyBlocked() bool {
 }
 
 func (l *OTTSendLimiter) Allow(ip string) ottSendLimiterDecision {
+	if l.disabled {
+		return ottSendLimiterDecision{allowed: true}
+	}
 	l.mu.Lock()
 	defer l.mu.Unlock()
 

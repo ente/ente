@@ -1,5 +1,4 @@
 import "dart:async";
-import "dart:io";
 import "dart:math";
 import 'dart:ui' as ui show Image, ImageByteFormat;
 
@@ -38,16 +37,17 @@ import "package:photos/ui/viewer/file/detail_page.dart";
 import "package:photos/utils/dialog_util.dart";
 import "package:photos/utils/image_util.dart";
 import "package:photos/utils/lossless_edits.dart";
+import 'package:pro_image_editor/features/crop_rotate_editor/utils/crop_aspect_ratios.dart';
 import 'package:pro_image_editor/pro_image_editor.dart';
 
 class ImageEditorPage extends StatefulWidget {
   final ente.EnteFile originalFile;
-  final File file;
+  final Uint8List imageBytes;
   final DetailPageConfiguration detailPageConfig;
 
   const ImageEditorPage({
     super.key,
-    required this.file,
+    required this.imageBytes,
     required this.originalFile,
     required this.detailPageConfig,
   });
@@ -273,10 +273,16 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
           onPointerMove: _layerDoubleTap.onPointerMove,
           onPointerUp: _layerDoubleTap.onPointerUp,
           onPointerCancel: _layerDoubleTap.onPointerCancel,
-          child: ProImageEditor.file(
+          child: ProImageEditor.memory(
             key: editorKey,
-            widget.file,
+            widget.imageBytes,
             callbacks: ProImageEditorCallbacks(
+              cropRotateEditorCallbacks: CropRotateEditorCallbacks(
+                onKeyboardEvent: (event) => imageEditorHandleCropUndoKey(
+                  event,
+                  editorKey.currentState?.cropRotateEditor.currentState,
+                ),
+              ),
               onCloseEditor: (mode) {
                 if (mode != EditorMode.main) {
                   _showSubEditorDiscardDialog(context);
@@ -448,6 +454,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
               ),
               textEditor: imageEditorTextConfigs(context),
               cropRotateEditor: CropRotateEditorConfigs(
+                initAspectRatio: CropAspectRatios.original,
                 rotateDirection: RotateDirection.right,
                 style: CropRotateEditorStyle(
                   background: colors.backgroundBase,
@@ -466,7 +473,7 @@ class _ImageEditorPageState extends State<ImageEditorPage> {
                           enableRedo: editor.canRedo,
                           enableUndo: editor.canUndo,
                           redo: () => editor.redoAction(),
-                          undo: () => editor.undoAction(),
+                          undo: () => imageEditorUndoCrop(editor),
                         );
                       },
                       stream: rebuildStream,

@@ -53,20 +53,22 @@ impl People {
         let db = store.db();
         let mut faces = HashMap::new();
         let mut face_counts = HashMap::new();
-        db.for_each_face_without_embedding(|face| {
-            if library.get(face.file_id).is_some_and(YearFile::is_eligible) {
+        db.for_each_face_without_embedding(
+            |file_id| library.get(file_id).is_some_and(YearFile::is_eligible),
+            |face| {
                 *face_counts.entry(face.file_id).or_insert(0) += 1;
+                let area = face_area(&face.detection_json);
                 faces.insert(
                     face.face_id,
                     Face {
                         file_id: face.file_id,
                         score: face.score,
                         blur: face.blur,
-                        area: area(&face.detection_json),
+                        area,
                     },
                 );
-            }
-        })?;
+            },
+        )?;
         let people: HashMap<&str, &RewindPerson> = request
             .people
             .iter()
@@ -185,8 +187,8 @@ fn in_year(entities: HashMap<String, Entity>) -> Vec<Entity> {
     entities
 }
 
-fn area(detection_json: &str) -> f64 {
-    serde_json::from_str::<Detection>(detection_json)
-        .map(|detection| detection.face_box.width * detection.face_box.height)
-        .unwrap_or(0.0)
+fn face_area(detection_json: &str) -> f64 {
+    serde_json::from_str::<Detection>(detection_json).map_or(0.0, |detection| {
+        detection.face_box.width * detection.face_box.height
+    })
 }

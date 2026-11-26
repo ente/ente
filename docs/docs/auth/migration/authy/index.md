@@ -162,6 +162,8 @@ For an up-to-date guide of how to retrieve the encrypted authenticator tokens an
 4. Select the "Plain text" option.
 5. Select the TXT file that was made earlier.
 
+![Plain text highlighted on the Import codes list on Ente Auth mobile](https://docs-assets.ente.com/screenshots/auth-import-plain-text-callout-v4427.png){width=560px}
+
 ## Importing to Ente Authenticator (Method 2)
 
 1. Copy the JSON file to one of your devices with Ente Authenticator.
@@ -169,6 +171,8 @@ For an up-to-date guide of how to retrieve the encrypted authenticator tokens an
 3. Open the navigation menu (hamburger button on the top left), then press "Data", then press "Import codes".
 4. Select the "Bitwarden" option.
 5. Select the JSON file that was made earlier.
+
+![Bitwarden highlighted on the Import codes list on Ente Auth mobile](https://docs-assets.ente.com/screenshots/auth-import-bitwarden-callout-v4427.png){width=560px}
 
 If this didn't work, refer to [**method 2.1**](#method-2-1-if-the-export-worked-but-the-import-didn-t).<br><br>
 
@@ -178,5 +182,7 @@ If this didn't work, refer to [**method 2.1**](#method-2-1-if-the-export-worked-
 2. Log in to your account (if you haven't already), or press "Use without backups".
 3. Click the add button in the bottom right of the app.
 4. Select "Scan a QR code" and scan the code from the browser.
+
+![Scan QR camera with Import from Gallery on Ente Auth mobile](https://docs-assets.ente.com/screenshots/auth-scan-qr-callout.png){width=560px}
 
 Now that your secrets are safely stored, I recommend you delete the unencrypted JSON and TXT files that were made during the migration process for security.

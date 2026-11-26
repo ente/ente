@@ -18,7 +18,6 @@ import 'package:ente_accounts/services/install_source_handler.dart';
 import 'package:ente_base/models/accounts.dart';
 import 'package:ente_base/models/key_attributes.dart';
 import 'package:ente_configuration/base_configuration.dart';
-import 'package:ente_crypto_api/ente_crypto_api.dart';
 import 'package:ente_events/event_bus.dart';
 import 'package:ente_events/models/user_details_changed_event.dart';
 import 'package:ente_network/network.dart';
@@ -703,7 +702,7 @@ class UserService {
   Future<String> passkeyManagementUrl() => _withAccountsClient(
     (client) => client.passkeyManagementUrl(
       token: _config.getToken()!,
-      recoveryKey: CryptoUtil.bin2hex(_config.getRecoveryKey()),
+      recoveryKey: _config.getRecoveryKey(),
     ),
   );
 
@@ -861,6 +860,14 @@ class UserService {
             },
           ),
           (route) => route.isFirst,
+        );
+      } else if (e == const AccountsError.twoFactorRecoveryNotConfigured()) {
+        // ignore: unawaited_futures
+        showAlertBottomSheet(
+          context,
+          title: context.strings.contactSupport,
+          message: context.strings.pleaseContactSupportAndWeWillBeHappyToHelp,
+          assetPath: 'assets/warning-grey.png',
         );
       } else {
         // ignore: unawaited_futures

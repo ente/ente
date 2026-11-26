@@ -56,6 +56,7 @@ func shouldSkipBodyLog(method string, path string) bool {
 		switch path {
 		case "/users/attributes",
 			"/users/change-email",
+			"/users/source",
 			"/users/srp/setup",
 			"/users/srp/update",
 			"/users/srp/verify-session",

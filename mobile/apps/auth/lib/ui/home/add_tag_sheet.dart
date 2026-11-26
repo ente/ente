@@ -10,6 +10,7 @@ import 'package:ente_auth/ui/components/horizontal_scroll_area.dart';
 import 'package:ente_auth/ui/utils/icon_utils.dart';
 import 'package:ente_auth/utils/dialog_util.dart';
 import 'package:ente_components/ente_components.dart';
+import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:flutter/material.dart';
 
@@ -97,7 +98,7 @@ class _AddTagSheetState extends State<AddTagSheet> {
       setState(() {
         if (!_allTags.contains(newTag!)) {
           _allTags.add(newTag!);
-          _allTags.sort();
+          _allTags.sort(compareNames);
         }
         _selectedTagsInSheet.add(newTag!);
       });

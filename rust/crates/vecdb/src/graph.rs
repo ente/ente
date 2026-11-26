@@ -296,7 +296,6 @@ impl Graph {
         let mut graph = Self::new();
         graph.entry_point = entry_point;
         graph.insert_ordinal = insert_ordinal;
-        graph.indexed_slots = capacity;
         graph.reserve_slots(capacity);
         for part in parts {
             graph.attach_empty_node(part.slot, part.level as usize);

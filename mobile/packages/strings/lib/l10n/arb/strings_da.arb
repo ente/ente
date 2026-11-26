@@ -726,7 +726,7 @@
     "description": "Oops error title"
   },
   "oopsSomethingWentWrong": "Ups, noget gik galt",
-  "passkeyAuthTitle": "Bekræftelse af adgangskode",
+  "passkeyAuthTitle": "Bekræftelse af passkey",
   "@passkeyAuthTitle": {
     "description": "Passkey authentication title"
   },
@@ -1184,7 +1184,7 @@
   },
   "weAreOpenSource": "Vi er open source!",
   "yes": "Ja",
-  "yesConvertToViewer": "Ja, konverter til præsentation",
+  "yesConvertToViewer": "Ja, konverter til seer",
   "yesLogout": "Ja, log ud",
   "@yesLogout": {
     "description": "Confirmation button for logout"

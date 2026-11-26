@@ -2,11 +2,11 @@ import "dart:async";
 import "dart:io";
 import "dart:ui" as ui;
 
+import "package:ente_components/hugeicons.dart";
 import "package:ente_panorama_viewer/ente_panorama_viewer.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:logging/logging.dart";
 import "package:photos/src/rust/api/motion_photo_api.dart";
 import "package:photos/ui/viewer/file/panorama_view_data.dart";

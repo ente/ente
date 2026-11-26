@@ -62,7 +62,7 @@ async fn run(endpoint: String) -> TestResult {
     ensure_totp_enabled(endpoint, &pair.owner).await;
     run_legacy_reject_stage(&pair).await;
     run_legacy_stop_stage(&pair).await;
-    run_legacy_reinvite_stage(&pair).await;
+    run_legacy_reinvite_stage(&mut pair).await;
     run_legacy_reset_stage(endpoint, &mut pair).await;
 
     let owner = auth::create_fixture_account(endpoint, "legacy-kit-owner").await?;
@@ -169,7 +169,7 @@ async fn run_legacy_stop_stage(pair: &legacy::LegacyPair) {
     );
 }
 
-async fn run_legacy_reinvite_stage(pair: &legacy::LegacyPair) {
+async fn run_legacy_reinvite_stage(pair: &mut legacy::LegacyPair) {
     ente_legacy::update_contact(
         &pair.owner_session,
         pair.owner.user_id,
@@ -186,9 +186,18 @@ async fn run_legacy_reinvite_stage(pair: &legacy::LegacyPair) {
         legacy::trusted_contact(&trusted_info, pair.owner.user_id, pair.trusted.user_id).is_none()
     );
 
-    ente_legacy::add_contact(&pair.owner_session, &pair.trusted.email, Some(14))
-        .await
-        .unwrap();
+    // The directory still lists the original key. Recovery must use the key supplied at Add.
+    pair.trusted_session.secret_key = ente_core::crypto::SecretKey::generate();
+    let recipient_key =
+        ente_core::b64::encode(pair.trusted_session.secret_key.public_key().as_bytes());
+    ente_legacy::add_contact(
+        &pair.owner_session,
+        &pair.trusted.email,
+        &recipient_key,
+        Some(14),
+    )
+    .await
+    .unwrap();
     ente_legacy::update_contact(
         &pair.trusted_session,
         pair.owner.user_id,

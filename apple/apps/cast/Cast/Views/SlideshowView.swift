@@ -1,3 +1,4 @@
+import ImageIO
 import OSLog
 import SwiftUI
 import UIKit
@@ -6,7 +7,6 @@ private let logger = Logger(subsystem: "io.ente.cast", category: "SlideshowView"
 
 struct SlideshowView: View {
     let imageData: Data?
-    let videoData: Data?
     let isVideo: Bool
     @ObservedObject var slideshowService: RealSlideshowService
 
@@ -37,12 +37,10 @@ struct SlideshowView: View {
 
     init(
         imageData: Data? = nil,
-        videoData: Data? = nil,
         isVideo: Bool = false,
         slideshowService: RealSlideshowService,
     ) {
         self.imageData = imageData
-        self.videoData = videoData
         self.isVideo = isVideo
         self.slideshowService = slideshowService
     }
@@ -67,10 +65,9 @@ struct SlideshowView: View {
                     Color.black.ignoresSafeArea()
                 }
 
-                if isVideo, let videoData {
+                if isVideo, let videoURL = slideshowService.currentVideoURL {
                     VideoPlayerView(
-                        videoData: videoData,
-                        suggestedFilename: slideshowService.currentFile?.title,
+                        videoURL: videoURL,
                     )
                     .transition(
                         .asymmetric(
@@ -78,11 +75,10 @@ struct SlideshowView: View {
                             removal: .scale(scale: 0.9).combined(with: .opacity),
                         ))
                 } else if isLivePhoto, isPlayingLivePhotoVideo,
-                    let liveVideoData = slideshowService.livePhotoVideoData
+                    let liveVideoURL = slideshowService.livePhotoVideoURL
                 {
                     VideoPlayerView(
-                        videoData: liveVideoData,
-                        suggestedFilename: slideshowService.currentFile?.title,
+                        videoURL: liveVideoURL,
                     )
                     .transition(
                         .asymmetric(
@@ -161,13 +157,18 @@ struct SlideshowView: View {
                 }
             }
         }
+        .onChange(of: slideshowService.livePhotoVideoURL) { _, newValue in
+            if newValue == nil, isPlayingLivePhotoVideo {
+                isPlayingLivePhotoVideo = false
+            }
+        }
         .onTapGesture { Task { await handlePlayPauseAction() } }
         .onLongPressGesture { handleLongPressGesture() }
         .focusable()
         .focused($isFocused)
         .onMoveCommand { direction in Task { await handleDirectionalInput(direction) } }
         .onPlayPauseCommand {
-            if isLivePhoto, slideshowService.livePhotoVideoData != nil {
+            if isLivePhoto, slideshowService.livePhotoVideoURL != nil {
                 handleLongPressGesture()
             } else {
                 Task { await handlePlayPauseAction() }
@@ -243,7 +244,7 @@ struct SlideshowView: View {
 
     private func handleLongPressGesture() {
         showToast(icon: "livephoto.play", message: "Long press called")
-        guard isLivePhoto, slideshowService.livePhotoVideoData != nil else { return }
+        guard isLivePhoto, slideshowService.livePhotoVideoURL != nil else { return }
 
         withAnimation(.easeInOut(duration: 0.3)) {
             isPlayingLivePhotoVideo.toggle()
@@ -265,6 +266,7 @@ struct SlideshowView: View {
                 slideshowService.resume()
             }
         }
+
     }
 
     private func handlePlayPauseAction() async {
@@ -324,20 +326,23 @@ struct SlideshowView: View {
 
     private func decodedUIImage(from data: Data) -> UIImage? {
         imageDecodeFailed = false
-        if let uiImage = UIImage(data: data) {
-            if let cg = uiImage.cgImage {
-                return UIImage(
-                    cgImage: cg,
-                    scale: uiImage.scale,
-                    orientation: uiImage.imageOrientation,
-                )
-            }
-            return uiImage
-        } else {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+            let image = CGImageSourceCreateThumbnailAtIndex(
+                source,
+                0,
+                [
+                    kCGImageSourceCreateThumbnailFromImageAlways: true,
+                    kCGImageSourceCreateThumbnailWithTransform: true,
+                    kCGImageSourceThumbnailMaxPixelSize: 4096,
+                    kCGImageSourceShouldCacheImmediately: true,
+                ] as CFDictionary,
+            )
+        else {
             imageDecodeFailed = true
             logger.error("Image decoding failed (\(data.count) bytes)")
             return nil
         }
+        return UIImage(cgImage: image)
     }
 
     private func animateImageIn(bytes: Int) {

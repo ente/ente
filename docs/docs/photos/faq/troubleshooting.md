@@ -42,6 +42,8 @@ Open `Settings > Machine learning`, disable "Face recognition" and "Magic search
 
 Open `Settings > Preferences > Machine learning`, disable ML features, upload the videos, then re-enable ML afterwards.
 
+Turning ML off doesn't delete your existing faces, names or search results. See [Will I lose my faces and search results if I turn machine learning off?](/photos/faq/search-and-discovery#ml-turn-back-on).
+
 **Solution 2: Disable video streaming (iOS)**
 
 Video streaming can cause crashes when combined with ML on some devices:
@@ -229,13 +231,19 @@ Learn more in [Backup and Sync FAQ](/photos/faq/backup-and-sync#background-sync)
 
 **On iOS:**
 
-Open device `Settings > Ente > Photos` and select "Full Access" (not "Selected Photos").
+Open device `Settings > Ente > Photos` and select "Full Access" (not "Selected Photos") if you want Ente to back up your whole library. If you chose "Selected Photos" on purpose, Ente only sees the photos you picked. See [Can I let Ente see only some photos on my iPhone?](/photos/faq/backup-and-sync#ios-limited-access-backup).
 
 **On Android:**
 
 Open device `Settings > Apps > Ente > Permissions > Photos and videos` (or "Files and media") and choose **Allow all** (or "Allow"). Don't choose "Allow limited access", "Selected photos only" or "Ask every time".
 
 With limited access, Ente only sees the photos you picked, so folders such as Camera and Screenshots may be missing from `Settings > Backup > Backed up folders`. After changing the permission, reopen Ente and select those folders.
+
+Limited or denied access can also make backup fail or leave Ente showing only one old folder or the few photos you picked, for example after moving to a new phone. For those problems, allow access to all photos and videos as described above, reopen Ente and try again.
+
+Saving a download uses a separate permission on iPhone. If a downloaded photo does not appear in your gallery, allow Ente to add photos when iOS asks. If you denied this before, open your iPhone's Settings, find Ente, open **Photos**, and allow Ente to add photos. Then save the photo again.
+
+On older Android versions, saving a download may need **Storage** permission under **Settings > Apps > Ente > Permissions**. Newer Android versions do not have a separate storage permission for this. If downloads still do not save, contact [support@ente.com](mailto:support@ente.com) and [share your logs](#sharing-logs).
 
 If you've granted permission but Ente still can't access photos, try:
 

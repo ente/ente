@@ -1,10 +1,11 @@
+import { GalleryActionMenu } from "@/components/gallery/GalleryActionMenu";
 import {
     deduceDuplicates,
     removeSelectedDuplicateGroups,
     type DuplicateGroup,
 } from "@/services/dedup";
-import DoneIcon from "@mui/icons-material/Done";
-import SortIcon from "@mui/icons-material/Sort";
+import { Sorting05Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
     Box,
     Button,
@@ -12,17 +13,12 @@ import {
     LinearProgress,
     Stack,
     styled,
-    Tooltip,
     Typography,
 } from "@mui/material";
 import { CenteredFill, SpacedRow } from "ente-base/components/containers";
 import { ActivityErrorIndicator } from "ente-base/components/ErrorIndicator";
 import { ActivityIndicator } from "ente-base/components/mui/ActivityIndicator";
 import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
-import {
-    OverflowMenu,
-    OverflowMenuOption,
-} from "ente-base/components/OverflowMenu";
 import { Ellipsized2LineTypography } from "ente-base/components/Typography";
 import { useBaseContext } from "ente-base/context";
 import log from "ente-base/log";
@@ -361,27 +357,22 @@ const SortMenu: React.FC<SortMenuProps> = ({
     sortOrder,
     onChangeSortOrder,
 }) => (
-    <OverflowMenu
-        ariaID="duplicates-sort"
-        triggerButtonIcon={
-            <Tooltip title={t("sort_by")}>
-                <SortIcon />
-            </Tooltip>
-        }
-    >
-        <OverflowMenuOption
-            endIcon={sortOrder == "prunableSize" ? <DoneIcon /> : undefined}
-            onClick={() => onChangeSortOrder("prunableSize")}
-        >
-            {t("total_size")}
-        </OverflowMenuOption>
-        <OverflowMenuOption
-            endIcon={sortOrder == "prunableCount" ? <DoneIcon /> : undefined}
-            onClick={() => onChangeSortOrder("prunableCount")}
-        >
-            {t("count")}
-        </OverflowMenuOption>
-    </OverflowMenu>
+    <GalleryActionMenu
+        label={t("sort_by")}
+        icon={<HugeiconsIcon icon={Sorting05Icon} />}
+        items={[
+            {
+                label: t("total_size"),
+                selected: sortOrder === "prunableSize",
+                onClick: () => onChangeSortOrder("prunableSize"),
+            },
+            {
+                label: t("count"),
+                selected: sortOrder === "prunableCount",
+                onClick: () => onChangeSortOrder("prunableCount"),
+            },
+        ]}
+    />
 );
 
 const Loading: React.FC = () => (

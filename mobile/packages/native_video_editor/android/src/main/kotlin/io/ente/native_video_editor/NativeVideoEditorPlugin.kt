@@ -4,6 +4,8 @@ import android.util.Log
 import androidx.annotation.NonNull
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.transformer.ExportException
+import io.ente.native_video_editor.core.FrameStreamEncoder
+import io.ente.native_video_editor.core.FrameStreamRequest
 import io.ente.native_video_editor.core.VideoExportEngine
 import io.ente.native_video_editor.core.VideoFrameExtractor
 import io.ente.native_video_editor.core.VideoMetadataReader
@@ -19,6 +21,7 @@ import io.ente.native_video_editor.core.SlideshowMotion
 import io.ente.native_video_editor.core.SlideshowMusic
 import io.ente.native_video_editor.core.VideoMetadata
 import io.flutter.embedding.engine.plugins.FlutterPlugin
+import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
@@ -36,7 +39,10 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.nio.ByteBuffer
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 
 @UnstableApi
 class NativeVideoEditorPlugin : FlutterPlugin, MethodCallHandler, EventChannel.StreamHandler {
@@ -49,14 +55,23 @@ class NativeVideoEditorPlugin : FlutterPlugin, MethodCallHandler, EventChannel.S
     private lateinit var metadataReader: VideoMetadataReader
     private lateinit var frameExtractor: VideoFrameExtractor
     private lateinit var videoExporter: VideoExportEngine
+    private lateinit var messenger: BinaryMessenger
+    private val frameStream = AtomicReference<FrameStreamEncoder?>()
+    private val isOpeningFrameStream = AtomicBoolean(false)
 
     override fun onAttachedToEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
         if (!scope.isActive) scope = newPluginScope()
 
-        channel = MethodChannel(binding.binaryMessenger, METHOD_CHANNEL)
+        messenger = binding.binaryMessenger
+        channel = MethodChannel(messenger, METHOD_CHANNEL)
         channel.setMethodCallHandler(this)
-        progressChannel = EventChannel(binding.binaryMessenger, PROGRESS_CHANNEL)
+        progressChannel = EventChannel(messenger, PROGRESS_CHANNEL)
         progressChannel.setStreamHandler(this)
+        messenger.setMessageHandler(
+            FRAMES_CHANNEL,
+            { message, reply -> reply.reply(appendFrame(message)) },
+            messenger.makeBackgroundTaskQueue()
+        )
 
         metadataReader = VideoMetadataReader()
         frameExtractor = VideoFrameExtractor(binding.applicationContext, metadataReader)
@@ -78,6 +93,9 @@ class NativeVideoEditorPlugin : FlutterPlugin, MethodCallHandler, EventChannel.S
             "processVideo" -> processVideo(call, result, pluginScope)
             "exportSlideshow" -> exportSlideshow(call, result, pluginScope)
             "cancelProcessing" -> cancelProcessing(result, pluginScope)
+            "openFrameStream" -> openFrameStream(call, result, pluginScope)
+            "finishFrameStream" -> finishFrameStream(result, pluginScope)
+            "cancelFrameStream" -> cancelFrameStream(result, pluginScope)
             else -> result.notImplemented()
         }
     }
@@ -287,6 +305,90 @@ class NativeVideoEditorPlugin : FlutterPlugin, MethodCallHandler, EventChannel.S
         job.start()
     }
 
+    private fun openFrameStream(call: MethodCall, result: Result, pluginScope: CoroutineScope) {
+        val request = runCatching {
+            FrameStreamRequest(
+                outputPath = requireNotNull(call.argument<String>("outputPath")),
+                width = requireNotNull(call.argument<Int>("width")),
+                height = requireNotNull(call.argument<Int>("height")),
+                frameRate = requireNotNull(call.argument<Int>("frameRate")),
+                bitrate = requireNotNull(call.argument<Int>("bitrate"))
+            )
+        }.getOrNull()
+        if (request == null) {
+            result.error("INVALID_ARGS", "Invalid frame stream arguments", null)
+            return
+        }
+        if (frameStream.get() != null || !isOpeningFrameStream.compareAndSet(false, true)) {
+            result.error("CONCURRENT_EXPORT", "A video frame stream is already open", null)
+            return
+        }
+        pluginScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    publishFrameStream(FrameStreamEncoder(request), pluginScope)
+                }
+                if (canReply(pluginScope)) result.success(null)
+            } catch (error: Exception) {
+                replyError(result, "PROCESS_ERROR", "Open frame stream", error, pluginScope)
+            } finally {
+                isOpeningFrameStream.set(false)
+            }
+        }
+    }
+
+    private fun publishFrameStream(encoder: FrameStreamEncoder, pluginScope: CoroutineScope) {
+        frameStream.set(encoder)
+        if (!pluginScope.isActive && frameStream.compareAndSet(encoder, null)) encoder.cancel()
+    }
+
+    private fun finishFrameStream(result: Result, pluginScope: CoroutineScope) {
+        val encoder = frameStream.getAndSet(null)
+        if (encoder == null) {
+            result.error("INVALID_ARGS", "No video frame stream is open", null)
+            return
+        }
+        pluginScope.launch {
+            try {
+                val outputPath = withContext(Dispatchers.IO) { encoder.finish() }
+                if (canReply(pluginScope)) result.success(mapOf("outputPath" to outputPath))
+            } catch (error: Exception) {
+                replyError(result, "PROCESS_ERROR", "Finish frame stream", error, pluginScope)
+            }
+        }
+    }
+
+    private fun cancelFrameStream(result: Result, pluginScope: CoroutineScope) {
+        val encoder = frameStream.getAndSet(null)
+        if (encoder == null) {
+            result.success(null)
+            return
+        }
+        pluginScope.launch {
+            withContext(Dispatchers.IO) { encoder.cancel() }
+            if (canReply(pluginScope)) result.success(null)
+        }
+    }
+
+    private fun appendFrame(message: ByteBuffer?): ByteBuffer {
+        val encoder = frameStream.get()
+        if (encoder == null || message == null) {
+            return frameReply(FRAME_FAILED, "No video frame stream is open")
+        }
+        return try {
+            encoder.encode(message)
+            frameReply(FRAME_ADDED, "")
+        } catch (error: Exception) {
+            Log.e(TAG, "Append video frame failed", error)
+            frameReply(FRAME_FAILED, error.message ?: "Append video frame failed")
+        }
+    }
+
+    private fun frameReply(status: Byte, message: String): ByteBuffer {
+        val bytes = message.toByteArray()
+        return ByteBuffer.allocateDirect(bytes.size + 1).put(status).put(bytes)
+    }
+
     private fun cancelProcessing(result: Result, pluginScope: CoroutineScope) {
         val job = currentExportJob
         if (job == null) {
@@ -367,7 +469,8 @@ class NativeVideoEditorPlugin : FlutterPlugin, MethodCallHandler, EventChannel.S
 
                 "video" -> SlideshowItem.Video(
                     path = path,
-                    isMuted = value["isMuted"] as? Boolean ?: false
+                    isMuted = value["isMuted"] as? Boolean ?: false,
+                    maxDurationMs = (value["maxDurationMs"] as? Number)?.toLong()
                 )
 
                 else -> error("Invalid slideshow item type")
@@ -377,7 +480,9 @@ class NativeVideoEditorPlugin : FlutterPlugin, MethodCallHandler, EventChannel.S
             SlideshowMusic(
                 path = requireNotNull(value["path"] as? String),
                 fadeInMs = requireNotNull(value["fadeInMs"] as? Number).toLong(),
-                fadeOutMs = requireNotNull(value["fadeOutMs"] as? Number).toLong()
+                fadeOutMs = requireNotNull(value["fadeOutMs"] as? Number).toLong(),
+                duckedVolume = requireNotNull(value["duckedVolume"] as? Number).toDouble(),
+                duckFadeMs = requireNotNull(value["duckFadeMs"] as? Number).toLong()
             )
         }
         SlideshowExportRequest(
@@ -386,6 +491,7 @@ class NativeVideoEditorPlugin : FlutterPlugin, MethodCallHandler, EventChannel.S
             height = requireNotNull(call.argument<Int>("height")),
             frameRate = requireNotNull(call.argument<Int>("frameRate")),
             crossfadeMs = requireNotNull(call.argument<Number>("crossfadeMs")).toLong(),
+            videoBitrate = requireNotNull(call.argument<Number>("videoBitrate")).toInt(),
             items = items,
             music = music
         )
@@ -417,7 +523,9 @@ class NativeVideoEditorPlugin : FlutterPlugin, MethodCallHandler, EventChannel.S
         progressEventSink = null
         channel.setMethodCallHandler(null)
         progressChannel.setStreamHandler(null)
+        messenger.setMessageHandler(FRAMES_CHANNEL, null)
         scope.cancel()
+        frameStream.getAndSet(null)?.let { encoder -> Thread { encoder.cancel() }.start() }
         currentExportJob = null
         frameJobs.clear()
     }
@@ -475,6 +583,9 @@ class NativeVideoEditorPlugin : FlutterPlugin, MethodCallHandler, EventChannel.S
         const val TAG = "NativeVideoEditorPlugin"
         const val METHOD_CHANNEL = "native_video_editor"
         const val PROGRESS_CHANNEL = "native_video_editor/progress"
+        const val FRAMES_CHANNEL = "native_video_editor/frames"
+        const val FRAME_ADDED: Byte = 1
+        const val FRAME_FAILED: Byte = 0
 
         fun newPluginScope() = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     }

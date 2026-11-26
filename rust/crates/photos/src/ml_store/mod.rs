@@ -187,7 +187,7 @@ mod tests {
     use std::fs;
     use std::path::{Path, PathBuf};
 
-    use ente_vecdb::{OpenCost, SearchParams, VecDb};
+    use ente_vecdb::{SearchParams, VecDb};
     use tempfile::TempDir;
 
     use super::{CLUSTER_CENTROID_DIMENSIONS, FillOutcome, FillReport, FillState, Index, MlStore};
@@ -389,10 +389,7 @@ mod tests {
             "{names:?}"
         );
         for index in Index::ALL {
-            assert_eq!(
-                VecDb::open_cost(&index_path(&directory, index)),
-                OpenCost::Absent
-            );
+            assert!(!index_path(&directory, index).exists());
         }
         assert_eq!(store.fill_state(Index::Clip).unwrap(), FillState::Stale);
         assert_eq!(
@@ -436,10 +433,9 @@ mod tests {
         store.fill_clip_index(false).unwrap();
         store.put_clip(&clips([1, 2])).unwrap();
         store.release().unwrap();
-        assert_eq!(
-            VecDb::open_cost(&index_path(&directory, Index::Clip)),
-            OpenCost::Ready
-        );
+        let mut snapshot = index_path(&directory, Index::Clip).into_os_string();
+        snapshot.push(".graph");
+        assert!(Path::new(&snapshot).exists());
         assert!(store.contains(Index::Clip, "1").unwrap());
         store.release().unwrap();
         drop(store);

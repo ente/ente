@@ -1,0 +1,1 @@
+- Fixed Photos exports rewriting unchanged metadata files when a network drive reports a different modification time.

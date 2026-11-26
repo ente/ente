@@ -17,20 +17,15 @@ import {
     DialogContent,
     DialogTitle,
     Divider,
-    Stack,
     styled,
     Typography,
-    type ModalProps,
 } from "@mui/material";
 import type { LocalUser } from "ente-accounts/services/user";
 import { appName, isDesktop } from "ente-base/app";
 import { SpacedRow } from "ente-base/components/containers";
 import { ContextMenu, ContextMenuItem } from "ente-base/components/ContextMenu";
-import { InlineErrorIndicator } from "ente-base/components/ErrorIndicator";
-import { TitledMiniDialog } from "ente-base/components/MiniDialog";
+import { AttributedMiniDialog } from "ente-base/components/MiniDialog";
 import { DialogCloseIconButton } from "ente-base/components/mui/DialogCloseIconButton";
-import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
-import { LoadingButton } from "ente-base/components/mui/LoadingButton";
 import { useInterval, useIsSmallWidth } from "ente-base/components/utils/hooks";
 import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
 import { useBaseContext } from "ente-base/context";
@@ -1261,6 +1256,8 @@ export const FileViewer: React.FC<FileViewerProps> = ({
                 return true;
             }
 
+            if (event.key == "Tab") return false;
+
             const activeElement = document.activeElement as HTMLElement | null;
             if (activeElement) {
                 const tagName = activeElement.tagName;
@@ -1925,10 +1922,28 @@ export const FileViewer: React.FC<FileViewerProps> = ({
                     {t("shortcuts")}
                 </ContextMenuItem>
             </ContextMenu>
-            <ConfirmDeleteFileDialog
+            <AttributedMiniDialog
                 open={openConfirmDelete}
                 onClose={handleConfirmDeleteClose}
-                onConfirm={handleDelete}
+                appearance="centered"
+                attributes={{
+                    title: t("trash_file_title"),
+                    message: t("trash_file_message"),
+                    kind: "warning",
+                    continue: {
+                        text: t("move_to_trash"),
+                        color: "critical",
+                        autoFocus: true,
+                        action: handleDelete,
+                    },
+                }}
+                sx={(theme) => ({
+                    ...theme.applyStyles("light", {
+                        ".MuiBackdrop-root": {
+                            backgroundColor: theme.vars.palette.backdrop.faint,
+                        },
+                    }),
+                })}
             />
             {handleSaveEditedCopy && (
                 <ImageEditorOverlay
@@ -1944,78 +1959,6 @@ export const FileViewer: React.FC<FileViewerProps> = ({
                 {...{ disableDownload, haveUser }}
             />
         </>
-    );
-};
-
-type ConfirmDeleteFileDialogProps = ModalVisibilityProps & {
-    onConfirm: () => Promise<void>;
-};
-
-const ConfirmDeleteFileDialog: React.FC<ConfirmDeleteFileDialogProps> = ({
-    open,
-    onClose,
-    onConfirm,
-}) => {
-    const [phase, setPhase] = useState<"loading" | "failed" | undefined>();
-
-    const resetPhaseAndClose = () => {
-        setPhase(undefined);
-        onClose();
-    };
-
-    const handleClick = async () => {
-        setPhase("loading");
-        try {
-            await onConfirm();
-            resetPhaseAndClose();
-        } catch (e) {
-            log.error(e);
-            setPhase("failed");
-        }
-    };
-
-    const handleClose: ModalProps["onClose"] = (_, reason) => {
-        if (reason == "backdropClick" && phase == "loading") return;
-        resetPhaseAndClose();
-    };
-
-    return (
-        <TitledMiniDialog
-            open={open}
-            onClose={handleClose}
-            title={t("trash_file_title")}
-            sx={(theme) => ({
-                ...theme.applyStyles("light", {
-                    ".MuiBackdrop-root": {
-                        backgroundColor: theme.vars.palette.backdrop.faint,
-                    },
-                }),
-            })}
-        >
-            <Typography sx={{ color: "text.muted" }}>
-                {t("trash_file_message")}
-            </Typography>
-            <Stack sx={{ pt: 3, gap: 1 }}>
-                {phase == "failed" && <InlineErrorIndicator />}
-                <LoadingButton
-                    loading={phase == "loading"}
-                    fullWidth
-                    color="critical"
-                    autoFocus
-                    onClick={handleClick}
-                >
-                    {t("move_to_trash")}
-                </LoadingButton>
-                <FocusVisibleButton
-                    fullWidth
-                    color="secondary"
-                    disabled={phase == "loading"}
-                    onClick={resetPhaseAndClose}
-                >
-                    {t("cancel")}
-                </FocusVisibleButton>
-            </Stack>
-        </TitledMiniDialog>
     );
 };
 
@@ -2069,6 +2012,10 @@ const Shortcuts: React.FC<ShortcutsProps> = ({
                 shortcut={ut("Space")}
             />
             <Shortcut action={t("toggle_live")} shortcut={ut("Space")} />
+            <Shortcut
+                action={t("audio")}
+                shortcut={formattedListJoin([ut("↑"), ut("↓")])}
+            />
             <Shortcut action={t("toggle_audio")} shortcut={ut("M")} />
             {haveUser && (
                 <Shortcut action={t("toggle_favorite")} shortcut={ut("L")} />

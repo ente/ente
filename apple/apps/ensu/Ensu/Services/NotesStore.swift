@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 
 enum NotesStatus {
-    case pending, indexing, updating, ready, unavailable, error
+    case pending, updateScheduled, updateRequested, indexing, updating, ready, unavailable, error
 }
 
 struct NoteCollectionState: Identifiable {
@@ -15,6 +15,9 @@ struct NoteCollectionState: Identifiable {
     var progress: UInt8?
     var error: String?
     var completedEmpty = false
+    var canRequestUpdate: Bool {
+        status == .updateScheduled || status == .updateRequested
+    }
     var eligible: Bool {
         indexAvailable && status != .error && status != .unavailable
     }
@@ -29,11 +32,26 @@ final class NotesStore: ObservableObject, ModelMaintenance {
     private let sourceDefaults: UserDefaults
     private static let disabledDefaultsKey = "ensu.notes.disabledByDefault"
 
+    private enum IndexTrigger {
+        case maintenance, changesDetected, manual
+    }
+    private enum IndexFailure {
+        case sourceAccess, indexing
+    }
     private struct Pending {
         let generation: UInt64
         let forced: Set<String>
         let rebuild: Bool
-        let due: Date
+        var due: Date
+        var trigger: IndexTrigger
+
+        var waitingStatus: NotesStatus {
+            switch trigger {
+            case .maintenance: .pending
+            case .changesDetected: .updateScheduled
+            case .manual: .updateRequested
+            }
+        }
     }
     private struct Run {
         let operation: NotesReadOperation
@@ -45,7 +63,8 @@ final class NotesStore: ObservableObject, ModelMaintenance {
     private let limits = notesLimits()
     private var pending: [String: Pending] = [:]
     private var scans = Set<String>()
-    private var failed = Set<String>()
+    private var failed: [String: IndexFailure] = [:]
+    private var sourceRevisions: [String: String] = [:]
     private var generation: UInt64 = 0
     private var active: Run?
     private var scopes = 0
@@ -117,7 +136,6 @@ final class NotesStore: ObservableObject, ModelMaintenance {
         guard foreground != value else { return }
         foreground = value
         if value {
-            failed.removeAll()
             scans.formUnion(collections.map(\.id))
             pump()
         } else {
@@ -174,7 +192,8 @@ final class NotesStore: ObservableObject, ModelMaintenance {
                     collections.removeAll { $0.id == id }
                     pending.removeValue(forKey: id)
                     scans.remove(id)
-                    failed.remove(id)
+                    failed.removeValue(forKey: id)
+                    sourceRevisions.removeValue(forKey: id)
                     operationError = nil
                 }
             } catch {
@@ -183,19 +202,30 @@ final class NotesStore: ObservableObject, ModelMaintenance {
         }
     }
 
+    func updateNow(_ id: String) {
+        guard
+            collections.contains(where: { $0.id == id && $0.canRequestUpdate }),
+            let trigger = pending[id]?.trigger,
+            trigger == .changesDetected || trigger == .manual
+        else { return }
+
+        pending[id]?.trigger = .manual
+        pending[id]?.due = .distantPast
+        update(id) { $0.status = .updateRequested }
+        pump()
+    }
+
     func retry(_ id: String) {
         guard let collection = collections.first(where: { $0.id == id }),
             collection.status == .error || collection.status == .unavailable
         else {
             return
         }
-        failed.remove(id)
-        scans.insert(id)
-        if pending[id] != nil {
-            enqueue(id, due: .distantPast)
-        }
+        failed.removeValue(forKey: id)
+        enqueue(id, due: .distantPast)
+        pending[id]?.trigger = .manual
         update(id) {
-            $0.status = .pending
+            $0.status = pending[id]?.waitingStatus ?? .pending
             $0.error = nil
             $0.progress = nil
         }
@@ -260,7 +290,14 @@ final class NotesStore: ObservableObject, ModelMaintenance {
             } catch is CancellationError {
                 throw CancellationError()
             } catch NotesError.SourceChanged {
-                enqueue(reference.collectionId, forced: [reference.documentId], due: .distantPast)
+                enqueue(
+                    reference.collectionId, forced: [reference.documentId], changesDetected: true,
+                    due: .distantPast)
+                update(reference.collectionId) {
+                    if failed[reference.collectionId] == nil {
+                        $0.status = pending[reference.collectionId]?.waitingStatus ?? .pending
+                    }
+                }
             } catch {
                 fail(reference.collectionId, error)
             }
@@ -290,22 +327,27 @@ final class NotesStore: ObservableObject, ModelMaintenance {
     private func requestRebuild(_ id: String) {
         enqueue(id, rebuild: true, due: .distantPast)
         update(id) {
-            $0.status = .pending
+            if failed[id] == nil { $0.status = pending[id]?.waitingStatus ?? .pending }
             $0.indexAvailable = false
         }
     }
 
     private func enqueue(
-        _ id: String, forced: Set<String> = [], rebuild: Bool = false, due: Date? = nil
+        _ id: String, forced: Set<String> = [], rebuild: Bool = false,
+        changesDetected: Bool = false,
+        due: Date? = nil
     ) {
         guard collections.contains(where: { $0.id == id }) else { return }
         let old = pending[id]
+        var trigger = old?.trigger ?? .maintenance
+        if trigger == .maintenance && changesDetected { trigger = .changesDetected }
         generation &+= 1
         pending[id] = Pending(
             generation: generation,
             forced: (old?.forced ?? []).union(forced),
             rebuild: rebuild || old?.rebuild == true,
-            due: due ?? old?.due ?? Date().addingTimeInterval(300)
+            due: due ?? old?.due ?? Date().addingTimeInterval(300),
+            trigger: trigger
         )
     }
 
@@ -315,17 +357,20 @@ final class NotesStore: ObservableObject, ModelMaintenance {
         let embeddingReady = modelProvider.isEmbeddingModelReady()
         let request =
             embeddingReady
-            ? pending.filter { !failed.contains($0.key) && $0.value.due <= Date() }.min {
-                $0.key < $1.key
+            ? pending.filter { failed[$0.key] == nil && $0.value.due <= Date() }.min {
+                lhs, rhs in
+                let lhsManual = lhs.value.trigger == .manual
+                let rhsManual = rhs.value.trigger == .manual
+                return lhsManual == rhsManual ? lhs.key < rhs.key : lhsManual
             } : nil
         guard
             let id = request?.key
-                ?? scans.filter({ pending[$0] == nil && !failed.contains($0) }).min(),
+                ?? scans.filter({ pending[$0] == nil || failed[$0] != nil }).min(),
             let collection = collections.first(where: { $0.id == id })
         else {
             let due =
                 embeddingReady
-                ? pending.filter { !failed.contains($0.key) }.values.map(\.due).min() : nil
+                ? pending.filter { failed[$0.key] == nil }.values.map(\.due).min() : nil
             let seconds = min(300, max(0.1, due?.timeIntervalSinceNow ?? 300))
             wake = Task { [weak self] in
                 do {
@@ -334,10 +379,7 @@ final class NotesStore: ObservableObject, ModelMaintenance {
                     return
                 }
                 guard let self else { return }
-                self.scans.formUnion(
-                    self.collections.filter {
-                        $0.status != .unavailable && ($0.status != .error || $0.completedEmpty)
-                    }.map(\.id))
+                self.scans.formUnion(self.collections.map(\.id))
                 self.pump()
             }
             return
@@ -358,19 +400,28 @@ final class NotesStore: ObservableObject, ModelMaintenance {
             do {
                 try cancellation.check()
                 if let snapshot {
-                    update(id) {
-                        $0.status = hadIndex ? .updating : .indexing
-                        $0.error = nil
-                    }
                     let result = try await modelProvider.withEmbeddingContext(
+                        for: snapshot.trigger == .manual ? .manualIndexing : .automaticIndexing,
                         checkCancellation: cancellation.check
                     ) { context in
-                        try await self.provider.index(
+                        var forced = snapshot.forced
+                        let revision: String?
+                        do {
+                            let freshness = try await self.provider.inspectFreshness(
+                                id, operation: operation)
+                            revision = freshness.sourceRevision
+                            forced.formUnion(freshness.forcedDocumentIds)
+                        } catch NotesError.RebuildRequired {
+                            revision = try await self.provider.inspectSourceRevision(
+                                id, operation: operation)
+                        }
+                        await MainActor.run { self.sourceRevisions[id] = revision }
+                        return try await self.provider.index(
                             id,
                             context: context,
                             operation: operation,
                             options: NotesIndexOptions(
-                                forcedDocumentIds: Array(snapshot.forced),
+                                forcedDocumentIds: Array(forced),
                                 rebuild: snapshot.rebuild
                             )
                         ) { [weak self] progress in
@@ -391,32 +442,48 @@ final class NotesStore: ObservableObject, ModelMaintenance {
                         enqueue(
                             id,
                             forced: Set(result.uncheckedDocumentIds).union([changed]),
+                            changesDetected: result.summary.initialComplete,
                             due: same ? Date().addingTimeInterval(300) : nil
                         )
                     }
                     update(id) {
-                        if pending[id] == nil {
-                            $0 = Self.state(record, result.summary)
-                        } else {
-                            $0.status = .pending
+                        if let next = pending[id] {
+                            $0.status = next.waitingStatus
+                            $0.progress = nil
                             $0.documentCount = result.summary.documentCount
                             $0.lastUpdatedAtMs = result.summary.lastUpdatedAtMs
                             $0.indexAvailable =
-                                hadIndex && result.summary.initialComplete
+                                hadIndex && !next.rebuild && result.summary.initialComplete
                                 && result.summary.documentCount > 0
+                        } else {
+                            $0 = Self.state(record, result.summary)
                         }
                     }
                 } else {
                     let result = try await provider.inspectFreshness(id, operation: operation)
+                    var recovery: Pending?
+                    if let failure = failed[id] {
+                        if failure == .indexing
+                            && !hasNewSourceRevision(id, result.sourceRevision)
+                        {
+                            return
+                        }
+                        failed.removeValue(forKey: id)
+                        recovery = pending.removeValue(forKey: id)
+                    }
+                    if let revision = result.sourceRevision { sourceRevisions[id] = revision }
+                    if result.changed || recovery?.rebuild == true {
+                        enqueue(
+                            id, forced: Set(result.forcedDocumentIds).union(recovery?.forced ?? []),
+                            rebuild: recovery?.rebuild == true,
+                            changesDetected: result.summary.initialComplete,
+                            due: result.summary.initialComplete ? nil : .distantPast)
+                    }
                     update(id) {
                         $0 = Self.state(record, result.summary, progress: $0.progress)
-                    }
-                    if result.changed {
-                        enqueue(
-                            id, forced: Set(result.forcedDocumentIds),
-                            due: result.summary.initialComplete ? nil : .distantPast)
-                        update(id) {
-                            $0.status = .pending
+                        if let next = pending[id] {
+                            $0.status = next.waitingStatus
+                            $0.indexAvailable = $0.indexAvailable && !next.rebuild
                             $0.error = nil
                         }
                     }
@@ -424,34 +491,86 @@ final class NotesStore: ObservableObject, ModelMaintenance {
             } catch is ModelMemoryDeferred {
                 enqueue(id, due: Date().addingTimeInterval(30))
                 update(id) {
-                    $0.status = .pending; $0.progress = nil
+                    $0.status = pending[id]?.waitingStatus ?? .pending
+                    $0.progress = nil
                 }
             } catch NotesError.Cancelled {
                 if snapshot == nil { scans.insert(id) }
+                if failed[id] != nil { return }
                 let saved = try? await provider.inspect(id)
                 update(id) {
-                    $0.status = .pending
+                    $0.status = pending[id]?.waitingStatus ?? .pending
+                    $0.progress = nil
                     if let saved { $0.lastUpdatedAtMs = saved.lastUpdatedAtMs }
                     $0.indexAvailable =
-                        hadIndex && saved?.initialComplete == true
+                        hadIndex && pending[id]?.rebuild != true && saved?.initialComplete == true
                         && (saved?.documentCount ?? 0) > 0
                 }
             } catch NotesError.RebuildRequired {
                 if snapshot == nil {
-                    requestRebuild(id)
-                } else {
+                    await recoverRebuild(id, operation: operation)
+                } else if failed[id] == nil {
                     fail(id, NotesError.RebuildRequired)
                 }
             } catch {
+                if snapshot == nil && (failed[id] != nil || pending[id]?.trigger == .manual) {
+                    return
+                }
                 fail(id, error)
             }
         }
         active = Run(operation: operation, task: task)
+        if snapshot != nil {
+            update(id) {
+                $0.status = hadIndex ? .updating : .indexing
+                $0.error = nil
+            }
+        }
+    }
+
+    private func hasNewSourceRevision(_ id: String, _ revision: String?) -> Bool {
+        guard let revision else { return false }
+        guard let failedRevision = sourceRevisions[id] else {
+            sourceRevisions[id] = revision
+            return false
+        }
+        return revision != failedRevision
+    }
+
+    private func recoverRebuild(_ id: String, operation: NotesReadOperation) async {
+        requestRebuild(id)
+        guard failed[id] != nil else { return }
+        do {
+            let revision = try await provider.inspectSourceRevision(id, operation: operation)
+            try operation.cancellation.check()
+            guard let failure = failed[id] else { return }
+            if failure == .indexing && !hasNewSourceRevision(id, revision) { return }
+            let recovery = pending.removeValue(forKey: id)
+            failed.removeValue(forKey: id)
+            if let revision { sourceRevisions[id] = revision }
+            enqueue(
+                id, forced: recovery?.forced ?? [], rebuild: true,
+                changesDetected: failure == .indexing,
+                due: failure == .indexing ? nil : .distantPast)
+            update(id) {
+                $0.status = pending[id]?.waitingStatus ?? .pending
+                $0.indexAvailable = false
+                $0.error = nil
+                $0.progress = nil
+            }
+        } catch NotesError.Cancelled {
+            scans.insert(id)
+        } catch {}
     }
 
     private func fail(_ id: String, _ error: Error) {
         guard collections.contains(where: { $0.id == id }) else { return }
-        failed.insert(id)
+        switch error as? NotesError {
+        case .Unavailable?, .SourceRead?, .SourceChanged?:
+            failed[id] = .sourceAccess
+        default:
+            failed[id] = .indexing
+        }
         scans.remove(id)
         update(id) {
             $0.status = (error as? NotesError) == .Unavailable ? .unavailable : .error
@@ -461,6 +580,7 @@ final class NotesStore: ObservableObject, ModelMaintenance {
         }
     }
     private static func message(_ error: Error) -> String {
+        if error is ModelMemoryUnavailable { return error.localizedDescription }
         guard let error = error as? NotesError else {
             return "Could not update Your Notes. Please try again."
         }

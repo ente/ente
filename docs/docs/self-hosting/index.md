@@ -67,6 +67,10 @@ You can import your pictures from Google Takeout or from other services to Ente 
 
 You can import your codes from other authenticator providers to Ente Auth. Check out our [migration guide](/auth/migration/) for more information.
 
+## If I self-host Ente, do I still pay a subscription? {#self-host-subscription}
+
+Self-hosting is free. You don't need an Ente subscription. You pay only for your own server and storage. To give accounts on your server more storage, use the Ente CLI. See [Change a free subscription](/cli/admin#change-a-free-subscription).
+
 ## Queries?
 
 If you need support, please ask on our community [Discord](https://ente.com/discord) or start a discussion on [GitHub](https://github.com/ente/ente/discussions/).

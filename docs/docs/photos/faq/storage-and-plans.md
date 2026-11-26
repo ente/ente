@@ -19,6 +19,10 @@ This means that the same file appears to take up less "storage" on Ente compared
 
 Storage usage in the mobile app is rounded for display, so a small upload may not visibly change the total. To check pending uploads, see [Backup status](/photos/faq/backup-and-sync#check-backup-status).
 
+### Why does Ente show more storage used than my original files? {#storage-includes-thumbnails}
+
+Along with each original, Ente stores a small encrypted thumbnail so your library loads quickly. Each photo thumbnail is typically about 100 KB. A detailed photo or a video thumbnail can be a little larger, and thumbnails count toward your storage. With thousands of photos, this can add a few hundred MB to your usage. Your originals are stored as they are, without compression.
+
 ### How does Ente deduplicate photos? {#deduplication}
 
 Ente automatically detects and handles duplicate files during backup to save storage space:
@@ -362,6 +366,17 @@ Open `Settings > Legacy > Add trusted contact`.
 
 Learn more in the [Legacy contact guide](https://ente.com/help/photos/features/account/legacy/#legacy).
 
+### Can a family admin delete photos from a family member's account? {#family-admin-delete-photos}
+
+No. A family plan only shares storage. Each member's photos stay in their own account, and only the person who uploaded a photo can delete it.
+
+If you share an album with family members and make yourself an admin, you can:
+
+- Remove photos from that album. This doesn't delete them from the owner's account.
+- Use [Suggest deletion](/photos/faq/sharing-and-collaboration#suggest-deletion) on mobile to ask the owner to delete them.
+
+To free up family storage, ask each member to delete the photos they no longer need from their own account.
+
 ### Are duplicate photos deduplicated across family members? {#family-plan-deduplication}
 
 No. Family plans are a way to share storage, but each family member has their own separate account. Ente cannot deduplicate files across different accounts.
@@ -391,6 +406,17 @@ The discount works on monthly and yearly plans. On a monthly plan, enter the cod
 Contact [students@ente.com](mailto:students@ente.com) before your next renewal invoice is generated so we can review your eligibility and help renew the discount on your existing subscription. Include the email address registered with Ente if it differs from your institute email.
 
 You do not need to cancel, resubscribe, or change your billing interval just to look for a coupon field. If an invoice has already been issued, contact us about the options for your account. An adjustment or refund is not automatic.
+
+### Do existing subscribers get a renewal discount? {#renewal-discount}
+
+No. We don't offer a separate renewal or loyalty discount, so your plan renews at the regular price.
+
+Ways to pay less:
+
+- **Switch to a yearly plan.** A year on a yearly plan costs about two months less than paying monthly. See [Can I switch between monthly and yearly plans?](#switch-billing-cycle)
+- **Students** can get 30% off, including on an existing subscription. See [Does Ente offer discounts to students?](#student-discount)
+
+You can also [refer friends](#earn-storage-referrals) to earn extra storage at the same subscription price.
 
 ## Discount Codes and Referrals
 
@@ -430,6 +456,20 @@ Unfortunately, we cannot apply discount codes retroactively. However, you can:
 3. Resubscribe using the discount code
 
 Contact [support@ente.com](mailto:support@ente.com) if you have questions about your specific situation.
+
+### Do Ente subscribers get discounts on other privacy apps? {#friends-perks}
+
+Yes. Through [Ente Friends](https://ente.com/friends), paid Ente subscribers can get discounts or free trials from partner services, such as a three-month trial of Kagi's Professional plan or a discount on Tuta. The page lists the current partners and offers.
+
+To claim an offer:
+
+1. Open [ente.com/friends](https://ente.com/friends)
+2. Under the offer you want, enter the email address of your Ente account
+3. Click **Get coupon**
+
+The code is sent to that email address if the account is on an active paid plan. If you're part of a family plan, the plan admin can claim offers. If you don't receive an email, check your spam folder and make sure you used the email address of your Ente account. Requesting the same offer again resends the same code.
+
+Redeem the code on the partner's website. For help with a partner's service, contact that partner.
 
 ## Referral Program
 
@@ -580,7 +620,7 @@ If your usage is above the free allowance, contact support about your options. K
 
 **What about subscriptions purchased through app stores?**
 
-If you have a subscription through the Apple App Store or Google Play:
+If you have a subscription billed through an app store:
 
 - Manage your subscription through the respective app store
 - Cancellation policies follow the app store's terms
@@ -693,6 +733,14 @@ Yes! Switching between monthly and yearly billing works the same as upgrading or
 
 The same prorating calculation applies as described above.
 
+### Can I choose the day my subscription renews? {#choose-renewal-date}
+
+Your subscription renews on its current billing date, each month for a monthly plan or each year for a yearly plan. That date starts when you subscribe and can change after a plan change. You can't set a different renewal day for an active subscription.
+
+If you want to subscribe on a particular day, cancel your current subscription and contact [support@ente.com](mailto:support@ente.com). For plans billed directly by Ente, we can help you move to the free plan so you can subscribe again on the day you choose. If you are subscribing for the first time, subscribe on that day.
+
+For plans billed directly by Ente, upgrading or switching from monthly to yearly starts a new renewal date when the change takes effect. Changes to a subscription billed through the Apple App Store follow Apple's rules and may start at the next renewal instead. See [What happens when I upgrade my plan?](#upgrade-plan).
+
 ### If I subscribed to a plan with a reference code and a discount, and then need to upgrade/downgrade, what happens to my discount and bonus? {#upgrade-discount-referral}
 
 The referral bonus remains, and the discount stays valid for 12 months even on an upgraded/downgraded plan. The amount is prorated.
@@ -725,7 +773,7 @@ We send this email when we try to renew your subscription but the payment doesn'
 
 Your photos and files are safe, but new uploads stop until the renewal is paid.
 
-If your subscription is through the Apple App Store or Google Play, update your payment details in that store's subscription settings. Store payments cannot be retried from an Ente invoice.
+If your subscription is billed through an app store, update your payment details in that store's subscription settings. Store payments cannot be retried from an Ente invoice.
 
 If you pay Ente directly:
 
@@ -747,7 +795,7 @@ If the renewal isn't paid, your plan expires. See [What happens when my subscrip
 
 For a subscription purchased directly from Ente, open `Settings > Storage/Subscription > Cancel subscription`, or `Settings > Account > Manage subscription > Cancel subscription`.
 
-For a subscription purchased through the Apple App Store or Google Play, cancel renewal in that store's subscription settings. Check the end date shown by the store; cancelling renewal does not necessarily end the current paid period immediately.
+For a subscription billed through an app store, cancel renewal in that store's subscription settings. Check the end date shown by the store; cancelling renewal does not necessarily end the current paid period immediately.
 
 If you want to switch from Apple to direct billing, follow the [payment-provider transition steps](#update-payment).
 

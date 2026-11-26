@@ -2,10 +2,10 @@ import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:ente_components/ente_components.dart';
+import 'package:ente_components/hugeicons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hugeicons/hugeicons.dart';
 
 Future<void> pumpPopupMenu(
   WidgetTester tester,

@@ -185,6 +185,17 @@ If you see a green "Play Original" button, the streamed version is being used.
 
 Open the video and click the gear icon in the player. If it shows **Auto**, the video is being streamed.
 
+### Why does a video look lower quality than the original? {#video-lower-quality}
+
+Ente may be playing the streamable version of the video, which is 720p, instead of your original file. Your original is still stored at full quality.
+
+To watch the original:
+
+- **On desktop and web:** click the gear icon in the video player, choose **Quality**, then **Original**
+- **On mobile:** tap **Play original**
+
+The original may take longer to start, because the whole file has to download first.
+
 ### Why does my shared video start downloading instead of playing immediately? {#shared-video-downloads-instead-of-playing}
 
 If a video hasn't had a stream generated yet, the browser may start downloading the entire file (or a large portion of it) before playback begins. This can happen with large files like 1–2 GB videos.

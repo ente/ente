@@ -4,13 +4,13 @@ import "dart:math";
 import "dart:ui";
 
 import "package:connectivity_plus/connectivity_plus.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:ente_components/theme/text_styles.dart" as component;
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/foundation.dart" show ValueListenable;
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/details_sheet_event.dart";
@@ -27,16 +27,15 @@ import "package:photos/models/selected_files.dart";
 import "package:photos/module/download/file.dart";
 import "package:photos/module/download/thumbnail.dart";
 import "package:photos/service_locator.dart";
-import "package:photos/services/memories/memory_video_exporter.dart";
 import "package:photos/services/memories/smart_memories_service.dart";
 import "package:photos/services/memory_share_service.dart";
 import "package:photos/ui/actions/file/file_actions.dart";
 import "package:photos/ui/collections/collection_action_sheet.dart";
-import "package:photos/ui/common/linear_progress_dialog.dart";
 import "package:photos/ui/home/memories/custom_listener.dart";
 import "package:photos/ui/home/memories/memory_music_session.dart";
 import "package:photos/ui/home/memories/memory_progress_indicator.dart";
 import "package:photos/ui/home/memories/memory_share_sheet.dart";
+import "package:photos/ui/home/memories/memory_video_export_sheet.dart";
 import "package:photos/ui/home/memories/memory_video_prefetcher.dart";
 import "package:photos/ui/home/memories/memory_viewer_constants.dart";
 import "package:photos/ui/social/widgets/file_social_overlay.dart";
@@ -321,6 +320,7 @@ class FullScreenMemory extends StatefulWidget {
   final VoidCallback? onNextMemory;
   final VoidCallback? onPreviousMemory;
   final ValueChanged<bool>? onMediaInteractionLockChanged;
+  final Widget? overlay;
 
   const FullScreenMemory(
     this.title,
@@ -330,6 +330,7 @@ class FullScreenMemory extends StatefulWidget {
     this.onNextMemory,
     this.onPreviousMemory,
     this.onMediaInteractionLockChanged,
+    this.overlay,
     super.key,
   });
 
@@ -850,6 +851,7 @@ class _FullScreenMemoryState extends State<FullScreenMemory> {
             _MemoryViewerScrimsAndCaption(
               socialControlsVisible: _socialControlsVisible,
             ),
+            ?widget.overlay,
             if (memoryAudio != null)
               Positioned(
                 left:
@@ -1581,7 +1583,7 @@ Future<void> _shareMemory(
       );
       return;
     case MemoryShareSheetAction.shareVideo:
-      await _shareMemoryVideo(context, result.selectedMemories);
+      await _shareMemoryVideo(context, result.selectedMemories, memoryTitle);
     case MemoryShareSheetAction.shareItems:
       await share(context, Memory.filesFromMemories(result.selectedMemories));
   }
@@ -1590,42 +1592,28 @@ Future<void> _shareMemory(
 Future<void> _shareMemoryVideo(
   BuildContext context,
   List<Memory> memories,
+  String memoryTitle,
 ) async {
   final memoryAudio = MemoryAudioScope.maybeOf(context, listen: false);
   final musicTrack = memoryAudio == null || memoryAudio.isMusicMuted
       ? null
       : memoryAudio.controller?.activeTrack;
-  final dialogKey = GlobalKey<LinearProgressDialogState>();
-  unawaited(
-    showDialog(
-      context: context,
-      useRootNavigator: false,
-      builder: (_) =>
-          LinearProgressDialog(context.strings.preparingVideo, key: dialogKey),
-    ),
-  );
-  void dismissDialog() {
-    final dialogContext = dialogKey.currentContext ?? context;
-    if (dialogContext.mounted) Navigator.of(dialogContext).pop();
-  }
-
-  final File video;
+  final File? video;
   try {
-    video = await MemoryVideoExporter().export(
+    video = await showMemoryVideoExportSheet(
+      context,
       files: Memory.filesFromMemories(memories),
       musicTrack: musicTrack,
       muteVideos: memoryAudio?.isVideoMuted ?? false,
-      onProgress: (progress) => dialogKey.currentState?.setProgress(progress),
+      title: memoryTitle,
     );
   } catch (e) {
-    dismissDialog();
     if (context.mounted) {
       await showGenericErrorBottomSheet(context: context, error: e);
     }
     return;
   }
-  dismissDialog();
-  if (!context.mounted) return;
+  if (video == null || !context.mounted) return;
   try {
     await SharePlus.instance.share(
       ShareParams(

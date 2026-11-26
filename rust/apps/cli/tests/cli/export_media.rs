@@ -26,6 +26,54 @@ fn run(engine: &mut Engine, complete: bool) -> Value {
 }
 
 #[test]
+fn export_reuses_identical_metadata_after_its_timestamp_changes() {
+    use std::time::{Duration, UNIX_EPOCH};
+
+    let mut server = mockito::Server::new();
+    let key = Key::generate();
+    let (record, bytes) = source(10, &key, b"original", "Photo.jpg");
+    let downloaded = download(&mut server, 10, &bytes, 1);
+    let mut engine = new_engine(&server, key, record);
+    run(&mut engine, true);
+    downloaded.assert();
+
+    let folder = engine.root().join("First");
+    let modified = UNIX_EPOCH + Duration::from_secs(1_700_000_000);
+    let files = ["metadata.json", "metadata/Photo.jpg.json"].map(|name| {
+        let path = folder.join(name);
+        let original = fs::read_to_string(&path).unwrap();
+        fs::File::options()
+            .write(true)
+            .open(&path)
+            .unwrap()
+            .set_modified(modified)
+            .unwrap();
+        (path, original)
+    });
+
+    assert_eq!(run(&mut engine, true)["changes"]["metadataUpdated"], 0);
+    assert_eq!(
+        count(
+            &engine.db(),
+            "SELECT count(*) FROM json_records WHERE json_extract(properties, '$.modified') = 1700000000000000000"
+        ),
+        2
+    );
+    for (path, original) in &files {
+        assert_eq!(fs::metadata(path).unwrap().modified().unwrap(), modified);
+        assert_eq!(&fs::read_to_string(path).unwrap(), original);
+        let edited = original.replace("First", "Other").replace("Photo", "Local");
+        assert_ne!(&edited, original);
+        assert_eq!(edited.len(), original.len());
+        fs::write(path, edited).unwrap();
+    }
+    assert_eq!(run(&mut engine, true)["changes"]["metadataUpdated"], 1);
+    for (path, original) in files {
+        assert_eq!(fs::read_to_string(path).unwrap(), original);
+    }
+}
+
+#[test]
 fn engine_export_tolerates_finder_sidecars_in_destination() {
     let mut server = mockito::Server::new();
     let key = Key::generate();

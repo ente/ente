@@ -1,11 +1,12 @@
 import {
-    MenuItem,
     Select,
     type SelectChangeEvent,
     type SxProps,
     type Theme,
     Typography,
 } from "@mui/material";
+import { ContextMenuItem } from "ente-base/components/ContextMenu";
+import { contextMenuPaperStyles } from "ente-base/components/ContextMenu.styles";
 import { isSxArray } from "ente-base/components/utils/sx";
 
 export interface DropdownOption<T> {
@@ -29,7 +30,7 @@ export const DropdownInput = <T extends string>({
     sx,
 }: DropdownInputProps<T>) => (
     <Select
-        value={selected}
+        value={selected ?? ""}
         onChange={(event: SelectChangeEvent) => {
             onSelect(event.target.value as T);
         }}
@@ -57,18 +58,12 @@ export const DropdownInput = <T extends string>({
             slotProps: {
                 paper: {
                     // MUI's item min-width prevents wrapping unless max-width is reset.
-                    sx: { maxWidth: 0 },
+                    sx: (theme) => ({
+                        ...contextMenuPaperStyles(theme),
+                        maxWidth: 0,
+                    }),
                 },
-                list: {
-                    sx: {
-                        backgroundColor: "background.paper2",
-                        ".MuiMenuItem-root": {
-                            color: "text.faint",
-                            whiteSpace: "normal",
-                        },
-                        "&&& > .Mui-selected": { color: "text.base" },
-                    },
-                },
+                list: { sx: { p: 1 } },
             },
         }}
         sx={[
@@ -82,9 +77,13 @@ export const DropdownInput = <T extends string>({
         ]}
     >
         {options.map(({ value, label }) => (
-            <MenuItem key={value} value={value}>
-                <Typography>{label}</Typography>
-            </MenuItem>
+            <ContextMenuItem
+                key={value}
+                value={value}
+                sx={{ whiteSpace: "normal" }}
+            >
+                {label}
+            </ContextMenuItem>
         ))}
     </Select>
 );

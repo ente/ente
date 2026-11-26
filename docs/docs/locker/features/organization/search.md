@@ -11,12 +11,21 @@ Search helps you find any item in your Locker quickly. Search works locally on y
 
 ![Search your documents bar on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-search-callout.png){width=320px}
 
-![Typed search with filtered Home Wi-Fi result on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-search-typed-callout.png){width=320px}
-
 1. Tap the search icon on the home screen
 2. Type your search query
 3. Results appear as you type
-4. Tap a result to view the item
+4. To narrow the results, tap **Items** or **Collections** above the list
+5. Tap a result to view the item
+
+![Search bar with wi typed highlighted, with the Home Wi-Fi result below on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-search-typed-callout-v1013.png){width=560px}
+
+![Items and Collections filter chips highlighted on the Ente Locker mobile search screen](https://docs-assets.ente.com/screenshots/locker-search-filters-callout-v1013.png){width=560px}
+
+## Selecting multiple items
+
+To act on several results at once, long-press one result, then tap any others you want to add. Use the actions that appear, just as you would on the home screen. Changing the filter or what you typed, or closing search, clears your selection.
+
+![Three items selected with the selection toolbar showing Important, Delete, Add to and Download on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-multi-select-callout-v1013.png){width=560px}
 
 ## What is searched
 

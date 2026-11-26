@@ -2,7 +2,9 @@ use std::{collections::BTreeMap, io::Write};
 
 use anyhow::{Context, Result, ensure};
 use dialoguer::{Confirm, Password, console::Term};
-use ente_accounts::{DEFAULT_API_ORIGIN, lifecycle::TwoFactorSetup, signup::Signup};
+use ente_accounts::{
+    DEFAULT_API_ORIGIN, lifecycle::TwoFactorSetup, security, sessions, signup::Signup,
+};
 use ente_core::{b64, crypto::Key};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -11,9 +13,13 @@ use zeroize::{ZeroizeOnDrop, Zeroizing};
 
 use crate::{
     api,
-    args::{App, CreateArgs, Options, TotpCommand, VerificationPurpose},
+    args::{
+        App, ChangeEmailArgs, CreateArgs, EmailMfaCommand, Options, SessionCommand, TotpCommand,
+        VerificationPurpose,
+    },
     login::{self, Credentials},
-    output, parse_json, read_input,
+    output::{self, AccountView},
+    parse_json, read_input,
     vault::{Account, DbKey, State, Vault},
 };
 
@@ -48,6 +54,7 @@ pub async fn request_otp(
             match purpose {
                 VerificationPurpose::Create => "signup",
                 VerificationPurpose::Login => "login",
+                VerificationPurpose::Change => "change",
             },
             false,
         )
@@ -266,8 +273,11 @@ pub async fn totp(
 ) -> Result<()> {
     ensure!(
         !options.offline,
-        "authenticator setup and status require network access"
+        "authenticator commands require network access"
     );
+    if let TotpCommand::Disable { yes } = command {
+        require_confirmation(yes, options)?;
+    }
     let input = match &command {
         TotpCommand::Enable { input } => {
             ensure!(
@@ -296,6 +306,15 @@ pub async fn totp(
     let app = account.app(app)?;
     let client = api::accounts_client(&account.origin, app)?;
     client.set_auth_token(Some(b64::encode_url_safe(account.token(app)?)));
+    if let TotpCommand::Disable { yes } = command {
+        confirm("Disable authenticator protection", yes, account)?;
+        client.disable_two_factor().await?;
+        return output::action(
+            options.json,
+            &json!({"totpEnabled": false}),
+            "Authenticator protection is disabled.",
+        );
+    }
     let enabled = client.get_two_factor_status().await?;
     if matches!(command, TotpCommand::Status) {
         return output::action(
@@ -320,7 +339,7 @@ pub async fn totp(
             writeln!(std::io::stdout(), "{}", secret.as_str()).map_err(Into::into)
         };
     }
-    let setup = TwoFactorSetup::from_secret(secret.to_string(), &account.identity.recovery_key);
+    let setup = TwoFactorSetup::from_secret(secret.to_string(), &account.identity.recovery_key)?;
     let incorrect_code =
         "Code not accepted. Check the code and your computer's date and time, then try again.";
     if let Some(input) = input {
@@ -355,6 +374,241 @@ pub async fn totp(
         &json!({"totpEnabled": true}),
         "Authenticator protection is enabled.",
     )
+}
+
+pub async fn session(
+    command: SessionCommand,
+    selected: Option<&str>,
+    app: Option<App>,
+    options: &Options,
+) -> Result<()> {
+    ensure!(
+        !options.offline,
+        "sessions are not stored locally; this command requires network access"
+    );
+    if let SessionCommand::Revoke { id, yes } = &command {
+        ensure!(
+            id.starts_with("th:"),
+            "session IDs start with th:; see account session list"
+        );
+        ensure!(
+            *yes || options.can_prompt(),
+            "revoking a session requires confirmation; supply --yes when running without interactive prompts"
+        );
+    }
+    let state = State::load()?;
+    let account = &state.accounts[state.resolve(selected)?];
+    let app = account.app(app)?;
+    let session = api::session(account, app)?;
+    let mut active = sessions::list(&session).await.map_err(|error| match error {
+        ente_accounts::Error::SessionIdsUnsupported => anyhow::anyhow!(
+            "this Ente server does not return session IDs; listing sessions requires a current Museum release"
+        ),
+        error => error.into(),
+    })?;
+    match command {
+        SessionCommand::List => {
+            active.sort_by_key(|session| std::cmp::Reverse(session.last_used_at));
+            output::sessions(&active, options.json)
+        }
+        SessionCommand::Revoke { id, yes } => {
+            let target = active
+                .iter()
+                .find(|session| session.id == id)
+                .with_context(|| {
+                    format!(
+                        "no active {} session has ID {id:?}; see account session list --app {}",
+                        app.display_name(),
+                        app.name()
+                    )
+                })?;
+            ensure!(
+                !target.is_current,
+                "this is the CLI's own session; use account logout --app {} instead",
+                app.name()
+            );
+            let target = output::SessionView::new(target)?;
+            if !yes {
+                ensure!(
+                    Confirm::new()
+                        .with_prompt(format!(
+                            "Log out {} from {} for {}?",
+                            target.description(),
+                            app.display_name(),
+                            output::escape_controls(&account.email)
+                        ))
+                        .default(false)
+                        .interact_on(&Term::stderr())?,
+                    "cancelled"
+                );
+            }
+            sessions::revoke(&session, &id).await?;
+            output::action(
+                options.json,
+                &json!({"app": app, "session": target}),
+                &format!("Logged out {}.", target.description()),
+            )
+        }
+    }
+}
+
+pub async fn email_mfa(
+    command: EmailMfaCommand,
+    selected: Option<&str>,
+    app: Option<App>,
+    options: &Options,
+) -> Result<()> {
+    ensure!(
+        !options.offline,
+        "email verification settings require network access"
+    );
+    if let EmailMfaCommand::Disable { yes } = command {
+        require_confirmation(yes, options)?;
+    }
+    let state = State::load()?;
+    let account = &state.accounts[state.resolve(selected)?];
+    let session = api::session(account, account.app(app)?)?;
+    let enabled = match command {
+        EmailMfaCommand::Status => {
+            let status = security::get_email_mfa_status(&session).await?;
+            return output::action(
+                options.json,
+                &json!({"emailMfaEnabled": status.enabled, "canDisableEmailMfa": status.can_disable}),
+                if status.enabled {
+                    "Email verification is enabled."
+                } else {
+                    "Email verification is disabled."
+                },
+            );
+        }
+        EmailMfaCommand::Enable => true,
+        EmailMfaCommand::Disable { yes } => {
+            confirm("Disable email verification", yes, account)?;
+            false
+        }
+    };
+    security::set_email_mfa(&session, enabled)
+        .await
+        .map_err(|error| match error {
+            ente_accounts::Error::SrpNotConfigured => anyhow::anyhow!(
+                "email verification cannot be disabled until password login (SRP) is set up for this account; log in to an Ente app with your password, then retry"
+            ),
+            error => error.into(),
+        })?;
+    output::action(
+        options.json,
+        &json!({"emailMfaEnabled": enabled}),
+        if enabled {
+            "Email verification is enabled."
+        } else {
+            "Email verification is disabled."
+        },
+    )
+}
+
+pub async fn change_email(args: ChangeEmailArgs, options: &Options) -> Result<()> {
+    ensure!(!options.offline, "changing email requires network access");
+    let interactive = args.input.is_none() && options.can_prompt();
+    ensure!(
+        args.input.is_some() || interactive,
+        "changing email requires otp; supply --input PATH or --input -"
+    );
+    ensure!(
+        args.email.is_some() || interactive,
+        "change-email requires --email when prompts are disabled"
+    );
+    let mut supplied = args
+        .input
+        .as_deref()
+        .map(|path| {
+            parse_json::<EmailCode>(&read_input(path, u64::MAX)?)
+                .context("input must contain an otp string")
+        })
+        .transpose()?;
+    if let Some(input) = &supplied {
+        ensure!(!input.otp.is_empty(), "supply a nonempty otp in --input");
+    }
+    let state = State::load()?;
+    let index = state.resolve(args.selector.account.as_deref())?;
+    let account = &state.accounts[index];
+    let app = account.app(args.app)?;
+    let email = login::email(args.email, None, interactive)?;
+    let session = api::session(account, app)?;
+    if interactive {
+        api::accounts_client(&account.origin, app)?
+            .send_otp(&email, "change", false)
+            .await?;
+        eprintln!(
+            "Verification code sent to {}.",
+            output::escape_controls(&email)
+        );
+    }
+    loop {
+        let code = Zeroizing::new(match supplied.as_mut() {
+            Some(input) => std::mem::take(&mut input.otp),
+            None => Password::new()
+                .with_prompt("Email verification code")
+                .interact_on(&Term::stderr())?,
+        });
+        match security::change_email(&session, &email, &code).await {
+            Ok(()) => break,
+            Err(ente_accounts::Error::IncorrectEmailVerificationCode) if interactive => {
+                eprintln!("Incorrect verification code. Try again.")
+            }
+            Err(error) => return Err(error.into()),
+        }
+    }
+    let storage_id = account.storage_id;
+    let mut vault = Vault::open()?;
+    let index = vault
+        .state
+        .accounts
+        .iter()
+        .position(|account| account.storage_id == storage_id)
+        .context("account was removed from this device during the email change")?;
+    vault.state.accounts[index].email = email;
+    vault.save()?;
+    let state = vault.into_state();
+    let account = &state.accounts[index];
+    output::action(
+        options.json,
+        &json!({"account": AccountView::new(account, state.selected)}),
+        &format!(
+            "Email changed to {}.",
+            output::escape_controls(&account.email)
+        ),
+    )
+}
+
+fn require_confirmation(yes: bool, options: &Options) -> Result<()> {
+    ensure!(
+        yes || options.can_prompt(),
+        "this change requires confirmation; supply --yes when running without interactive prompts"
+    );
+    Ok(())
+}
+
+fn confirm(action: &str, yes: bool, account: &Account) -> Result<()> {
+    if !yes {
+        ensure!(
+            Confirm::new()
+                .with_prompt(format!(
+                    "{action} for {} on {}?",
+                    output::escape_controls(&account.email),
+                    account.origin
+                ))
+                .default(false)
+                .interact_on(&Term::stderr())?,
+            "cancelled"
+        );
+    }
+    Ok(())
+}
+
+#[derive(Deserialize, ZeroizeOnDrop)]
+#[serde(deny_unknown_fields)]
+struct EmailCode {
+    otp: String,
 }
 
 #[derive(Deserialize, ZeroizeOnDrop)]

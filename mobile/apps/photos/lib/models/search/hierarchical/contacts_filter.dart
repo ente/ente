@@ -1,4 +1,4 @@
-import "package:hugeicons/hugeicons.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:photos/models/api/collection/user.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/search/hierarchical/hierarchical_search_filter.dart";

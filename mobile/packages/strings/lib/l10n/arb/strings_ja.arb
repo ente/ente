@@ -911,7 +911,7 @@
   "groupByWeek": "週",
   "groupByYear": "年",
   "guestView": "ゲストビュー",
-  "guestViewEnablePreSteps": "アプリのロックを有効にするには、システム設定でデバイスのパスコードまたは画面ロックを設定してください。",
+  "guestViewEnablePreSteps": "ゲストビューを有効にするには、システム設定でデバイスのパスコードまたは画面ロックを設定してください。",
   "happyBirthday": "お誕生日おめでとうございます! 🥳",
   "hearUsWhereOptionalTitle": "Ente についてどのようにお聞きになりましたか？（任意）",
   "@hearUsWhereOptionalTitle": {
@@ -1451,7 +1451,7 @@
   "peopleWidgetDesc": "ホーム画面で表示したい人を選択してください。",
   "period": "期間",
   "permanentlyDelete": "完全に削除",
-  "permDeleteWarning": "ゴミ箱を空にしました\n\nこの操作はもとに戻せません",
+  "permDeleteWarning": "ゴミ箱内のすべてのアイテムが完全に削除されます\n\nこの操作は元に戻せません",
   "personalNote": "メモ",
   "personalNoteDescription": "考えや指示を書き留めます。",
   "personIsAge": "{name}が{age}才！",

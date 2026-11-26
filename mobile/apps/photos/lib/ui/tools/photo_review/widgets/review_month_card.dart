@@ -1,8 +1,8 @@
 import "dart:math" as math;
 
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:flutter/material.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/photo_review/photo_review_models.dart";
 import "package:photos/ui/viewer/actions/select_all_status_icon.dart";

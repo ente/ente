@@ -4,11 +4,11 @@ import 'dart:ui' as ui;
 
 import 'package:camera/camera.dart';
 import 'package:ente_components/ente_components.dart';
+import 'package:ente_components/hugeicons.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:ente_ui/utils/toast_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:hugeicons/hugeicons.dart';
 import 'package:locker/services/scanner/auto_capture_controller.dart';
 import 'package:locker/services/scanner/quad_stability.dart';
 import 'package:locker/services/scanner/scan_session_controller.dart';

@@ -1,4 +1,5 @@
 import "dart:convert";
+import "dart:math";
 
 import "package:photos/models/base/id.dart";
 import "package:photos/models/base_location.dart";
@@ -14,6 +15,7 @@ import "package:photos/models/memories/trip_memory.dart";
 const kPersonShowTimeout = Duration(days: 16 * kMemoriesUpdateFrequencyDays);
 const kClipShowTimeout = Duration(days: 10 * kMemoriesUpdateFrequencyDays);
 const kTripShowTimeout = Duration(days: 40 * kMemoriesUpdateFrequencyDays);
+const kSpecialShowTimeout = Duration(days: 365);
 
 final maxShowTimeout =
     [
@@ -27,6 +29,7 @@ class MemoriesCache {
   final List<PeopleShownLog> peopleShownLogs;
   final List<ClipShownLog> clipShownLogs;
   final List<TripsShownLog> tripsShownLogs;
+  final List<SpecialShownLog> specialShownLogs;
   final List<BaseLocation> baseLocations;
 
   MemoriesCache({
@@ -34,6 +37,7 @@ class MemoriesCache {
     required this.peopleShownLogs,
     required this.clipShownLogs,
     required this.tripsShownLogs,
+    required this.specialShownLogs,
     required this.baseLocations,
   });
 
@@ -43,6 +47,9 @@ class MemoriesCache {
       peopleShownLogs: PeopleShownLog.decodeJsonToList(json['peopleShownLogs']),
       clipShownLogs: ClipShownLog.decodeJsonToList(json['clipShownLogs']),
       tripsShownLogs: TripsShownLog.decodeJsonToList(json['tripsShownLogs']),
+      specialShownLogs: json['specialShownLogs'] != null
+          ? SpecialShownLog.decodeJsonToList(json['specialShownLogs'])
+          : [],
       baseLocations: json['baseLocations'] != null
           ? BaseLocation.decodeJsonToList(json['baseLocations'])
           : [],
@@ -55,6 +62,7 @@ class MemoriesCache {
       'peopleShownLogs': PeopleShownLog.encodeListToJson(peopleShownLogs),
       'clipShownLogs': ClipShownLog.encodeListToJson(clipShownLogs),
       'tripsShownLogs': TripsShownLog.encodeListToJson(tripsShownLogs),
+      'specialShownLogs': SpecialShownLog.encodeListToJson(specialShownLogs),
       'baseLocations': BaseLocation.encodeListToJson(baseLocations),
     };
   }
@@ -443,5 +451,37 @@ class TripsShownLog {
   static List<TripsShownLog> decodeJsonToList(String jsonString) {
     final jsonList = jsonDecode(jsonString) as List;
     return jsonList.map((json) => TripsShownLog.fromJson(json)).toList();
+  }
+}
+
+class SpecialShownLog {
+  final String key;
+  final int lastTimeShown;
+
+  SpecialShownLog(this.key, this.lastTimeShown);
+
+  static SpecialShownLog? ofStarted(ToShowMemory memory, {required int now}) {
+    final spec = memory.spec;
+    final key = spec is SpecialMemorySpec ? spec.shownKey : null;
+    if (key == null || memory.firstTimeToShow > now) return null;
+    return SpecialShownLog(key, min(memory.lastTimeToShow, now));
+  }
+
+  factory SpecialShownLog.fromJson(Map<String, dynamic> json) {
+    return SpecialShownLog(json['key'], json['lastTimeShown']);
+  }
+
+  Map<String, dynamic> toJson() {
+    return {'key': key, 'lastTimeShown': lastTimeShown};
+  }
+
+  static String encodeListToJson(List<SpecialShownLog> shownLogs) {
+    final jsonList = shownLogs.map((log) => log.toJson()).toList();
+    return jsonEncode(jsonList);
+  }
+
+  static List<SpecialShownLog> decodeJsonToList(String jsonString) {
+    final jsonList = jsonDecode(jsonString) as List;
+    return jsonList.map((json) => SpecialShownLog.fromJson(json)).toList();
   }
 }

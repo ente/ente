@@ -32,6 +32,7 @@ class _ReviewOldPhotosPageState extends State<ReviewOldPhotosPage>
   static final _logger = Logger("ReviewOldPhotosPage");
   static const _horizontalPadding = Spacing.xl;
   static const _yearSpacing = 44.0;
+  static const _minScrollbarLength = 36.0;
 
   final _service = PhotoReviewService.instance;
   final _reloadDebouncer = Debouncer(const Duration(seconds: 2));
@@ -48,6 +49,7 @@ class _ReviewOldPhotosPageState extends State<ReviewOldPhotosPage>
   final _scrollController = ScrollController();
   final _showScrollThumb = ValueNotifier(false);
   final _scrollThumbInUse = ValueNotifier(false);
+  double? _scrollbarDragOffset;
   double _selectionBarHeight = 0;
   int _loadGeneration = 0;
   bool _loading = false;
@@ -59,6 +61,11 @@ class _ReviewOldPhotosPageState extends State<ReviewOldPhotosPage>
   @override
   void initState() {
     super.initState();
+    _scrollThumbInUse.addListener(() {
+      _scrollbarDragOffset = _scrollThumbInUse.value
+          ? _scrollController.offset
+          : null;
+    });
     _filesSubscription = Bus.instance.on<FilesUpdatedEvent>().listen((_) {
       _fullReloadRequired = true;
       _loadGeneration++;
@@ -116,6 +123,15 @@ class _ReviewOldPhotosPageState extends State<ReviewOldPhotosPage>
         final padding = MediaQuery.paddingOf(context);
         final header = SliverAppBarComponent.resolveGeometry(context);
         final collapseExtent = header.maxExtent - header.minExtent;
+        final carouselBottom = _overview?.bannerMonths.isNotEmpty ?? false
+            ? header.maxExtent +
+                  Spacing.xxl * 2 +
+                  ReviewBannerCarousel.heightFor(context)
+            : header.minExtent;
+        final scrollbarBottom = _selectionMode
+            ? _selectionBarHeight
+            : padding.bottom;
+        final hasEnoughMonths = (_overview?.months.length ?? 0) > 40;
         final child = buildChild(
           context,
           constraints.maxWidth - padding.horizontal - _horizontalPadding * 2,
@@ -131,25 +147,42 @@ class _ReviewOldPhotosPageState extends State<ReviewOldPhotosPage>
             }
             return false;
           },
-          child: ValueListenableBuilder<bool>(
-            valueListenable: _showScrollThumb,
+          child: ListenableBuilder(
+            listenable: Listenable.merge([
+              _showScrollThumb,
+              _scrollController,
+              _scrollThumbInUse,
+            ]),
             child: child,
-            builder: (context, showThumb, child) => ScrollbarWithUseNotifer(
-              controller: _scrollController,
-              inUseNotifier: _scrollThumbInUse,
-              interactive: showThumb,
-              showThumb: showThumb,
-              thumbVisibility: showThumb,
-              minScrollbarLength: 36,
-              thickness: 8,
-              radius: const Radius.circular(4),
-              scrollbarPadding: EdgeInsets.only(
-                top: header.minExtent,
-                bottom: _selectionMode ? _selectionBarHeight : padding.bottom,
-                right: 3,
-              ),
-              child: child!,
-            ),
+            builder: (context, child) {
+              final offset =
+                  _scrollbarDragOffset ??
+                  (_scrollController.hasClients ? _scrollController.offset : 0);
+              final scrollbarTop = (carouselBottom - offset)
+                  .clamp(header.minExtent, double.infinity)
+                  .toDouble();
+              final showThumb =
+                  _showScrollThumb.value &&
+                  hasEnoughMonths &&
+                  constraints.maxHeight - scrollbarTop - scrollbarBottom >
+                      _minScrollbarLength;
+              return ScrollbarWithUseNotifer(
+                controller: _scrollController,
+                inUseNotifier: _scrollThumbInUse,
+                interactive: showThumb,
+                showThumb: showThumb,
+                thumbVisibility: showThumb,
+                minScrollbarLength: _minScrollbarLength,
+                thickness: 8,
+                radius: const Radius.circular(4),
+                scrollbarPadding: EdgeInsets.only(
+                  top: scrollbarTop,
+                  bottom: scrollbarBottom,
+                  right: 3,
+                ),
+                child: child!,
+              );
+            },
           ),
         );
       },

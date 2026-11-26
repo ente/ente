@@ -1,3 +1,4 @@
+import { headerIconSize } from "@/components/gallery/header-styles";
 import { SearchBar } from "@/components/SearchBar";
 import { Sidebar } from "@/components/sidebar/Sidebar";
 import { useIsOffline } from "@/components/utils/use-is-offline";
@@ -80,7 +81,7 @@ export const PhotosNavigationShell: React.FC<
     const sectionID = activeSectionID(navigation);
     const hasNavigation = sectionDefinition(sectionID).hasNavigation;
     const isHome =
-        navigation.overlay?.section !== "search" &&
+        !navigation.overlay &&
         navigation.destination.section === "albums" &&
         navigation.destination.collectionID === PseudoCollectionID.all;
 
@@ -103,7 +104,7 @@ export const PhotosNavigationShell: React.FC<
     useImperativeHandle(ref, () => ({ showSettings }), [showSettings]);
     const isOffline = useIsOffline();
     const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
-    const [navigationCollapsed, setNavigationCollapsed] = useState(false);
+    const [navigationCollapsed, setNavigationCollapsed] = useState(isHome);
     const mobile = useMediaQuery(useTheme().breakpoints.down("md"));
     const navigationAvailable = hasNavigation;
     const panelOpen = navigationAvailable && !navigationCollapsed;
@@ -122,10 +123,9 @@ export const PhotosNavigationShell: React.FC<
     };
     const panelMode =
         navigation.destination.albumMode ?? navigation.destination.section;
-    const isInSearchMode = navigation.overlay?.section === "search";
     useEffect(() => {
-        setNavigationCollapsed(false);
-    }, [panelMode, isInSearchMode, navigation.destination.section]);
+        setNavigationCollapsed(isHome);
+    }, [panelMode, isHome, sectionID, navigation.destination.section]);
     useEffect(() => {
         if (!mobile) closeMobileNavigation();
     }, [mobile, closeMobileNavigation]);
@@ -186,7 +186,11 @@ export const PhotosNavigationShell: React.FC<
                             alignItems: "center",
                             flexShrink: 0,
                             width: "100%",
+                            overflowY: "auto",
+                            scrollbarWidth: "none",
                             px: { xs: "9px", sm: "14px" },
+                            // Leave room for the first button's focus outline.
+                            pt: "4px",
                             gap: "12px",
                             ...theme.applyStyles("light", {
                                 "& .MuiButton-colorSecondary": {
@@ -286,7 +290,7 @@ const NormalHeaderContents: React.FC<
                     }}
                 >
                     <SvgIcon
-                        sx={{ fontSize: 20, fill: "none" }}
+                        sx={{ fontSize: headerIconSize, fill: "none" }}
                         stroke="currentColor"
                         strokeWidth="1.8"
                         strokeLinecap="round"
@@ -365,7 +369,12 @@ const NormalNavigationRail = ({
                   navigation.overlay?.section !== "search" &&
                   navigation.destination.section === id;
             return (
-                <Tooltip key={id} title={rail.label()}>
+                <Tooltip
+                    key={id}
+                    title={rail.label()}
+                    placement="right"
+                    disableInteractive
+                >
                     <FocusVisibleButton
                         color="secondary"
                         aria-label={rail.label()}
@@ -401,7 +410,7 @@ const NormalNavigationRail = ({
             );
         })}
         <Box sx={{ flex: 1 }} />
-        <Tooltip title={t("settings")}>
+        <Tooltip title={t("settings")} placement="right" disableInteractive>
             <FocusVisibleButton
                 color="secondary"
                 aria-label={t("settings")}
@@ -430,7 +439,7 @@ const NormalNavigationRail = ({
 const HomeButton: React.FC<{ selected: boolean }> = ({ selected }) => {
     const { goHome } = usePhotosNavigation();
     return (
-        <Tooltip title={ut("Home")}>
+        <Tooltip title={ut("Home")} placement="right" disableInteractive>
             <FocusVisibleButton
                 color="secondary"
                 aria-label={ut("Home")}
@@ -440,6 +449,7 @@ const HomeButton: React.FC<{ selected: boolean }> = ({ selected }) => {
                     minWidth: 0,
                     width: 38,
                     height: 38,
+                    flexShrink: 0,
                     p: 0,
                     borderRadius: "12px",
                     color: "text.base",
@@ -461,7 +471,11 @@ const UploadButton: React.FC<ButtonishProps> = ({ onClick }) => {
     const isSmallWidth = useIsSmallWidth();
 
     const icon = (
-        <HugeiconsIcon icon={Upload01Icon} size={20} strokeWidth={1.8} />
+        <HugeiconsIcon
+            icon={Upload01Icon}
+            size={headerIconSize}
+            strokeWidth={1.8}
+        />
     );
 
     return (

@@ -10,12 +10,9 @@ import "package:photos/db/ml/db.dart";
 import "package:photos/db/ml/rust_db.dart";
 import "package:photos/db/offline_files_db.dart";
 import "package:photos/models/file/file.dart";
-import "package:photos/models/ml/clip.dart";
-import "package:photos/models/ml/ml_versions.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/services/machine_learning/ml_computer.dart";
-import "package:photos/services/machine_learning/ml_result.dart";
 import "package:photos/services/machine_learning/semantic_search/clip_similarity_scan.dart";
 import "package:photos/services/machine_learning/semantic_search/query_result.dart";
 import "package:photos/services/search_service.dart";
@@ -48,13 +45,13 @@ class SemanticSearchService {
   Future<void> init() async {
     if (!hasGrantedMLConsent) return;
 
-    _scheduleWarmup(delayTextModelLoad: true);
+    unawaited(_scheduleWarmup(delayTextModelLoad: true));
   }
 
   Future<void> prepareForInteractiveSearch() async {
     if (!hasGrantedMLConsent) return;
 
-    _scheduleWarmup(delayTextModelLoad: false);
+    await _scheduleWarmup(delayTextModelLoad: false);
   }
 
   bool isMagicSearchEnabledAndReady() {
@@ -66,7 +63,7 @@ class SemanticSearchService {
     return _prepareVectorDbFuture!;
   }
 
-  void _scheduleWarmup({required bool delayTextModelLoad}) {
+  Future<void> _scheduleWarmup({required bool delayTextModelLoad}) async {
     if (flagService.usearchForSearch) {
       unawaited(_prepareVectorDbForSearch());
     }
@@ -75,7 +72,7 @@ class SemanticSearchService {
       return;
     }
 
-    unawaited(_loadTextModel(delay: delayTextModelLoad));
+    await _loadTextModel(delay: delayTextModelLoad);
   }
 
   Future<void> _prepareVectorDbForSearchInternal() async {
@@ -326,20 +323,6 @@ class SemanticSearchService {
       _logger.severe("Clip text loading failed", e, s);
     }
     _logger.info("Clip text model loaded");
-  }
-
-  Future<void> storeClipImageResult(ClipResult clipResult) async {
-    final embedding = ClipEmbedding(
-      fileID: clipResult.fileID,
-      embedding: clipResult.embedding,
-      version: clipMlVersion,
-    );
-    await _mlDataDB.putClip([embedding]);
-  }
-
-  Future<void> storeEmptyClipImageResult(EnteFile entefile) async {
-    final embedding = ClipEmbedding.empty(entefile.uploadedFileID!);
-    await _mlDataDB.putClip([embedding]);
   }
 
   Future<List<double>> _getTextEmbedding(String query) async {

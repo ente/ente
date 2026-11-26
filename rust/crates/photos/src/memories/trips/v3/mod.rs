@@ -10,7 +10,7 @@ use homes::Homes;
 
 use super::{Base, Trip, TripAnalysis};
 use crate::memories::calendar::MICROS_PER_DAY;
-use crate::memories::geo::{Located, cluster_by_location, distance_km, mean_location};
+use crate::memories::geo::{Located, cluster_by_location, mean_location};
 use crate::memories::input::{CityLookup, Period};
 use crate::memories::photo::Photo;
 use crate::memories::places::Places;
@@ -193,7 +193,7 @@ fn join_shared<'p>(visits: &mut [Vec<Placed<'p>>], shared: &[Placed<'p>]) {
         if let Some(nearest) = visit[next.saturating_sub(1)..(next + 1).min(visit.len())]
             .iter()
             .min_by_key(|own| (own.member.photo.creation_time - time).abs())
-            && distance_km(nearest.member.location, point.member.location) <= SHARED_PHOTO_MAX_KM
+            && nearest.member.location.distance_km(point.member.location) <= SHARED_PHOTO_MAX_KM
         {
             joined[index].push(Placed {
                 joined: true,
@@ -350,7 +350,6 @@ mod tests {
     use ente_location::{City, CityMatch, Coordinate, CountryCode};
 
     use crate::memories::calendar::MICROS_PER_DAY;
-    use crate::memories::geo::distance_km;
     use crate::memories::tests::{file, located_file, micros, period};
     use crate::memories::{
         CityLookup, MemoriesRequest, Memory, MemoryFile, MemoryKind, ShownTrip, TripDetection,
@@ -476,7 +475,7 @@ mod tests {
             .min_by(|&left, &right| {
                 let distance = |index: usize| {
                     let (latitude, longitude) = CITIES[index].2;
-                    distance_km(coordinate, Coordinate::new(latitude, longitude))
+                    coordinate.distance_km(Coordinate::new(latitude, longitude))
                 };
                 distance(left).total_cmp(&distance(right))
             })
@@ -510,7 +509,7 @@ mod tests {
                             .enumerate()
                             .filter(|&(_, &coordinate)| {
                                 nearest_city(coordinate) == index
-                                    && distance_km(coordinate, Coordinate::new(latitude, longitude))
+                                    && coordinate.distance_km(Coordinate::new(latitude, longitude))
                                         < 20.0
                             })
                             .map(|(position, _)| position as u32)
@@ -526,7 +525,7 @@ mod tests {
             coordinates
                 .iter()
                 .map(|&coordinate| {
-                    (distance_km(coordinate, Coordinate::new(latitude, longitude)) < 90.0)
+                    (coordinate.distance_km(Coordinate::new(latitude, longitude)) < 90.0)
                         .then_some(LOS_ANGELES_AREA)
                 })
                 .collect()
@@ -538,7 +537,7 @@ mod tests {
                 .iter()
                 .map(|&coordinate| {
                     let country =
-                        if distance_km(coordinate, Coordinate::new(latitude, longitude)) < 3.0 {
+                        if coordinate.distance_km(Coordinate::new(latitude, longitude)) < 3.0 {
                             *b"IT"
                         } else {
                             CITIES[nearest_city(coordinate)].1
@@ -1150,14 +1149,14 @@ mod tests {
     fn a_day_trip_on_the_day_you_come_back_from_another_trip_is_not_held_back_by_it() {
         let mut files = library(
             vec![
-                stay(1000, "2024-06-10T09:00:00", 12, 240, PARIS),
-                stay(2000, "2024-06-12T14:00:00", 16, 20, GRONINGEN),
+                stay(1000, "2024-10-20T09:00:00", 12, 240, PARIS),
+                stay(2000, "2024-10-22T14:00:00", 16, 20, GRONINGEN),
             ],
             &AMSTERDAM_HOME,
         );
         files.push(located_file(
             900_000,
-            micros("2024-06-12T10:00:00"),
+            micros("2024-10-22T10:00:00"),
             AMSTERDAM,
         ));
         let (paris, groningen) = (trip_key(&files, "Paris"), trip_key(&files, "Groningen"));

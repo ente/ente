@@ -55,7 +55,9 @@ Characters that are not portable across filesystems are replaced with `_` in nam
 
 ## Keep an export updated
 
-Run the same command again. Unchanged files are reused, new files are exported, renamed albums are renamed on disk, removed items move to `Trash/`, and every metadata file is regenerated. Edits you make to an exported original are protected: the CLI leaves the file alone, reports `conflict: at /home/alice/Pictures/Ente/Holidays/IMG_0001.jpg: locally changed media`, and counts it under `failures (conflicts)`. A file of your own that occupies a path the export needs is reported the same way and left alone. To take the library version again, move the edited file elsewhere and rerun; a missing original is downloaded again.
+Run the same command again. Unchanged files are reused, new files are exported, renamed albums are renamed on disk, and removed items move to `Trash/`. The CLI leaves matching album and photo metadata files in place. When the CLI detects edits to a generated metadata file, it restores the library version.
+
+Edits you make to an exported original are protected: the CLI leaves the file alone, reports `conflict: at /home/alice/Pictures/Ente/Holidays/IMG_0001.jpg: locally changed media`, and counts it under `failures (conflicts)`. A file of your own that occupies a path the export needs is reported the same way and left alone. To take the library version again, move the edited file elsewhere and rerun; a missing original is downloaded again.
 
 ## Save space with hard links
 
@@ -137,13 +139,30 @@ ente photos place list
 ente photos place list --countries --album Holidays
 ente photos file list --place lisbon
 ente photos file list --country JP --type video
+ente photos file list --near 48.8566,2.3522 --radius 10
 ```
 
 `place list` shows the cities where your files were taken, with the number of files in each, most first. `--countries` lists countries instead. Places come from each file's location; files without one are not counted. Locations that match no city or country in the dataset are omitted from that list, so city and country totals can differ. Country filters use the groups shown by `place list --countries`, which can differ from a city's country. For example, photos in French Guiana count under France.
 
 `--place` keeps files taken in a city whose name contains the given text. When one of the cities `place list` shows for the same `--album` has exactly that name, only cities with that name match, so `--place nice` leaves out Venice. `--country` takes a two-letter code such as `PT`, or a full English country name, which matches only that country, so `--country niger` leaves out Nigeria; other text matches every country whose name contains it. `UK` also works for the United Kingdom, whose code is `GB`, and an unknown two-letter code is an error. Both ignore case and accent marks, and combine with the other filters. Type letters such as ł or ø as `place list` shows them: `--place wrocław` finds Wrocław, but `--place wroclaw` does not.
 
+`--near LAT,LON` with `--radius KM` keeps files taken within that distance of a point, given in decimal degrees. It uses the same check as location tags in the Ente apps, needs no location data, and leaves out files without a location. Both flags are required together.
+
 The first time you use places, the CLI downloads about 7 MB of location data from Ente (`assets.ente.com`) and keeps it in the CLI home, where all your accounts share it. After that, places work with `--offline`. The location data is adapted from [GeoNames](https://www.geonames.org/) and the European Commission Joint Research Centre's [GHS-UCDB R2024A](https://doi.org/10.2905/1a338be6-7eaf-480c-9664-3a8ade88cbcd), both under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), and from [Natural Earth](https://www.naturalearthdata.com/), which is in the public domain.
+
+## Find files by person
+
+```sh
+ente photos person list
+ente photos person list --album Holidays
+ente photos file list --person "Ada Lovelace"
+```
+
+`person list` shows the people saved in Ente Photos with the number of files each one is in, most first. A person's files are the photos and videos assigned to them in the Ente apps, including files in hidden albums. People with none of their files in the selected albums are left out. Hidden and ignored people are listed too, with `HIDDEN` set to `yes`. `people` is an alias for `person`.
+
+`--person` keeps the files of the person with that ID or exact, case-sensitive name; when several people share a name, the CLI lists the candidates and you pick an ID. It combines with the other filters.
+
+People need machine learning to be on for your account; turn it on in the Ente Photos app under `Settings > Machine learning`. The CLI reads the people the Ente apps created and does not recognize faces itself. It checks the setting whenever it refreshes people, and if machine learning is off, it removes the people it synced and stops with an error.
 
 ## Check storage and file count
 
@@ -178,12 +197,13 @@ Lists return arrays and `view` returns one object. IDs are strings; timestamps a
 | `duplicate remove`         | `dryRun`, `groupIds`, `retainedIds`, `trashIds`, `reclaimableBytes` (total across selected groups). IDs are strings and byte counts are integers; `trashIds` contains planned removals in a dry run and completed removals otherwise.                                            |
 | `place list`               | `name`, `country`, `countryCode`, `latitude` and `longitude` (the city's position), `fileCount`                                                                                                                                                                                  |
 | `place list --countries`   | `name`, `code`, `fileCount`                                                                                                                                                                                                                                                      |
+| `person list`              | `id`, `name`, `hidden` (boolean), `fileCount`                                                                                                                                                                                                                                    |
 | `usage`                    | `email`, `planExpiresAt`, `planActive`, `totalBytes`, `usedBytes`, `freeBytes`, `planBytes`, `bonusBytes`; nullable `files`, `family` (`usedBytes`, `storageBytes`, `members`: `email`, `status`, `admin`, `usedBytes`, `storageLimitBytes`)                                     |
 | `export`                   | See [Automation](./automation.md#export-summary)                                                                                                                                                                                                                                 |
 
 ## Read offline
 
-`album list`, `album view`, `file list`, `file view`, `duplicate list` and `place list` work with `--offline` using the metadata an earlier online run synced. An online `album list` syncs albums only; run `file list` online for each album whose files you want to read offline, or `duplicate list` to sync albums needed for duplicate detection, including hidden memberships. Places also need the location data that an earlier online `place list`, `--place` or `--country` downloaded. Export, download, duplicate removal and usage need the network.
+`album list`, `album view`, `file list`, `file view`, `duplicate list`, `place list` and `person list` work with `--offline` using the metadata an earlier online run synced. An online `album list` syncs albums only; run `file list` online for each album whose files you want to read offline, or `duplicate list` to sync albums needed for duplicate detection, including hidden memberships. Places also need the location data that an earlier online `place list`, `--place` or `--country` downloaded. People need an earlier online `person list` or `--person`. Export, download, duplicate removal and usage need the network.
 
 ## Limits
 

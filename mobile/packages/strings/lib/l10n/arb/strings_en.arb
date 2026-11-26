@@ -1,5 +1,13 @@
 {
   "allCleanedUp": "All cleaned up!",
+  "collectionCount": "{count, plural, one{{count} collection} other{{count} collections}}",
+  "@collectionCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "bringMemoriesTogether": "Bring your memories together",
   "@bringMemoriesTogether": {
     "description": "Title on the Local Gallery photo permission screen"
@@ -8,6 +16,10 @@
   "@createMyAccount": {
     "description": "Create account button on the Photos onboarding screen"
   },
+  "dragToCompare": "Drag to compare",
+  "@dragToCompare": {
+    "description": "Hint under two photos of the same scene taken years apart, shown behind a draggable divider"
+  },
   "localGalleryPermissionDesc": "Grant permission to access and organise your photos with face recognition, processed entirely on your device.",
   "@localGalleryPermissionDesc": {
     "description": "Photo permission explanation shown during Local Gallery onboarding"
@@ -15,6 +27,54 @@
   "onboardingOrganizeDesc": "Organize your photos and videos. Every memory, in one place.",
   "@onboardingOrganizeDesc": {
     "description": "Description on the Photos onboarding screen"
+  },
+  "oneDayInMonth": "One day in {month}",
+  "@oneDayInMonth": {
+    "description": "Title of a memory telling the story of a single day, when the place is unknown",
+    "placeholders": {
+      "month": {
+        "type": "String",
+        "example": "April 2022"
+      }
+    }
+  },
+  "oneDayInPlace": "One day in {place}",
+  "@oneDayInPlace": {
+    "description": "Title of a memory telling the story of a single day spent in a city",
+    "placeholders": {
+      "place": {
+        "type": "String",
+        "example": "Kyoto"
+      }
+    }
+  },
+  "replay": "Replay",
+  "@replay": {
+    "description": "Button that plays a memory again from the start"
+  },
+  "thatWasYear": "That was {year}",
+  "@thatWasYear": {
+    "description": "Closing line of a memory that flips quickly through the photos of one year",
+    "placeholders": {
+      "year": {
+        "type": "int",
+        "example": "2023"
+      }
+    }
+  },
+  "thenAndNow": "Then and now",
+  "@thenAndNow": {
+    "description": "Title of a memory comparing two photos of the same scene taken years apart"
+  },
+  "thenAndNowInPlace": "{place}, then and now",
+  "@thenAndNowInPlace": {
+    "description": "Title of a memory comparing two photos of the same scene in a city, taken years apart",
+    "placeholders": {
+      "place": {
+        "type": "String",
+        "example": "Zandvoort"
+      }
+    }
   },
   "wallpaper": "Wallpaper",
   "setWallpaper": "Set wallpaper",
@@ -460,13 +520,13 @@
   },
   "backupModeCheckingForMoreItems": "Checking for more items",
   "backupModeFinishYourBackup": "Finish your backup",
-  "backupModeKeepAppOpen": "Keep the app open",
+  "backupModeKeepAppOpen": "Enable backup mode",
   "backupModeNoBackupInProgress": "No backup in progress",
   "backupModeNoBackupInProgressDescription": "Start a backup, then return to backup mode.",
   "backupModePlugInPhone": "Plug in your phone. Backups use battery.",
   "backupModePreservingYourMemories": "Preserving your memories",
   "backupModeScreenDimmingDescription": "The screen dims to save battery. Tap it anytime to come back.",
-  "backupModeScreenWillDim": "Screen will dim automatically to save battery",
+  "backupModeScreenWillDim": "Keep Ente awake to finish your backup.",
   "backupModeSettingsDescription": "Keep the app open to finish your backup",
   "backupModeStart": "Start backup mode",
   "backupModeStayInEnte": "Stay in Ente. Switching apps pauses your backup.",
@@ -806,6 +866,10 @@
   "@couldNotLoadLikes": {
     "description": "Error when likes fail to load"
   },
+  "couldNotLoadPhotos": "Could not load these photos",
+  "@couldNotLoadPhotos": {
+    "description": "Shown in a memory when its photos cannot be loaded, next to a retry button"
+  },
   "couldNotLoadSelectedPhoto": "Could not load selected photo",
   "@couldNotLoadSelectedPhoto": {
     "description": "Toast when the selected contact photo cannot be loaded"
@@ -857,6 +921,7 @@
   "createStream": "Create stream",
   "creatingLink": "Creating link...",
   "creatingStream": "Creating stream",
+  "creatingVideo": "Creating your video",
   "credentialName": "Account",
   "credentialNameHint": "Name of the service",
   "credentialNotes": "Additional notes",
@@ -1526,7 +1591,7 @@
       },
       "now": {
         "type": "String",
-        "description": "The localized word for now, rendered in a handwritten style. Keep this placeholder rather than writing the word directly."
+        "description": "The localized word for now, styled like the year numbers. Keep this placeholder rather than writing the word directly."
       }
     }
   },
@@ -1640,7 +1705,6 @@
     "description": "FAQ link label"
   },
   "faqs": "FAQs",
-  "fasterUploads": "Faster uploads",
   "favorite": "Favorite",
   "feastingWithThem": "Feasting with {name}",
   "@feastingWithThem": {
@@ -2178,6 +2242,7 @@
   "@keep": {
     "description": "Tooltip for the button that keeps the current photo while reviewing old photos."
   },
+  "keepEnteOpenUntilVideoIsReady": "Keep Ente open until your video is ready",
   "keepOffline": "Keep offline",
   "keepPhotos": "Keep photos",
   "kiloMeterUnit": "km",
@@ -3258,7 +3323,6 @@
     }
   },
   "preparingLogs": "Preparing logs...",
-  "preparingVideo": "Preparing video...",
   "preserveMore": "Preserve more",
   "pressAndHoldToPlayVideoDetailed": "Press and hold on the image to  play video",
   "preview": "Preview",
@@ -4376,6 +4440,7 @@
   "slideshow": "Slideshow",
   "slideshowSettings": "Slideshow settings",
   "smartMemories": "Smart memories",
+  "smartRouting": "Smart routing",
   "smartSuggestions": "Smart suggestions",
   "snowAdventures": "Winter adventures",
   "socialNotifications": "Likes and comments",
@@ -5079,6 +5144,16 @@
       "name": {}
     }
   },
+  "yearInAFlash": "{year} in a flash",
+  "@yearInAFlash": {
+    "description": "Title of a memory that flips quickly through the photos of one year",
+    "placeholders": {
+      "year": {
+        "type": "int",
+        "example": "2023"
+      }
+    }
+  },
   "yearly": "Yearly",
   "@yearly": {
     "description": "The text to display for yearly plans",
@@ -5093,6 +5168,16 @@
   "year": "year",
   "@year": {
     "description": "Billing period suffix on the pricing page (/year)"
+  },
+  "yearsApart": "{count, plural, one{{count} year apart} other{{count} years apart}}",
+  "@yearsApart": {
+    "description": "How far apart in time two photos of the same scene were taken",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "6"
+      }
+    }
   },
   "yearShort": "yr",
   "@yearShort": {

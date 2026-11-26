@@ -127,6 +127,7 @@ export interface FileListProps {
     header?: FileListHeaderOrFooter;
     footer?: FileListHeaderOrFooter;
     onAddPhotos?: () => void;
+    suppressEmptyState?: boolean;
     user?: LocalUser;
     disableGrouping?: boolean;
     enableSelect?: boolean;
@@ -184,6 +185,7 @@ export const FileList: React.FC<FileListProps> = ({
     header,
     footer,
     onAddPhotos,
+    suppressEmptyState = false,
     user,
     annotatedFiles,
     disableGrouping,
@@ -368,7 +370,7 @@ export const FileList: React.FC<FileListProps> = ({
             if (pendingSplits.length) pushItemsFromSplits(pendingSplits);
         }
 
-        if (!annotatedFiles.length) {
+        if (!annotatedFiles.length && !suppressEmptyState) {
             items.push({
                 height: Math.max(
                     onAddPhotos ? 412 : 340,
@@ -405,6 +407,7 @@ export const FileList: React.FC<FileListProps> = ({
         header,
         footer,
         onAddPhotos,
+        suppressEmptyState,
         annotatedFiles,
         disableGrouping,
         layoutParams,
@@ -557,17 +560,25 @@ export const FileList: React.FC<FileListProps> = ({
         };
 
         const handleKeyUp = (e: KeyboardEvent) => {
-            if (e.key == "Shift") {
+            if (e.key == "Shift" || !e.shiftKey) {
                 setIsShiftKeyPressed(false);
             }
         };
 
+        const handleBlur = () => {
+            setIsShiftKeyPressed(false);
+        };
+
         document.addEventListener("keydown", handleKeyDown);
         document.addEventListener("keyup", handleKeyUp);
+        window.addEventListener("blur", handleBlur);
+        document.addEventListener("visibilitychange", handleBlur);
 
         return () => {
             document.removeEventListener("keydown", handleKeyDown);
             document.removeEventListener("keyup", handleKeyUp);
+            window.removeEventListener("blur", handleBlur);
+            document.removeEventListener("visibilitychange", handleBlur);
         };
     }, []);
 

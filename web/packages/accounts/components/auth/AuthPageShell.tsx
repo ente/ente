@@ -3,6 +3,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { GlobalStyles, keyframes, styled } from "@mui/material";
 import { EnteLogo } from "ente-base/components/EnteLogo";
 import type React from "react";
+import styles from "./AuthPageShell.module.css";
 import {
     authAboveMobileMediaQuery,
     authDisplayFontFamily,
@@ -22,6 +23,8 @@ export interface AuthPageShellProps extends React.PropsWithChildren {
     presentationConfig: AuthPresentationConfig;
     contentWidth?: 400 | 420;
     viewportHeight?: string;
+    contentLayout?: "page-scroll" | "content-scroll";
+    illustration?: React.ReactNode;
 }
 
 export function AuthPageShell({
@@ -30,7 +33,10 @@ export function AuthPageShell({
     children,
     contentWidth = 400,
     viewportHeight = "100svh",
+    contentLayout = "page-scroll",
+    illustration,
 }: AuthPageShellProps): React.JSX.Element {
+    const scrollWithinContent = contentLayout === "content-scroll";
     return (
         <PageRoot $viewportHeight={viewportHeight}>
             <GlobalStyles
@@ -43,6 +49,7 @@ export function AuthPageShell({
                         brand={brand}
                         presentationConfig={presentationConfig}
                         size="desktop"
+                        illustration={illustration}
                     />
                 </DesktopBrandSlot>
                 <TabletBrandSlot>
@@ -50,6 +57,7 @@ export function AuthPageShell({
                         brand={brand}
                         presentationConfig={presentationConfig}
                         size="tablet"
+                        illustration={illustration}
                     />
                 </TabletBrandSlot>
                 <MobileBrandSlot $height={presentationConfig.mobileBrandHeight}>
@@ -57,11 +65,36 @@ export function AuthPageShell({
                         brand={brand}
                         presentationConfig={presentationConfig}
                         size="mobile"
+                        illustration={illustration}
                     />
                 </MobileBrandSlot>
-                <ContentSheet>
-                    <SheetHandle />
-                    <ContentColumn contentWidth={contentWidth}>
+                <ContentSheet
+                    sx={
+                        scrollWithinContent
+                            ? {
+                                  overflow: "hidden",
+                                  justifyContent: "flex-start",
+                                  [authMobileMediaQuery]: {
+                                      padding: "36px 24px 0",
+                                      borderRadius: "20px 20px 0 0",
+                                  },
+                                  "@media (max-height: 560px)": {
+                                      paddingBlockStart: "16px",
+                                      paddingBlockEnd: 0,
+                                  },
+                              }
+                            : undefined
+                    }
+                >
+                    {!scrollWithinContent && <SheetHandle />}
+                    <ContentColumn
+                        contentWidth={contentWidth}
+                        sx={
+                            scrollWithinContent
+                                ? { minHeight: 0, flex: 1, marginBlock: 0 }
+                                : undefined
+                        }
+                    >
                         {children}
                     </ContentColumn>
                 </ContentSheet>
@@ -104,11 +137,6 @@ const cameraSparkle = keyframes({
     },
 });
 
-const brandCurvesDrift = keyframes({
-    "0%, 100%": { backgroundPosition: "calc(50% - 6px) calc(50% + 4px)" },
-    "50%": { backgroundPosition: "calc(50% + 6px) calc(50% - 4px)" },
-});
-
 const brandCopyAnimation = {
     animation: `${brandCopyReveal} 520ms cubic-bezier(0.22, 1, 0.36, 1) both`,
     "@media (prefers-reduced-motion: reduce)": { animation: "none" },
@@ -118,15 +146,18 @@ interface BrandPanelProps {
     brand: AuthBrandCopy;
     presentationConfig: AuthPresentationConfig;
     size: "desktop" | "tablet" | "mobile";
+    illustration?: React.ReactNode;
 }
 
 function BrandPanel({
     brand,
     presentationConfig,
     size,
+    illustration,
 }: BrandPanelProps): React.JSX.Element {
     return (
         <BrandPanelRoot
+            className={styles.brandPanel}
             size={size}
             $wideGamutPrimary={presentationConfig.wideGamutPrimary}
         >
@@ -158,8 +189,13 @@ function BrandPanel({
             <IllustrationClip
                 size={size}
                 $heights={presentationConfig.illustrationHeights}
+                sx={
+                    illustration
+                        ? { "&::after": { display: "none" } }
+                        : undefined
+                }
             >
-                <img src="/images/auth-ducky.svg" alt="" />
+                {illustration ?? <img src="/images/auth-ducky.svg" alt="" />}
             </IllustrationClip>
         </BrandPanelRoot>
     );
@@ -258,7 +294,7 @@ const MobileBrandSlot = styled("div", {
     [authAboveMobileMediaQuery]: { display: "none" },
 }));
 
-const ContentSheet = styled("section")(({ theme }) => ({
+const ContentSheet = styled("section")({
     flex: 1,
     minHeight: 0,
     marginTop: "-28px",
@@ -271,8 +307,7 @@ const ContentSheet = styled("section")(({ theme }) => ({
     overflowY: "auto",
     boxSizing: "border-box",
     borderRadius: "24px 24px 0 0",
-    backgroundColor: "#fff",
-    ...theme.applyStyles("dark", { backgroundColor: "#252525" }),
+    backgroundColor: "var(--auth-ui-content-background)",
     [authAboveMobileMediaQuery]: {
         marginTop: "-32px",
         padding: "16px 48px 48px",
@@ -286,7 +321,7 @@ const ContentSheet = styled("section")(({ theme }) => ({
         borderRadius: 0,
     },
     "@media (min-width: 1600px)": { width: "744px", padding: "56px 172px" },
-}));
+});
 
 const SheetHandle = styled("div")({
     width: "36px",
@@ -340,27 +375,16 @@ const BrandPanelRoot = styled("div", {
         boxSizing: "border-box",
         color: "#fff",
         backgroundColor: "var(--auth-ui-primary)",
-        backgroundImage: 'url("/images/auth-surface-noise.svg")',
-        backgroundRepeat: "repeat",
-        backgroundPosition: "0 0",
-        backgroundSize: "auto",
         "&::before": {
             content: '""',
             position: "absolute",
             inset: 0,
             pointerEvents: "none",
-            backgroundImage: 'url("/images/auth-frame-curves.svg")',
             backgroundRepeat: "no-repeat",
-            backgroundPosition: "center",
-            backgroundSize: "cover",
-            maskImage:
-                "linear-gradient(to bottom, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.55) 42%, #000 100%)",
-            WebkitMaskImage:
-                "linear-gradient(to bottom, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.55) 42%, #000 100%)",
-            animation: `${brandCurvesDrift} 20s ease-in-out infinite`,
-        },
-        "@media (prefers-reduced-motion: reduce)": {
-            "&::before": { animation: "none" },
+            backgroundPosition: size === "mobile" ? "-90px top" : "center top",
+            backgroundSize: size === "mobile" ? "670px auto" : "cover",
+            opacity: 0.05,
+            maskImage: "linear-gradient(to bottom, transparent 30%, #000 85%)",
         },
         ...($wideGamutPrimary && {
             "@supports (color: color(display-p3 1 1 1))": {
@@ -512,7 +536,7 @@ const IllustrationClip = styled("div", {
         animation: `${cameraSparkle} 520ms ease-out ${size === "desktop" ? "1400ms" : size === "tablet" ? "740ms" : "690ms"} both`,
         "@media (prefers-reduced-motion: reduce)": { display: "none" },
     },
-    "& > img": {
+    "& > *": {
         display: "block",
         width: "473.694px",
         height: "370px",

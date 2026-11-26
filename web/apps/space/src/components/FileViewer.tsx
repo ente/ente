@@ -7,6 +7,7 @@ import {
     Edit01Icon,
     Edit03Icon,
     Loading03Icon,
+    MinusSignCircleIcon,
     MoreHorizontalIcon,
     Tick02Icon,
 } from "@hugeicons/core-free-icons";
@@ -48,6 +49,7 @@ import React from "react";
 import type { SpaceInviteIntent } from "services/invite";
 import { SpaceMediaRateLimitError } from "services/media-load";
 import type {
+    SpacePost,
     SpacePostAsset,
     SpacePostAssetURLLoader,
     SpacePostVideo,
@@ -171,6 +173,17 @@ export interface SpaceViewerPhoto {
     width?: number;
 }
 
+interface ViewerDeleteAction {
+    target: "post" | "photo" | "video";
+    run: () => Promise<void> | void;
+}
+
+const deleteActionLabels = {
+    photo: "Remove photo",
+    video: "Remove video",
+    post: "Delete post",
+};
+
 interface SpaceViewerDeleteSnapshot {
     photoIndex: number;
     photos: SpaceViewerPhoto[];
@@ -193,6 +206,7 @@ interface SpaceFileViewerProps {
     onAddDraftPhoto?: () => void;
     onEditDraftPhoto?: () => void;
     onDeletePost?: () => Promise<void> | void;
+    onPostMediaChange?: (post: SpacePost, photoIndex: number) => void;
     onDraftPostExitAnimationStart?: () => void;
     onDraftPostExitStart?: () => Promise<void>;
     onAddFriendForPostAction?: (intent: SpaceInviteIntent) => void;
@@ -496,6 +510,7 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
     onAddDraftPhoto,
     onEditDraftPhoto,
     onDeletePost,
+    onPostMediaChange,
     onDraftPostExitAnimationStart,
     onDraftPostExitStart,
     onAddFriendForPostAction,
@@ -512,7 +527,7 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
     postActionMode = "like-only",
     showLikesOnOpen = false,
 }) => {
-    const { profile } = useSpaceAppState();
+    const { profile, deletePostMedia } = useSpaceAppState();
     const [commentsOpen, setCommentsOpen] = React.useState(false);
     React.useEffect(() => {
         if (commentsOnOpen) setCommentsOpen(true);
@@ -690,6 +705,32 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
     const [actionsAnchor, setActionsAnchor] =
         React.useState<HTMLElement | null>(null);
     const [deleteSheetOpen, setDeleteSheetOpen] = React.useState(false);
+    const [deleteAction, setDeleteAction] =
+        React.useState<ViewerDeleteAction>();
+    const deleteTarget = deleteAction?.target ?? "post";
+    const [deleteError, setDeleteError] = React.useState<string>();
+    const deleteOptions: ViewerDeleteAction[] = [];
+    if (canDeletePost && onDeletePost) {
+        const asset = activePhoto.imageAsset;
+        if (onPostMediaChange && asset && postPhotoCount > 1) {
+            deleteOptions.push({
+                target: activePhoto.video ? "video" : "photo",
+                run: async () => {
+                    const post = await deletePostMedia(
+                        asset.postId,
+                        asset.objectKey,
+                    );
+                    const index = Math.min(
+                        activePhotoIndex,
+                        post.photos!.length - 1,
+                    );
+                    setLocalPhotoIndex(index);
+                    onPostMediaChange(post, index);
+                },
+            });
+        }
+        deleteOptions.push({ target: "post", run: onDeletePost });
+    }
     const actionsMenuID = "space-viewer-actions-menu";
     const actionsButtonID = "space-viewer-actions-button";
     const isActionsOpen = Boolean(actionsAnchor);
@@ -951,9 +992,15 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
             });
     };
 
-    const requestDeletePost = () => {
+    const requestDelete = (action: ViewerDeleteAction) => {
         if (!canDeletePost || isDeleteActionRunning || isDeleteExit) return;
         closeActions();
+        setDeleteAction(action);
+        setDeleteError(undefined);
+        deleteSnapshotRef.current = {
+            photoIndex: activePhotoIndex,
+            photos: viewerPhotos,
+        };
         setDeleteSheetOpen(true);
     };
 
@@ -962,29 +1009,26 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
         setDeleteSheetOpen(false);
     };
 
-    const confirmDeletePost = () => {
-        if (
-            !onDeletePost ||
-            !canDeletePost ||
-            isDeleteActionRunning ||
-            isDeleteExit
-        )
-            return;
-        deleteSnapshotRef.current = {
-            photoIndex: activePhotoIndex,
-            photos: viewerPhotos.map((item) => ({ ...item })),
-        };
+    const confirmDelete = async () => {
+        if (!deleteAction || isDeleteActionRunning || isDeleteExit) return;
+        setDeleteError(undefined);
         setDeleteActionPhase("busy");
-        void (async () => {
-            try {
-                await Promise.resolve(onDeletePost());
-                setDeleteActionPhase("done");
-            } catch (error) {
-                log.error("Failed to delete space post", error);
-                deleteSnapshotRef.current = null;
-                setDeleteActionPhase(null);
-            }
-        })();
+        try {
+            await deleteAction.run();
+            setDeleteActionPhase("done");
+        } catch (error) {
+            const verb = deleteTarget == "post" ? "delete" : "remove";
+            log.error(`Failed to ${verb} space ${deleteTarget}`, error);
+            setDeleteError(
+                deleteTarget != "post" &&
+                    error instanceof Error &&
+                    "status" in error &&
+                    error.status == 409
+                    ? "This is the last item in the post. Use Delete post to remove it."
+                    : `Couldn’t ${verb} this ${deleteTarget}. Please try again.`,
+            );
+            setDeleteActionPhase(null);
+        }
     };
 
     const dismissCaptionKeyboard = React.useCallback(
@@ -1181,11 +1225,16 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
 
         const timeoutID = window.setTimeout(() => {
             setDeleteSheetOpen(false);
-            setIsDeleteExit(true);
+            if (deleteTarget == "post") {
+                setIsDeleteExit(true);
+            } else {
+                deleteSnapshotRef.current = null;
+                setDeleteActionPhase(null);
+            }
         }, spaceActionDoneDurationMs);
 
         return () => window.clearTimeout(timeoutID);
-    }, [deleteActionPhase]);
+    }, [deleteActionPhase, deleteTarget]);
 
     React.useEffect(() => {
         if (captionUpdateActionPhase != "done") return;
@@ -1324,11 +1373,15 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
         const contentKeys = viewerPhotosRef.current.map(viewerPhotoContentKey);
         const previousKeys = displayedContentKeysRef.current;
         displayedContentKeysRef.current = contentKeys;
-        contentKeys.forEach((key, index) => {
-            if (key != previousKeys[index]) {
+        for (
+            let index = 0;
+            index < Math.max(contentKeys.length, previousKeys.length);
+            index++
+        ) {
+            if (contentKeys[index] != previousKeys[index]) {
                 pswp.refreshSlideContent(index);
             }
-        });
+        }
         isSyncingPhotosRef.current = false;
     }, [activePhotoIndex, viewerPhotosContentKey]);
 
@@ -1362,9 +1415,9 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
     }, [canReplyToPost, canComment]);
 
     const handleDeleteSheetExited = () => {
-        if (!isDeleteExit) return;
-
-        setDeleteActionPhase(null);
+        if (!isDeleteExit) deleteSnapshotRef.current = null;
+        setDeleteAction(undefined);
+        if (isDeleteExit) setDeleteActionPhase(null);
     };
 
     React.useEffect(() => {
@@ -2282,11 +2335,12 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
                                 </Box>
                             </MenuItem>
                         )}
-                        {canDeletePost && (
+                        {deleteOptions.map((action) => (
                             <MenuItem
+                                key={action.target}
                                 dense
                                 disableRipple
-                                onClick={requestDeletePost}
+                                onClick={() => requestDelete(action)}
                                 sx={{
                                     alignItems: "center",
                                     borderRadius: "10px",
@@ -2309,7 +2363,11 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
                                 }}
                             >
                                 <HugeiconsIcon
-                                    icon={Delete02Icon}
+                                    icon={
+                                        action.target == "post"
+                                            ? Delete02Icon
+                                            : MinusSignCircleIcon
+                                    }
                                     size={18}
                                     strokeWidth={1.8}
                                     style={{ flexShrink: 0 }}
@@ -2323,10 +2381,10 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
                                         lineHeight: "18px",
                                     }}
                                 >
-                                    Delete post
+                                    {deleteActionLabels[action.target]}
                                 </Box>
                             </MenuItem>
-                        )}
+                        ))}
                     </Menu>
                 )}
             </Box>
@@ -3019,13 +3077,18 @@ export const SpaceFileViewer: React.FC<SpaceFileViewerProps> = ({
             {canDeletePost && (
                 <ConfirmationActionSheet
                     open={deleteSheetOpen}
-                    title="Are you sure you want to delete this?"
-                    confirmLabel="Yes, delete"
+                    title={
+                        deleteTarget == "post"
+                            ? "Delete this post?"
+                            : `Remove this ${deleteTarget} from the post?`
+                    }
+                    confirmLabel={deleteActionLabels[deleteTarget]}
+                    errorMessage={deleteError}
                     confirmActionPhase={deleteActionPhase}
                     confirmDisabled={isDeleteActionRunning}
                     cancelDisabled={isDeleteActionRunning}
                     onCancel={closeDeleteSheet}
-                    onConfirm={confirmDeletePost}
+                    onConfirm={() => void confirmDelete()}
                     onExited={handleDeleteSheetExited}
                 />
             )}

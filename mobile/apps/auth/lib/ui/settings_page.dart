@@ -20,6 +20,7 @@ import 'package:ente_auth/ui/settings/support_settings_page.dart';
 import 'package:ente_auth/ui/settings/theme_settings_page.dart';
 import 'package:ente_auth/utils/dialog_util.dart';
 import 'package:ente_components/ente_components.dart';
+import 'package:ente_components/hugeicons.dart';
 import 'package:ente_lock_screen/local_authentication_service.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:ente_ui/components/buttons/button_widget.dart';
@@ -28,7 +29,6 @@ import 'package:ente_ui/components/settings/more_from_ente_footer.dart';
 import 'package:ente_ui/pages/settings_search_page.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:hugeicons/hugeicons.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({

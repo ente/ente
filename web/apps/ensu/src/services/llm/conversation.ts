@@ -1,23 +1,17 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import {
-    addPreparedAnswer,
-    type ChatMessage,
-    type PreparedAnswer,
-} from "../chat/store";
-import type { KnowledgePromptContext } from "../knowledge";
+import { finishPreparedReply, type FinishedReply } from "../chat/store";
 import type { LlmProvider } from "./provider";
 import type { LlmMessage } from "./types";
 
 export interface PreparedReply {
     generateChatStream: LlmProvider["generateChatStream"];
-    saveAnswer: (text: string) => Promise<ChatMessage>;
+    finish: (text: string) => Promise<FinishedReply>;
 }
 
 interface PreparedConversation {
     preparationToken: string;
     messages: LlmMessage[];
-    groundedContext?: KnowledgePromptContext | null;
 }
 
 export const prepareDesktopConversation = async (
@@ -62,24 +56,19 @@ export const prepareDesktopConversation = async (
             },
         );
         if (!callbacks.isCurrent()) return;
-        const answer: PreparedAnswer = {
-            token: result.preparationToken,
-            sessionUuid: input.sessionUuid,
-            parentMessageUuid: input.path.at(-1)!,
-            sources: result.groundedContext?.sources ?? [],
-        };
-        let saved: Promise<ChatMessage> | undefined;
+        let saved: Promise<FinishedReply> | undefined;
         return {
             generateChatStream: (request, onEvent) =>
                 provider.generateChatStream(
                     {
                         ...request,
                         messages: result.messages,
-                        preparationToken: answer.token,
+                        preparationToken: result.preparationToken,
                     },
                     onEvent,
                 ),
-            saveAnswer: (text) => (saved ??= addPreparedAnswer(answer, text)),
+            finish: (text) =>
+                (saved ??= finishPreparedReply(result.preparationToken, text)),
         };
     } finally {
         unlisten();

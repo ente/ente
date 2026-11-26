@@ -4,48 +4,22 @@ import "package:flutter/material.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/services/rewind/rewind_edition.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
+import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
 import "package:photos/ui/rewind/theme/rewind_motion.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
+import "package:photos/ui/rewind/widgets/rewind_count_lockup.dart";
 import "package:photos/ui/rewind/widgets/rewind_elapsed.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
-import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo_frames.dart";
 import "package:photos/ui/rewind/widgets/rewind_reveal_layer.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
-
-const _months = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
-
-String _ordinal(int day) {
-  final teen = day % 100 >= 11 && day % 100 <= 13;
-  final suffix = teen
-      ? "th"
-      : switch (day % 10) {
-          1 => "st",
-          2 => "nd",
-          3 => "rd",
-          _ => "th",
-        };
-  return "$day$suffix";
-}
 
 class BusiestDayPage extends RewindPage {
   const BusiestDayPage(this.day, this.photos);
@@ -62,12 +36,12 @@ class BusiestDayPage extends RewindPage {
     double position, {
     required bool isActive,
   }) {
-    final month = _months[(day.month - 1).clamp(0, 11)];
-    final kicker = "On ${_ordinal(day.day)} $month, you took";
-    final count = rewindCount(day.photoCount);
-    const line = "A memorable day indeed!";
-    final date = "${day.day} ${month.substring(0, 3)} ${RewindEdition.year}"
-        .toUpperCase();
+    final copy = RewindCopy.of(context);
+    final month = (day.month - 1).clamp(0, 11) + 1;
+    final kicker = copy.busiestDayKicker(day.day, month);
+    final count = copy.number(day.photoCount);
+    final line = copy.busiestDayLine;
+    final date = copy.shortDate(day.day, month, RewindEdition.year);
     final split = photos.length >= 4;
     final upper = split
         ? [for (var i = 0; i < photos.length; i += 2) photos[i]]
@@ -75,21 +49,19 @@ class BusiestDayPage extends RewindPage {
     final lower = split
         ? [for (var i = 1; i < photos.length; i += 2) photos[i]]
         : [...photos.skip(1), ...photos.take(1)];
-    final covered = ModalRoute.of(context)?.isCurrent == false;
+    final covered = RewindPageScope.coveredOf(context);
     return RewindShareable(
       child: _HoldToPause(
         builder: (context, held) => Stack(
           fit: StackFit.expand,
           children: [
             const RewindBackdrop(
-              color: Color(0xFFF7601F),
-              pattern: RewindStripes(Color(0xFFFF6B2B)),
+              color: Color(0xFFF71F1F),
+              pattern: RewindStripes(Color(0xFFFF2B2F)),
               grain: 0.25,
             ),
             Semantics(
-              label:
-                  "$kicker ${rewindCounted(day.photoCount, "photo", "photos")}. "
-                  "$line",
+              label: "${kicker.you} ${copy.photos(day.photoCount)}. $line",
               child: ExcludeSemantics(
                 child: RewindStage(
                   children: [
@@ -117,53 +89,59 @@ class BusiestDayPage extends RewindPage {
                         isActive: isActive && !held && !covered,
                       ),
                     ],
-                    RewindRevealLayer(
-                      left: 28,
-                      top: 571,
-                      maxWidth: 334,
+                    _centred(
+                      top: 585,
                       height: 23,
                       position: position,
                       active: isActive,
                       delayMs: 900,
-                      child: Text(
-                        kicker.toUpperCase(),
-                        style: RewindTextStyles.display(
-                          20,
-                          height: 1.15,
-                          letterSpacing: 0.3,
+                      child: RewindVoice(
+                        (
+                          you: kicker.you.toUpperCase(),
+                          me: kicker.me.toUpperCase(),
+                        ),
+                        builder: (text) => Text(
+                          text,
+                          style: RewindTextStyles.display(
+                            20,
+                            color: RewindColors.white,
+                            height: 1.15,
+                            letterSpacing: 0.3,
+                          ),
                         ),
                       ),
                     ),
-                    RewindRevealLayer(
-                      left: 28,
-                      top: 607,
-                      maxWidth: 334,
-                      height: 99,
+                    _centred(
+                      top: 608,
+                      height: 119,
                       position: position,
                       active: isActive,
                       preset: RewindPreset.slap,
                       delayMs: 1050,
-                      child: RewindOutlinedText(
-                        count,
-                        style: RewindTextStyles.numeral(
-                          104,
-                          color: RewindColors.white,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 119),
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: _Count(
+                            count: count,
+                            unit: copy.photoUnit(day.photoCount),
+                          ),
                         ),
-                        outline: 3.5,
-                        shadow: const Offset(5, 6),
                       ),
                     ),
-                    RewindRevealLayer(
-                      left: 28,
-                      top: 718,
-                      width: 316,
+                    _centred(
+                      top: 736,
                       height: 25,
                       position: position,
                       active: isActive,
                       delayMs: 1350,
                       child: Text(
                         line,
-                        style: RewindTextStyles.body(19, height: 1.32),
+                        style: RewindTextStyles.body(
+                          19,
+                          height: 1.32,
+                          color: RewindColors.white,
+                        ),
                       ),
                     ),
                   ],
@@ -171,6 +149,74 @@ class BusiestDayPage extends RewindPage {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+Widget _centred({
+  required double top,
+  required double height,
+  required double position,
+  required bool active,
+  required int delayMs,
+  required Widget child,
+  RewindPreset preset = RewindPreset.line,
+}) => RewindRevealLayer(
+  left: 28,
+  top: top,
+  width: 334,
+  height: height,
+  position: position,
+  active: active,
+  preset: preset,
+  delayMs: delayMs,
+  child: Center(
+    child: FittedBox(fit: BoxFit.scaleDown, child: child),
+  ),
+);
+
+class _Count extends StatelessWidget {
+  const _Count({required this.count, required this.unit});
+
+  static const _overhang = 15.0;
+  static const _drop = 19.6;
+  static const _turn = -1.7;
+  static const _numberSize = 104.0;
+  static const _label = Color(0xFFFDE11A);
+  static const _labelInk = Color(0xFF0A0A0A);
+
+  final String count;
+  final String unit;
+
+  @override
+  Widget build(BuildContext context) {
+    final numberStyle = RewindTextStyles.display(
+      _numberSize,
+      color: RewindColors.white,
+    );
+    final labelStyle = RewindTextStyles.display(44.228, color: _label);
+    return RewindCountLockup(
+      numberText: count,
+      numberStyle: numberStyle,
+      labelText: unit,
+      labelStyle: labelStyle,
+      overhang: _overhang,
+      drop: _drop,
+      number: RewindOutlinedText(
+        count,
+        style: numberStyle,
+        outline: 3.5,
+        shadow: const Offset(5, 6),
+      ),
+      label: Transform.rotate(
+        angle: _turn * pi / 180,
+        child: RewindOutlinedText(
+          unit,
+          style: labelStyle,
+          outline: 4,
+          ink: _labelInk,
         ),
       ),
     );

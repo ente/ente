@@ -10,7 +10,16 @@ import 'package:ente_auth/utils/gallery_import_util.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../../../helpers/rust.dart';
+
 void main() {
+  final skipReason = rustTestSkipReason;
+  if (skipReason != null) {
+    test('Rust import tests', () {}, skip: skipReason);
+    return;
+  }
+  setUpAll(initializeTestRust);
+
   test('parses Google Authenticator migration QR codes', () {
     final secret = _testSecret();
     final qrCode = _testGoogleAuthQrCode(secret);

@@ -7,20 +7,30 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.Paint
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
+import android.graphics.Rect
+import android.media.MediaFormat
 import android.media.MediaMetadataRetriever
 import android.net.Uri
+import android.util.Log
 import androidx.exifinterface.media.ExifInterface
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.OverlaySettings
 import androidx.media3.common.VideoFrameProcessingException
+import androidx.media3.common.audio.AudioProcessor
+import androidx.media3.common.audio.BaseAudioProcessor
+import androidx.media3.common.audio.DefaultGainProvider
 import androidx.media3.common.audio.GainProcessor
+import androidx.media3.common.util.MediaFormatUtil
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.effect.BitmapOverlay
 import androidx.media3.effect.OverlayEffect
 import androidx.media3.effect.Presentation
 import androidx.media3.effect.StaticOverlaySettings
+import androidx.media3.inspector.MediaExtractorCompat
 import androidx.media3.transformer.Composition
 import androidx.media3.transformer.EditedMediaItem
 import androidx.media3.transformer.EditedMediaItemSequence
@@ -28,14 +38,18 @@ import androidx.media3.transformer.Effects
 import java.io.Closeable
 import java.io.File
 import java.io.FileOutputStream
+import java.nio.ByteBuffer
 import java.util.UUID
+import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 
 @UnstableApi
 internal class SlideshowComposer(
-    context: Context,
+    private val context: Context,
     private val request: SlideshowExportRequest
 ) : Closeable {
     private val workDir = File(context.cacheDir, "slideshow-${UUID.randomUUID()}")
@@ -52,31 +66,54 @@ internal class SlideshowComposer(
             durationUs: Long
         ) : Segment(durationUs)
 
-        class Video(val file: File, val isMuted: Boolean, durationUs: Long) : Segment(durationUs)
+        class Video(
+            val file: File,
+            val isMuted: Boolean,
+            val audioStartUs: Long?,
+            val clipEndUs: Long?,
+            durationUs: Long,
+            val backdrop: VideoBackdrop?
+        ) : Segment(durationUs) {
+            val playsAudio get() = audioStartUs != null
+            val audioStartsAfterSlot get() = audioStartUs != null && audioStartUs >= durationUs
+        }
     }
 
-    fun compose(): Composition {
+    private class VideoBackdrop(val backgroundFile: File, val window: Rect)
+
+    suspend fun compose(): Composition {
         require(workDir.mkdirs() || workDir.isDirectory) { "Cannot create slideshow work directory" }
         val outputFile = File(request.outputPath).canonicalFile
         val segments = request.items.mapIndexed { index, item ->
+            currentCoroutineContext().ensureActive()
             val file = File(item.path).canonicalFile
             require(file.isFile && file != outputFile) { "Invalid slideshow input: ${item.path}" }
             when (item) {
                 is SlideshowItem.Photo -> Segment.Photo(
                     file = file,
-                    backgroundFile = writeBackground(file, index),
+                    backgroundFile = writeBackground(decodePhoto(file, maxLongSide = BACKGROUND_SAMPLE_SIZE), index),
                     motion = item.motion,
                     durationUs = item.durationMs * 1_000L
                 )
 
-                is SlideshowItem.Video -> Segment.Video(
-                    file = file,
-                    isMuted = item.isMuted,
-                    durationUs = mediaDurationUs(file)
-                )
+                is SlideshowItem.Video -> {
+                    val fullDurationUs = mediaDurationUs(file)
+                    val clipEndUs = item.maxDurationMs
+                        ?.times(1_000L)
+                        ?.takeIf { it < fullDurationUs }
+                    Segment.Video(
+                        file = file,
+                        isMuted = item.isMuted,
+                        audioStartUs = if (item.isMuted) null else readAudioStartUs(file),
+                        clipEndUs = clipEndUs,
+                        durationUs = clipEndUs ?: fullDurationUs,
+                        backdrop = videoBackdrop(file, index)
+                    )
+                }
             }
         }
 
+        val videoAudioGain = request.music?.videoAudioGain?.toFloat()
         var previousPhoto: PhotoOverlay? = null
         val videoItems = segments.mapIndexed { index, segment ->
             val previousOverlay = previousPhoto
@@ -128,13 +165,26 @@ internal class SlideshowComposer(
 
                 is Segment.Video -> {
                     previousPhoto = null
-                    EditedMediaItem.Builder(MediaItem.fromUri(Uri.fromFile(segment.file)))
+                    val backdropOverlay = segment.backdrop?.let {
+                        BackdropOverlay(index = index, budget = bitmaps, load = { backdropBitmap(it) })
+                    }
+                    EditedMediaItem.Builder(videoMediaItem(segment))
                     .setFrameRate(request.frameRate)
-                    .setRemoveAudio(segment.isMuted)
+                    .setRemoveAudio(segment.isMuted || segment.audioStartsAfterSlot)
                     .setEffects(
                         Effects(
-                            emptyList(),
-                            listOfNotNull(presentation, dissolve?.let { OverlayEffect(listOf(it)) })
+                            listOfNotNull(
+                                audioWindow(segment, startsSequence = index == 0),
+                                videoAudioGain?.let {
+                                    GainProcessor(DefaultGainProvider.Builder(it).build())
+                                }
+                            ),
+                            listOfNotNull(
+                                presentation,
+                                listOfNotNull(backdropOverlay, dissolve)
+                                    .takeIf { it.isNotEmpty() }
+                                    ?.let(::OverlayEffect)
+                            )
                         )
                     )
                     .build()
@@ -165,78 +215,164 @@ internal class SlideshowComposer(
             .build()
     }
 
+    private fun readAudioStartUs(file: File): Long? {
+        val extractor = MediaExtractorCompat(context)
+        return try {
+            extractor.setDataSource(Uri.fromFile(file), 0L)
+            val audioTracks = (0 until extractor.trackCount).filter {
+                MimeTypes.isAudio(extractor.getTrackFormat(it).getString(MediaFormat.KEY_MIME))
+            }
+            when (audioTracks.size) {
+                0 -> null
+                1 -> {
+                    extractor.selectTrack(audioTracks.single())
+                    max(0L, extractor.sampleTime)
+                }
+                else -> 0L
+            }
+        } finally {
+            extractor.release()
+        }
+    }
+
+    private fun audioWindow(segment: Segment.Video, startsSequence: Boolean): AudioProcessor? {
+        val audioStartUs = segment.audioStartUs
+        return when {
+            audioStartUs == null -> segment.clipEndUs?.let { AudioWindowProcessor(delayUs = 0, lengthUs = it) }
+            segment.audioStartsAfterSlot -> AudioWindowProcessor(delayUs = 0, lengthUs = segment.durationUs)
+            startsSequence -> AudioWindowProcessor(delayUs = 0, lengthUs = segment.durationUs - audioStartUs)
+            else -> AudioWindowProcessor(delayUs = audioStartUs, lengthUs = segment.durationUs)
+        }
+    }
+
+    private fun videoMediaItem(segment: Segment.Video): MediaItem {
+        val builder = MediaItem.Builder().setUri(Uri.fromFile(segment.file))
+        segment.clipEndUs?.let { endUs ->
+            builder.setClippingConfiguration(
+                MediaItem.ClippingConfiguration.Builder().setEndPositionUs(endUs).build()
+            )
+        }
+        return builder.build()
+    }
+
     private fun musicSequence(
         segments: List<Segment>,
         music: File,
         trackDurationUs: Long,
         settings: SlideshowMusic
     ): EditedMediaItemSequence {
+        val totalUs = segments.sumOf { it.durationUs }
+        val envelope = MusicEnvelope(
+            totalUs = totalUs,
+            fadeInUs = settings.fadeInMs * 1_000L,
+            fadeOutUs = settings.fadeOutMs * 1_000L,
+            duckedMusicGain = settings.duckedMusicGain,
+            duckFadeUs = settings.duckFadeMs * 1_000L,
+            videoAudio = videoAudioRanges(segments)
+        )
         @Suppress("DEPRECATION")
         val builder = EditedMediaItemSequence.Builder().experimentalSetForceAudioTrack(true)
-        var gapUs = 0L
-        var positionUs = 0L
-        var runDurationUs = 0L
-
-        fun flushRun() {
-            if (runDurationUs == 0L) return
-            if (gapUs > 0) {
-                builder.addGap(gapUs)
-                gapUs = 0
-            }
-            var offsetUs = 0L
-            while (offsetUs < runDurationUs) {
-                val clipUs = min(runDurationUs - offsetUs, trackDurationUs - positionUs)
-                builder.addItem(
-                    EditedMediaItem.Builder(
-                        MediaItem.Builder()
-                            .setUri(Uri.fromFile(music))
-                            .setClippingConfiguration(
-                                MediaItem.ClippingConfiguration.Builder()
-                                    .setStartPositionUs(positionUs)
-                                    .setEndPositionUs(positionUs + clipUs)
-                                    .build()
-                            )
-                            .build()
-                    )
-                        .setEffects(
-                            Effects(
-                                listOf(
-                                    GainProcessor(
-                                        FadeGainProvider(
-                                            offsetUs = offsetUs,
-                                            durationUs = runDurationUs,
-                                            fadeInUs = settings.fadeInMs * 1_000L,
-                                            fadeOutUs = settings.fadeOutMs * 1_000L
-                                        )
-                                    )
-                                ),
-                                emptyList()
-                            )
+        var offsetUs = 0L
+        while (offsetUs < totalUs) {
+            val clipUs = min(totalUs - offsetUs, trackDurationUs)
+            builder.addItem(
+                EditedMediaItem.Builder(
+                    MediaItem.Builder()
+                        .setUri(Uri.fromFile(music))
+                        .setClippingConfiguration(
+                            MediaItem.ClippingConfiguration.Builder()
+                                .setEndPositionUs(clipUs)
+                                .build()
                         )
                         .build()
                 )
-                positionUs = (positionUs + clipUs) % trackDurationUs
-                offsetUs += clipUs
-            }
-            runDurationUs = 0
+                    .setEffects(
+                        Effects(
+                            listOf(GainProcessor(MusicGainProvider(offsetUs, envelope))),
+                            emptyList()
+                        )
+                    )
+                    .build()
+            )
+            offsetUs += clipUs
         }
-
-        for (segment in segments) {
-            when (segment) {
-                is Segment.Photo -> runDurationUs += segment.durationUs
-                is Segment.Video -> {
-                    flushRun()
-                    gapUs += segment.durationUs
-                }
-            }
-        }
-        flushRun()
-        if (gapUs > 0) builder.addGap(gapUs)
         return builder.build()
     }
 
-    private fun writeBackground(photo: File, index: Int): File {
-        val tiny = decodePhoto(photo, maxLongSide = BACKGROUND_SAMPLE_SIZE)
+    private fun videoAudioRanges(segments: List<Segment>): List<LongRange> {
+        val ranges = mutableListOf<LongRange>()
+        var startUs = 0L
+        for (segment in segments) {
+            val endUs = startUs + segment.durationUs
+            if (segment is Segment.Video && segment.playsAudio) ranges.add(startUs until endUs)
+            startUs = endUs
+        }
+        return ranges
+    }
+
+    private fun videoBackdrop(video: File, index: Int): VideoBackdrop? {
+        val window = videoWindow(video) ?: return null
+        if (window == Rect(0, 0, frameWidth, frameHeight)) return null
+        val frame = firstFrame(video) ?: return null
+        return VideoBackdrop(writeBackground(shrink(frame, BACKGROUND_SAMPLE_SIZE), index), window)
+    }
+
+    private fun videoWindow(video: File): Rect? {
+        val extractor = MediaExtractorCompat(context)
+        val videoFormats = try {
+            extractor.setDataSource(Uri.fromFile(video), 0L)
+            (0 until extractor.trackCount)
+                .map(extractor::getTrackFormat)
+                .filter { MimeTypes.isVideo(it.getString(MediaFormat.KEY_MIME)) }
+        } finally {
+            extractor.release()
+        }
+        if (videoFormats.size > 1) {
+            val trackIds = videoFormats.map { it.intOrNull(TRACK_ID_KEY) }
+            if (null in trackIds || trackIds.distinct().size > 1) return null
+        }
+        return videoFormats.map(::windowFor).distinct().singleOrNull()
+    }
+
+    private fun windowFor(format: MediaFormat): Rect {
+        val storedWidth = format.getInteger(MediaFormat.KEY_WIDTH)
+        val storedHeight = format.getInteger(MediaFormat.KEY_HEIGHT)
+        val rotated = format.intOr(MediaFormat.KEY_ROTATION, 0) % 180 != 0
+        val width = if (rotated) storedHeight else storedWidth
+        val height = if (rotated) storedWidth else storedHeight
+        val pixelRatio = format.floatOr(MediaFormatUtil.KEY_PIXEL_WIDTH_HEIGHT_RATIO_FLOAT, 1f)
+        val displayWidth = (if (pixelRatio > 1f) (width * pixelRatio).toInt() else width).toFloat()
+        val displayHeight = (if (pixelRatio < 1f) (height / pixelRatio).toInt() else height).toFloat()
+        val scale = min(frameWidth / displayWidth, frameHeight / displayHeight)
+        val sideMargin = windowMargin((frameWidth - displayWidth * scale) / 2)
+        val topMargin = windowMargin((frameHeight - displayHeight * scale) / 2)
+        return Rect(sideMargin, topMargin, frameWidth - sideMargin, frameHeight - topMargin)
+    }
+
+    private fun firstFrame(video: File): Bitmap? {
+        val retriever = MediaMetadataRetriever()
+        return try {
+            retriever.setDataSource(video.path)
+            retriever.getFrameAtTime(0L, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+        } catch (error: RuntimeException) {
+            Log.w(TAG, "Cannot read a video's first frame; exporting it without a backdrop", error)
+            null
+        } finally {
+            retriever.release()
+        }
+    }
+
+    private fun backdropBitmap(backdrop: VideoBackdrop): Bitmap {
+        val bitmap = BitmapFactory.decodeFile(
+            backdrop.backgroundFile.path,
+            BitmapFactory.Options().apply { inMutable = true }
+        ) ?: throw IllegalStateException("Cannot read slideshow background")
+        bitmap.setHasAlpha(true)
+        Canvas(bitmap).drawRect(backdrop.window, CLEAR_PAINT)
+        return bitmap
+    }
+
+    private fun writeBackground(tiny: Bitmap, index: Int): File {
         val background = Bitmap.createBitmap(frameWidth, frameHeight, Bitmap.Config.ARGB_8888)
         try {
             val canvas = Canvas(background)
@@ -276,13 +412,7 @@ internal class SlideshowComposer(
         when (segment) {
             null -> Unit
             is Segment.Photo -> {
-                val background = BitmapFactory.decodeFile(segment.backgroundFile.path)
-                    ?: throw IllegalStateException("Cannot read slideshow background")
-                try {
-                    drawCovered(canvas, background)
-                } finally {
-                    background.recycle()
-                }
+                drawBackground(canvas, segment.backgroundFile)
                 val photo = decodedPhoto ?: decodePhotoForOverlay(segment)
                 try {
                     drawPhoto(canvas, photo, segment.motion.endScale, segment.motion.endX, segment.motion.endY)
@@ -292,6 +422,7 @@ internal class SlideshowComposer(
             }
 
             is Segment.Video -> {
+                segment.backdrop?.let { drawBackground(canvas, it.backgroundFile) }
                 val retriever = MediaMetadataRetriever()
                 val lastFrame = try {
                     retriever.setDataSource(segment.file.path)
@@ -312,6 +443,16 @@ internal class SlideshowComposer(
             }
         }
         return frame
+    }
+
+    private fun drawBackground(canvas: Canvas, file: File) {
+        val background = BitmapFactory.decodeFile(file.path)
+            ?: throw IllegalStateException("Cannot read slideshow background")
+        try {
+            drawCovered(canvas, background)
+        } finally {
+            background.recycle()
+        }
     }
 
     private fun drawCovered(canvas: Canvas, bitmap: Bitmap) {
@@ -341,11 +482,41 @@ internal class SlideshowComposer(
     }
 
     private companion object {
+        const val TAG = "SlideshowComposer"
         const val BACKGROUND_SAMPLE_SIZE = 32
         const val BACKGROUND_UPSCALE_STEP = 8
         const val BACKGROUND_JPEG_QUALITY = 85
+        const val WINDOW_EDGE_OVERLAP = 1
+        const val TRACK_ID_KEY = "track-id"
         val FILTER_PAINT = Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG)
+        val CLEAR_PAINT = Paint().apply { xfermode = PorterDuffXfermode(PorterDuff.Mode.CLEAR) }
+
+        fun windowMargin(margin: Float) =
+            if (margin < 0.5f) 0 else ceil(margin).toInt() + WINDOW_EDGE_OVERLAP
     }
+}
+
+private fun MediaFormat.floatOr(key: String, default: Float) =
+    if (containsKey(key)) getFloat(key) else default
+
+private fun MediaFormat.intOr(key: String, default: Int) = intOrNull(key) ?: default
+
+private fun MediaFormat.intOrNull(key: String) = if (containsKey(key)) getInteger(key) else null
+
+private fun shrink(bitmap: Bitmap, maxLongSide: Int): Bitmap {
+    var current = bitmap
+    while (max(current.width, current.height) > maxLongSide) {
+        val factor = max(0.5f, maxLongSide.toFloat() / max(current.width, current.height))
+        val width = max(1, (current.width * factor).roundToInt())
+        val height = max(1, (current.height * factor).roundToInt())
+        val matrix = Matrix().apply {
+            setScale(width.toFloat() / current.width, height.toFloat() / current.height)
+        }
+        val next = Bitmap.createBitmap(current, 0, 0, current.width, current.height, matrix, true)
+        if (next !== current) current.recycle()
+        current = next
+    }
+    return current
 }
 
 internal fun smoothstep(value: Float): Float {
@@ -525,24 +696,131 @@ private class DissolveOverlay(
     }
 }
 
-private class FadeGainProvider(
-    private val offsetUs: Long,
-    private val durationUs: Long,
+@UnstableApi
+private class BackdropOverlay(
+    index: Int,
+    budget: SlideshowBitmapBudget,
+    load: () -> Bitmap
+) : LazyBitmapOverlay(index, budget, load) {
+    override fun settingsAt(elapsedUs: Long): OverlaySettings = StaticOverlaySettings.Builder().build()
+}
+
+private class MusicEnvelope(
+    private val totalUs: Long,
     private val fadeInUs: Long,
-    private val fadeOutUs: Long
-) : GainProcessor.GainProvider {
-    override fun getGainFactorAtSamplePosition(samplePosition: Long, sampleRate: Int): Float {
-        val timeUs = offsetUs + samplePosition * C.MICROS_PER_SECOND / sampleRate
-        var gain = 1f
-        if (fadeInUs > 0) gain = min(gain, timeUs.toFloat() / fadeInUs)
-        if (fadeOutUs > 0) gain = min(gain, (durationUs - timeUs).toFloat() / fadeOutUs)
-        return gain.coerceIn(0f, 1f)
+    private val fadeOutUs: Long,
+    private val duckedMusicGain: Double,
+    private val duckFadeUs: Long,
+    videoAudio: List<LongRange>
+) {
+    private val ducks = videoAudio.fold(mutableListOf<LongRange>()) { merged, range ->
+        val last = merged.lastOrNull()
+        if (last != null && range.first - (last.last + 1) <= 2 * duckFadeUs) {
+            merged[merged.lastIndex] = last.first..range.last
+        } else {
+            merged.add(range)
+        }
+        merged
     }
+
+    fun gainAt(timeUs: Long): Float {
+        var gain = 1.0
+        if (fadeInUs > 0) gain = min(gain, timeUs.toDouble() / fadeInUs)
+        if (fadeOutUs > 0) gain = min(gain, (totalUs - timeUs).toDouble() / fadeOutUs)
+        return (gain.coerceIn(0.0, 1.0) * duckLevelAt(timeUs)).toFloat()
+    }
+
+    fun nextChangeUs(timeUs: Long): Long? {
+        val fadeOutStartUs = (totalUs - fadeOutUs).takeIf { fadeOutUs > 0 && it >= timeUs }
+        val duckStartUs = ducks.getOrNull(firstDuckWhere { it.first - duckFadeUs >= timeUs })
+            ?.let { it.first - duckFadeUs }
+        return listOfNotNull(fadeOutStartUs, duckStartUs).minOrNull()
+    }
+
+    private fun duckLevelAt(timeUs: Long): Double {
+        var level = 1.0
+        var index = firstDuckWhere { it.last >= timeUs - duckFadeUs }
+        while (index < ducks.size && ducks[index].first - duckFadeUs <= timeUs) {
+            val duck = ducks[index]
+            index++
+            val depth = when {
+                timeUs in duck -> 1.0
+                duckFadeUs <= 0 -> 0.0
+                timeUs < duck.first -> 1.0 - (duck.first - timeUs).toDouble() / duckFadeUs
+                else -> 1.0 - (timeUs - duck.last - 1).toDouble() / duckFadeUs
+            }
+            if (depth > 0) level = min(level, 1.0 - depth * (1.0 - duckedMusicGain))
+        }
+        return level
+    }
+
+    private inline fun firstDuckWhere(isReached: (LongRange) -> Boolean): Int {
+        var low = 0
+        var high = ducks.size
+        while (low < high) {
+            val middle = (low + high) / 2
+            if (isReached(ducks[middle])) high = middle else low = middle + 1
+        }
+        return low
+    }
+}
+
+private class MusicGainProvider(
+    private val offsetUs: Long,
+    private val envelope: MusicEnvelope
+) : GainProcessor.GainProvider {
+    override fun getGainFactorAtSamplePosition(samplePosition: Long, sampleRate: Int): Float =
+        envelope.gainAt(timeUs(samplePosition, sampleRate))
 
     override fun isUnityUntil(samplePosition: Long, sampleRate: Int): Long {
         if (getGainFactorAtSamplePosition(samplePosition, sampleRate) < 1f) return C.TIME_UNSET
-        if (fadeOutUs <= 0) return C.TIME_END_OF_SOURCE
-        val fadeOutStartSample = (durationUs - fadeOutUs - offsetUs) * sampleRate / C.MICROS_PER_SECOND
-        return if (fadeOutStartSample > samplePosition) fadeOutStartSample else samplePosition + 1
+        val changeUs = envelope.nextChangeUs(timeUs(samplePosition, sampleRate))
+            ?: return C.TIME_END_OF_SOURCE
+        val changeSample = (changeUs - offsetUs) * sampleRate / C.MICROS_PER_SECOND
+        return if (changeSample > samplePosition) changeSample else samplePosition + 1
     }
+
+    private fun timeUs(samplePosition: Long, sampleRate: Int) =
+        offsetUs + samplePosition * C.MICROS_PER_SECOND / sampleRate
 }
+
+@UnstableApi
+private class AudioWindowProcessor(
+    private val delayUs: Long,
+    private val lengthUs: Long
+) : BaseAudioProcessor() {
+    private var pendingSilenceFrames = 0L
+    private var remainingFrames = 0L
+
+    override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat) = inputAudioFormat
+
+    override fun onFlush(streamMetadata: AudioProcessor.StreamMetadata) {
+        remainingFrames = frames(max(0L, lengthUs - streamMetadata.positionOffsetUs))
+        pendingSilenceFrames = min(frames(delayUs), remainingFrames)
+    }
+
+    override fun queueInput(inputBuffer: ByteBuffer) {
+        val bytesPerFrame = inputAudioFormat.bytesPerFrame
+        if (pendingSilenceFrames > 0) {
+            val silenceFrames = min(pendingSilenceFrames, (silenceChunk.size / bytesPerFrame).toLong())
+            pendingSilenceFrames -= silenceFrames
+            remainingFrames -= silenceFrames
+            val silenceBytes = silenceFrames.toInt() * bytesPerFrame
+            replaceOutputBuffer(silenceBytes).put(silenceChunk, 0, silenceBytes).flip()
+            return
+        }
+        val keptFrames = min(inputBuffer.remaining().toLong() / bytesPerFrame, remainingFrames)
+        val inputEnd = inputBuffer.limit()
+        if (keptFrames > 0) {
+            remainingFrames -= keptFrames
+            inputBuffer.limit(inputBuffer.position() + keptFrames.toInt() * bytesPerFrame)
+            replaceOutputBuffer(keptFrames.toInt() * bytesPerFrame).put(inputBuffer).flip()
+            inputBuffer.limit(inputEnd)
+        }
+        inputBuffer.position(inputEnd)
+    }
+
+    private fun frames(durationUs: Long) = durationUs * inputAudioFormat.sampleRate / C.MICROS_PER_SECOND
+}
+
+private val silenceChunk = ByteArray(64 * 1024)

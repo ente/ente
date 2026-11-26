@@ -59,6 +59,8 @@ Choose one wait time for each kit:
 - **15 days**
 - **30 days**
 
+![Account recovery row highlighted, then the Recovery wait time options on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-legacy-kit-wait-time-v1013.png){width=560px}
+
 The selected wait time is captured when recovery starts. Changing the wait time later affects future recovery attempts only, and you cannot change it while a recovery attempt is active.
 
 Immediate recovery is useful for self-recovery, but it gives you little time to notice and block an unauthorized attempt. Longer wait times are better for inheritance scenarios.

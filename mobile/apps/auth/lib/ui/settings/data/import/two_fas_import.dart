@@ -1,18 +1,13 @@
-import 'dart:convert';
-import 'dart:typed_data';
-
-import 'package:ente_auth/models/code.dart';
-import 'package:ente_auth/models/code_display.dart';
+import 'package:ente_auth/src/rust/api/import_api.dart' as rust;
 import 'package:ente_auth/ui/settings/data/import/import_file_cleanup.dart';
 import 'package:ente_auth/ui/settings/data/import/import_flow.dart';
-import 'package:ente_auth/ui/settings/data/import/plain_text_import_parser.dart';
+import 'package:ente_auth/ui/settings/data/import/rust_import.dart';
 import 'package:ente_auth/utils/dialog_util.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:ente_ui/components/progress_dialog.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
-import 'package:pointycastle/export.dart';
 
 Future<void> show2FasImportInstruction(BuildContext context) async {
   final l10n = context.strings;
@@ -44,138 +39,36 @@ Future<int?> _process2FasExportFile(
   final ProgressDialog dialog,
 ) async {
   final export = await readPickedImportFileAsString(path);
-  if (export.trimLeft().startsWith('otpauth://')) {
+  late rust.ImportBatch batch;
+  try {
+    batch = await runRustImportAsync(() => rust.importTwoFas(input: export));
     await dialog.show();
-    return saveImportedCodes(parsePlainTextImport(export));
-  }
-
-  final decodedJson = jsonDecode(export);
-  int version = (decodedJson['schemaVersion'] ?? 0) as int;
-  if (version != 3 && version != 4) {
+  } on rust.ImportError_PasswordRequired {
     if (!context.mounted) return null;
-    await dialog.hide();
-    if (!context.mounted) return null;
-    // todo: extract strings for l10n. Use same naming format as in aegis
-    // to avoid duplicate translation efforts.
-    await showErrorDialog(
+    final password = await promptForImportPassword(
       context,
-      'Unsupported format: $version',
-      version == 0
-          ? "The selected file is not a valid 2FAS Authenticator export."
-          : "Sorry, the app doesn't support this version of 2FAS Authenticator export",
+      title: context.strings.enterPasswordToDecrypt2FASBackup,
     );
-    return null;
-  }
-  final groupIdToName = {};
-  var groups = decodedJson['groups'];
-  if (groups != null) {
-    for (var group in groups) {
-      groupIdToName[group['id']] = group['name'];
-    }
-  }
-
-  var decodedServices = decodedJson['services'];
-  // https://github.com/twofas/2fas-android/blob/e97f1a1040eafaed6d5284d54d33403dff215886/data/services/src/main/java/com/twofasapp/data/services/domain/BackupContent.kt#L39
-  final isEncrypted = decodedJson['reference'] != null;
-  if (isEncrypted) {
-    if (!context.mounted) return null;
-    String? password;
-    try {
-      password = await promptForImportPassword(
-        context,
-        title: context.strings.enterPasswordToDecrypt2FASBackup,
-      );
-      if (password == null) {
-        await dialog.hide();
-        return null;
-      }
-      await dialog.show();
-      final content = decrypt2FasVault(decodedJson, password: password);
-      decodedServices = jsonDecode(content);
-    } catch (e, s) {
-      Logger("2FASImport").warning("exception while decrypting  backup", e, s);
+    if (password == null) {
       await dialog.hide();
-      if (password != null) {
-        if (!context.mounted) return null;
-        await showErrorDialog(
-          context,
-          context.strings.failedToDecrypt2FASExport,
-          context.strings.pleaseCheckPasswordAndTryAgain,
-        );
-      }
       return null;
     }
-  } else {
     await dialog.show();
-  }
-  final parsedCodes = <Code>[];
-  for (var item in decodedServices) {
-    var kind = item['otp']['tokenType'] ?? 'TOTP';
-    var account = item['otp']['account'] ?? '';
-    var issuer = item['otp']['issuer'];
-    if (issuer == null || (issuer as String).isEmpty) {
-      issuer = item['name'] ?? '';
-    }
-    final String? groupID = item['groupId'];
-    var algorithm = item['otp']['algorithm'];
-    var secret = item['secret'];
-    var timer = item['otp']['period'];
-    var digits = item['otp']['digits'];
-    var counter = item['otp']['counter'];
-
-    if (kind == 'TOTP') {
-      algorithm ??= 'SHA1';
-      digits ??= Code.defaultDigits;
-    }
-    Code code = parseImportOtpCode(
-      item,
-      () => buildImportOtpUri(
-        kind: kind,
-        issuer: issuer,
-        account: account,
-        secret: secret,
-        algorithm: algorithm,
-        digits: digits,
-        period: timer,
-        counter: counter,
-      ),
-    );
-    if (groupID != null && groupIdToName.containsKey(groupID)) {
-      code = code.copyWith(
-        display: CodeDisplay(tags: [groupIdToName[groupID]]),
+    try {
+      batch = await runRustImportAsync(
+        () => rust.importTwoFas(input: export, password: password),
       );
+    } on rust.ImportError_IncorrectPassword catch (e, s) {
+      Logger("2FASImport").warning("exception while decrypting  backup", e, s);
+      await dialog.hide();
+      if (!context.mounted) return null;
+      await showErrorDialog(
+        context,
+        context.strings.failedToDecrypt2FASExport,
+        context.strings.pleaseCheckPasswordAndTryAgain,
+      );
+      return null;
     }
-    parsedCodes.add(code);
   }
-
-  return saveImportedCodes(parsedCodes);
-}
-
-String decrypt2FasVault(dynamic data, {required String password}) {
-  int iterationCount = 10000;
-  int keySize = 256;
-  final String encryptedServices = data["servicesEncrypted"];
-  var split = encryptedServices.split(":");
-  final encryptedData = base64.decode(split[0]);
-  final salt = base64.decode(split[1]);
-  final iv = base64.decode(split[2]);
-  final pbkdf2 = PBKDF2KeyDerivator(HMac(SHA256Digest(), 64));
-  final params = Pbkdf2Parameters(salt, iterationCount, keySize ~/ 8);
-  pbkdf2.init(params);
-  Uint8List key = Uint8List(keySize ~/ 8);
-  pbkdf2.deriveKey(Uint8List.fromList(utf8.encode(password)), 0, key, 0);
-  final decrypted = decrypt(key, iv, encryptedData);
-  final utf8Decode = utf8.decode(decrypted);
-  return utf8Decode;
-}
-
-Uint8List decrypt(Uint8List key, Uint8List iv, Uint8List data) {
-  final cipher = GCMBlockCipher(AESEngine())
-    ..init(
-      false,
-      AEADParameters(KeyParameter(key), 128, iv, Uint8List.fromList(<int>[])),
-    );
-
-  final dbBytes = cipher.process(data);
-  return dbBytes;
+  return saveImportedCodes(importCodes(batch));
 }

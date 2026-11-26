@@ -1,10 +1,11 @@
 use ente_photos::memories::CityLookup;
 use ente_photos::rewind;
 pub use ente_photos::rewind::{
-    Badge, BusiestDay, ColourOfTheYear, CrowdFavourite, Favourites, LikedPhoto, NewFace, NewFaces,
-    PeopleRace, Places, RacePerson, RewindBadge, RewindCity, RewindColour, RewindFile,
-    RewindFileType, RewindLocation, RewindPerson, RewindReport, RewindRequest, RewindState,
-    RewindStatus, RewindVisibility, Scrapbook, Spots, Totals, WeeklyHabit,
+    Badge, BusiestDay, ColourOfTheYear, CrowdFavourite, Favourites, Finale, Globe, GlobePlace,
+    LikedPhoto, Mosaic, NewFace, NewFaces, PeopleRace, Places, RacePerson, RewindBadge, RewindCity,
+    RewindColour, RewindCoverageFile, RewindFile, RewindFileType, RewindLocation, RewindPerson,
+    RewindReport, RewindRequest, RewindState, RewindStatus, RewindVisibility, Scrapbook, Spots,
+    Totals, Tour, TourStop, Warp, WeeklyHabit,
 };
 use flutter_rust_bridge::frb;
 
@@ -30,12 +31,11 @@ pub struct _RewindRequest {
     pub year: i32,
     pub now: i64,
     pub utc_offset_seconds: i32,
-    pub season_start: i64,
-    pub installed_at: i64,
     pub local_gallery_mode: bool,
     pub files: Vec<RewindFile>,
     pub people: Vec<RewindPerson>,
     pub me_person_id: Option<String>,
+    pub just_clustered: bool,
 }
 
 #[frb(mirror(RewindFile))]
@@ -60,6 +60,15 @@ pub enum _RewindFileType {
     Video,
     LivePhoto,
     Other,
+}
+
+#[frb(mirror(RewindCoverageFile))]
+pub struct _RewindCoverageFile {
+    pub id: i64,
+    pub creation_time: i64,
+    pub local_date_time: Option<String>,
+    pub utc_offset_seconds: i32,
+    pub file_type: RewindFileType,
 }
 
 #[frb(mirror(RewindLocation))]
@@ -89,13 +98,13 @@ pub struct _RewindState {
     pub computed_at: i64,
     pub local_gallery_mode: bool,
     pub ml_coverage: Option<f32>,
+    pub ml_chapters_pending: bool,
     pub is_final: bool,
     pub status: RewindStatus,
 }
 
 #[frb(mirror(RewindStatus))]
 pub enum _RewindStatus {
-    WaitingForMl,
     NothingToShow,
     Ready { report: Box<RewindReport> },
 }
@@ -114,12 +123,18 @@ pub struct _RewindReport {
     pub crowd_favourite: Option<CrowdFavourite>,
     pub badge: Option<Badge>,
     pub scrapbook: Option<Scrapbook>,
+    pub finale: Option<Finale>,
+    pub tour: Option<Tour>,
+    pub globe: Option<Globe>,
+    pub mosaic: Option<Mosaic>,
+    pub warp: Option<Warp>,
 }
 
 #[frb(mirror(Totals))]
 pub struct _Totals {
     pub files: u32,
-    pub top_per_mille: Option<u32>,
+    pub top_percent: Option<u32>,
+    pub file_ids: Vec<i64>,
 }
 
 #[frb(mirror(ColourOfTheYear))]
@@ -211,6 +226,8 @@ pub struct _WeeklyHabit {
     pub weekday: u32,
     pub hour: u32,
     pub percent: u32,
+    pub hour_file_ids: Vec<i64>,
+    pub file_ids: Vec<i64>,
 }
 
 #[frb(mirror(CrowdFavourite))]
@@ -264,6 +281,65 @@ pub struct _Scrapbook {
     pub file_ids: Vec<i64>,
 }
 
+#[frb(mirror(Finale))]
+pub struct _Finale {
+    pub file_ids: Vec<i64>,
+}
+
+#[frb(mirror(Tour))]
+pub struct _Tour {
+    pub stops: Vec<TourStop>,
+    pub city_count: u32,
+    pub country_count: u32,
+}
+
+#[frb(mirror(TourStop))]
+pub struct _TourStop {
+    pub city: String,
+    pub country_code: String,
+    pub month: u32,
+    pub day: u32,
+    pub photo_count: u32,
+}
+
+#[frb(mirror(Globe))]
+pub struct _Globe {
+    pub rows: Vec<u32>,
+    pub land: Vec<u8>,
+    pub visited: Vec<u8>,
+    pub places: Vec<GlobePlace>,
+    pub route: Vec<u32>,
+    pub distance_km: u32,
+    pub city_count: u32,
+    pub country_count: u32,
+}
+
+#[frb(mirror(GlobePlace))]
+pub struct _GlobePlace {
+    pub name: String,
+    pub country_code: String,
+    pub latitude_microdegrees: i32,
+    pub longitude_microdegrees: i32,
+    pub photo_count: u32,
+    pub file_ids: Vec<i64>,
+}
+
+#[frb(mirror(Mosaic))]
+pub struct _Mosaic {
+    pub file_ids: Vec<i64>,
+    pub me_person_id: Option<String>,
+    pub me_face_ids: Vec<String>,
+    pub top_person_id: Option<String>,
+    pub top_face_ids: Vec<String>,
+    pub cluster_id: Option<String>,
+    pub cluster_face_ids: Vec<String>,
+}
+
+#[frb(mirror(Warp))]
+pub struct _Warp {
+    pub file_ids: Vec<i64>,
+}
+
 pub fn compute_rewind(
     request: RewindRequest,
     store: Option<RustAutoOpaque<MlStore>>,
@@ -280,6 +356,15 @@ pub fn compute_rewind(
     )?)
 }
 
+pub fn rewind_has_enough_ml(
+    year: i32,
+    files: Vec<RewindCoverageFile>,
+    store: RustAutoOpaque<MlStore>,
+) -> Result<bool, RewindError> {
+    let store = store.blocking_read();
+    Ok(rewind::rewind_has_enough_ml(year, &files, &store.inner)?)
+}
+
 pub fn encode_rewind_state(state: RewindState) -> Result<Vec<u8>, RewindError> {
     Ok(rewind::encode_rewind_state(&state)?)
 }
@@ -292,6 +377,21 @@ pub fn decode_rewind_state(
     rewind::decode_rewind_state(&bytes, year, local_gallery_mode)
 }
 
+pub fn rewind_report_file_ids(report: RewindReport) -> Vec<i64> {
+    report.file_ids()
+}
+
 pub fn encode_rewind_request(request: RewindRequest) -> Result<Vec<u8>, RewindError> {
     Ok(rewind::encode_rewind_request(&request)?)
+}
+
+pub fn rewind_badge_signals(
+    request: RewindRequest,
+    store: Option<RustAutoOpaque<MlStore>>,
+) -> Result<String, RewindError> {
+    let store = store.as_ref().map(RustAutoOpaque::blocking_read);
+    Ok(rewind::rewind_badge_signals(
+        &request,
+        store.as_deref().map(|store| &store.inner),
+    )?)
 }

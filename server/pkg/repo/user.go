@@ -43,8 +43,8 @@ type userMutationExecutor interface {
 func (repo *UserRepository) Get(userID int64) (ente.User, error) {
 	var user ente.User
 	var encryptedEmail, nonce []byte
-	row := repo.DB.QueryRow(`SELECT user_id, encrypted_email, email_decryption_nonce, email_hash, family_admin_id, creation_time, is_two_factor_enabled, email_mfa FROM users WHERE user_id = $1`, userID)
-	err := row.Scan(&user.ID, &encryptedEmail, &nonce, &user.Hash, &user.FamilyAdminID, &user.CreationTime, &user.IsTwoFactorEnabled, &user.IsEmailMFAEnabled)
+	row := repo.DB.QueryRow(`SELECT user_id, encrypted_email, email_decryption_nonce, email_hash, family_admin_id, creation_time, is_two_factor_enabled, email_mfa, is_suspended FROM users WHERE user_id = $1`, userID)
+	err := row.Scan(&user.ID, &encryptedEmail, &nonce, &user.Hash, &user.FamilyAdminID, &user.CreationTime, &user.IsTwoFactorEnabled, &user.IsEmailMFAEnabled, &user.IsSuspended)
 	if err != nil {
 		return ente.User{}, stacktrace.Propagate(err, "")
 	}
@@ -63,8 +63,8 @@ func (repo *UserRepository) Get(userID int64) (ente.User, error) {
 func (repo *UserRepository) GetUserByIDInternal(id int64) (ente.User, error) {
 	var user ente.User
 	var encryptedEmail, nonce []byte
-	row := repo.DB.QueryRow(`SELECT user_id, encrypted_email, email_decryption_nonce, email_hash, family_admin_id, creation_time FROM users WHERE user_id = $1 AND encrypted_email IS NOT NULL`, id)
-	err := row.Scan(&user.ID, &encryptedEmail, &nonce, &user.Hash, &user.FamilyAdminID, &user.CreationTime)
+	row := repo.DB.QueryRow(`SELECT user_id, encrypted_email, email_decryption_nonce, email_hash, family_admin_id, creation_time, is_suspended FROM users WHERE user_id = $1 AND encrypted_email IS NOT NULL`, id)
+	err := row.Scan(&user.ID, &encryptedEmail, &nonce, &user.Hash, &user.FamilyAdminID, &user.CreationTime, &user.IsSuspended)
 	if err != nil {
 		return ente.User{}, stacktrace.Propagate(err, "")
 	}
@@ -136,8 +136,8 @@ func (repo *UserRepository) AreUsersInSameFamily(ctx context.Context, firstUserI
 
 func (repo *UserRepository) GetUserByEmailHash(emailHash string) (ente.User, error) {
 	var user ente.User
-	row := repo.DB.QueryRow(`SELECT user_id, email_hash, creation_time FROM users WHERE email_hash = $1`, emailHash)
-	err := row.Scan(&user.ID, &user.Hash, &user.CreationTime)
+	row := repo.DB.QueryRow(`SELECT user_id, email_hash, creation_time, is_suspended FROM users WHERE email_hash = $1`, emailHash)
+	err := row.Scan(&user.ID, &user.Hash, &user.CreationTime, &user.IsSuspended)
 	if err != nil {
 		return ente.User{}, stacktrace.Propagate(err, "")
 	}
@@ -145,7 +145,7 @@ func (repo *UserRepository) GetUserByEmailHash(emailHash string) (ente.User, err
 }
 
 func (repo *UserRepository) GetAll(sinceTime int64, tillTime int64) ([]ente.User, error) {
-	rows, err := repo.DB.Query(`SELECT user_id, encrypted_email, email_decryption_nonce, email_hash, creation_time FROM users WHERE creation_time > $1 AND creation_time < $2 AND encrypted_email IS NOT NULL ORDER BY creation_time`, sinceTime, tillTime)
+	rows, err := repo.DB.Query(`SELECT user_id, encrypted_email, email_decryption_nonce, email_hash, creation_time, is_suspended FROM users WHERE creation_time > $1 AND creation_time < $2 AND encrypted_email IS NOT NULL ORDER BY creation_time`, sinceTime, tillTime)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
@@ -154,7 +154,7 @@ func (repo *UserRepository) GetAll(sinceTime int64, tillTime int64) ([]ente.User
 	for rows.Next() {
 		var user ente.User
 		var encryptedEmail, nonce []byte
-		err := rows.Scan(&user.ID, &encryptedEmail, &nonce, &user.Hash, &user.CreationTime)
+		err := rows.Scan(&user.ID, &encryptedEmail, &nonce, &user.Hash, &user.CreationTime, &user.IsSuspended)
 
 		if err != nil {
 			return users, stacktrace.Propagate(err, "")
@@ -320,6 +320,11 @@ func (repo *UserRepository) CreateTx(ctx context.Context, tx *sql.Tx, encryptedE
 	return userID, nil
 }
 
+func (repo *UserRepository) SetSourceIfEmpty(ctx context.Context, userID int64, source string) error {
+	_, err := repo.DB.ExecContext(ctx, `UPDATE users SET source = $1 WHERE user_id = $2 AND (source IS NULL OR source = '')`, source, userID)
+	return stacktrace.Propagate(err, "failed to set source")
+}
+
 func (repo *UserRepository) UpdateDeleteFeedback(userID int64, feedback map[string]string) error {
 	feedbackJSON, err := json.Marshal(feedback)
 	if err != nil {
@@ -425,6 +430,10 @@ func (repo *UserRepository) GetPublicKey(userID int64) (string, error) {
 }
 
 func (repo *UserRepository) GetUsersWithIndividualPlanWhoHaveExceededStorageQuota() ([]ente.User, error) {
+	refBonus, addOnBonus, bonusErr := repo.StorageBonusRepo.GetAllUsersSurplusBonus(context.Background())
+	if bonusErr != nil {
+		return nil, stacktrace.Propagate(bonusErr, "failed to fetch bonusInfo")
+	}
 	rows, err := repo.DB.Query(`
 		SELECT users.user_id, users.encrypted_email, users.email_decryption_nonce, users.email_hash, usage.storage_consumed, subscriptions.storage
 		FROM users 
@@ -436,10 +445,6 @@ func (repo *UserRepository) GetUsersWithIndividualPlanWhoHaveExceededStorageQuot
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
-	refBonus, addOnBonus, bonusErr := repo.StorageBonusRepo.GetAllUsersSurplusBonus(context.Background())
-	if bonusErr != nil {
-		return nil, stacktrace.Propagate(bonusErr, "failed to fetch bonusInfo")
-	}
 	defer rows.Close()
 	users := make([]ente.User, 0)
 	for rows.Next() {
@@ -450,7 +455,7 @@ func (repo *UserRepository) GetUsersWithIndividualPlanWhoHaveExceededStorageQuot
 		if err != nil {
 			return users, stacktrace.Propagate(err, "")
 		}
-		if strings.EqualFold(user.Hash, fmt.Sprintf(DELETED_EMAIL_HASH_FORMAT, &user.ID)) || len(encryptedEmail) == 0 {
+		if strings.EqualFold(user.Hash, fmt.Sprintf(DELETED_EMAIL_HASH_FORMAT, user.ID)) || len(encryptedEmail) == 0 {
 			continue
 		}
 		if refBonusStorage, ok := refBonus[user.ID]; ok {
@@ -468,6 +473,9 @@ func (repo *UserRepository) GetUsersWithIndividualPlanWhoHaveExceededStorageQuot
 		}
 		user.Email = email
 		users = append(users, user)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, stacktrace.Propagate(err, "")
 	}
 	return users, nil
 }
@@ -605,7 +613,7 @@ func (repo *UserRepository) GetActiveUserEmailHashes(hashes []string) ([]string,
 
 func (repo *UserRepository) GetActiveUsersForIds(id []int64) (map[int64]*ente.User, error) {
 	result := make(map[int64]*ente.User)
-	rows, err := repo.DB.Query(`SELECT user_id, encrypted_email, email_decryption_nonce, email_hash, creation_time FROM users WHERE  encrypted_email IS NOT NULL and user_id = ANY($1)`, pq.Array(id))
+	rows, err := repo.DB.Query(`SELECT user_id, encrypted_email, email_decryption_nonce, email_hash, creation_time, is_suspended FROM users WHERE  encrypted_email IS NOT NULL and user_id = ANY($1)`, pq.Array(id))
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
@@ -613,7 +621,7 @@ func (repo *UserRepository) GetActiveUsersForIds(id []int64) (map[int64]*ente.Us
 	for rows.Next() {
 		var user ente.User
 		var encryptedEmail, nonce []byte
-		err := rows.Scan(&user.ID, &encryptedEmail, &nonce, &user.Hash, &user.CreationTime)
+		err := rows.Scan(&user.ID, &encryptedEmail, &nonce, &user.Hash, &user.CreationTime, &user.IsSuspended)
 		if err != nil {
 			return nil, stacktrace.Propagate(err, "")
 		}

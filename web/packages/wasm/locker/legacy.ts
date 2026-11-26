@@ -14,8 +14,15 @@ export const verificationID = async (publicKeyB64: string) =>
 export const addContact = async (
     session: Session,
     email: string,
+    publicKey: string,
     recoveryNoticeInDays?: number,
-) => (await wasm()).legacyAddContact(session, email, recoveryNoticeInDays);
+) =>
+    (await wasm()).legacyAddContact(
+        session,
+        email,
+        publicKey,
+        recoveryNoticeInDays,
+    );
 
 export const updateContact = async (
     session: Session,

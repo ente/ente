@@ -80,7 +80,11 @@ abstract class BaseConfiguration {
     await _clearTempFolderOnLogout();
     _cachedToken = null;
     _isTokenUnavailable = false;
+    final savedEndpoint = _preferences.getString(endPointKey);
     await _preferences.clear();
+    if (savedEndpoint != null) {
+      await _preferences.setString(endPointKey, savedEndpoint);
+    }
     await resetSecureStorage();
     for (final key in lockScreenSecureStorageKeys) {
       await _secureStorage.delete(key: key);

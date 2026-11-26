@@ -1,7 +1,7 @@
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
-import "package:hugeicons/hugeicons.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/file_caption_updated_event.dart";
 import 'package:photos/models/file/file.dart';
@@ -90,12 +90,12 @@ class _FileCaptionWidgetState extends State<FileCaptionWidget> {
 
   Future<void> _onDoneClick(BuildContext context) async {
     if (_hasPendingCaptionEdit) {
-      final isSuccesful = await editFileCaption(
+      final isSuccessful = await editFileCaption(
         context,
         widget.file,
         editedCaption!,
       ).then((isSuccess) => _onEditFileFinish(isSuccess));
-      if (isSuccesful && mounted) {
+      if (isSuccessful && mounted) {
         setState(() {});
       }
     }

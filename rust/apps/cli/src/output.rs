@@ -6,11 +6,14 @@ use dialoguer::console::{Alignment, measure_text_width, pad_str};
 use ente_accounts::{
     admin::{Subscription, User, UserDetails},
     details::AccountDetails,
+    family::{Family, MemberStatus},
+    sessions::ActiveSession,
 };
 use ente_location::{CityMatch, CountryGroup};
 use ente_photos::{
     collections::{Collection, Visibility},
     files::File,
+    people::Person,
 };
 use serde::Serialize;
 use serde_json::json as json_value;
@@ -157,6 +160,26 @@ impl FileView {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct PersonView {
+    pub id: String,
+    pub name: String,
+    hidden: bool,
+    pub file_count: usize,
+}
+
+impl PersonView {
+    pub fn new(id: String, person: Person, file_count: usize) -> Self {
+        Self {
+            id,
+            name: person.name,
+            hidden: person.hidden,
+            file_count,
+        }
+    }
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CityView {
     name: String,
     country: String,
@@ -233,6 +256,41 @@ impl SubscriptionView {
     }
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionView {
+    id: String,
+    current: bool,
+    device: String,
+    user_agent: String,
+    ip: String,
+    created_at: String,
+    last_used_at: String,
+}
+
+impl SessionView {
+    pub fn new(session: &ActiveSession) -> Result<Self> {
+        Ok(Self {
+            id: session.id.clone(),
+            current: session.is_current,
+            device: session.pretty_user_agent.clone(),
+            user_agent: session.user_agent.clone(),
+            ip: session.ip.clone(),
+            created_at: timestamp(session.created_at)?,
+            last_used_at: timestamp(session.last_used_at)?,
+        })
+    }
+
+    pub fn description(&self) -> String {
+        format!(
+            "{} ({}), last used {}",
+            escape_controls(&self.device),
+            escape_controls(&self.ip),
+            self.last_used_at
+        )
+    }
+}
+
 pub fn json(value: &impl Serialize) -> Result<()> {
     let mut stdout = std::io::stdout().lock();
     serde_json::to_writer(&mut stdout, value)?;
@@ -269,6 +327,35 @@ pub fn accounts(accounts: &[AccountView<'_>]) -> Result<()> {
     write_table(
         &mut stdout,
         ["SELECTED", "NAME", "EMAIL", "HOST", "LOGGED IN", "ID"],
+        &rows,
+    )?;
+    Ok(())
+}
+
+pub fn sessions(sessions: &[ActiveSession], as_json: bool) -> Result<()> {
+    let views = sessions
+        .iter()
+        .map(SessionView::new)
+        .collect::<Result<Vec<_>>>()?;
+    if as_json {
+        return json(&views);
+    }
+    let rows = views
+        .into_iter()
+        .map(|session| {
+            [
+                if session.current { "*" } else { "" }.to_owned(),
+                escape_controls(&session.device),
+                escape_controls(&session.ip),
+                session.last_used_at,
+                session.created_at,
+                escape_controls(&session.id),
+            ]
+        })
+        .collect::<Vec<_>>();
+    write_table(
+        &mut std::io::stdout().lock(),
+        ["CURRENT", "DEVICE", "IP", "LAST USED", "CREATED", "ID"],
         &rows,
     )?;
     Ok(())
@@ -423,6 +510,28 @@ pub fn duplicate_groups(out: &mut impl Write, groups: &[&DuplicateGroupView]) ->
         write_table(out, ["ACTION", "ID", "NAME", "ALBUMS"], &rows)?;
     }
     Ok(())
+}
+
+pub fn people(
+    people: impl Iterator<Item = PersonView>,
+    args: &ListArgs,
+    as_json: bool,
+) -> Result<()> {
+    list(
+        people.map(Ok),
+        args,
+        as_json,
+        ["ID", "NAME", "FILES", "HIDDEN"],
+        "No people.",
+        |person| {
+            [
+                escape_controls(&person.id),
+                escape_controls(&person.name),
+                person.file_count.to_string(),
+                if person.hidden { "yes" } else { "no" }.to_owned(),
+            ]
+        },
+    )
 }
 
 pub fn cities(
@@ -605,8 +714,8 @@ pub fn usage(details: &AccountDetails, as_json: bool) -> Result<()> {
                     let mut label = escape_controls(&member.email);
                     if member.is_admin {
                         label.push_str(" (admin)");
-                    } else if member.status != "ACCEPTED" {
-                        label.push_str(&format!(" ({})", member.status.to_lowercase()));
+                    } else if member.status == MemberStatus::Invited {
+                        label.push_str(" (invited)");
                     }
                     label
                 })
@@ -623,6 +732,59 @@ pub fn usage(details: &AccountDetails, as_json: bool) -> Result<()> {
         None => fields.push(("Family", "none".to_owned())),
     }
     write_fields(&fields)
+}
+
+pub fn family(family: Option<&Family>, as_json: bool) -> Result<()> {
+    let Some(family) = family else {
+        return if as_json {
+            json(&serde_json::Value::Null)
+        } else {
+            writeln!(std::io::stdout(), "Not in a family.").map_err(Into::into)
+        };
+    };
+    if as_json {
+        return json(&json_value!({
+            "storageBytes": family.total_storage(),
+            "usedBytes": family.usage(),
+            "expiresAt": timestamp(family.expiry_time)?,
+            "members": family.members.iter().map(|member| json_value!({
+                "id": member.id, "email": member.email, "status": member.status,
+                "admin": member.is_admin, "usedBytes": member.usage,
+                "storageLimitBytes": member.storage_limit,
+            })).collect::<Vec<_>>(),
+        }));
+    }
+    write_fields(&[
+        ("Storage", size(family.total_storage())),
+        ("Used", size(family.usage())),
+        ("Expires", timestamp(family.expiry_time)?),
+    ])?;
+    let rows = family
+        .members
+        .iter()
+        .map(|member| {
+            [
+                escape_controls(&member.email),
+                match member.status {
+                    MemberStatus::Admin => "admin",
+                    MemberStatus::Accepted => "member",
+                    MemberStatus::Invited => "invited",
+                }
+                .to_owned(),
+                size(member.usage),
+                member.storage_limit.map_or("none".to_owned(), size),
+                member.id.to_string(),
+            ]
+        })
+        .collect::<Vec<_>>();
+    let mut stdout = std::io::stdout().lock();
+    writeln!(stdout)?;
+    write_table(
+        &mut stdout,
+        ["EMAIL", "STATUS", "USED", "LIMIT", "ID"],
+        &rows,
+    )?;
+    Ok(())
 }
 
 pub fn storage_size(bytes: i64) -> String {

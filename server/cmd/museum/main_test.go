@@ -20,7 +20,7 @@ func TestReplicationDisabledByConfig(t *testing.T) {
 	viper.Set("jobs.cron.skip", true)
 
 	require.NotPanics(t, func() {
-		setupAndStartBackgroundJobs(nil, nil, nil, nil, nil)
+		setupAndStartBackgroundJobs(nil, nil, nil, nil, nil, nil)
 	})
 }
 

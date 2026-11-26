@@ -1,1 +1,0 @@
-- Refreshed the file info and EXIF panes with island styling and clearer controls.

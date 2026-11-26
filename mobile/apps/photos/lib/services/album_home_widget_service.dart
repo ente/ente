@@ -128,7 +128,7 @@ class AlbumHomeWidgetService {
 
     await setAlbumsLastHash("");
     await _clearAlbumsLastCacheRefreshTime();
-    await _setTotalAlbums(null);
+    await _setTotalAlbums(0);
     await updateAlbumsStatus(WidgetStatus.syncedEmpty);
     await _refreshWidget(message: "AlbumsHomeWidget cleared & updated");
   }
@@ -497,7 +497,7 @@ class AlbumHomeWidgetService {
     return albumsWithFiles;
   }
 
-  Future<void> _setTotalAlbums(int? total) async {
+  Future<void> _setTotalAlbums(int total) async {
     await HomeWidgetService.instance.setData(TOTAL_ALBUMS_KEY, total);
   }
 

@@ -169,7 +169,7 @@
   "authToManageLegacy": "Прайдзіце аўтэнтыфікацыю, каб кіраваць сваімі даверанымі кантактамі",
   "authToSetBackupPassword": "Прайдзіце аўтэнтыфікацыю, каб задаць пароль рэзервовага капіравання",
   "authToUpdateBackupPassword": "Прайдзіце аўтэнтыфікацыю, каб абнавіць пароль рэзервовага капіравання",
-  "authToViewPasskey": "Прайдзіце аўтэнтыфікацыю, каб паглядзець свой код доступу",
+  "authToViewPasskey": "Прайдзіце аўтэнтыфікацыю, каб паглядзець свой ключ доступу",
   "authToViewPasskeyGeneric": "Прайдзіце аўтэнтыфікацыю, каб паглядзець ключ доступу",
   "authToViewSecrets": "Прайдзіце аўтэнтыфікацыю, каб паглядзець свае сакрэты",
   "@authToViewSecrets": {
@@ -1026,7 +1026,7 @@
       "expiryTime": {}
     }
   },
-  "linkExpiry": "Спасылка пратэрмінавана",
+  "linkExpiry": "Тэрмін дзеяння спасылкі",
   "linkHasExpired": "Спасылка пратэрмінавана",
   "linkNeverExpires": "Ніколі",
   "loadingExifData": "Загрузка даных EXIF...",
@@ -2083,7 +2083,7 @@
   "@theRecoveryKeyYouEnteredIsIncorrect": {
     "description": "Detailed error message when recovery key is incorrect"
   },
-  "theseItemsWillBeDeletedFromYourDevice": "Гэтыя элементы будуць выдалены з усіх вашых прылад.",
+  "theseItemsWillBeDeletedFromYourDevice": "Гэтыя элементы будуць выдалены з вашай прылады.",
   "thisCanBeUsedToRecoverYourAccountIfYou": "Ён можа быць выкарыстаны для аднаўлення вашага ўліковага запісу, калі страчаны другі фактар аўтэнтыфікацыі",
   "thisDevice": "Гэта прылада",
   "@thisDevice": {

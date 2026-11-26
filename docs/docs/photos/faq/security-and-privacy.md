@@ -77,7 +77,7 @@ Before you ask for this:
 
 To request deletion, email [support@ente.com](mailto:support@ente.com) from the email address of your Ente account.
 
-Once the account is deleted, sign up again with the same email address. Save the new [recovery key](#recovery-key-importance) somewhere safe.
+Once the account is deleted, sign up again with the same email address. You can do this straight away; you don't need to wait for the 7 days mentioned in the account deletion email. Save the new [recovery key](#recovery-key-importance) somewhere safe.
 
 ### What is my recovery key and why is it critical? {#recovery-key-importance}
 
@@ -166,7 +166,7 @@ The privacy of your account is a function of the strength of your password, plea
 
 ### Why did I get a "New login to your Ente account" email? {#new-login-email}
 
-We send this email when a new sign-in to your Ente account passes our checks, such as the email verification code. It shows when this happened. Some emails also show the app, device and IP address used. The email can arrive before the sign-in finishes in the app, for example if the wrong password is entered after the verification code.
+We send this email when a new sign-in to your Ente account passes our checks, such as the email verification code. It shows when this happened. Some emails also show the app, device and IP address used. The email can arrive before the sign-in finishes in the app. For example, it's sent if the wrong password is entered after the verification code, or if you tapped **Forgot password?** and entered the email code but didn't finish resetting your password with your recovery key. On its own, the email doesn't mean anyone unlocked your account. A fresh sign-in still needs your password or recovery key to decrypt your photos, files and Auth codes.
 
 If it was you, there's nothing to do.
 
@@ -178,6 +178,8 @@ If you don't recognise it:
 
 Replying to this email reaches Ente support. If you need help signing in, include what you see on screen.
 
+Support can't sign out devices for you. Ente can't access your account, so only you can do this from a signed-in device.
+
 ### Do you support two-factor authentication (2FA)? {#two-factor-auth}
 
 Yes, we recommend enabling 2FA for an additional layer of security. We support:
@@ -188,6 +190,8 @@ Yes, we recommend enabling 2FA for an additional layer of security. We support:
 You can set up 2FA in the settings of our mobile or desktop apps.
 
 Warning: if you use the same account in Ente Auth, enabling 2FA in Ente Photos also enables it for Ente Auth, which can be a problem if you store your Ente account's 2FA code inside Ente Auth itself. See [Enteception](/auth/faq/enteception/).
+
+Ente doesn't give you separate backup codes when you turn on two-factor authentication. Your account's recovery key does that job, so keep it somewhere safe.
 
 If you lose access to your authenticator or passkey, use your Ente recovery key through the recovery option shown during sign-in. If you also cannot find the recovery key but still know your password, contact [support@ente.com](mailto:support@ente.com) from your registered email address. After verifying account ownership, support may be able to help with the lost second factor. Email access alone is not sufficient, and assistance is not guaranteed.
 

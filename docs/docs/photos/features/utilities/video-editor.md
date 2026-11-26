@@ -52,10 +52,6 @@ Useful for correcting videos captured in the wrong orientation.
 
 **On mobile:**
 
-![Overflow menu with Edit highlighted on a video in Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-video-edit-overflow-callout.png){width=320px}
-
-![Video editor showing Trim Crop Rotate and Save copy on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-video-editor.png){width=320px}
-
 1. Open any video in your library
 2. Tap the overflow menu (⋮) and select **Edit**
 3. The video editor opens with three action buttons at the bottom:
@@ -64,6 +60,10 @@ Useful for correcting videos captured in the wrong orientation.
     - **Rotate** - Change video orientation
 4. Make your edits using one or more tools
 5. Tap **Save copy** to create the edited version
+
+![Overflow menu with Edit highlighted on a video in Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-video-edit-overflow-callout-v2.png){width=320px}
+
+![Video editor showing Trim Crop Rotate and Save copy on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-video-editor.png){width=320px}
 
 **What happens when you save:**
 

@@ -116,6 +116,8 @@ To change an added text, sticker, or drawing, tap it and select **Edit**, **Dupl
 
 Text you add becomes part of the edited image. To add searchable text without changing the image, [add a description](#add-descriptions) instead.
 
+There's no tool to blur or pixelate only part of a photo. To hide something such as text, cover it with **Draw**, or blur that area in another app and upload the edited copy.
+
 When you are finished, tap **Save copy**. Ente saves the edit as a separate copy and leaves your original untouched. Learn more about [how saving edits affects the copy](#saving-photo-edits).
 
 ### How do I straighten a tilted photo? {#straighten-photo}
@@ -185,7 +187,7 @@ Yes! You can bulk-edit location coordinates:
 **On mobile:**
 
 1. Long press to multi-select the photos you want to edit
-2. Tap "Edit location" from the action bar
+2. Pull up the selection menu, then tap "Edit location"
 3. Choose the correct location on the map
 4. Tap Save
 
@@ -438,3 +440,9 @@ No. Ente never modifies your original files or their embedded metadata. All edit
 - Kept separate from the original file
 
 Your original photos with their original metadata remain untouched.
+
+### Can Ente remove metadata such as location from my photos? {#remove-metadata}
+
+No. Ente uploads your files as they are, including metadata such as the date taken, camera details and GPS location. This metadata is end-to-end encrypted along with your photos, so Ente can't see it. People you share an album or public link with can see it. See [What metadata can people I share with see?](#shared-metadata-visibility)
+
+If you want to store or share photos without metadata, remove it from copies with another app before uploading, check the copies, then upload them. Keep your originals separately.

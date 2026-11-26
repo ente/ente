@@ -2,14 +2,15 @@ import "dart:async";
 import 'dart:io';
 
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:ente_lock_screen/local_authentication_service.dart";
 import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
 import "package:flutter_svg/flutter_svg.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:local_auth/local_auth.dart";
 import 'package:logging/logging.dart';
 import 'package:media_extension/media_extension.dart';
+import "package:media_extension/media_extension_action_types.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/file_uploaded_event.dart";
@@ -24,6 +25,7 @@ import 'package:photos/models/selected_files.dart';
 import 'package:photos/module/download/file.dart';
 import 'package:photos/module/download/gallery.dart';
 import "package:photos/service_locator.dart";
+import "package:photos/services/app_lifecycle_service.dart";
 import 'package:photos/services/collections_service.dart';
 import 'package:photos/services/hidden_service.dart';
 import "package:photos/services/video_preview_service.dart";
@@ -219,6 +221,10 @@ class FileAppBarState extends State<FileAppBar> {
       uploadIcon = null;
     }
     _actions.clear();
+    if (AppLifecycleService.instance.mediaExtensionAction.action ==
+        IntentAction.pick) {
+      return _actions;
+    }
 
     final fallbackFileId = InheritedDetailPageState.maybeOf(
       context,
@@ -491,9 +497,11 @@ class FileAppBarState extends State<FileAppBar> {
             child: const SizedBox.square(
               dimension: kMinInteractiveDimension,
               child: Center(
-                child: HugeIcon(
-                  icon: HugeIcons.strokeRoundedMoreVertical,
-                  color: Colors.white,
+                child: ExcludeSemantics(
+                  child: HugeIcon(
+                    icon: HugeIcons.strokeRoundedMoreVertical,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),

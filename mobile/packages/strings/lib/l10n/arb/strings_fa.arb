@@ -107,7 +107,7 @@
   "@authenticationSuccessful": {
     "description": "Success message when authentication is successful"
   },
-  "authToChangeEmailVerificationSetting": "لطفا جهت تغییر ایمیل تایید هویت کنید",
+  "authToChangeEmailVerificationSetting": "لطفا جهت تغییر تائید ایمیل، احراز هویت کنید",
   "authToChangeLockscreenSetting": "لطفا جهت تغییر تنظیمات قفل صفحه، اعتبارسنجی کنید",
   "authToChangeYourEmail": "لطفا جهت تغییر ایمیل خود، اعتبارسنجی کنید",
   "authToChangeYourPassword": "لطفا جهت تغییر گذرواژه خود، اعتبارسنجی کنید",
@@ -115,7 +115,7 @@
   "authToInitiateAccountDeletion": "جهت حذف حساب، قفل را باز کنید",
   "authToInitiateSignIn": "لطفا جهت ورود برای پشتیبان گیری خود احراز هویت کنید.",
   "authToSetBackupPassword": "جهت تغییر رمز عبور نسخهٔ پشتیبان، لطفاً هویت خود را تأیید کنید",
-  "authToViewPasskeyGeneric": "برای دیدن رمز عبور، لطفاً تأیید هویت نمایید",
+  "authToViewPasskeyGeneric": "برای دیدن پسکی، لطفاً تأیید هویت نمایید",
   "authToViewSecrets": "لطفا جهت دیدن راز های خود احراز هویت کنید",
   "@authToViewSecrets": {
     "description": "Message prompting authentication to view secrets"

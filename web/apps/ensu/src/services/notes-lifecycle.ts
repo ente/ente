@@ -10,6 +10,8 @@ type NotesIndexActivity = "starting" | "queued" | "failed" | null;
 
 export type NotesCollectionActivity =
     | "starting"
+    | "updateScheduled"
+    | "updateRequested"
     | "waitingForGeneration"
     | "waitingForModel"
     | "waitingForChat"
@@ -24,10 +26,9 @@ type NotesRemovalStart =
     { kind: "wait" } | { kind: "start"; queuedForce?: boolean };
 
 export class NotesLifecycleController {
-    private readonly active = new Set<string>();
+    private activeCollectionId: string | null = null;
     private readonly queued = new Map<string, boolean>();
-    private readonly failed = new Set<string>();
-    private readonly automaticRequestKeys = new Map<string, number>();
+    private readonly failed = new Map<string, number | undefined>();
     private readonly removing = new Set<string>();
     private removalWaitCollection: string | null = null;
     private mutation = 0;
@@ -39,17 +40,19 @@ export class NotesLifecycleController {
         force: boolean,
         blocked: boolean,
     ): NotesIndexRequest {
-        if (this.disposed || this.removing.has(collectionId)) return "ignored";
-        this.failed.delete(collectionId);
         if (
-            blocked ||
-            this.active.has(collectionId) ||
-            this.queued.has(collectionId)
+            this.disposed ||
+            this.removing.has(collectionId) ||
+            this.activeCollectionId === collectionId
         ) {
+            return "ignored";
+        }
+        this.failed.delete(collectionId);
+        if (blocked || this.hasActiveJobs() || this.queued.has(collectionId)) {
             this.queueIndex(collectionId, force);
             return "queued";
         }
-        this.active.add(collectionId);
+        this.activeCollectionId = collectionId;
         return "start";
     }
 
@@ -59,30 +62,17 @@ export class NotesLifecycleController {
         requestKey?: number,
     ): NotesIndexRequest {
         if (
-            this.disposed ||
-            this.removing.has(collectionId) ||
-            this.active.has(collectionId) ||
+            (this.failed.has(collectionId) &&
+                !this.hasNewerUpdate(collectionId, requestKey)) ||
             this.queued.has(collectionId)
         ) {
             return "ignored";
         }
-        if (
-            this.failed.has(collectionId) &&
-            (requestKey === undefined ||
-                this.automaticRequestKeys.get(collectionId) === requestKey)
-        ) {
-            return "ignored";
-        }
-        if (requestKey !== undefined) {
-            this.automaticRequestKeys.set(collectionId, requestKey);
-            this.failed.delete(collectionId);
-        }
-        if (blocked) {
-            this.queueIndex(collectionId, false);
-            return "queued";
-        }
-        this.active.add(collectionId);
-        return "start";
+        return this.requestIndex(
+            collectionId,
+            false,
+            blocked || this.queued.size > 0,
+        );
     }
 
     queueIndex(collectionId: string, force: boolean) {
@@ -97,47 +87,77 @@ export class NotesLifecycleController {
     canContinueIndex(collectionId: string) {
         return (
             !this.disposed &&
-            this.active.has(collectionId) &&
+            this.activeCollectionId === collectionId &&
             !this.removing.has(collectionId)
         );
     }
 
     finishIndex(collectionId: string): NotesIndexCompletion {
-        this.active.delete(collectionId);
+        if (this.activeCollectionId === collectionId)
+            this.activeCollectionId = null;
         const clearedRemovalWait = this.removalWaitCollection === collectionId;
         if (clearedRemovalWait) this.removalWaitCollection = null;
         return { clearedRemovalWait };
     }
 
-    failIndex(collectionId: string) {
+    failIndex(collectionId: string, requestKey?: number) {
         this.queued.delete(collectionId);
-        this.failed.add(collectionId);
+        this.failed.set(collectionId, requestKey);
     }
 
-    indexActivity(collectionId: string): NotesIndexActivity {
-        if (this.failed.has(collectionId)) return "failed";
+    hasNewerUpdate(collectionId: string, requestKey?: number) {
+        return (
+            this.failed.has(collectionId) &&
+            requestKey !== undefined &&
+            requestKey !== this.failed.get(collectionId)
+        );
+    }
+
+    indexActivity(
+        collectionId: string,
+        requestKey?: number,
+    ): NotesIndexActivity {
+        if (
+            this.failed.has(collectionId) &&
+            !this.hasNewerUpdate(collectionId, requestKey)
+        )
+            return "failed";
         if (this.queued.has(collectionId)) return "queued";
-        return this.active.has(collectionId) ? "starting" : null;
+        return this.activeCollectionId === collectionId ? "starting" : null;
     }
 
-    drainQueued(blocked: boolean) {
-        if (this.disposed || blocked) return [] as [string, boolean][];
-        const ready: [string, boolean][] = [];
-        for (const [collectionId, force] of this.queued) {
+    isManualUpdateRequested(collectionId: string) {
+        return this.queued.get(collectionId) === true;
+    }
+
+    discardQueuedAutomaticIndex(collectionId: string) {
+        if (this.queued.get(collectionId) !== false) return false;
+        return this.queued.delete(collectionId);
+    }
+
+    takeNextQueued(blocked: boolean, manualBlocked = blocked) {
+        if (this.disposed || this.hasActiveJobs()) return;
+        let next: [string, boolean] | undefined;
+        for (const request of this.queued) {
+            const [collectionId, force] = request;
             if (
-                this.active.has(collectionId) ||
+                (force ? manualBlocked : blocked) ||
                 this.removing.has(collectionId)
             ) {
                 continue;
             }
-            this.queued.delete(collectionId);
-            ready.push([collectionId, force]);
+            next ??= request;
+            if (force) {
+                next = request;
+                break;
+            }
         }
-        return ready;
+        if (next) this.queued.delete(next[0]);
+        return next;
     }
 
     beginRemoval(collectionId: string): NotesRemovalStart {
-        if (this.active.has(collectionId)) {
+        if (this.activeCollectionId === collectionId) {
             this.removalWaitCollection = collectionId;
             return { kind: "wait" };
         }
@@ -154,7 +174,6 @@ export class NotesLifecycleController {
     finishRemoval(collectionId: string) {
         this.removing.delete(collectionId);
         this.failed.delete(collectionId);
-        this.automaticRequestKeys.delete(collectionId);
         if (this.removalWaitCollection === collectionId) {
             this.removalWaitCollection = null;
         }
@@ -165,7 +184,7 @@ export class NotesLifecycleController {
     }
 
     hasActiveJobs() {
-        return this.active.size > 0;
+        return this.activeCollectionId !== null;
     }
 
     markMutation() {
@@ -199,11 +218,46 @@ export class NotesLifecycleController {
 
     dispose() {
         this.disposed = true;
-        this.active.clear();
+        this.activeCollectionId = null;
         this.queued.clear();
         this.failed.clear();
-        this.automaticRequestKeys.clear();
         this.removing.clear();
         this.cancelRefreshes();
     }
 }
+
+export const notesCollectionActivity = (
+    collection: NotesCollection,
+    controller: NotesLifecycleController,
+    modelReady: boolean,
+    indexingPaused: boolean,
+    chatBusy: boolean,
+): NotesCollectionActivity => {
+    if (collection.status === "indexing" || collection.status === "updating") {
+        return null;
+    }
+    const requestKey = collection.updateDueAtMs ?? undefined;
+    const activity = controller.indexActivity(collection.id, requestKey);
+    if (activity === "failed" || activity === "starting") return activity;
+    if (controller.isManualUpdateRequested(collection.id)) {
+        return "updateRequested";
+    }
+    if (collection.status === "unavailable") return null;
+    if (
+        collection.updateDueAtMs != null &&
+        (collection.status === "ready" ||
+            (collection.status === "pending" &&
+                collection.lastUpdatedAtMs != null) ||
+            ((activity === "queued" ||
+                controller.hasNewerUpdate(collection.id, requestKey)) &&
+                collection.lastUpdatedAtMs != null))
+    ) {
+        return "updateScheduled";
+    }
+    if (activity !== "queued" && collection.updateDueAtMs != null) return null;
+    if (activity !== "queued" && collection.status !== "pending") return null;
+    if (!modelReady) return "waitingForModel";
+    if (chatBusy) return "waitingForGeneration";
+    if (indexingPaused) return "waitingForChat";
+    return "starting";
+};

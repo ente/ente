@@ -26,7 +26,7 @@ When you delete a photo from your Ente account:
 
 1. Long press to select the photo(s) you want to delete
 2. Tap the trash icon in the action bar
-3. Confirm the deletion
+3. If the photo is on your phone and backed up, choose **Delete from Ente**, **Delete from device** or **Delete from both**. Photos only in Ente offer **Delete from Ente**. Photos that aren't backed up yet can only be deleted from the device. See [How do I delete a photo from Ente but keep it on my phone?](/photos/faq/albums-and-organization#delete-from-ente-only)
 
 ![Delete action highlighted in the bottom bar on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-photo-delete-action-callout.png){width=320px}
 
@@ -50,6 +50,8 @@ The selected photos will be moved to Trash.
 - Tap additional photos to select them
 - Tap "Select all" to select all visible photos
 - Tap the trash icon and confirm
+
+![Delete action with several selected highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-selection-bulk-delete-callout.png){width=320px}
 
 **On web/desktop:**
 
@@ -189,6 +191,8 @@ To free up storage space immediately, you can permanently delete items from Tras
 
 All items in the selected trash will be permanently deleted and storage space will be freed immediately.
 
+![Empty trash button highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-trash-empty-callout.png){width=320px}
+
 ### Deleting specific items permanently
 
 **On mobile and web/desktop:**
@@ -202,11 +206,11 @@ All items in the selected trash will be permanently deleted and storage space wi
 
 Only the selected items will be permanently deleted.
 
+![Delete permanently action highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-trash-delete-permanently-callout.png){width=320px}
+
 ## Special Deletion Scenarios
 
 ### Deleting albums
-
-![Delete album confirmation dialog on Ente Photos web with Keep photos Delete photos and Cancel](https://docs-assets.ente.com/screenshots/web-delete-album-confirm.png){width=720px}
 
 When you delete an album in Ente, you'll be given two options:
 
@@ -222,6 +226,10 @@ When you delete an album in Ente, you'll be given two options:
 - Photos will be permanently deleted after 30 days unless restored
 
 Choose carefully based on whether you want to keep the photos or remove them entirely.
+
+![Delete album confirmation dialog on Ente Photos web with Keep photos Delete photos and Cancel](https://docs-assets.ente.com/screenshots/web-delete-album-confirm.png){width=720px}
+
+![Holidays 2024 album with the overflow menu (three dots) highlighted, then the red Delete action, then the Delete this album? dialog with Keep photos and Delete photos highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/delete-album-steps-v2.png){width=560px}
 
 ### Deleting from collaborative albums
 

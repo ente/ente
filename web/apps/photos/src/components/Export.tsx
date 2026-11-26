@@ -1,3 +1,4 @@
+import { PhotosFormDialog } from "@/components/PhotosFormDialog";
 import exportService, {
     ExportStage,
     isExportFolderMissingError,
@@ -16,7 +17,6 @@ import {
 import { isDesktop } from "ente-base/app";
 import { EnteSwitch } from "ente-base/components/EnteSwitch";
 import { LinkButton } from "ente-base/components/LinkButton";
-import { TitledMiniDialog } from "ente-base/components/MiniDialog";
 import { EllipsizedTypography } from "ente-base/components/Typography";
 import { SpacedRow } from "ente-base/components/containers";
 import { FocusVisibleButton } from "ente-base/components/mui/FocusVisibleButton";
@@ -585,9 +585,9 @@ const ExportPendingListDialog: React.FC<ExportPendingListDialogProps> = ({
     collectionNameByID,
     pendingFiles,
 }) => {
-    const itemSize = 56;
+    const itemSize = 64;
     const itemCount = pendingFiles.length;
-    const listHeight = Math.min(itemCount * itemSize, 240);
+    const listHeight = Math.min(itemCount, 4) * itemSize;
 
     const itemKey: ListItemKeySelector<ExportPendingListItemData> = (
         index,
@@ -598,11 +598,7 @@ const ExportPendingListDialog: React.FC<ExportPendingListDialogProps> = ({
     };
 
     return (
-        <TitledMiniDialog
-            {...{ open, onClose }}
-            paperMaxWidth="444px"
-            title={t("pending_items")}
-        >
+        <PhotosFormDialog {...{ open, onClose }} title={t("pending_items")}>
             <FixedSizeList
                 itemData={{ collectionNameByID, pendingFiles }}
                 height={listHeight}
@@ -611,15 +607,7 @@ const ExportPendingListDialog: React.FC<ExportPendingListDialogProps> = ({
             >
                 {ExportPendingListItem}
             </FixedSizeList>
-            <FocusVisibleButton
-                fullWidth
-                color="secondary"
-                onClick={onClose}
-                sx={{ mt: 2 }}
-            >
-                {t("close")}
-            </FocusVisibleButton>
-        </TitledMiniDialog>
+        </PhotosFormDialog>
     );
 };
 
@@ -639,7 +627,17 @@ const ExportPendingListItem: React.FC<
 
     return (
         <div style={style}>
-            <Stack direction="row" sx={{ gap: 1 }}>
+            <Stack
+                direction="row"
+                sx={{
+                    height: "calc(100% - 8px)",
+                    alignItems: "center",
+                    gap: 1.5,
+                    px: 1,
+                    borderRadius: "12px",
+                    bgcolor: "background.paper",
+                }}
+            >
                 <Box sx={{ flexShrink: 0 }}>
                     <ItemCard
                         key={file.id}

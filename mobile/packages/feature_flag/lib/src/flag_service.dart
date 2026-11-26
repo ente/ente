@@ -85,13 +85,13 @@ class FlagService {
 
   bool get usearchForSuggestions => true;
 
-  // Internal users only for now. Everyone once no heavy ML DB queries run in
-  // Dart anymore and internal users have soaked it for a while.
-  bool get rustMlDb => internalUser;
+  bool get rustMlDb => true;
 
-  bool get rustMemories => internalUser;
+  bool get rustMemories => true;
 
-  bool get rewind => internalUser;
+  bool get newMemories => internalUser;
+
+  bool get rewind => true;
 
   String get castUrl => flags.castUrl;
 

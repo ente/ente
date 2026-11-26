@@ -9,14 +9,13 @@ import type { UploadTypeSelectorIntent } from "ente-gallery/components/Upload";
 import { t } from "i18next";
 import React, { useEffect, useState } from "react";
 import { Trans } from "react-i18next";
+import { GalleryLoadingSkeleton } from "./GalleryLoadingSkeleton";
 
 interface GalleryEmptyStateProps {
     isUploadInProgress: boolean;
     onUpload: (intent: UploadTypeSelectorIntent) => void;
 }
 
-const galleryEmptyStateShelfTiles = Array.from({ length: 20 }, (_, i) => i);
-const galleryEmptyStateGridTiles = Array.from({ length: 56 }, (_, i) => i);
 const memoriesPreservedCountRefreshInterval = 15_000;
 
 const parseMemoriesPreservedCount = (response: unknown) =>
@@ -57,8 +56,7 @@ export function GalleryEmptyState({
                 bgcolor: "background.default",
             }}
         >
-            <GalleryEmptyStateSkeleton />
-            <GalleryEmptyStateSkeletonOverlay />
+            <GalleryLoadingSkeleton backdrop />
             <Paper
                 elevation={0}
                 sx={{
@@ -77,7 +75,6 @@ export function GalleryEmptyState({
                     borderRadius: { xs: "30px", sm: "42px" },
                     bgcolor: "background.paper",
                     boxShadow: "0 12px 24px -18px rgba(0 0 0 / 0.08)",
-                    zIndex: 2,
                 }}
             >
                 <NonDraggableImage
@@ -231,123 +228,6 @@ function MemoriesPreservedCount(): React.JSX.Element | null {
         </Typography>
     );
 }
-
-function GalleryEmptyStateSkeleton(): React.JSX.Element {
-    return (
-        <GalleryEmptyStateSkeletonRoot aria-hidden>
-            <div className="skeleton-albums">
-                <span className="skeleton-label skeleton-label-wide" />
-                <div className="skeleton-shelf">
-                    {galleryEmptyStateShelfTiles.map((tile) => (
-                        <span key={tile} />
-                    ))}
-                </div>
-            </div>
-            <div className="skeleton-gallery">
-                <div className="skeleton-title-group">
-                    <span className="skeleton-label skeleton-label-short" />
-                    <span className="skeleton-label skeleton-label-wide" />
-                </div>
-                <span className="skeleton-label skeleton-label-short" />
-                <div className="skeleton-grid">
-                    {galleryEmptyStateGridTiles.map((tile) => (
-                        <span key={tile} />
-                    ))}
-                </div>
-            </div>
-        </GalleryEmptyStateSkeletonRoot>
-    );
-}
-
-const GalleryEmptyStateSkeletonRoot = styled("div")(({ theme }) => {
-    const fill = theme.vars.palette.fill.faintHover;
-
-    return {
-        position: "absolute",
-        inset: 0,
-        zIndex: 0,
-        overflow: "hidden",
-        pointerEvents: "none",
-        padding: "24px",
-        boxSizing: "border-box",
-        display: "flex",
-        flexDirection: "column",
-        maskImage:
-            "linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.1) 100%)",
-        WebkitMaskImage:
-            "linear-gradient(to bottom, #000 0%, rgba(0, 0, 0, 0.1) 100%)",
-        ".skeleton-albums": { marginTop: 0 },
-        ".skeleton-gallery": {
-            display: "flex",
-            flex: 1,
-            flexDirection: "column",
-            minHeight: 0,
-            marginTop: 28,
-        },
-        ".skeleton-title-group": {
-            display: "flex",
-            flexDirection: "column",
-            gap: 9,
-            marginBottom: 28,
-            width: 102,
-        },
-        ".skeleton-label": {
-            display: "block",
-            height: 18,
-            borderRadius: 2,
-            background: fill,
-        },
-        ".skeleton-label-short": { width: 53 },
-        ".skeleton-label-wide": { width: 89 },
-        ".skeleton-shelf": {
-            display: "grid",
-            gridTemplateColumns: "repeat(20, minmax(98px, 1fr))",
-            gap: 4,
-            marginTop: 8,
-            width: "100%",
-        },
-        ".skeleton-shelf > span": {
-            height: 71,
-            borderRadius: 2,
-            background: fill,
-        },
-        ".skeleton-grid": {
-            display: "grid",
-            flex: 1,
-            gridTemplateColumns: "repeat(auto-fill, minmax(198px, 1fr))",
-            gridAutoRows: "minmax(160px, 1fr)",
-            gap: 4,
-            marginTop: 11,
-            minHeight: 0,
-            width: "100%",
-        },
-        ".skeleton-grid > span": { borderRadius: 4, background: fill },
-        [theme.breakpoints.down("md")]: {
-            ".skeleton-grid": {
-                gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-            },
-        },
-        [theme.breakpoints.down("sm")]: {
-            padding: "20px 16px",
-            ".skeleton-shelf": {
-                gridTemplateColumns: "repeat(20, minmax(84px, 1fr))",
-            },
-            ".skeleton-grid": {
-                gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-                gridAutoRows: "minmax(110px, 1fr)",
-            },
-        },
-    };
-});
-
-const GalleryEmptyStateSkeletonOverlay = styled("div")(({ theme }) => ({
-    position: "absolute",
-    inset: 0,
-    zIndex: 1,
-    pointerEvents: "none",
-    opacity: 0.6,
-    background: theme.vars.palette.background.default,
-}));
 
 const GalleryEmptyStateButton = styled(FocusVisibleButton)(({ theme }) => ({
     height: 52,

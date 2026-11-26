@@ -10,8 +10,6 @@ import {
     renameCollection as renameCollectionAPI,
 } from "@/services/collections";
 import type { LockerCollection } from "@/types";
-import { isCollectionOwner } from "@/types";
-import { savedLocalUser } from "ente-accounts/services/accounts-db";
 import log from "ente-base/log";
 import { t } from "i18next";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -51,8 +49,6 @@ export const useCollectionActions = ({
     setToast,
     requestConfirmation,
 }: UseCollectionActionsProps) => {
-    const currentUserID = savedLocalUser()?.id;
-
     const [deleteCollectionDialog, setDeleteCollectionDialog] =
         useState<DeleteCollectionDialogState | null>(null);
 
@@ -109,57 +105,24 @@ export const useCollectionActions = ({
         }
     }, [refreshData]);
 
-    const handleCreateCollection = useCallback(
-        async (name: string): Promise<number> => {
+    const createUploadCollection = useCallback(
+        async (name: string) => {
             if (!masterKey) {
                 throw new Error("No master key");
             }
-            const id = await createCollectionAPI(name, masterKey);
+            return createCollectionAPI(name, masterKey);
+        },
+        [masterKey],
+    );
+
+    const handleCreateCollection = useCallback(
+        async (name: string) => {
+            const id = await createUploadCollection(name);
             await refreshData();
             setToast(t("createCollectionSuccess"));
             return id;
         },
-        [masterKey, refreshData, setToast],
-    );
-
-    const ensureCollectionsExist = useCallback(
-        async (names: string[]) => {
-            if (!masterKey) {
-                throw new Error("No master key");
-            }
-
-            const normalizedNameToID = new Map(
-                collections
-                    .filter(
-                        (collection) =>
-                            currentUserID !== undefined &&
-                            isCollectionOwner(collection, currentUserID),
-                    )
-                    .map((collection) => [
-                        collection.name.trim().toLocaleLowerCase(),
-                        collection.id,
-                    ]),
-            );
-            let createdCollection = false;
-
-            for (const name of names) {
-                const normalizedName = name.trim().toLocaleLowerCase();
-                if (!normalizedName || normalizedNameToID.has(normalizedName)) {
-                    continue;
-                }
-
-                const id = await createCollectionAPI(name, masterKey);
-                normalizedNameToID.set(normalizedName, id);
-                createdCollection = true;
-            }
-
-            if (createdCollection) {
-                await refreshData();
-            }
-
-            return normalizedNameToID;
-        },
-        [collections, currentUserID, masterKey, refreshData],
+        [createUploadCollection, refreshData, setToast],
     );
 
     const handleRenameCollection = useCallback(
@@ -331,7 +294,7 @@ export const useCollectionActions = ({
         shareCollectionID,
         setShareCollectionID,
         handleCreateCollection,
-        ensureCollectionsExist,
+        createUploadCollection,
         handleRenameCollection,
         handleDeleteCollection,
         handleConfirmDeleteCollection,

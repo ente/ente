@@ -3,8 +3,9 @@ import "dart:ui" show lerpDouble;
 
 import "package:flutter/material.dart";
 import "package:photos/models/file/file.dart";
-import "package:photos/src/rust/api/rewind_api.dart" as rust;
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
+import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
 import "package:photos/ui/rewind/theme/rewind_motion.dart";
@@ -12,26 +13,47 @@ import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
 import "package:photos/ui/rewind/widgets/rewind_elapsed.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
-import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo.dart";
 import "package:photos/ui/rewind/widgets/rewind_reveal_layer.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
 
 const _likeGreen = Color(0xFF08C225);
-const _button = Offset(290.8, 564.8);
+const _photoRect = Rect.fromLTWH(30, 100, 330, 428);
+const _photoTurn = 3.0;
+const _frame = 6.0;
+const _corner = 35.9;
+
+typedef _Heart = ({Offset center, double size, double turn, bool front});
+
+const List<_Heart> _hearts = [
+  (center: Offset(334, 508), size: 80, turn: 12, front: true),
+  (center: Offset(50, 118), size: 60, turn: -16, front: true),
+  (center: Offset(350, 116), size: 44, turn: 18, front: true),
+  (center: Offset(44, 504), size: 42, turn: -14, front: true),
+  (center: Offset(282, 562), size: 36, turn: -10, front: true),
+  (center: Offset(18, 250), size: 32, turn: 14, front: false),
+  (center: Offset(118, 76), size: 30, turn: 6, front: false),
+  (center: Offset(282, 72), size: 26, turn: -12, front: false),
+  (center: Offset(20, 392), size: 24, turn: -10, front: false),
+  (center: Offset(326, 602), size: 24, turn: 10, front: true),
+  (center: Offset(372, 474), size: 22, turn: -14, front: false),
+  (center: Offset(94, 556), size: 22, turn: 12, front: true),
+  (center: Offset(200, 60), size: 18, turn: 4, front: false),
+  (center: Offset(232, 556), size: 16, turn: -8, front: true),
+];
 
 class CrowdFavouritePage extends RewindPage {
-  const CrowdFavouritePage(this.photo, this.file);
+  const CrowdFavouritePage(this.file);
 
-  static const _countFromMs = 1500.0;
-  static const _countMs = 1400.0;
-
-  final rust.LikedPhoto photo;
   final EnteFile file;
 
   @override
   String get key => "crowd_favourite";
+
+  @override
+  Duration? get reelHold =>
+      const Duration(milliseconds: 2700 + RewindMotion.reelReadingMs);
 
   @override
   Widget build(
@@ -39,9 +61,7 @@ class CrowdFavouritePage extends RewindPage {
     double position, {
     required bool isActive,
   }) {
-    final likes = photo.likeCount;
-    final unit = likes == 1 ? "LIKE" : "LIKES";
-    const line = "You took thousands. This one had fans.";
+    final copy = RewindCopy.of(context);
     return RewindShareable(
       child: Stack(
         fit: StackFit.expand,
@@ -53,92 +73,71 @@ class CrowdFavouritePage extends RewindPage {
             ),
           ),
           Semantics(
-            label:
-                "Crowd favourite: ${rewindCounted(likes, "like", "likes")}. "
-                "$line",
+            label: copy.crowdFavouriteLabel,
             child: ExcludeSemantics(
               child: RewindStage(
                 children: [
                   Positioned.fill(
                     child: RewindLeave(
                       position: position,
-                      centerY: 340,
+                      centerY: _photoRect.center.dy,
                       child: RewindElapsed(
-                        active: isActive,
+                        active: isActive && !RewindPageScope.coveredOf(context),
                         stillMs: 6000,
                         builder: (context, ms) => Stack(
                           clipBehavior: Clip.none,
                           children: [
-                            _photo(ms),
                             Positioned.fill(
                               child: CustomPaint(
-                                painter: _HeartStreamPainter(ms),
+                                painter: _HeartsPainter(ms, front: false),
                               ),
                             ),
-                            _likeButton(ms),
+                            _photo(ms),
+                            Positioned.fill(
+                              child: IgnorePointer(
+                                child: CustomPaint(
+                                  painter: _HeartsPainter(ms, front: true),
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
                     ),
                   ),
                   RewindRevealLayer(
-                    left: 26,
-                    top: 625,
-                    maxWidth: 338,
-                    height: 23,
-                    position: position,
-                    active: isActive,
-                    delayMs: 1350,
-                    child: Text(
-                      "CROWD FAVOURITE",
-                      style: RewindTextStyles.display(
-                        20,
-                        height: 1.15,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                  ),
-                  RewindRevealLayer(
-                    left: 24,
-                    top: 649,
-                    maxWidth: 340,
-                    height: 62,
+                    left: 28,
+                    top: 644,
+                    width: 334,
+                    maxWidth: 334,
+                    height: 37,
                     position: position,
                     active: isActive,
                     preset: RewindPreset.slap,
-                    delayMs: _countFromMs.toInt(),
-                    origin: Alignment.centerLeft,
-                    child: RewindElapsed(
-                      active: isActive,
-                      stillMs: _countFromMs + _countMs,
-                      builder: (context, ms) {
-                        final shown =
-                            (likes *
-                                    rewindProgress(
-                                      ms,
-                                      delayMs: _countFromMs,
-                                      durationMs: _countMs,
-                                      curve: Curves.easeOutCubic,
-                                    ))
-                                .round();
-                        return RewindOutlinedText(
-                          "${rewindCount(shown)} $unit",
-                          style: RewindTextStyles.display(54, height: 1.15),
-                          outline: 1.6,
-                          shadow: const Offset(2, 3),
-                        );
-                      },
+                    delayMs: 1500,
+                    child: RewindOutlinedText(
+                      copy.crowdFavouriteTitle,
+                      style: RewindTextStyles.display(32, height: 1.15),
+                      outline: 1.6,
+                      shadow: const Offset(2, 3),
                     ),
                   ),
                   RewindRevealLayer(
-                    left: 26,
-                    top: 719,
-                    width: 318,
+                    left: 28,
+                    top: 704,
+                    width: 334,
                     height: 23,
                     position: position,
                     active: isActive,
                     delayMs: 1800,
-                    child: Text(line, style: RewindTextStyles.body(18)),
+                    child: RewindVoice(
+                      copy.crowdFavouriteLine,
+                      builder: (text) => Text(
+                        text,
+                        textAlign: TextAlign.center,
+                        style: RewindTextStyles.body(18),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -157,22 +156,21 @@ class CrowdFavouritePage extends RewindPage {
       curve: RewindMotion.soft,
     );
     final scale = lerpDouble(0.86, 1, e)!;
-    return Positioned(
-      left: -19.6,
-      top: 99.1,
-      width: 366.7,
-      height: 476.9,
+    return Positioned.fromRect(
+      rect: _photoRect,
       child: Opacity(
         opacity: e.clamp(0.0, 1.0),
         child: Transform(
-          alignment: Alignment.topLeft,
+          alignment: Alignment.center,
           transform: Matrix4.identity()
             ..translateByDouble(0, 90 * (1 - e), 0, 1)
-            ..rotateZ(lerpDouble(8, 3, e)! * pi / 180)
+            ..rotateZ(lerpDouble(8, _photoTurn, e)! * pi / 180)
             ..scaleByDouble(scale, scale, 1, 1),
-          child: DecoratedBox(
+          child: Container(
+            padding: const EdgeInsets.all(_frame),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(35.9),
+              color: RewindColors.white,
+              borderRadius: BorderRadius.circular(_corner),
               boxShadow: const [
                 BoxShadow(
                   color: Color(0x4D000000),
@@ -182,7 +180,7 @@ class CrowdFavouritePage extends RewindPage {
               ],
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(35.9),
+              borderRadius: BorderRadius.circular(_corner - _frame),
               child: RewindPhoto(file, placeholder: const Color(0x1F151515)),
             ),
           ),
@@ -190,188 +188,81 @@ class CrowdFavouritePage extends RewindPage {
       ),
     );
   }
-
-  Widget _likeButton(double ms) {
-    final t = const Cubic(
-      0.2,
-      0.9,
-      0.3,
-      1.3,
-    ).transform(((ms - 450) / 520).clamp(0.0, 1.0));
-    final scale = t < 0.6 ? 1.18 * t / 0.6 : 1.18 - 0.18 * (t - 0.6) / 0.4;
-    return Positioned.fromRect(
-      rect: Rect.fromCenter(center: _button, width: 74.4, height: 74.4),
-      child: Transform.scale(
-        scale: max(0, scale),
-        child: Transform.rotate(
-          angle: 3.86 * pi / 180,
-          child: const CustomPaint(painter: _LikeButtonPainter()),
-        ),
-      ),
-    );
-  }
 }
 
-Path _heart(double width) {
-  final s = width / 100;
+Path _heart(double size) {
+  final s = size / 100;
   return Path()
-    ..moveTo(50 * s, 92 * s)
-    ..cubicTo(22 * s, 74 * s, 0, 54 * s, 0, 30 * s)
-    ..cubicTo(0, 13 * s, 13 * s, 0, 28 * s, 0)
-    ..cubicTo(38 * s, 0, 46 * s, 6 * s, 50 * s, 14 * s)
-    ..cubicTo(54 * s, 6 * s, 62 * s, 0, 72 * s, 0)
-    ..cubicTo(87 * s, 0, 100 * s, 13 * s, 100 * s, 30 * s)
-    ..cubicTo(100 * s, 54 * s, 78 * s, 74 * s, 50 * s, 92 * s)
+    ..moveTo(50 * s, 87.49 * s)
+    ..cubicTo(49.49 * s, 87.49 * s, 48.99 * s, 87.36 * s, 48.53 * s, 87.12 * s)
+    ..cubicTo(47.86 * s, 86.75 * s, 47.33 * s, 86.45 * s, 46.8 * s, 86.14 * s)
+    ..cubicTo(40.46 * s, 82.37 * s, 34.53 * s, 77.95 * s, 29.12 * s, 72.93 * s)
+    ..cubicTo(19.53 * s, 63.99 * s, 9.37 * s, 50.71 * s, 9.37 * s, 34.36 * s)
+    ..cubicTo(9.37 * s, 22.16 * s, 19.64 * s, 12.49 * s, 32.03 * s, 12.49 * s)
+    ..cubicTo(35.48 * s, 12.47 * s, 38.88 * s, 13.23 * s, 41.99 * s, 14.71 * s)
+    ..cubicTo(45.1 * s, 16.19 * s, 47.84 * s, 18.35 * s, 50 * s, 21.04 * s)
+    ..cubicTo(52.16 * s, 18.35 * s, 54.9 * s, 16.19 * s, 58.01 * s, 14.71 * s)
+    ..cubicTo(61.12 * s, 13.23 * s, 64.53 * s, 12.47 * s, 67.97 * s, 12.49 * s)
+    ..cubicTo(80.36 * s, 12.49 * s, 90.62 * s, 22.16 * s, 90.62 * s, 34.36 * s)
+    ..cubicTo(90.62 * s, 50.72 * s, 80.47 * s, 63.99 * s, 70.88 * s, 72.93 * s)
+    ..cubicTo(65.47 * s, 77.94 * s, 59.54 * s, 82.37 * s, 53.2 * s, 86.14 * s)
+    ..cubicTo(52.67 * s, 86.45 * s, 52.14 * s, 86.75 * s, 51.47 * s, 87.12 * s)
+    ..cubicTo(51.01 * s, 87.36 * s, 50.51 * s, 87.49 * s, 50 * s, 87.49 * s)
     ..close();
 }
 
-void _paintHeart(Canvas canvas, Offset center, double width, double opacity) {
-  if (opacity <= 0) return;
-  final heart = _heart(width).shift(Offset(-width / 2, -width * 0.46));
-  canvas.save();
-  canvas.translate(center.dx, center.dy);
-  canvas.saveLayer(
-    Rect.fromCircle(center: Offset.zero, radius: width),
-    Paint()..color = Color.fromRGBO(0, 0, 0, opacity),
-  );
-  canvas.drawPath(
-    heart.shift(Offset(0, width * 0.11)),
-    Paint()
-      ..color = const Color(0x33000000)
-      ..maskFilter = MaskFilter.blur(BlurStyle.normal, width * 0.05),
-  );
-  canvas.drawPath(
-    heart,
-    Paint()
-      ..color = RewindColors.white
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = width * 0.11
-      ..strokeJoin = StrokeJoin.round,
-  );
-  canvas.drawPath(heart, Paint()..color = _likeGreen);
-  canvas.restore();
-  canvas.restore();
-}
+class _HeartsPainter extends CustomPainter {
+  _HeartsPainter(this.ms, {required this.front});
 
-class _LikeButtonPainter extends CustomPainter {
-  const _LikeButtonPainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = size.center(Offset.zero);
-    final radius = size.width / 2;
-    canvas.drawCircle(
-      center + const Offset(0, 6.4),
-      radius,
-      Paint()
-        ..color = const Color(0x38000000)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3.85),
-    );
-    canvas.drawCircle(center, radius, Paint()..color = RewindColors.white);
-    canvas.drawCircle(
-      center,
-      radius,
-      Paint()
-        ..color = const Color(0xFF3169DE)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1,
-    );
-    _paintHeart(canvas, center + const Offset(0, 1.5), 50, 1);
-  }
-
-  @override
-  bool shouldRepaint(_LikeButtonPainter oldDelegate) => false;
-}
-
-typedef _HeartStop = ({
-  Offset center,
-  double width,
-  double turn,
-  double opacity,
-});
-
-final List<_HeartStop> _stream = () {
-  const marks = [
-    (283.0, 485.5, 48.8, -3.3, 1.0),
-    (288.2, 471.4, 43.4, 15.1, 1.0),
-    (275.8, 457.9, 49.2, -7.8, 0.9),
-    (289.5, 430.8, 39.3, -11.5, 0.9),
-    (274.3, 415.1, 38.0, 4.0, 0.8),
-    (260.3, 390.4, 41.5, -13.4, 0.8),
-    (276.3, 343.4, 39.5, 14.8, 0.7),
-    (244.3, 317.4, 41.6, 13.0, 0.7),
-    (223.6, 279.5, 38.7, 0.1, 0.6),
-    (195.1, 266.5, 34.4, -7.6, 0.6),
-    (191.4, 229.8, 27.4, -1.3, 0.5),
-    (202.6, 188.0, 28.3, -10.8, 0.4),
-    (232.6, 160.8, 26.5, -2.2, 0.4),
-    (233.5, 112.5, 23.5, -2.1, 0.3),
-    (287.8, 82.9, 23.3, -9.4, 0.3),
-  ];
-  final stops = <_HeartStop>[
-    for (final (x, y, width, turn, opacity) in marks)
-      (
-        center:
-            Offset(x, y) +
-            Offset.fromDirection(turn * pi / 180, width / 2) +
-            Offset.fromDirection((turn + 90) * pi / 180, width / 2),
-        width: width,
-        turn: turn,
-        opacity: opacity,
-      ),
-  ];
-  final last = stops.last;
-  stops[0] = (
-    center: stops[0].center,
-    width: stops[0].width,
-    turn: stops[0].turn,
-    opacity: 0,
-  );
-  stops.add((
-    center: last.center - const Offset(0, 34),
-    width: last.width * 0.85,
-    turn: last.turn,
-    opacity: 0,
-  ));
-  return stops;
-}();
-
-class _HeartStreamPainter extends CustomPainter {
-  _HeartStreamPainter(this.ms);
-
-  static const _startMs = 800.0;
-  static const _everyMs = 270.0;
-  static const _lifeMs = 4100.0;
+  static const _firstMs = 650.0;
+  static const _everyMs = 55.0;
+  static const _floatPx = 3.0;
+  static const _floatMs = 2600.0;
 
   final double ms;
+  final bool front;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final running = ms - _startMs;
-    if (running < 0) return;
-    final newest = (running / _everyMs).floor();
-    final oldest = max(0, ((running - _lifeMs) / _everyMs).ceil());
-    for (var heart = oldest; heart <= newest; heart++) {
-      final age = (running - heart * _everyMs) / _lifeMs;
-      final span = age * (_stream.length - 1);
-      final i = min(span.floor(), _stream.length - 2);
-      final q = span - i;
-      final a = _stream[i];
-      final b = _stream[i + 1];
-      final center = Offset.lerp(a.center, b.center, q)!;
-      canvas.save();
-      canvas.translate(center.dx, center.dy);
-      canvas.rotate(lerpDouble(a.turn, b.turn, q)! * pi / 180);
-      _paintHeart(
-        canvas,
-        Offset.zero,
-        lerpDouble(a.width, b.width, q)!,
-        lerpDouble(a.opacity, b.opacity, q)!,
+    for (final (i, heart) in _hearts.indexed) {
+      if (heart.front != front) continue;
+      final pop = RewindMotion.pop.transform(
+        ((ms - _firstMs - _everyMs * i) /
+                RewindMotion.pop.duration.inMilliseconds)
+            .clamp(0.0, 1.0),
       );
+      if (pop <= 0) continue;
+      final drift = _floatPx * sin(2 * pi * ms / _floatMs + i * 1.3);
+      canvas.save();
+      canvas.translate(heart.center.dx, heart.center.dy + drift);
+      canvas.rotate(heart.turn * pi / 180);
+      canvas.scale(pop);
+      _paintHeart(canvas, heart.size);
       canvas.restore();
     }
   }
 
+  void _paintHeart(Canvas canvas, double size) {
+    final heart = _heart(size).shift(Offset(-size / 2, -size / 2));
+    final rim = size * 0.0937;
+    canvas.drawPath(
+      heart.shift(Offset(0, size * 0.0878)),
+      Paint()
+        ..color = const Color(0x33000000)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, size * 0.0732),
+    );
+    canvas.drawPath(
+      heart,
+      Paint()
+        ..color = RewindColors.white
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = rim
+        ..strokeJoin = StrokeJoin.round,
+    );
+    canvas.drawPath(heart, Paint()..color = _likeGreen);
+  }
+
   @override
-  bool shouldRepaint(_HeartStreamPainter oldDelegate) => oldDelegate.ms != ms;
+  bool shouldRepaint(_HeartsPainter oldDelegate) =>
+      oldDelegate.ms != ms || oldDelegate.front != front;
 }

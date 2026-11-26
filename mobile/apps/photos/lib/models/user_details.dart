@@ -117,6 +117,7 @@ class UserDetails {
   }
 
   factory UserDetails.fromMap(Map<String, dynamic> map) {
+    final profileData = map['profileData'];
     return UserDetails(
       map['email'] as String,
       map['usage'] as int,
@@ -125,7 +126,7 @@ class UserDetails {
       (map['sharedCollectionsCount'] ?? 0) as int,
       Subscription.fromMap(map['subscription']),
       map['familyData'] != null ? FamilyData.fromMap(map['familyData']) : null,
-      ProfileData.fromJson(map['profileData']),
+      profileData == null ? null : ProfileData.fromJson(profileData),
       BonusData.fromJson(map['bonusData']),
     );
   }
@@ -208,19 +209,19 @@ class FamilyMember {
 class ProfileData {
   bool canDisableEmailMFA;
   bool isEmailMFAEnabled;
-  bool isTwoFactorEnabled;
+  bool? isTwoFactorEnabled;
 
   ProfileData({
     this.canDisableEmailMFA = false,
     this.isEmailMFAEnabled = false,
-    this.isTwoFactorEnabled = false,
+    this.isTwoFactorEnabled,
   });
 
-  factory ProfileData.fromJson(Map<String, dynamic>? json) {
+  factory ProfileData.fromJson(Map<String, dynamic> json) {
     return ProfileData(
-      canDisableEmailMFA: json?['canDisableEmailMFA'] ?? false,
-      isEmailMFAEnabled: json?['isEmailMFAEnabled'] ?? false,
-      isTwoFactorEnabled: json?['isTwoFactorEnabled'] ?? false,
+      canDisableEmailMFA: json['canDisableEmailMFA'] ?? false,
+      isEmailMFAEnabled: json['isEmailMFAEnabled'] ?? false,
+      isTwoFactorEnabled: json['isTwoFactorEnabled'],
     );
   }
 

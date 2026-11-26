@@ -9,19 +9,28 @@ import "package:photos/service_locator.dart";
 import "package:photos/services/remote_assets_service.dart";
 import "package:shared_preferences/shared_preferences.dart";
 
-const _manifestURL = "https://music.ente.com/tracks.json";
-const _manifestPreferenceKey = "memory_music_manifest";
+const _memoriesManifestURL = "https://music.ente.com/tracks.json";
+const _memoriesManifestPreferenceKey = "memory_music_manifest";
 
 String memoryMusicCacheFileName(String url) =>
     "memory-music-${sha256.convert(utf8.encode(url))}.mp3";
 
 class MemoryMusicService {
   static final _logger = Logger("MemoryMusicService");
-  static final instance = MemoryMusicService(
+  static final instance = MemoryMusicService.remote(
+    manifestURL: _memoriesManifestURL,
+    manifestPreferenceKey: _memoriesManifestPreferenceKey,
+  );
+
+  factory MemoryMusicService.remote({
+    required String manifestURL,
+    required String manifestPreferenceKey,
+  }) => MemoryMusicService(
     preferences: ServiceLocator.instance.prefs,
+    manifestPreferenceKey: manifestPreferenceKey,
     fetchManifest: () async {
       final response = await ServiceLocator.instance.nonEnteDio.get<Object?>(
-        _manifestURL,
+        manifestURL,
         options: Options(receiveTimeout: const Duration(seconds: 15)),
       );
       return response.data;
@@ -43,6 +52,7 @@ class MemoryMusicService {
   );
 
   final SharedPreferences _preferences;
+  final String _manifestPreferenceKey;
   final Future<Object?> Function() _fetchManifest;
   final Future<bool> Function(String url) _hasAsset;
   final Future<void> Function(String url) _cacheAsset;
@@ -56,11 +66,13 @@ class MemoryMusicService {
 
   MemoryMusicService({
     required SharedPreferences preferences,
+    String manifestPreferenceKey = _memoriesManifestPreferenceKey,
     required Future<Object?> Function() fetchManifest,
     required Future<bool> Function(String url) hasAsset,
     required Future<void> Function(String url) cacheAsset,
     required Future<void> Function(String url) deleteAsset,
   }) : _preferences = preferences,
+       _manifestPreferenceKey = manifestPreferenceKey,
        _fetchManifest = fetchManifest,
        _hasAsset = hasAsset,
        _cacheAsset = cacheAsset,

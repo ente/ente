@@ -1,12 +1,12 @@
 import "dart:async";
 import 'dart:math';
 
-import 'package:collection/collection.dart';
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
+import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import 'package:ente_ui/components/loading_widget.dart';
 import 'package:flutter/material.dart';
-import "package:hugeicons/hugeicons.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/core/event_bus.dart";
@@ -421,10 +421,7 @@ class _CollectionActionSheetState extends State<CollectionActionSheet> {
         )
         .toList();
     sharedCollections.sort((first, second) {
-      return compareAsciiLowerCaseNatural(
-        first.displayName,
-        second.displayName,
-      );
+      return compareNames(first.displayName, second.displayName);
     });
     return sharedCollections;
   }
@@ -444,10 +441,7 @@ class _CollectionActionSheetState extends State<CollectionActionSheet> {
         }
       }
       hidden.sort((first, second) {
-        return compareAsciiLowerCaseNatural(
-          first.displayName,
-          second.displayName,
-        );
+        return compareNames(first.displayName, second.displayName);
       });
       return recentlyCreated + hidden;
     } else {
@@ -458,10 +452,7 @@ class _CollectionActionSheetState extends State<CollectionActionSheet> {
             includeUncategorized: true,
           );
       collections.sort((first, second) {
-        return compareAsciiLowerCaseNatural(
-          first.displayName,
-          second.displayName,
-        );
+        return compareNames(first.displayName, second.displayName);
       });
       final List<Collection> pinned = [];
       final List<Collection> unpinned = [];

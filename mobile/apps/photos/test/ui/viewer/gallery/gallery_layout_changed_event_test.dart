@@ -9,11 +9,13 @@ import "package:package_info_plus/package_info_plus.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/ente_theme_data.dart";
+import "package:photos/events/collection_meta_event.dart";
 import "package:photos/events/event.dart";
 import "package:photos/events/files_updated_event.dart";
 import "package:photos/events/gallery_layout_changed_event.dart";
 import "package:photos/models/file/dummy_file.dart";
 import "package:photos/models/file/file.dart";
+import "package:photos/models/file/file_sort_order.dart";
 import "package:photos/models/file/file_type.dart";
 import "package:photos/models/file_load_result.dart";
 import "package:photos/models/gallery/fixed_extent_grid_row.dart";
@@ -28,6 +30,7 @@ import "package:photos/ui/viewer/gallery/gallery.dart";
 import "package:photos/ui/viewer/gallery/gallery_app_bar_config.dart";
 import "package:photos/ui/viewer/gallery/gallery_grid_zoom.dart";
 import "package:photos/ui/viewer/gallery/layout_settings.dart";
+import "package:photos/ui/viewer/gallery/scrollbar/custom_scroll_bar.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_boundaries_provider.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
 import "package:shared_preferences/shared_preferences.dart";
@@ -60,6 +63,135 @@ void main() {
 
   setUp(() async {
     await localSettings.setGalleryLayoutType(GalleryLayoutType.grid);
+  });
+
+  testWidgets("tall headers fit during initial gallery measurement", (
+    tester,
+  ) async {
+    final file = _justifiedTestFile(0);
+    final appBar = GalleryAppBarConfig(
+      sliverBuilder: (_) => const SliverAppBarComponent(
+        title: "Album",
+        expandedHeight: 92,
+        collapsedHeight: kToolbarHeight,
+      ),
+      geometryBuilder: (context) => SliverAppBarComponent.resolveGeometry(
+        context,
+        expandedHeight: 92,
+        collapsedHeight: kToolbarHeight,
+      ),
+    );
+    for (final withAppBar in [false, true]) {
+      await tester.pumpWidget(
+        _viewSizedGalleryHost(
+          Gallery(
+            tagPrefix: "tall_header_$withAppBar",
+            appBar: withAppBar ? appBar : null,
+            header: const SizedBox(height: 1000),
+            scrollInitialPlaceholder: !withAppBar,
+            initialFiles: [file],
+            asyncLoader: (start, end, {limit, asc}) async =>
+                FileLoadResult([file], false),
+          ),
+        ),
+      );
+      expect(tester.takeException(), isNull);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+    }
+  });
+
+  testWidgets("filename sort loads the full album and hides year divisions", (
+    tester,
+  ) async {
+    await localSettings.setPhotoGridSize(4);
+    final key = GlobalKey<GalleryState>();
+    Completer<FileLoadResult>? pendingLoad;
+    var order = FileSortOrder.filenameAscending;
+    final files = List.generate(
+      201,
+      (index) => _justifiedTestFile(index)
+        ..title = "IMG${201 - index}.jpg"
+        ..creationTime = DateTime(
+          index < 100 ? 2024 : 2025,
+        ).microsecondsSinceEpoch
+        ..uploadedFileID = index + 1,
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: lightThemeData,
+        localizationsDelegates: StringsLocalizations.localizationsDelegates,
+        supportedLocales: StringsLocalizations.supportedLocales,
+        home: Scaffold(
+          body: _galleryHost(
+            Gallery(
+              key: key,
+              tagPrefix: "filename_sort",
+              groupType: GroupType.day,
+              sortOrderFn: () => order,
+              forceReloadEvents: [Bus.instance.on<CollectionMetaEvent>()],
+              limitSelectionToOne: true,
+              showSelectAll: false,
+              asyncLoader: (start, end, {limit, asc}) async {
+                final pending = pendingLoad;
+                pendingLoad = null;
+                if (pending != null) return pending.future;
+                final loaded = files.take(limit ?? files.length).toList();
+                return FileLoadResult(loaded, loaded.length == limit);
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(key.currentState!.galleryGroups!.allFiles, hasLength(201));
+    expect(key.currentState!.galleryGroups!.allFiles.first.title, "IMG1.jpg");
+    expect(key.currentState!.galleryGroups!.groupType, GroupType.none);
+
+    final pending = Completer<FileLoadResult>();
+    pendingLoad = pending;
+    order = FileSortOrder.filenameAscending;
+    Bus.instance.fire(
+      CollectionMetaEvent(1, CollectionMetaEventType.sortChanged),
+    );
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+    expect(pendingLoad, isNull);
+
+    order = FileSortOrder.oldestFirst;
+    Bus.instance.fire(
+      CollectionMetaEvent(1, CollectionMetaEventType.sortChanged),
+    );
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+    pending.complete(FileLoadResult(List<EnteFile>.from(files), false));
+    await tester.pumpAndSettle();
+    expect(key.currentState!.galleryGroups!.groupType, GroupType.day);
+    expect(key.currentState!.galleryGroups!.groupHeaderExtent, greaterThan(2));
+    expect(key.currentState!.galleryGroups!.allFiles.first.title, "IMG201.jpg");
+    final scrollbarInUse = key.currentState!.scrollBarInUseNotifier;
+    scrollbarInUse.value = true;
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(ScrollBarDivider, "2025"), findsOneWidget);
+    scrollbarInUse.value = false;
+    await tester.pumpAndSettle();
+
+    order = FileSortOrder.filenameDescending;
+    Bus.instance.fire(
+      CollectionMetaEvent(1, CollectionMetaEventType.sortChanged),
+    );
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+    expect(key.currentState!.galleryGroups!.groupType, GroupType.none);
+    expect(key.currentState!.galleryGroups!.allFiles.first.title, "IMG201.jpg");
+    scrollbarInUse.value = true;
+    await tester.pumpAndSettle();
+    expect(find.byType(ScrollBarDivider), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 100));
   });
 
   testWidgets("the gallery sheet toggle is reachable in landscape", (
@@ -178,7 +310,7 @@ void main() {
   );
 
   testWidgets(
-    "a layout change with a zero-size overlay retains a valid header cache",
+    "zero-size overlay preserves the header during layout and file reloads",
     (tester) async {
       tester.view.devicePixelRatio = 1;
       tester.view.physicalSize = const Size(400, 600);
@@ -186,7 +318,7 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       await localSettings.setPhotoGridSize(4);
       final galleryKey = GlobalKey<GalleryState>();
-      final files = List<EnteFile>.generate(4, _justifiedTestFile);
+      var files = List<EnteFile>.generate(4, _justifiedTestFile);
       var loads = 0;
       await tester.pumpWidget(
         _viewSizedGalleryHost(
@@ -194,6 +326,7 @@ void main() {
             key: galleryKey,
             tagPrefix: "retain_header_cache",
             groupType: GroupType.day,
+            forceReloadEvents: [Bus.instance.on<CollectionMetaEvent>()],
             asyncLoader: (start, end, {limit, asc}) async {
               loads++;
               return FileLoadResult(files, false);
@@ -219,12 +352,20 @@ void main() {
       expect(originalState.galleryGroups!.groupHeaderExtent, headerExtent);
       expect(tester.takeException(), isNull);
 
+      files = List<EnteFile>.generate(8, _justifiedTestFile);
+      Bus.instance.fire(
+        CollectionMetaEvent(1, CollectionMetaEventType.sortChanged),
+      );
+      await tester.pumpAndSettle();
+      expect(originalState.groupHeaderExtent, headerExtent);
+      expect(originalState.galleryGroups!.allFiles, orderedEquals(files));
+
       tester.view.physicalSize = const Size(400, 600);
       await tester.pumpAndSettle();
       expect(galleryKey.currentState, same(originalState));
       expect(originalState.groupHeaderExtent, headerExtent);
       expect(originalState.galleryGroups!.allFiles, orderedEquals(files));
-      expect(loads, 1);
+      expect(loads, 2);
       expect(tester.takeException(), isNull);
 
       await tester.pumpWidget(const SizedBox.shrink());
@@ -412,7 +553,7 @@ void main() {
   testWidgets(
     "pinching selection galleries changes density without changing selection",
     (tester) async {
-      for (final mode in ["sheet", "single", "selected"]) {
+      for (final mode in ["sheet", "single", "selected", "alias"]) {
         await localSettings.setPhotoGridSize(4);
         final galleryKey = GlobalKey<GalleryState>();
         final files = List.generate(
@@ -423,8 +564,16 @@ void main() {
             ..fileType = FileType.image
             ..title = "photo-$index.jpg",
         );
-        final selectedFiles = SelectedFiles();
+        final selectedFiles = SelectedFiles(dedupeByUploadID: mode == "alias");
         if (mode == "selected") selectedFiles.selectAll({files.first});
+        if (mode == "alias") {
+          files.first.uploadedFileID = 100;
+          selectedFiles.selectAll({
+            EnteFile()
+              ..generatedID = 100
+              ..uploadedFileID = 100,
+          });
+        }
         var selectionChanges = 0;
         selectedFiles.addListener(() => selectionChanges++);
         final selectionBefore = selectedFiles.files.toSet();
@@ -460,6 +609,16 @@ void main() {
           findsOneWidget,
           reason: mode,
         );
+        for (final key in [
+          "gallery-grid-zoom-selection-shade",
+          "gallery-grid-zoom-selection",
+        ]) {
+          expect(
+            find.byKey(ValueKey((key, 0))),
+            selectedFiles.files.isEmpty ? findsNothing : findsOneWidget,
+            reason: mode,
+          );
+        }
         expect(localSettings.getPhotoGridSize(), 4, reason: mode);
         await first.up();
         await second.up();

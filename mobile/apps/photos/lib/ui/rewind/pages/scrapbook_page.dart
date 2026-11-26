@@ -1,11 +1,10 @@
 import "dart:math";
 
 import "package:flutter/material.dart";
-import "package:logging/logging.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
-import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/story/rewind_colours.dart";
 import "package:photos/ui/rewind/story/rewind_face.dart";
@@ -14,19 +13,17 @@ import "package:photos/ui/rewind/theme/rewind_colors.dart";
 import "package:photos/ui/rewind/theme/rewind_motion.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
-import "package:photos/ui/rewind/widgets/rewind_buttons.dart";
 import "package:photos/ui/rewind/widgets/rewind_elapsed.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
-import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo_frames.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
 import "package:photos/ui/rewind/widgets/rewind_wordmark.dart";
-import "package:photos/utils/share_util.dart";
 
 const _summaryInk = Color(0xFF131313);
 const _summaryGreen = Color(0xFF0EBF29);
+const _enlarged = 1.04;
 
 enum _Cutout {
   outing(Offset(101, 211), Size(152.172, 119.006), -4),
@@ -56,20 +53,24 @@ class ScrapbookPage extends RewindPage {
     required this.report,
     required this.photos,
     required this.people,
-    required this.cityNames,
+    required this.cities,
   });
 
   final rust.RewindReport report;
   final List<EnteFile> photos;
   final List<RewindFace> people;
-  final List<String> cityNames;
+  final List<rust.RewindCity> cities;
 
   @override
   String get key => "scrapbook";
 
   @override
+  Duration? get reelHold =>
+      const Duration(milliseconds: 3800 + RewindMotion.reelReadingMs);
+
+  @override
   RewindChrome get chrome =>
-      const RewindChrome(foreground: RewindColors.cream, muteButton: false);
+      const RewindChrome(foreground: RewindColors.cream, nextArrow: true);
 
   @override
   Widget build(
@@ -81,178 +82,128 @@ class ScrapbookPage extends RewindPage {
   }
 }
 
-class _Scrapbook extends StatefulWidget {
+class _Scrapbook extends StatelessWidget {
   const _Scrapbook({required this.page, required this.isActive});
 
   final ScrapbookPage page;
   final bool isActive;
 
   @override
-  State<_Scrapbook> createState() => _ScrapbookState();
-}
-
-class _ScrapbookState extends State<_Scrapbook> {
-  static final _logger = Logger("ScrapbookPage");
-
-  final _card = RewindShareCard(branded: false);
-  final _button = GlobalKey();
-  var _sharing = false;
-
-  Future<void> _share() async {
-    if (_sharing) return;
-    _sharing = true;
-    try {
-      await shareRewindCard(
-        _card,
-        pixelRatio: MediaQuery.devicePixelRatioOf(context),
-        wordmark: Rect.zero,
-        wordmarkColor: RewindColors.cream,
-        origin: shareButtonRect(context, _button),
-      );
-    } catch (error, stackTrace) {
-      _logger.warning("Failed to share the scrapbook", error, stackTrace);
-    } finally {
-      _sharing = false;
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final page = widget.page;
-    final active = widget.isActive;
-    final screen = MediaQuery.sizeOf(context);
-    final inset =
-        MediaQuery.paddingOf(context).bottom / RewindStage.scaleFor(screen);
-    final lift = max(0.0, inset - 18);
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        RepaintBoundary(
-          key: _card.boundary,
-          child: Stack(
-            fit: StackFit.expand,
+    return RewindShareable(
+      branded: false,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          const RewindBackdrop(
+            color: RewindColors.green,
+            pattern: RewindStripes(_summaryGreen),
+          ),
+          RewindStage(
             children: [
-              const RewindBackdrop(
-                color: RewindColors.green,
-                pattern: RewindStripes(_summaryGreen),
-              ),
-              RewindStage(
-                children: [
-                  Positioned(
-                    left: 33.2,
-                    top: 48.1,
-                    child: RewindEntrance(
-                      preset: RewindPreset.line,
-                      active: active,
-                      delayMs: 350,
-                      child: const RewindWordmark(
-                        color: RewindColors.cream,
-                        width: 88.8,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 28,
-                    top: 69.7,
-                    child: RewindEntrance(
-                      preset: RewindPreset.pop,
-                      active: active,
-                      delayMs: 420,
-                      child: Semantics(
-                        label: "Rewind 2026",
-                        child: Image.file(
-                          RewindAssets.file(RewindAssets.compactHeader),
-                          width: 239,
-                          height: 45,
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned.fromRect(
-                    rect: const Rect.fromLTWH(29.73, 137.55, 329.706, 311.172),
-                    child: RewindEntrance(
-                      preset: RewindPreset.pop,
-                      active: active,
-                      delayMs: 150,
-                      child: Transform.rotate(
-                        angle: 0.13 * pi / 180,
-                        child: const CustomPaint(painter: _GraphPaperPainter()),
-                      ),
-                    ),
-                  ),
-                  for (final (index, cutout) in _Cutout.values.indexed)
-                    if (index < page.photos.length)
-                      Positioned.fromRect(
-                        rect: Rect.fromCenter(
-                          center: cutout.center,
-                          width: cutout.size.width,
-                          height: cutout.size.height,
-                        ),
+              Positioned.fill(
+                child: Transform.scale(
+                  scale: _enlarged,
+                  alignment: Alignment.topCenter,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Positioned(
+                        left: 33.2,
+                        top: 48.1,
                         child: RewindEntrance(
-                          preset: RewindPreset.drop,
-                          active: active,
-                          delayMs: 300 + 70 * index,
-                          child: Transform.rotate(
-                            angle: cutout.turn * pi / 180,
-                            child: _photoCutout(cutout, page.photos[index]),
+                          preset: RewindPreset.line,
+                          active: isActive,
+                          delayMs: 350,
+                          child: const RewindWordmark(
+                            color: RewindColors.cream,
+                            width: 88.8,
                           ),
                         ),
                       ),
-                  Positioned.fill(
-                    child: RewindElapsed(
-                      active: active,
-                      stillMs: 2000,
-                      builder: (context, ms) => Transform.translate(
-                        offset: Offset(
-                          0,
-                          380 *
-                              (1 -
-                                  rewindProgress(
-                                    ms,
-                                    delayMs: 380,
-                                    durationMs: 792,
-                                    curve: RewindMotion.soft,
-                                  )),
+                      Positioned(
+                        left: 28,
+                        top: 69.7,
+                        child: RewindEntrance(
+                          preset: RewindPreset.pop,
+                          active: isActive,
+                          delayMs: 420,
+                          child: Semantics(
+                            label: "Rewind 2026",
+                            child: Image.file(
+                              RewindAssets.file(RewindAssets.compactHeader),
+                              width: 239,
+                              height: 45,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
                         ),
-                        child: _Summary(page: page),
                       ),
-                    ),
+                      Positioned.fromRect(
+                        rect: const Rect.fromLTWH(
+                          29.73,
+                          137.55,
+                          329.706,
+                          311.172,
+                        ),
+                        child: RewindEntrance(
+                          preset: RewindPreset.pop,
+                          active: isActive,
+                          delayMs: 150,
+                          child: Transform.rotate(
+                            angle: 0.13 * pi / 180,
+                            child: const CustomPaint(
+                              painter: _GraphPaperPainter(),
+                            ),
+                          ),
+                        ),
+                      ),
+                      for (final (index, cutout) in _Cutout.values.indexed)
+                        if (index < page.photos.length)
+                          Positioned.fromRect(
+                            rect: Rect.fromCenter(
+                              center: cutout.center,
+                              width: cutout.size.width,
+                              height: cutout.size.height,
+                            ),
+                            child: RewindEntrance(
+                              preset: RewindPreset.drop,
+                              active: isActive,
+                              delayMs: 300 + 70 * index,
+                              child: Transform.rotate(
+                                angle: cutout.turn * pi / 180,
+                                child: _photoCutout(cutout, page.photos[index]),
+                              ),
+                            ),
+                          ),
+                      Positioned.fill(
+                        child: RewindElapsed(
+                          active: isActive,
+                          stillMs: 2000,
+                          builder: (context, ms) => Transform.translate(
+                            offset: Offset(
+                              0,
+                              380 *
+                                  (1 -
+                                      rewindProgress(
+                                        ms,
+                                        delayMs: 380,
+                                        durationMs: 792,
+                                        curve: RewindMotion.soft,
+                                      )),
+                            ),
+                            child: _Summary(page: page),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ],
           ),
-        ),
-        RewindStage(
-          children: [
-            Positioned(
-              left: 30,
-              top: 760 - lift,
-              width: 330,
-              height: 66,
-              child: RewindElapsed(
-                active: active,
-                stillMs: 2000,
-                builder: (context, ms) => Transform.translate(
-                  offset: Offset(
-                    0,
-                    380 *
-                        (1 -
-                            rewindProgress(
-                              ms,
-                              delayMs: 380,
-                              durationMs: 792,
-                              curve: RewindMotion.soft,
-                            )),
-                  ),
-                  child: _ShareButton(key: _button, onTap: _share),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -285,6 +236,7 @@ class _Summary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final copy = RewindCopy.of(context);
     final report = page.report;
     final totals = report.totals;
     final colour = report.colour?.colour;
@@ -296,7 +248,10 @@ class _Summary extends StatelessWidget {
           ].take(3).toList();
     final places = report.places == null
         ? const <String>[]
-        : page.cityNames.take(3).toList();
+        : [
+            for (final city in page.cities.take(3))
+              copy.city(city.name, city.country),
+          ];
     final firstRow = totals != null || colour != null;
     final secondTop = firstRow ? 620.0 : 520.0;
     return Stack(
@@ -310,39 +265,28 @@ class _Summary extends StatelessWidget {
           child: CustomPaint(painter: _ScallopPainter()),
         ),
         if (totals != null) ...[
-          const Positioned(
-            left: 35,
-            top: 520,
-            child: _Label("Photos uploaded"),
-          ),
+          Positioned(left: 35, top: 520, child: _Label(copy.scrapbookPhotos)),
           Positioned(
             left: 35,
-            top: 545,
-            child: _Uploads(
-              files: totals.files,
-              topPerMille: totals.topPerMille,
-            ),
+            top: 555,
+            child: _Uploads(files: totals.files, topPercent: totals.topPercent),
           ),
         ],
         if (colour != null) ...[
-          const Positioned(
-            left: 212,
-            top: 520,
-            child: _Label("Colour of the year"),
-          ),
+          Positioned(left: 212, top: 520, child: _Label(copy.scrapbookColour)),
           Positioned(
             left: 212,
             top: 546,
             width: 153,
             height: 67,
-            child: _Colour(name: colour.label, color: colour.color),
+            child: _Colour(name: copy.colourName(colour), color: colour.color),
           ),
         ],
         if (names.isNotEmpty) ...[
           Positioned(
             left: 35,
             top: secondTop,
-            child: const _Label("Top people"),
+            child: _Label(copy.scrapbookPeople),
           ),
           Positioned(
             left: 35,
@@ -355,7 +299,7 @@ class _Summary extends StatelessWidget {
           Positioned(
             left: 212,
             top: secondTop,
-            child: const _Label("Top places"),
+            child: _Label(copy.scrapbookPlaces),
           ),
           Positioned(
             left: 212,
@@ -384,25 +328,23 @@ class _Label extends StatelessWidget {
 }
 
 class _Uploads extends StatelessWidget {
-  const _Uploads({required this.files, required this.topPerMille});
+  const _Uploads({required this.files, required this.topPercent});
 
   final int files;
-  final int? topPerMille;
+  final int? topPercent;
 
   @override
   Widget build(BuildContext context) {
-    final topPerMille = this.topPerMille;
+    final topPercent = this.topPercent;
     return Stack(
       clipBehavior: Clip.none,
       children: [
         ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: topPerMille == null ? 153 : 130,
-          ),
+          constraints: BoxConstraints(maxWidth: topPercent == null ? 153 : 130),
           child: FittedBox(
             fit: BoxFit.scaleDown,
             child: RewindOutlinedText(
-              rewindCount(files),
+              RewindCopy.of(context).number(files),
               style: RewindTextStyles.display(
                 47,
                 color: _summaryGreen,
@@ -414,17 +356,17 @@ class _Uploads extends StatelessWidget {
             ),
           ),
         ),
-        if (topPerMille != null)
-          Positioned(right: -40.8, top: -29, child: _Seal(topPerMille)),
+        if (topPercent != null)
+          Positioned(right: -40.8, top: -29, child: _Seal(topPercent)),
       ],
     );
   }
 }
 
 class _Seal extends StatelessWidget {
-  const _Seal(this.topPerMille);
+  const _Seal(this.topPercent);
 
-  final int topPerMille;
+  final int topPercent;
 
   @override
   Widget build(BuildContext context) {
@@ -440,9 +382,12 @@ class _Seal extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text("TOP", style: RewindTextStyles.body(8, height: 10 / 8)),
                   Text(
-                    "${rewindTopPercent(topPerMille)}%",
+                    RewindCopy.of(context).scrapbookTop,
+                    style: RewindTextStyles.body(8, height: 10 / 8),
+                  ),
+                  Text(
+                    "$topPercent%",
                     style: RewindTextStyles.body(16, height: 18 / 16),
                   ),
                 ],
@@ -575,38 +520,6 @@ class _Ranking extends StatelessWidget {
             ),
           ),
       ],
-    );
-  }
-}
-
-class _ShareButton extends StatelessWidget {
-  const _ShareButton({required this.onTap, super.key});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: "Share your Rewind",
-      child: RewindPressable(
-        onTap: onTap,
-        pressedScale: 0.97,
-        child: Container(
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: RewindColors.candyPink,
-            border: Border.all(color: RewindColors.ink, width: 3),
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: ExcludeSemantics(
-            child: Text(
-              "Share your Rewind",
-              style: RewindTextStyles.body(17, height: 22 / 17),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

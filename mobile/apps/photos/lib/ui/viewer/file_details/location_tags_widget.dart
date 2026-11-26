@@ -2,13 +2,13 @@ import "dart:async";
 import "dart:ui";
 
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/components/loading_widget.dart";
 import "package:flutter/material.dart";
 import "package:flutter_animate/flutter_animate.dart";
 import "package:flutter_map/flutter_map.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:latlong2/latlong.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/events/location_tag_updated_event.dart";
@@ -104,13 +104,11 @@ class _LocationTagsWidgetState extends State<LocationTagsWidget> {
     final locationTags = await locationService.enclosingLocationTags(
       widget.file.location!,
     );
+    if (!mounted) return const [];
+    setState(() {
+      title = context.strings.location;
+    });
     if (locationTags.isEmpty) {
-      if (mounted) {
-        setState(() {
-          title = context.strings.location;
-        });
-      }
-      if (!mounted) return const [];
       return [
         FilterChipComponent(
           label: context.strings.addLocation,
@@ -119,11 +117,6 @@ class _LocationTagsWidgetState extends State<LocationTagsWidget> {
         ),
       ];
     } else {
-      if (mounted) {
-        setState(() {
-          title = context.strings.location;
-        });
-      }
       final result = locationTags
           .map<Widget>(
             (locationTagEntity) => FilterChipComponent(
@@ -142,6 +135,7 @@ class _LocationTagsWidgetState extends State<LocationTagsWidget> {
           .toList();
       result.add(
         IconButtonComponent(
+          tooltip: context.strings.addLocation,
           size: FilterChipComponent.minHeight,
           icon: const HugeIcon(
             icon: HugeIcons.strokeRoundedPlusSign,

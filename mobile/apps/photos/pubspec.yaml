@@ -1,7 +1,7 @@
 name: photos
 description: ente photos application
 
-version: 1.3.71+2158
+version: 1.3.72+2158
 publish_to: none
 
 resolution: workspace
@@ -25,12 +25,12 @@ dependencies:
       ref: 82e365fed8a1a76f6eea0220de98389eed7b0445
   connectivity_plus: 6.1.4
   crypto: 3.0.7
-  cupertino_http: 3.1.0
+  cupertino_http: 3.1.1
   cupertino_icons: 1.0.8
   defer_pointer: 0.0.2
   device_info_plus: 11.5.0
-  dio: 5.9.2
-  dio_http2_adapter: 2.8.0
+  dio: 5.11.1
+  dio_http2_adapter: 2.9.0
   dotted_border: 3.1.0
   email_validator: 3.0.0
   encrypt: 5.0.3
@@ -127,7 +127,6 @@ dependencies:
   freezed_annotation: 3.1.0
   home_widget: 0.8.0
   http: 1.6.0
-  hugeicons: 1.1.7
   image: 4.7.0
   in_app_purchase: 3.3.0
   in_app_purchase_storekit: 0.4.11+1
@@ -157,7 +156,7 @@ dependencies:
       url: https://github.com/ente/move_to_background.git
       ref: 0cdfeed654d79636eff0c57110f3f6ad5801ba2f
   nanoid: 1.0.0
-  native_dio_adapter: 1.6.0
+  native_dio_adapter: 1.7.0
   native_video_editor:
     path: ../../packages/native_video_editor
   native_video_player: 4.0.1

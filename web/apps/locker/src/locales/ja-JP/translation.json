@@ -1,4 +1,9 @@
 {
+    "uploadDestinationUnavailable": "このコレクションは利用できなくなりました。別の保存先を選ぶか、アップロードの対象から外してください。",
+    "uploadDestinationNeedsChoice": "アップロードの前に「{{name}}」のコレクションを選ぶか、候補を削除してください。",
+    "uploadDestinationUnavailableLabel": "利用できないコレクション（#{{id}}）",
+    "uploadDestinationNeedsChoiceLabel": "{{name}}（コレクションを選択）",
+    "uploadDestinationShared": "{{name}}（共有）",
     "saveToLocker": "Lockerに保存",
     "informationDescription": "大切な人と情報を保存・共有します。",
     "saveDocumentTitle": "ドキュメント",

@@ -2,11 +2,11 @@ import "dart:async";
 import "dart:io";
 import "dart:typed_data";
 
+import "package:ente_components/hugeicons.dart";
 import "package:ente_panorama_viewer/ente_panorama_viewer.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:flutter_test/flutter_test.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:photos/ui/viewer/file/panorama_viewer_screen.dart";
 
 // A minimal valid 1x1 RGBA PNG, so Image.file/Image.memory can decode it.

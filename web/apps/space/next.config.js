@@ -2,15 +2,6 @@ const baseConfig = require("ente-base/next.config.base.js");
 
 module.exports = {
     ...baseConfig,
-    webpack: (config, options) => {
-        config = baseConfig.webpack(config, options);
-        config.module.rules.push({
-            test: /(?:like\.riv|@rive-app[\\/]canvas-lite[\\/]rive\.wasm)$/,
-            type: "asset/resource",
-            generator: { filename: "static/media/[name].[contenthash][ext]" },
-        });
-        return config;
-    },
     transpilePackages: Array.from(
         new Set([
             ...(baseConfig.transpilePackages || []),

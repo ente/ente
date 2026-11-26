@@ -1,7 +1,7 @@
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:photos/models/collection/collection.dart";
 import "package:photos/ui/components/collection_share_badge.dart";
 import "package:photos/ui/sharing/share_components.dart";

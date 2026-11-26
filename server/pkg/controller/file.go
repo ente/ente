@@ -352,12 +352,17 @@ func (c *FileController) GetUploadURLs(ctx context.Context, userID int64, count 
 	if err != nil {
 		return []ente.UploadURL{}, stacktrace.Propagate(err, "")
 	}
-	dc := c.S3Config.GetHotDataCenter()
 	urls := make([]ente.UploadURL, 0)
 	objectKeys := make([]string, 0)
 	if count > MaxUploadURLsLimit && !ignoreLimit {
 		count = MaxUploadURLsLimit
 	}
+	release, err := c.UsageCtrl.ReserveUploadURLs(ctx, userID, nil, count)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "")
+	}
+	defer release()
+	dc := c.S3Config.GetHotDataCenter()
 	for i := 0; i < count; i++ {
 		objectKey := strconv.FormatInt(userID, 10) + "/" + uuid.NewString()
 		objectKeys = append(objectKeys, objectKey)
@@ -403,6 +408,11 @@ func (c *FileController) GetUploadURLWithMetadata(ctx context.Context, userID in
 	if err := c.UsageCtrl.CanIssueUploadURLs(ctx, userID, &req.ContentLength, app); err != nil {
 		return ente.UploadURL{}, stacktrace.Propagate(err, "")
 	}
+	release, err := c.UsageCtrl.ReserveUploadURLs(ctx, userID, &req.ContentLength, 1)
+	if err != nil {
+		return ente.UploadURL{}, stacktrace.Propagate(err, "")
+	}
+	defer release()
 	dc := c.S3Config.GetHotDataCenter()
 	objectKey := strconv.FormatInt(userID, 10) + "/" + uuid.NewString()
 	url, err := c.getObjectURL(ente.TempObject{
@@ -658,11 +668,8 @@ func (c *FileController) GetDuplicates(userID int64) ([]ente.DuplicateFiles, err
 }
 
 func (c *FileController) UpdateMagicMetadata(ctx *gin.Context, req ente.UpdateMultipleMagicMetadataRequest, isPublicMetadata bool) error {
-	err := c.validateUpdateMetadataRequest(ctx, req, isPublicMetadata)
-	if err != nil {
-		return stacktrace.Propagate(err, "")
-	}
-	err = c.FileRepo.UpdateMagicAttributes(ctx, req.MetadataList, isPublicMetadata, req.SkipVersion)
+	userID := auth.GetUserID(ctx.Request.Header)
+	err := c.FileRepo.UpdateMagicAttributes(ctx, userID, req.MetadataList, isPublicMetadata, req.SkipVersion)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to update magic attributes")
 	}
@@ -753,42 +760,6 @@ func (c *FileController) VerifyFileOwnership(ctx *gin.Context, ownerID int64, fi
 		logger.Error("user is not an owner of any file")
 		return stacktrace.Propagate(ente.ErrPermissionDenied, "")
 	}
-}
-
-func (c *FileController) validateUpdateMetadataRequest(ctx *gin.Context, req ente.UpdateMultipleMagicMetadataRequest, isPublicMetadata bool) error {
-	userID := auth.GetUserID(ctx.Request.Header)
-	for _, updateMMdRequest := range req.MetadataList {
-		ownerID, existingMetadata, err := c.FileRepo.GetOwnerAndMagicMetadata(updateMMdRequest.ID, isPublicMetadata)
-		if err != nil {
-			return stacktrace.Propagate(err, "")
-		}
-		if ownerID != userID {
-			log.WithFields(log.Fields{
-				"file_id":   updateMMdRequest.ID,
-				"owner_id":  ownerID,
-				"user_id":   userID,
-				"public_md": isPublicMetadata,
-			}).Error("can't update magic metadata for file which isn't owned by use")
-			return stacktrace.Propagate(ente.ErrPermissionDenied, "")
-		}
-		oldToNewCountDiff := 0
-		if existingMetadata != nil {
-			oldToNewCountDiff = existingMetadata.Count - updateMMdRequest.MagicMetadata.Count
-		}
-		// Reject version mismatches and large key-count drops to avoid data loss.
-		if existingMetadata != nil && (existingMetadata.Version != updateMMdRequest.MagicMetadata.Version || oldToNewCountDiff > 2) {
-			log.WithFields(log.Fields{
-				"existing_count":   existingMetadata.Count,
-				"existing_version": existingMetadata.Version,
-				"file_id":          updateMMdRequest.ID,
-				"received_count":   updateMMdRequest.MagicMetadata.Count,
-				"received_version": updateMMdRequest.MagicMetadata.Version,
-				"public_md":        isPublicMetadata,
-			}).Error("invalid ops: mismatch in metadata version or count")
-			return stacktrace.Propagate(ente.ErrVersionMismatch, "mismatch in metadata version or count")
-		}
-	}
-	return nil
 }
 
 func (c *FileController) CleanupDeletedFiles() {
@@ -886,7 +857,7 @@ func (c *FileController) cleanupDeletedFile(qItem repo.QueueItem) {
 		ctxLogger.WithError(err).Error("Failed to remove item from object_keys")
 		return
 	}
-	err = c.QueueRepo.DeleteItem(repo.DeleteObjectQueue, qItem.Item)
+	err = c.QueueRepo.DeleteItem(repo.DeleteObjectQueue, qItem.Id)
 	if err != nil {
 		ctxLogger.WithError(err).Error("Failed to remove item from the queue")
 		return
@@ -1096,7 +1067,7 @@ func (c *FileController) getObjectURL(object ente.TempObject) (ente.UploadURL, e
 		ContentMD5:    object.ContentMD5,
 	}
 	r, _ := s3Client.PutObjectRequest(input)
-	url, err := r.Presign(PreSignedRequestValidityDuration)
+	url, err := r.Presign(ente.UploadURLValidity(object.ContentLength))
 	if err != nil {
 		return ente.UploadURL{}, stacktrace.Propagate(err, "")
 	}
@@ -1115,6 +1086,11 @@ func (c *FileController) GetMultipartUploadURLs(ctx context.Context, userID int6
 	if err != nil {
 		return ente.MultipartUploadURLs{}, stacktrace.Propagate(err, "")
 	}
+	release, err := c.UsageCtrl.ReserveUploadURLs(ctx, userID, nil, 1)
+	if err != nil {
+		return ente.MultipartUploadURLs{}, stacktrace.Propagate(err, "")
+	}
+	defer release()
 	dc := c.S3Config.GetHotDataCenter()
 	s3Client := c.S3Config.GetS3Client(dc)
 	bucket := c.S3Config.GetBucket(dc)
@@ -1140,9 +1116,10 @@ func (c *FileController) GetMultipartUploadURLs(ctx context.Context, userID int6
 		return ente.MultipartUploadURLs{}, stacktrace.Propagate(err, "")
 	}
 	multipartUploadURLs := ente.MultipartUploadURLs{ObjectKey: objectKey}
+	validity := ente.MultipartUploadURLValidity
 	urls := make([]string, 0)
 	for i := 0; i < count; i++ {
-		url, err := c.getPartURL(s3Client, bucket, objectKey, int64(i+1), r.UploadId, nil, nil)
+		url, err := c.getPartURL(s3Client, bucket, objectKey, int64(i+1), r.UploadId, nil, nil, validity)
 		if err != nil {
 			return multipartUploadURLs, stacktrace.Propagate(err, "")
 		}
@@ -1154,7 +1131,7 @@ func (c *FileController) GetMultipartUploadURLs(ctx context.Context, userID int6
 		Key:      &objectKey,
 		UploadId: r.UploadId,
 	})
-	url, err := r2.Presign(PreSignedRequestValidityDuration)
+	url, err := r2.Presign(validity)
 	if err != nil {
 		return multipartUploadURLs, stacktrace.Propagate(err, "")
 	}
@@ -1202,6 +1179,11 @@ func (c *FileController) GetMultipartUploadURLWithMetadata(ctx context.Context, 
 	if err := c.UsageCtrl.CanIssueUploadURLs(ctx, userID, nil, app); err != nil {
 		return ente.MultipartUploadURLs{}, stacktrace.Propagate(err, "")
 	}
+	release, err := c.UsageCtrl.ReserveUploadURLs(ctx, userID, &req.ContentLength, 1)
+	if err != nil {
+		return ente.MultipartUploadURLs{}, stacktrace.Propagate(err, "")
+	}
+	defer release()
 	dc := c.S3Config.GetHotDataCenter()
 	s3Client := c.S3Config.GetS3Client(dc)
 	bucket := c.S3Config.GetBucket(dc)
@@ -1228,6 +1210,7 @@ func (c *FileController) GetMultipartUploadURLWithMetadata(ctx context.Context, 
 		return ente.MultipartUploadURLs{}, stacktrace.Propagate(err, "")
 	}
 	multipartUploadURLs := ente.MultipartUploadURLs{ObjectKey: objectKey}
+	validity := ente.MultipartUploadURLValidity
 	urls := make([]string, 0, partCount)
 	for i := 0; i < partCount; i++ {
 		partNumber := int64(i + 1)
@@ -1236,7 +1219,7 @@ func (c *FileController) GetMultipartUploadURLWithMetadata(ctx context.Context, 
 		if normalizedChecksums != nil {
 			checksum = &normalizedChecksums[i]
 		}
-		url, err := c.getPartURL(s3Client, bucket, objectKey, partNumber, r.UploadId, &length, checksum)
+		url, err := c.getPartURL(s3Client, bucket, objectKey, partNumber, r.UploadId, &length, checksum, validity)
 		if err != nil {
 			return multipartUploadURLs, stacktrace.Propagate(err, "")
 		}
@@ -1248,7 +1231,7 @@ func (c *FileController) GetMultipartUploadURLWithMetadata(ctx context.Context, 
 		Key:      &objectKey,
 		UploadId: r.UploadId,
 	})
-	url, err := r2.Presign(PreSignedRequestValidityDuration)
+	url, err := r2.Presign(validity)
 	if err != nil {
 		return multipartUploadURLs, stacktrace.Propagate(err, "")
 	}
@@ -1257,7 +1240,7 @@ func (c *FileController) GetMultipartUploadURLWithMetadata(ctx context.Context, 
 	return multipartUploadURLs, nil
 }
 
-func (c *FileController) getPartURL(s3Client s3.S3, bucket *string, objectKey string, partNumber int64, uploadID *string, contentLength *int64, contentMD5 *string) (string, error) {
+func (c *FileController) getPartURL(s3Client s3.S3, bucket *string, objectKey string, partNumber int64, uploadID *string, contentLength *int64, contentMD5 *string, validity gTime.Duration) (string, error) {
 	input := &s3.UploadPartInput{
 		Bucket:     bucket,
 		Key:        &objectKey,
@@ -1271,7 +1254,7 @@ func (c *FileController) getPartURL(s3Client s3.S3, bucket *string, objectKey st
 		input.ContentMD5 = contentMD5
 	}
 	r, _ := s3Client.UploadPartRequest(input)
-	url, err := r.Presign(PreSignedPartUploadRequestDuration)
+	url, err := r.Presign(validity)
 	if err != nil {
 		return "", stacktrace.Propagate(err, "")
 	}

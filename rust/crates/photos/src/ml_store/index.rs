@@ -255,7 +255,7 @@ mod tests {
     use std::fs;
     use std::path::Path;
 
-    use ente_vecdb::{OpenCost, StorageKind, VecDb};
+    use ente_vecdb::{StorageKind, VecDb};
 
     use super::{Index, scan_directory};
     use crate::db::Connection;
@@ -278,10 +278,7 @@ mod tests {
         let directory = tempfile::tempdir().unwrap();
         let store = MlStore::open(directory.path().join("ente.ml.offline.db")).unwrap();
         store.fill_clip_index(false).unwrap();
-        assert_eq!(
-            VecDb::open_cost(&directory.path().join("ente.ml.offline.vecdb.clip")),
-            OpenCost::Ready
-        );
+        assert!(directory.path().join("ente.ml.offline.vecdb.clip").exists());
         assert!(matches!(
             MlStore::open(directory.path().join("..")),
             Err(Error::InvalidArgument(_))

@@ -129,6 +129,13 @@ const Page: React.FC = () => {
                 showPostLoadingIndicator={showInitialPostLoadingIndicator}
                 onBack={() => void router.back(spaceRoutes.home)}
                 onPostPhotoSelect={setPendingPostPhotoFiles}
+                onPostMediaChange={(post) =>
+                    setPosts((items) =>
+                        items.map((item) =>
+                            item.postId == post.postId ? post : item,
+                        ),
+                    )
+                }
                 onDeletePost={async (postId) => {
                     const spaceId = profile.spaceId;
                     if (!spaceId) throw new Error("Missing space.");

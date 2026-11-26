@@ -1,11 +1,3 @@
-import {
-    collectionDialogFullScreenQuery,
-    collectionDialogHeaderRowSx,
-    collectionDialogHeaderSx,
-    collectionDialogIconButtonSx,
-    collectionDialogPaperSx,
-    collectionDialogTitleSx,
-} from "@/components/CollectionDialog/styles";
 import { Cancel01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import TuneIcon from "@mui/icons-material/Tune";
@@ -23,6 +15,14 @@ import {
     useMediaQuery,
 } from "@mui/material";
 import { isSxArray } from "ente-base/components/utils/sx";
+import {
+    collectionDialogFullScreenQuery,
+    collectionDialogHeaderRowSx,
+    collectionDialogHeaderSx,
+    collectionDialogIconButtonSx,
+    collectionDialogPaperSx,
+    collectionDialogTitleSx,
+} from "ente-new/photos/components/CollectionDialog/styles";
 import { ItemCard } from "ente-new/photos/components/Tiles";
 import { thumbnailGridPadding } from "ente-new/photos/components/utils/thumbnail-grid-layout";
 import type { Person } from "ente-new/photos/services/ml/people";

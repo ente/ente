@@ -290,7 +290,7 @@
   "@thisDevice": {
     "description": "Label for current device"
   },
-  "thisWillLogYouOutOfTheFollowingDevice": "ଏହା ଆପଣଙ୍କୁ ଏହି ଡିଭାଇସରୁ ଲଗ ଆଉଟ କରିବ:",
+  "thisWillLogYouOutOfTheFollowingDevice": "ଏହା ଆପଣଙ୍କୁ ନିମ୍ନଲିଖିତ ଡିଭାଇସରୁ ଲଗ ଆଉଟ କରିବ:",
   "@thisWillLogYouOutOfTheFollowingDevice": {
     "description": "Warning message for logging out of another device"
   },

@@ -1,8 +1,8 @@
 import "dart:async";
 
+import "package:ente_components/hugeicons.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/material.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/event_bus.dart";
 import "package:photos/db/ml/db.dart";
@@ -30,6 +30,8 @@ import "package:photos/ui/rewind/debug/rewind_gallery_page.dart";
 import "package:photos/ui/settings/debug/memories_debug_page.dart";
 import "package:photos/utils/dialog_util.dart";
 import "package:photos/utils/ml_util.dart";
+import "package:photos/utils/share_util.dart";
+import "package:share_plus/share_plus.dart";
 
 typedef _VectorIndexStatus = ({rust.FillState state, int vectors});
 
@@ -574,6 +576,16 @@ class _MLDebugSettingsPageState extends State<MLDebugSettingsPage> {
   Widget _buildResetActionsCard(BuildContext context) {
     return SettingsGroupedCard(
       children: [
+        MenuItemWidgetNew(
+          title: "Show Ente Rewind status",
+          leadingIconWidget: _buildIconWidget(
+            context,
+            HugeIcons.strokeRoundedInformationCircle,
+          ),
+          trailingIcon: Icons.chevron_right_outlined,
+          trailingIconIsMuted: true,
+          onTap: () async => showToast(context, rewindService.diagnosis),
+        ),
         if (RewindEdition.isAvailable(DateTime.now())) ...[
           MenuItemWidgetNew(
             title: "Recompute Ente Rewind",
@@ -594,6 +606,16 @@ class _MLDebugSettingsPageState extends State<MLDebugSettingsPage> {
             trailingIcon: Icons.chevron_right_outlined,
             trailingIconIsMuted: true,
             onTap: () async => _onExportRewindSnapshot(context),
+          ),
+          MenuItemWidgetNew(
+            title: "Share Ente Rewind badge signals",
+            leadingIconWidget: _buildIconWidget(
+              context,
+              HugeIcons.strokeRoundedShare08,
+            ),
+            trailingIcon: Icons.chevron_right_outlined,
+            trailingIconIsMuted: true,
+            onTap: () async => _onShareRewindBadgeSignals(context),
           ),
           MenuItemWidgetNew(
             title: "Open Ente Rewind gallery",
@@ -935,6 +957,23 @@ class _MLDebugSettingsPageState extends State<MLDebugSettingsPage> {
       showShortToast(context, "Ente Rewind request: $snapshot");
     } catch (e, s) {
       logger.warning('Ente Rewind snapshot export failed', e, s);
+      if (!context.mounted) return;
+      await showGenericErrorDialog(context: context, error: e);
+    }
+  }
+
+  Future<void> _onShareRewindBadgeSignals(BuildContext context) async {
+    try {
+      final signals = await exportRewindBadgeSignals();
+      if (!context.mounted) return;
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(signals.path, mimeType: "application/json")],
+          sharePositionOrigin: shareButtonRect(context, null),
+        ),
+      );
+    } catch (e, s) {
+      logger.warning('Ente Rewind badge signals export failed', e, s);
       if (!context.mounted) return;
       await showGenericErrorDialog(context: context, error: e);
     }

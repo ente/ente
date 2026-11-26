@@ -9,7 +9,7 @@ fn main() -> TestResult {
     let mut args = std::env::args_os().skip(1);
     let command = args.next().ok_or("expected a command to run")?;
 
-    Museum::run(|museum| {
+    Museum::run_with_env(&[("ENTE_INTERNAL_DISABLE_RATE_LIMIT", "true")], |museum| {
         eprintln!("Test Museum ready at {}", museum.endpoint());
         tokio::runtime::Runtime::new()?.block_on(async {
             let mut command = Command::new(command);

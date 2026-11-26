@@ -144,12 +144,24 @@ pub(crate) fn dequantize(scale: f32, values: &[i8]) -> Vec<f32> {
 }
 
 pub(crate) fn validate_dims(dims: usize, storage: StorageKind) -> Result<(), VecDbError> {
+    validate_dims_up_to(dims, storage, storage.max_dims())
+}
+
+pub(crate) fn validate_dims_up_to(
+    dims: usize,
+    storage: StorageKind,
+    max_dims: usize,
+) -> Result<(), VecDbError> {
     if dims == 0
         || !dims.is_multiple_of(storage.lane_width())
         || u32::try_from(dims).is_err()
-        || dims > storage.max_dims()
+        || dims > max_dims
     {
-        return Err(VecDbError::InvalidDimensions { dims, storage });
+        return Err(VecDbError::InvalidDimensions {
+            dims,
+            storage,
+            max_dims,
+        });
     }
     Ok(())
 }
@@ -388,7 +400,7 @@ mod tests {
             validate_dims(MAX_DIMS_I8 + LANE_WIDTH_I8, StorageKind::I8),
             Err(VecDbError::InvalidDimensions {
                 dims,
-                storage: StorageKind::I8
+                storage: StorageKind::I8, ..
             }) if dims == MAX_DIMS_I8 + LANE_WIDTH_I8
         ));
         let saturated_product = i64::from(I8_LIMIT as i32) * i64::from(I8_LIMIT as i32);

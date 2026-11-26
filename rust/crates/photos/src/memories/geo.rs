@@ -1,12 +1,9 @@
 use std::collections::HashMap;
-use std::f64::consts::PI;
 
-use ente_location::Coordinate;
+use ente_location::{Coordinate, EARTH_RADIUS_KM, KILOMETERS_PER_DEGREE};
 
 use super::photo::Photo;
 
-const EARTH_RADIUS_KM: f64 = 6371.0;
-const KILOMETERS_PER_DEGREE: f64 = 111.16;
 const GRID_MAX_LATITUDE: f64 = 80.0;
 const GRID_CELL_MARGIN: f64 = 1.01;
 
@@ -98,7 +95,9 @@ pub(super) fn cluster_by_location<'p>(
     let mut grid = Grid::for_ellipses(radius_km);
     for member in members {
         let nearby = grid.first_near(member.location, |&id| {
-            is_within(clusters[id].center, member.location, radius_km)
+            member
+                .location
+                .is_within_radius_km(clusters[id].center, radius_km)
         });
         match nearby {
             Some(id) => {
@@ -130,7 +129,7 @@ pub(super) fn merge_nearby_clusters(
         let nearby = clusters[into].as_ref().and_then(|_| {
             grid.first_near(centers[into], |&other| {
                 other != into
-                    && distance_km(centers[into.min(other)], centers[into.max(other)]) <= radius_km
+                    && centers[into.min(other)].distance_km(centers[into.max(other)]) <= radius_km
             })
         });
         let Some(other) = nearby else {
@@ -159,10 +158,10 @@ struct Grid {
 
 impl Grid {
     fn for_ellipses(radius_km: f64) -> Self {
-        let longitude_reach = radius_km / KILOMETERS_PER_DEGREE;
+        let latitude_reach = radius_km / KILOMETERS_PER_DEGREE;
         Self::new(
-            longitude_reach / GRID_MAX_LATITUDE.to_radians().cos(),
-            longitude_reach,
+            latitude_reach,
+            latitude_reach / GRID_MAX_LATITUDE.to_radians().cos(),
         )
     }
 
@@ -255,29 +254,6 @@ pub(super) fn mean_location(members: &[Located]) -> Coordinate {
     Coordinate::new(latitude_sum / count, longitude_sum / count)
 }
 
-pub(super) fn distance_km(from: Coordinate, to: Coordinate) -> f64 {
-    let latitude_from = from.latitude * (PI / 180.0);
-    let latitude_to = to.latitude * (PI / 180.0);
-    let longitude_from = from.longitude * (PI / 180.0);
-    let longitude_to = to.longitude * (PI / 180.0);
-    let half_latitude = (latitude_to - latitude_from) / 2.0;
-    let half_longitude = (longitude_to - longitude_from) / 2.0;
-    let a = half_latitude.sin() * half_latitude.sin()
-        + latitude_from.cos() * latitude_to.cos() * half_longitude.sin() * half_longitude.sin();
-    EARTH_RADIUS_KM * (2.0 * a.sqrt().atan2((1.0 - a).sqrt()))
-}
-
-pub(super) fn is_within(center: Coordinate, point: Coordinate, radius_km: f64) -> bool {
-    let latitude_scale = 1.0 / (center.latitude * (PI / 180.0)).cos();
-    let latitude_radius = (radius_km * latitude_scale) / KILOMETERS_PER_DEGREE;
-    let longitude_radius = radius_km / KILOMETERS_PER_DEGREE;
-    let latitude_delta = center.latitude - point.latitude;
-    let longitude_delta = center.longitude - point.longitude;
-    (latitude_delta * latitude_delta) / (latitude_radius * latitude_radius)
-        + (longitude_delta * longitude_delta) / (longitude_radius * longitude_radius)
-        <= 1.0
-}
-
 pub(super) fn two_decimals(value: f64) -> String {
     let eighths = value * 8.0;
     let is_tie = eighths.fract() == 0.0 && eighths.rem_euclid(2.0) == 1.0;
@@ -294,8 +270,7 @@ mod tests {
     use ente_location::Coordinate;
 
     use super::{
-        Cluster, Located, cluster_by_location, distance_km, is_within, located,
-        merge_nearby_clusters, two_decimals,
+        Cluster, Located, cluster_by_location, located, merge_nearby_clusters, two_decimals,
     };
     use crate::memories::calendar::LocalDate;
     use crate::memories::photo::Photo;
@@ -306,6 +281,7 @@ mod tests {
             id,
             creation_time: id,
             local_time: id,
+            has_capture_clock: false,
             date: LocalDate::of_local_time(id),
             collection_id: None,
             location: Some(location),
@@ -344,10 +320,11 @@ mod tests {
     fn linear_clusters<'p>(members: &[Located<'p>], radius_km: f64) -> Vec<Cluster<'p>> {
         let mut clusters: Vec<Cluster> = Vec::new();
         for &member in members {
-            match clusters
-                .iter_mut()
-                .find(|cluster| is_within(cluster.center, member.location, radius_km))
-            {
+            match clusters.iter_mut().find(|cluster| {
+                member
+                    .location
+                    .is_within_radius_km(cluster.center, radius_km)
+            }) {
                 Some(cluster) => cluster.add(member),
                 None => clusters.push(Cluster::new(member)),
             }
@@ -358,9 +335,7 @@ mod tests {
     fn pairwise_merged(mut clusters: Vec<Cluster<'_>>, radius_km: f64) -> Vec<Cluster<'_>> {
         while let Some((into, from)) = (0..clusters.len()).find_map(|into| {
             (into + 1..clusters.len())
-                .find(|&from| {
-                    distance_km(clusters[into].center, clusters[from].center) <= radius_km
-                })
+                .find(|&from| clusters[into].center.distance_km(clusters[from].center) <= radius_km)
                 .map(|from| (into, from))
         }) {
             let merged = clusters.remove(from);
@@ -394,7 +369,11 @@ mod tests {
 
     #[test]
     fn grid_clustering_and_merging_match_plain_scans_over_every_pair() {
-        let photos = scattered_photos(1500);
+        let mut photos = scattered_photos(1500);
+        photos.extend([
+            photo(1500, Coordinate::new(60.0, 0.2)),
+            photo(1501, Coordinate::new(60.0, 0.6)),
+        ]);
         let members = located(&photos);
         for (radius_km, merge_radius_km) in [(0.6, 1.5), (25.0, 25.0)] {
             let clusters = cluster_by_location(members.iter().copied(), radius_km);
@@ -466,14 +445,5 @@ mod tests {
         ] {
             assert_eq!(two_decimals(value), expected, "{value}");
         }
-    }
-
-    #[test]
-    fn distances_use_the_haversine_great_circle_and_an_ellipse_for_radius_checks() {
-        let paris = Coordinate::new(48.8566, 2.3522);
-        let london = Coordinate::new(51.5074, -0.1278);
-        assert!((distance_km(paris, london) - 343.5).abs() < 1.0);
-        assert!(is_within(paris, Coordinate::new(48.95, 2.3522), 25.0));
-        assert!(!is_within(paris, Coordinate::new(48.8566, 2.70), 25.0));
     }
 }

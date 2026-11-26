@@ -5,12 +5,12 @@ pub struct RewindRequest {
     pub year: i32,
     pub now: i64,
     pub utc_offset_seconds: i32,
-    pub season_start: i64,
-    pub installed_at: i64,
     pub local_gallery_mode: bool,
     pub files: Vec<RewindFile>,
     pub people: Vec<RewindPerson>,
     pub me_person_id: Option<String>,
+    #[serde(default)]
+    pub just_clustered: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -27,6 +27,14 @@ pub struct RewindFile {
     pub is_screenshot: bool,
     pub shared_album_ids: Vec<i64>,
     pub like_count: u32,
+}
+
+pub struct RewindCoverageFile {
+    pub id: i64,
+    pub creation_time: i64,
+    pub local_date_time: Option<String>,
+    pub utc_offset_seconds: i32,
+    pub file_type: RewindFileType,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]

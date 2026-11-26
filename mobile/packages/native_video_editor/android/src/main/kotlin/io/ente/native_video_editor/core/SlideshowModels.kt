@@ -30,17 +30,38 @@ sealed class SlideshowItem {
         }
     }
 
-    data class Video(override val path: String, val isMuted: Boolean) : SlideshowItem() {
+    data class Video(
+        override val path: String,
+        val isMuted: Boolean,
+        val maxDurationMs: Long?
+    ) : SlideshowItem() {
         init {
-            require(path.isNotBlank()) { "Invalid slideshow video" }
+            require(path.isNotBlank() && (maxDurationMs == null || maxDurationMs > 0)) {
+                "Invalid slideshow video"
+            }
         }
     }
 }
 
-data class SlideshowMusic(val path: String, val fadeInMs: Long, val fadeOutMs: Long) {
+data class SlideshowMusic(
+    val path: String,
+    val fadeInMs: Long,
+    val fadeOutMs: Long,
+    val duckedVolume: Double,
+    val duckFadeMs: Long
+) {
     init {
-        require(path.isNotBlank() && fadeInMs >= 0 && fadeOutMs >= 0) { "Invalid slideshow music" }
+        require(
+            path.isNotBlank() &&
+                fadeInMs >= 0 &&
+                fadeOutMs >= 0 &&
+                duckFadeMs >= 0 &&
+                duckedVolume in 0.0..1.0
+        ) { "Invalid slideshow music" }
     }
+
+    val videoAudioGain: Double get() = 1 / (1 + duckedVolume)
+    val duckedMusicGain: Double get() = duckedVolume * videoAudioGain
 }
 
 data class SlideshowExportRequest(
@@ -49,6 +70,7 @@ data class SlideshowExportRequest(
     val height: Int,
     val frameRate: Int,
     val crossfadeMs: Long,
+    val videoBitrate: Int,
     val items: List<SlideshowItem>,
     val music: SlideshowMusic?
 ) {
@@ -60,8 +82,14 @@ data class SlideshowExportRequest(
         }
         require(frameRate in 1..60) { "Invalid slideshow frame rate" }
         require(crossfadeMs >= 0) { "Invalid slideshow crossfade" }
+        require(videoBitrate > 0) { "Invalid slideshow video bitrate" }
         require(
             items.filterIsInstance<SlideshowItem.Photo>().all { crossfadeMs <= it.durationMs }
         ) { "Photo durations must exceed the crossfade" }
+        require(
+            items.filterIsInstance<SlideshowItem.Video>().all {
+                it.maxDurationMs == null || crossfadeMs <= it.maxDurationMs
+            }
+        ) { "Video clips must exceed the crossfade" }
     }
 }

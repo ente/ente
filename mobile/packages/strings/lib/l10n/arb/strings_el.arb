@@ -1067,7 +1067,7 @@
   "physicalRecords": "Αντικείμενο",
   "physicalRecordsDescription": "Αποθηκεύστε τοποθεσίες πραγματικών αντικειμένων.",
   "pickCenterPoint": "Διαλέξτε κεντρικό σημείο",
-  "pinLock": "Κλείδωμα καρφιτσωμάτων",
+  "pinLock": "Κλείδωμα με PIN",
   "@pinLock": {
     "description": "PIN lock option title"
   },

@@ -26,6 +26,7 @@ type User struct {
 	FamilyAdminID      *int64 `json:"familyAdminID"`
 	IsTwoFactorEnabled *bool  `json:"isTwoFactorEnabled"`
 	IsEmailMFAEnabled  *bool  `json:"isEmailMFAEnabled"`
+	IsSuspended        bool   `json:"isSuspended"`
 }
 
 type SendOTTRequest struct {
@@ -39,6 +40,10 @@ type EmailVerificationRequest struct {
 	Email  string  `json:"email"`
 	OTT    string  `json:"ott"`
 	Source *string `json:"source"`
+}
+
+type SetSourceRequest struct {
+	Source string `json:"source" binding:"required"`
 }
 
 type EmailVerificationResponse struct {

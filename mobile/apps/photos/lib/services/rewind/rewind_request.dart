@@ -1,9 +1,10 @@
 import "package:collection/collection.dart";
 import "package:flutter_rust_bridge/flutter_rust_bridge.dart" show Int64List;
-import "package:package_info_plus/package_info_plus.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/db/files_db.dart";
+import "package:photos/db/ml/db.dart";
 import "package:photos/db/social_db.dart";
+import "package:photos/models/collection/collection.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
 import "package:photos/models/metadata/common_keys.dart";
@@ -11,21 +12,25 @@ import "package:photos/models/ml/face/person.dart";
 import "package:photos/models/social/reaction.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
-import "package:photos/services/favorites_service.dart";
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
 import "package:photos/services/memories/memory_sources.dart";
 import "package:photos/services/rewind/rewind_edition.dart";
+import "package:photos/services/search_service.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
 import "package:photos/utils/contact_string_util.dart";
 
 bool get rewindUsesMl =>
-    hasGrantedMLConsent && localSettings.isMLLocalIndexingEnabled;
+    hasGrantedMLConsent &&
+    localSettings.isMLLocalIndexingEnabled &&
+    MLDataDB.isRustBackend;
 
 const _screenshotName = "screenshot";
 const _reactionPageSize = 1000;
 
-Future<rust.RewindRequest> buildRewindRequest(DateTime now) async {
-  final packageInfo = await PackageInfo.fromPlatform();
+Future<rust.RewindRequest> buildRewindRequest(
+  DateTime now, {
+  bool justClustered = false,
+}) async {
   final persons = isLocalGalleryMode || !rewindUsesMl
       ? const <PersonEntity>[]
       : await PersonService.instance.getPersons();
@@ -36,8 +41,6 @@ Future<rust.RewindRequest> buildRewindRequest(DateTime now) async {
     year: RewindEdition.year,
     now: now.microsecondsSinceEpoch,
     utcOffsetSeconds: now.timeZoneOffset.inSeconds,
-    seasonStart: RewindEdition.availableFrom.microsecondsSinceEpoch,
-    installedAt: packageInfo.installTime?.microsecondsSinceEpoch ?? 0,
     localGalleryMode: isLocalGalleryMode,
     files: isLocalGalleryMode ? await _localFiles() : await _ownedFiles(),
     people: [
@@ -56,14 +59,44 @@ Future<rust.RewindRequest> buildRewindRequest(DateTime now) async {
                     normalizeContactLinkEmail(person.data.email) == email,
               )
               ?.remoteID,
+    justClustered: justClustered,
   );
 }
 
+Future<List<rust.RewindCoverageFile>> buildRewindCoverageFiles() async {
+  if (isLocalGalleryMode) {
+    final files = await _localFilesByID();
+    return [
+      for (final MapEntry(key: id, value: file) in files.entries)
+        _coverageFile(
+          id,
+          file.creationTime!,
+          file.pubMagicMetadata?.dateTime,
+          file.fileType,
+        ),
+    ];
+  }
+  final userID = Configuration.instance.getUserID();
+  if (userID == null) return const [];
+  final files = await FilesDB.instance.getOwnedFileDates(userID);
+  return [
+    for (final file in files)
+      _coverageFile(
+        file.id,
+        file.creationTime,
+        file.localDateTime,
+        file.fileType,
+      ),
+  ];
+}
+
+Future<Map<int, EnteFile>> _localFilesByID() {
+  SearchService.instance.invalidateFileCaches();
+  return getFilesAndMapForMemories(useLocalIntIds: true, requireLocalId: true);
+}
+
 Future<List<rust.RewindFile>> _localFiles() async {
-  final files = await getFilesAndMapForMemories(
-    useLocalIntIds: true,
-    requireLocalId: true,
-  );
+  final files = await _localFilesByID();
   return [
     for (final MapEntry(key: id, value: file) in files.entries)
       _rewindFile(
@@ -71,7 +104,7 @@ Future<List<rust.RewindFile>> _localFiles() async {
         file,
         visibility: rust.RewindVisibility.visible,
         isFavourite: false,
-        isJunk: _isScreenshotName(file.deviceFolder),
+        isJunk: isJunkAlbumName(file.deviceFolder),
         isScreenshot: _isScreenshotName(file.deviceFolder),
         sharedAlbumIds: const [],
         likeCount: 0,
@@ -150,15 +183,8 @@ rust.RewindFile _rewindFile(
     id: id,
     creationTime: creationTime,
     localDateTime: file.pubMagicMetadata?.dateTime,
-    utcOffsetSeconds: DateTime.fromMicrosecondsSinceEpoch(
-      creationTime,
-    ).timeZoneOffset.inSeconds,
-    fileType: switch (file.fileType) {
-      FileType.image => rust.RewindFileType.image,
-      FileType.video => rust.RewindFileType.video,
-      FileType.livePhoto => rust.RewindFileType.livePhoto,
-      FileType.other => rust.RewindFileType.other,
-    },
+    utcOffsetSeconds: _utcOffsetSeconds(creationTime),
+    fileType: _rewindFileType(file.fileType),
     location: _location(file),
     visibility: visibility,
     isFavourite: isFavourite,
@@ -168,6 +194,29 @@ rust.RewindFile _rewindFile(
     likeCount: likeCount,
   );
 }
+
+rust.RewindCoverageFile _coverageFile(
+  int id,
+  int creationTime,
+  String? localDateTime,
+  FileType fileType,
+) => rust.RewindCoverageFile(
+  id: id,
+  creationTime: creationTime,
+  localDateTime: localDateTime,
+  utcOffsetSeconds: _utcOffsetSeconds(creationTime),
+  fileType: _rewindFileType(fileType),
+);
+
+int _utcOffsetSeconds(int creationTime) =>
+    DateTime.fromMicrosecondsSinceEpoch(creationTime).timeZoneOffset.inSeconds;
+
+rust.RewindFileType _rewindFileType(FileType fileType) => switch (fileType) {
+  FileType.image => rust.RewindFileType.image,
+  FileType.video => rust.RewindFileType.video,
+  FileType.livePhoto => rust.RewindFileType.livePhoto,
+  FileType.other => rust.RewindFileType.other,
+};
 
 rust.RewindLocation? _location(EnteFile file) {
   final latitude = file.location?.latitude;
@@ -229,6 +278,7 @@ class _Albums {
     final collections = CollectionsService.instance;
     final hidden = collections.getHiddenCollectionIds();
     final archivedOrHidden = collections.archivedOrHiddenCollectionIds();
+    final activeCollections = collections.getActiveCollections();
     return _Albums(
       hidden: hidden,
       archived: archivedOrHidden.difference(hidden),
@@ -238,17 +288,27 @@ class _Albums {
           if (_isScreenshotName(collection.displayName)) collection.id,
       },
       shared: {
-        for (final collection in collections.getActiveCollections())
-          if (!collection.isHidden() &&
-              (collection.hasSharees ||
-                  collection.hasLink ||
-                  !collection.isOwner(userID)))
-            collection.id,
+        for (final collection in activeCollections)
+          if (_isSharedAlbum(collection, userID)) collection.id,
       },
-      favourites:
-          (await FavoritesService.instance.getFavoritesCollection())?.id,
+      favourites: activeCollections
+          .firstWhereOrNull(
+            (collection) =>
+                collection.type == CollectionType.favorites &&
+                collection.isOwner(userID),
+          )
+          ?.id,
     );
   }
+
+  static bool _isSharedAlbum(Collection collection, int userID) =>
+      (collection.type == CollectionType.album ||
+          collection.type == CollectionType.folder) &&
+      !collection.isQuickLinkCollection() &&
+      !collection.isHidden() &&
+      (collection.hasSharees ||
+          collection.hasLink ||
+          !collection.isOwner(userID));
 
   rust.RewindVisibility visibility(EnteFile file, Set<int> collectionIDs) {
     final fileVisibility = file.magicMetadata.visibility;

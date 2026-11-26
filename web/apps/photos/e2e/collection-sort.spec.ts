@@ -6,7 +6,10 @@ const galleryKey = "collectionsSortBy";
 const selectorKey = "collectionSelectorSortBy";
 
 test.beforeEach(async ({ signedInPage: page }) => {
-    await page.getByText("Continue with free plan", { exact: true }).click();
+    await page
+        .getByRole("button", { name: "Continue with 10 GB plan" })
+        .click();
+    await page.getByRole("button", { name: "Show navigation panel" }).click();
     const navigation = page.getByRole("navigation", {
         name: "Albums",
         exact: true,
@@ -24,6 +27,7 @@ test.beforeEach(async ({ signedInPage: page }) => {
         ).toBeVisible();
     }
     await page.goto("/gallery");
+    await page.getByRole("button", { name: "Show navigation panel" }).click();
     await expect(
         navigation.getByRole("button", { name: albumNames }),
     ).toHaveCount(3);
@@ -123,6 +127,9 @@ test("keeps gallery and selector sorting independent and persistent", async ({
             selector: null,
         });
         await page.reload();
+        await page
+            .getByRole("button", { name: "Show navigation panel" })
+            .click();
         await expect(albums).toHaveText(order.map((name) => `Sort ${name}`));
     }
 
@@ -186,6 +193,7 @@ test("keeps gallery and selector sorting independent and persistent", async ({
     await dialog.getByRole("button", { name: "Close", exact: true }).click();
     await expect(dialog).toBeHidden();
     await page.reload();
+    await page.getByRole("button", { name: "Show navigation panel" }).click();
     await expect(albums).toHaveText(["Sort Beta", "Sort Alpha", "Sort Gamma"]);
     await openSelector(page);
     await expect(selectorAlbums).toHaveText([
@@ -210,6 +218,7 @@ test("ignores invalid saved preferences without overwriting either key", async (
         { galleryKey, selectorKey },
     );
     await page.reload();
+    await page.getByRole("button", { name: "Show navigation panel" }).click();
     const navigation = page.getByRole("navigation", {
         name: "Albums",
         exact: true,

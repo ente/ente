@@ -1,6 +1,6 @@
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:flutter/widgets.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:photos/models/search/hierarchical/hierarchical_search_filter.dart";
 
 class GenericFilterChip extends StatelessWidget {

@@ -49,6 +49,7 @@ type Controller struct {
 	Repo                    *fileDataRepo.Repository
 	AccessCtrl              access.Controller
 	ObjectCleanupController *controller.ObjectCleanupController
+	UsageCtrl               *controller.UsageController
 	S3Config                *s3config.S3Config
 	FileRepo                *repo.FileRepository
 	CollectionRepo          *repo.CollectionRepository
@@ -65,6 +66,7 @@ func New(repo *fileDataRepo.Repository,
 	fileRepo *repo.FileRepository,
 	collectionRepo *repo.CollectionRepository,
 	discordController *discord.DiscordController,
+	usageCtrl *controller.UsageController,
 ) *Controller {
 	embeddingDcs := []string{s3Config.GetHotBackblazeDC(), s3Config.GetHotWasabiDC(), s3Config.GetWasabiDerivedDC(), s3Config.GetDerivedStorageDataCenter(), "b5", "b6"}
 	cache := make(map[string]*s3manager.Downloader, len(embeddingDcs))
@@ -76,6 +78,7 @@ func New(repo *fileDataRepo.Repository,
 		Repo:                    repo,
 		AccessCtrl:              accessCtrl,
 		ObjectCleanupController: objectCleanupController,
+		UsageCtrl:               usageCtrl,
 		S3Config:                s3Config,
 		FileRepo:                fileRepo,
 		CollectionRepo:          collectionRepo,

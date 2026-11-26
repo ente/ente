@@ -144,6 +144,7 @@ pub struct NotesFreshness {
     pub summary: NotesSummary,
     pub changed: bool,
     pub forced_document_ids: Vec<String>,
+    pub source_revision: Option<String>,
 }
 
 #[derive(Clone, Debug, uniffi::Record)]
@@ -281,6 +282,21 @@ impl NotesCollection {
         Ok((&writer).into())
     }
 
+    pub fn inspect_source_revision(
+        &self,
+        source: Arc<dyn NotesSource>,
+        cancellation: Arc<NotesCancellation>,
+    ) -> Result<Option<String>, NotesError> {
+        cancellation.check()?;
+        let inventory = inventory(source.as_ref(), &cancellation, &self.id)?;
+        core::inspect_notes_source_revision(
+            &inventory,
+            || cancellation.check(),
+            |id| read_content(source.as_ref(), id, &cancellation),
+        )
+        .map_err(Into::into)
+    }
+
     pub fn inspect_freshness(
         &self,
         source: Arc<dyn NotesSource>,
@@ -293,16 +309,13 @@ impl NotesCollection {
             &writer,
             &inventory,
             || cancellation.check(),
-            |id| match read(source.as_ref(), id, &cancellation) {
-                Ok(value) => Ok(core::NotesDocumentContent::Bytes(value.bytes)),
-                Err(NotesError::SourceChanged) => Ok(core::NotesDocumentContent::Changed),
-                Err(error) => Err(error),
-            },
+            |id| read_content(source.as_ref(), id, &cancellation),
         )?;
         Ok(NotesFreshness {
             summary: (&writer).into(),
             changed: freshness.changed,
             forced_document_ids: freshness.forced_document_ids,
+            source_revision: freshness.source_revision,
         })
     }
 
@@ -419,19 +432,28 @@ fn inventory(
     id: &str,
 ) -> Result<Vec<core::NotesSourceDocument>, NotesError> {
     let inventory: Vec<core::NotesSourceDocument> = source
-        .list_documents()?
+        .list_documents()
+        .map_err(source_inventory_error)?
         .into_iter()
         .map(Into::into)
         .collect();
     cancellation.check()?;
-    core::NotesIndexWriter::validate_inventory_capacity(id, &inventory)?;
+    core::NotesIndexWriter::validate_inventory_capacity(id, &inventory)
+        .map_err(|error| source_inventory_error(error.into()))?;
     let ids: BTreeSet<_> = inventory.iter().map(|v| &v.document_id).collect();
     if ids.len() != inventory.len() {
-        return Err(NotesError::InvalidInput {
+        return Err(NotesError::SourceRead {
             detail: "Ambiguous Notes document IDs".into(),
         });
     }
     Ok(inventory)
+}
+
+fn source_inventory_error(error: NotesError) -> NotesError {
+    match error {
+        NotesError::InvalidInput { detail } => NotesError::SourceRead { detail },
+        error => error,
+    }
 }
 
 fn read(
@@ -450,6 +472,18 @@ fn read(
         return Err(NotesError::SourceChanged);
     }
     Ok(value)
+}
+
+fn read_content(
+    source: &dyn NotesSource,
+    id: &str,
+    cancellation: &NotesCancellation,
+) -> Result<core::NotesDocumentContent, NotesError> {
+    match read(source, id, cancellation) {
+        Ok(value) => Ok(core::NotesDocumentContent::Bytes(value.bytes)),
+        Err(NotesError::SourceChanged) => Ok(core::NotesDocumentContent::Changed),
+        Err(error) => Err(error),
+    }
 }
 
 #[uniffi::export]

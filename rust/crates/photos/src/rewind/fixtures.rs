@@ -91,12 +91,11 @@ pub(super) fn request_at(now: &str, files: Vec<RewindFile>) -> RewindRequest {
         year: 2026,
         now: micros(now),
         utc_offset_seconds: 0,
-        season_start: micros("2026-12-05T00:00:00"),
-        installed_at: micros("2024-03-01T00:00:00"),
         local_gallery_mode: false,
         files,
         people: Vec::new(),
         me_person_id: None,
+        just_clustered: true,
     }
 }
 

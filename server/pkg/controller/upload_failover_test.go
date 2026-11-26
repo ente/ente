@@ -67,7 +67,8 @@ func TestMultipartUploadDuringHotStorageFailover(t *testing.T) {
 					S3Config: config, ObjectCleanupCtrl: cleanup,
 					UsageCtrl: &UsageController{
 						UserRepo: users, UsageRepo: &repo.UsageRepository{DB: db},
-						BillingCtrl: &BillingController{UserRepo: users, BillingRepo: &repo.BillingRepository{DB: db}},
+						UploadURLRepo: &repo.UploadURLRepository{DB: db},
+						BillingCtrl:   &BillingController{UserRepo: users, BillingRepo: &repo.BillingRepository{DB: db}},
 					},
 				}
 				var upload ente.MultipartUploadURLs

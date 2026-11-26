@@ -16,10 +16,7 @@ fn context(model: &ModelRef) -> Result<ContextRef, Error> {
 }
 
 fn message(role: &str, content: &str) -> ChatMessage {
-    ChatMessage {
-        role: role.into(),
-        content: content.into(),
-    }
+    ChatMessage::new(role, content)
 }
 
 fn request(messages: Vec<ChatMessage>) -> ChatRequest {

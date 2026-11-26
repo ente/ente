@@ -5,17 +5,21 @@ import "package:flutter/material.dart";
 import "package:flutter/scheduler.dart";
 import "package:flutter/services.dart";
 import "package:flutter_svg/flutter_svg.dart";
+import "package:photos/models/file/file.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
+import "package:photos/ui/rewind/pages/setup_pages.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
+import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/story/rewind_face.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
+import "package:photos/ui/rewind/theme/rewind_motion.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
 import "package:photos/ui/rewind/widgets/rewind_confetti.dart";
 import "package:photos/ui/rewind/widgets/rewind_keyframes.dart";
-import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_swap_in.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
@@ -30,9 +34,30 @@ class PeopleRacePage extends RewindPage {
   final List<RaceRunner> runners;
   final List<int> _start;
   int? _pick;
+  final _clipKeys = <int?, Object>{};
 
   @override
   String get key => pageKey;
+
+  @override
+  Object get clipKey => _clipKeys.putIfAbsent(_pick, Object.new);
+
+  @override
+  Duration? get reelHold =>
+      _raceThen(_PeopleRaceState._settleMs + RewindMotion.reelReadingMs);
+
+  @override
+  Duration? get clipHold =>
+      _raceThen(_PeopleRaceState._clipLeadMs + _PeopleRaceState._clipEndMs);
+
+  static Duration _raceThen(double ms) =>
+      Duration(milliseconds: (12 * _PeopleRaceState._monthMs + ms).round());
+
+  @override
+  RewindPage get clipIntro => peopleSetupPage;
+
+  @override
+  List<EnteFile> get reelThumbnails => const [];
 
   @override
   RewindChrome get chrome => const RewindChrome(foreground: RewindColors.cream);
@@ -98,30 +123,34 @@ class _PeopleRaceState extends State<_PeopleRace>
   ];
   static const _base = 690.0;
   static const _rise = 330.0;
-  static const _monthMs = 470.0;
   static const _rampMs = 350.0;
   static const _laneMs = 700.0;
   static const _speed = 0.75;
-  static const _settleFrames = 36;
+  static const _monthMs = 470.0;
+  static const _settleMs = 750.0;
+  static const _pickedMs = 850;
+  static const _clipLeadMs = 2000.0;
+  static const _clipEndMs = _settleMs + 5000;
 
+  late final _reel = RewindPageScope.reelOf(context);
+  late final _clip = RewindPageScope.clipOf(context);
+  late final _leadMs = _clip ? _clipLeadMs : 0.0;
   late final Ticker _ticker = createTicker(_tick);
   late final List<_Lane> _lanes;
-  late var _phase = _pick == null ? _Phase.pick : _Phase.done;
+  late var _phase = _pick == null || _reel ? _Phase.pick : _Phase.done;
   late final _replayed = _phase == _Phase.done;
   late var _order = List.of(widget.page._start);
-  late var _cue = _question;
-  var _cueDetail = "Make a guess 👀";
+  late final _copy = RewindCopy.of(context);
+  late var _cue = _copy.raceQuestion;
+  late var _cueDetail = _reel ? "" : _copy.raceHint;
   var _world = 0.0;
   var _speedFactor = 0.0;
   var _lastMs = 0.0;
-  var _settling = 0;
   final _timers = <Timer>[];
 
   List<RaceRunner> get _runners => widget.page.runners;
 
-  int? get _pick => widget.page._pick;
-
-  static const _question = "WHO SHOWED UP MOST?";
+  int? get _pick => _reel && !_clip ? null : widget.page._pick;
 
   double get _top => _runners
       .map((runner) => runner.person.photoCount)
@@ -138,6 +167,20 @@ class _PeopleRaceState extends State<_PeopleRace>
       return _Lane(_startLanes[start], _colors[start]);
     });
     if (_phase == _Phase.done) _finishInstantly();
+    _raceUnprompted();
+  }
+
+  @override
+  void didUpdateWidget(_PeopleRace oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _raceUnprompted();
+  }
+
+  void _raceUnprompted() {
+    if (!_reel || !widget.isActive || _ticker.isActive) return;
+    if (_phase != _Phase.pick) return;
+    if (_pick == null) _phase = _Phase.race;
+    unawaited(_ticker.start());
   }
 
   @override
@@ -163,23 +206,28 @@ class _PeopleRaceState extends State<_PeopleRace>
     widget.page._pick = runner;
     setState(() {
       _phase = _Phase.picked;
-      _cueDetail = "${_runners[runner].face.name}? bold choice";
+      _cueDetail = _copy.racePicked("${_runners[runner].face.name}");
     });
-    _later(const Duration(milliseconds: 850), () {
+    _later(const Duration(milliseconds: _pickedMs), () {
       setState(() => _phase = _Phase.race);
       unawaited(_ticker.start());
     });
   }
 
   void _tick(Duration elapsed) {
-    final nowMs = elapsed.inMicroseconds / 1000;
+    final nowMs = elapsed.inMicroseconds / 1000 - _leadMs;
+    if (_phase == _Phase.pick && nowMs >= -_pickedMs) {
+      setState(() => _phase = _Phase.picked);
+    }
+    if (nowMs < 0) return;
+    if (_phase == _Phase.picked) _phase = _Phase.race;
     final dt = _lastMs == 0 ? 16.0 : min(50.0, nowMs - _lastMs);
     _lastMs = nowMs;
     const raceMs = 12 * _monthMs;
-    if (_settling == 0) {
+    if (nowMs < raceMs) {
       _speedFactor = min(1, nowMs / _rampMs);
     } else {
-      _speedFactor *= 0.86;
+      _speedFactor *= pow(0.86, dt / 16).toDouble();
     }
     _world += dt * _speedFactor;
     for (final lane in _lanes) {
@@ -207,18 +255,22 @@ class _PeopleRaceState extends State<_PeopleRace>
       );
       if (passer >= 0 && month > 0) {
         final passed = _order[ranked.indexOf(passer)];
-        _cue =
-            "${_nameOf(passer).toUpperCase()} OVERTAKES "
-            "${_nameOf(passed).toUpperCase()}!";
+        _cue = _copy.raceOvertakes(
+          _nameOf(passer).toUpperCase(),
+          _nameOf(passed).toUpperCase(),
+        );
         _cueDetail = "";
-        unawaited(HapticFeedback.selectionClick());
+        if (!_reel) unawaited(HapticFeedback.selectionClick());
       }
       _order = ranked;
     }
     for (final (rank, runner) in _order.indexed) {
       _steer(_lanes[runner], _rankLanes[rank], nowMs);
     }
-    if (t >= 1 && ++_settling >= _settleFrames) {
+    if (nowMs >= raceMs + _settleMs) {
+      for (final lane in _lanes) {
+        lane.x = lane.goal;
+      }
       _ticker.stop();
       _finish();
     }
@@ -257,8 +309,9 @@ class _PeopleRaceState extends State<_PeopleRace>
 
   void _finish() {
     _phase = _Phase.done;
-    _cue = _verdict;
+    _cue = _verdict();
     _cueDetail = "";
+    if (_reel) return;
     unawaited(
       _pick == 0 ? HapticFeedback.mediumImpact() : HapticFeedback.lightImpact(),
     );
@@ -272,15 +325,20 @@ class _PeopleRaceState extends State<_PeopleRace>
     for (final (rank, runner) in _order.indexed) {
       _lanes[runner].x = _rankLanes[rank];
     }
-    _cue = _verdict;
+    _cue = _verdict();
     _cueDetail = "";
   }
 
-  String get _verdict => switch (_pick) {
-    0 => "YOU CALLED IT!",
-    1 => "SO CLOSE!",
-    _ => "NOT THIS YEAR!",
-  };
+  String _verdict({bool firstPerson = false}) {
+    if (_pick == null) {
+      return _copy.raceWinner(_nameOf(_order.first).toUpperCase());
+    }
+    return switch (_pick) {
+      0 => firstPerson ? _copy.raceCalledIt.me : _copy.raceCalledIt.you,
+      1 => _copy.raceClose,
+      _ => _copy.raceMissed,
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -334,7 +392,7 @@ class _PeopleRaceState extends State<_PeopleRace>
                   if (_phase == _Phase.done && !_replayed)
                     Positioned.fill(
                       child: RewindConfetti(
-                        count: _pick == 0 ? 80 : 30,
+                        count: _pick == null || _pick == 0 ? 80 : 30,
                         active: true,
                       ),
                     ),
@@ -365,14 +423,20 @@ class _PeopleRaceState extends State<_PeopleRace>
           child: RewindFitWidth(
             width: 370,
             alignment: Alignment.center,
-            child: Text(
-              _cue,
-              textAlign: TextAlign.center,
-              style: RewindTextStyles.display(
-                20,
-                color: RewindColors.white,
-                height: 1.1,
-                letterSpacing: 0.4,
+            child: RewindVoice(
+              (
+                you: _cue,
+                me: _phase == _Phase.done ? _verdict(firstPerson: true) : _cue,
+              ),
+              builder: (text) => Text(
+                text,
+                textAlign: TextAlign.center,
+                style: RewindTextStyles.display(
+                  20,
+                  color: RewindColors.white,
+                  height: 1.1,
+                  letterSpacing: 0.4,
+                ),
               ),
             ),
           ),
@@ -439,7 +503,7 @@ class _PeopleRaceState extends State<_PeopleRace>
     final rank = _order.indexOf(runner);
     final winner = _phase == _Phase.done && rank == 0;
     final countTop = winner ? -55.0 : -40.0;
-    final picked = _pick == runner;
+    final picked = _pick == runner && _phase != _Phase.pick;
     return Positioned(
       left: lane.x - 51.5,
       top: head - 45,
@@ -467,7 +531,7 @@ class _PeopleRaceState extends State<_PeopleRace>
                 duration: const Duration(milliseconds: 200),
                 child: Center(
                   child: RewindOutlinedText(
-                    rewindCount(lane.count.round()),
+                    _copy.number(lane.count.round()),
                     style: RewindTextStyles.display(27),
                     outline: 2.4,
                     shadow: const Offset(1.5, 2),
@@ -612,19 +676,21 @@ class _Face extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final crop = face.crop;
     final name = face.name ?? "";
-    final image = crop == null
-        ? ColoredBox(
-            color: RewindColors.ink,
-            child: Center(
-              child: Text(
-                name.isEmpty ? "?" : name.characters.first.toUpperCase(),
-                style: RewindTextStyles.display(40),
+    final image = ValueListenableBuilder(
+      valueListenable: face.liveCrop,
+      builder: (context, crop, _) => crop == null
+          ? ColoredBox(
+              color: RewindColors.ink,
+              child: Center(
+                child: Text(
+                  name.isEmpty ? "?" : name.characters.first.toUpperCase(),
+                  style: RewindTextStyles.display(40),
+                ),
               ),
-            ),
-          )
-        : Image.memory(crop, fit: BoxFit.cover, gaplessPlayback: true);
+            )
+          : Image.memory(crop, fit: BoxFit.cover, gaplessPlayback: true),
+    );
     return DecoratedBox(
       decoration: const BoxDecoration(
         color: RewindColors.cream,
@@ -691,9 +757,12 @@ class _PickTag extends StatelessWidget {
         color: RewindColors.ink,
         borderRadius: BorderRadius.circular(7),
       ),
-      child: Text(
-        "YOUR PICK",
-        style: RewindTextStyles.display(13, height: 1, letterSpacing: 0.3),
+      child: RewindVoice(
+        RewindCopy.of(context).racePick,
+        builder: (text) => Text(
+          text,
+          style: RewindTextStyles.display(13, height: 1, letterSpacing: 0.3),
+        ),
       ),
     );
   }

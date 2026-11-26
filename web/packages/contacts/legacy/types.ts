@@ -45,6 +45,7 @@ export interface LegacyModule<Session> {
     addContact: (
         session: Session,
         email: string,
+        publicKey: string,
         recoveryNoticeInDays?: number,
     ) => Promise<void>;
     updateContact: (

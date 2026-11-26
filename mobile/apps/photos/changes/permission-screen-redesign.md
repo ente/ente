@@ -1,0 +1,1 @@
+- Redesigned the photo access screen shown when you continue without an account.

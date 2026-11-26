@@ -27,6 +27,7 @@ import { UpdateSubscription } from "./UpdateSubscription";
 export interface UserDetailsData {
     email: string;
     userID: number;
+    isSuspended: boolean;
     showFileCountInitializer: boolean;
     user: UserTableRow[];
     storage: UserTableRow[];

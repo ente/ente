@@ -8,11 +8,19 @@ import (
 
 var ErrPermissionDenied = errors.New("insufficient permissions to perform this action")
 
-var ErrIncorrectOTT = errors.New("incorrect OTT")
+var ErrIncorrectOTT = &ApiError{
+	Code:           IncorrectOTT,
+	Message:        "Incorrect OTT",
+	HttpStatusCode: http.StatusUnauthorized,
+}
 
 var ErrExpiredOTT = errors.New("no active OTT")
 
-var ErrIncorrectTOTP = errors.New("incorrect TOTP")
+var ErrIncorrectTOTP = &ApiError{
+	Code:           IncorrectTOTP,
+	Message:        "Incorrect TOTP",
+	HttpStatusCode: http.StatusUnauthorized,
+}
 
 var ErrNotFound = errors.New("not found")
 
@@ -31,6 +39,24 @@ var ErrFileLimitReached = ApiError{
 var ErrBadRequest = errors.New("bad request")
 
 var ErrTooManyBadRequest = errors.New("too many bad request")
+
+var ErrSmallUploadLimitReached = &ApiError{
+	Code:           "SMALL_UPLOAD_LIMIT_REACHED",
+	Message:        "Too many small uploads. Please try again later.",
+	HttpStatusCode: http.StatusTooManyRequests,
+}
+
+var ErrTinyUploadLimitReached = &ApiError{
+	Code:           "TINY_UPLOAD_LIMIT_REACHED",
+	Message:        "Too many very small uploads. Please try again later.",
+	HttpStatusCode: http.StatusTooManyRequests,
+}
+
+var ErrPendingUploadLimitReached = &ApiError{
+	Code:           "PENDING_UPLOAD_LIMIT_REACHED",
+	Message:        "Too many pending uploads. Please complete existing uploads or try again later.",
+	HttpStatusCode: http.StatusTooManyRequests,
+}
 
 var ErrUnexpectedState = errors.New("unexpected state")
 
@@ -75,6 +101,12 @@ var ErrCanNotInviteUserAlreadyInFamily = errors.New("can not invite user who is 
 var ErrFamilySizeLimitReached = errors.New("can't invite new member, family already at max allowed size")
 
 var ErrUserDeleted = errors.New("user account has been deleted")
+
+var ErrUserSuspended = &ApiError{
+	Code:           "ACCOUNT_SUSPENDED",
+	Message:        "This account has been suspended",
+	HttpStatusCode: http.StatusForbidden,
+}
 
 var ErrLockUnavailable = errors.New("could not acquire lock")
 
@@ -290,6 +322,9 @@ const (
 	FileInTrash ErrorCode = "FILE_IN_TRASH"
 
 	SessionExpired ErrorCode = "SESSION_EXPIRED"
+
+	IncorrectOTT  ErrorCode = "INCORRECT_OTT"
+	IncorrectTOTP ErrorCode = "INCORRECT_TOTP"
 
 	LinkEditNotAllowed ErrorCode = "LINK_EDIT_NOT_ALLOWED"
 

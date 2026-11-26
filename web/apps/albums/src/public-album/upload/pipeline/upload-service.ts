@@ -85,10 +85,6 @@ class UploadService {
         this.publicAlbumsCredentials = undefined;
     }
 
-    setFileCount(fileCount: number) {
-        void fileCount;
-    }
-
     reducePendingUploadCount() {
         return undefined;
     }

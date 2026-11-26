@@ -11,6 +11,7 @@ import (
 	"github.com/ente/museum/pkg/controller/discord"
 	util "github.com/ente/museum/pkg/utils"
 	"github.com/ente/museum/pkg/utils/auth"
+	"github.com/ente/museum/pkg/utils/config"
 	"github.com/ente/museum/pkg/utils/network"
 
 	"github.com/gin-contrib/requestid"
@@ -47,31 +48,37 @@ type RateLimitMiddleware struct {
 	reset              time.Duration
 	ticker             *time.Ticker
 	limit10ReqPerMin   *limiter.Limiter
+	limit20ReqPerMin   *limiter.Limiter
 	limit60ReqPerMin   *limiter.Limiter
 	limit120ReqPerHour *limiter.Limiter
 	limit200ReqPerMin  *limiter.Limiter
 	limit250ReqPerMin  *limiter.Limiter
 	limit300ReqPerMin  *limiter.Limiter
 	limit500ReqPerMin  *limiter.Limiter
+	limit800ReqPerMin  *limiter.Limiter
 	limit700ReqPerSec  *limiter.Limiter
 	limit10ReqPerHour  *limiter.Limiter
 	limit60ReqPerHour  *limiter.Limiter
 	discordCtrl        *discord.DiscordController
+	disabled           bool
 }
 
 func NewRateLimitMiddleware(discordCtrl *discord.DiscordController, limit, thumbnailLimit int64, reset time.Duration) *RateLimitMiddleware {
 	rl := &RateLimitMiddleware{
 		limit10ReqPerMin:   util.NewRateLimiter("10-M"),
+		limit20ReqPerMin:   util.NewRateLimiter("20-M"),
 		limit60ReqPerMin:   util.NewRateLimiter("60-M"),
 		limit120ReqPerHour: util.NewRateLimiter("120-H"),
 		limit200ReqPerMin:  util.NewRateLimiter("200-M"),
 		limit250ReqPerMin:  util.NewRateLimiter("250-M"),
 		limit300ReqPerMin:  util.NewRateLimiter("300-M"),
 		limit500ReqPerMin:  util.NewRateLimiter("500-M"),
+		limit800ReqPerMin:  util.NewRateLimiter("800-M"),
 		limit700ReqPerSec:  util.NewRateLimiter("700-S"),
 		limit10ReqPerHour:  util.NewRateLimiter("10-H"),
 		limit60ReqPerHour:  util.NewRateLimiter("60-H"),
 		discordCtrl:        discordCtrl,
+		disabled:           config.IsRateLimitDisabled(),
 		limit:              limit,
 		thumbnailLimit:     thumbnailLimit,
 		reset:              reset,
@@ -92,6 +99,10 @@ func (r *RateLimitMiddleware) Stop() {
 
 func (r *RateLimitMiddleware) GlobalRateLimiter() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if r.disabled {
+			c.Next()
+			return
+		}
 		counter, limit := &r.count, r.limit
 		metricURL, name := processGlobalRateLimitURL, "Global"
 		if c.Request.Method == http.MethodGet && isThumbnailReadURLPath(c.FullPath()) {
@@ -170,6 +181,9 @@ func (r *RateLimitMiddleware) APIRateLimitForUserMiddleware(urlSanitizer func(_ 
 }
 
 func (r *RateLimitMiddleware) isRateLimited(c *gin.Context, rateLimiter *limiter.Limiter, key string, requestPath string, scope rateLimitScope, message string) bool {
+	if r.disabled {
+		return false
+	}
 	limitContext, err := rateLimiter.Get(c, key)
 	if err != nil {
 		log.Error("Failed to check rate limit", err)
@@ -304,7 +318,13 @@ func (r *RateLimitMiddleware) getLimiter(reqPath string, reqMethod string) *limi
 		return r.limit10ReqPerMin
 	}
 	if isAuthenticatedUploadURLPath(reqPath) {
-		return r.limit500ReqPerMin
+		return r.limit800ReqPerMin
+	}
+	if reqPath == "/files/data/preview-upload-url" {
+		return r.limit20ReqPerMin
+	}
+	if reqPath == "/files/data/multipart-preview-upload-url" {
+		return r.limit10ReqPerMin
 	}
 	if isPublicCollectionUploadURLPath(reqPath) {
 		return r.limit250ReqPerMin

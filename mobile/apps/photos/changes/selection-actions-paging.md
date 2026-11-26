@@ -1,0 +1,1 @@
+- Photo selection actions now swipe a set at a time, and their sheet moves faster.

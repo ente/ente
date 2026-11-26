@@ -1,4 +1,5 @@
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:ente_logging/logging.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:ente_strings/extensions.dart";
@@ -8,7 +9,6 @@ import "package:ente_utils/email_util.dart";
 import "package:ente_utils/platform_util.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:locker/core/constants.dart";
 import "package:locker/services/feature_flag_service.dart";
 import "package:url_launcher/url_launcher_string.dart";

@@ -23,6 +23,17 @@ description: Frequently asked questions about Ente Auth
 4. Enter the account name, issuer, and secret (setup key).
 5. Save and verify the generated code.
 
+**On the desktop app (Windows, macOS and Linux):**
+
+The desktop app can't scan with a camera, so add codes like this:
+
+1. Click the **+** button in the bottom-right corner of the Ente Auth window. If you haven't added any codes yet, use the buttons in the middle of the window instead.
+2. If the service shows a setup key, choose **Enter details manually** (or **Enter a setup key**) and paste the key into the **Secret** field.
+3. If the service only shows a QR code, save a screenshot of it, choose **Import from gallery**, and select the image. Keep the screenshot private and delete it after setup, including from any photo backups where it may have been saved.
+4. Enter the generated code on the service to finish setup.
+
+You can also add the code on your phone and it will sync to the desktop app when you're signed in to the same Ente account.
+
 ### What should I enter in the Secret field when adding a code manually? {#manual-secret-field}
 
 Enter the two-factor setup key provided by the service you are securing. It is not your login password or Ente password.
@@ -64,6 +75,14 @@ The easiest workaround is to add the code manually:
 
 If the service only offers a QR code and no setup key, check its security settings for an option to "show setup key" or "can't scan?".
 
+### Why does Ente Auth say "Sorry, the endpoint you entered is invalid"? {#invalid-endpoint}
+
+This message comes from **Developer settings**, which is only for people who run their own Ente server (self-hosting). The screen opens if you tap the welcome screen 7 times and choose **Yes**.
+
+The address you entered wasn't saved, so nothing has changed. If you don't run your own server, leave Developer settings without entering anything, then tap **Log in** or **Sign up** as usual.
+
+If you do self-host, enter your server's full address, starting with `https://` or `http://`, and make sure the server is running. See [connecting the apps to your server](/self-hosting/installation/post-install/).
+
 ### How secure is Ente Auth?
 
 All codes you backup via Ente is stored with end-to-end encryption. This means only you can access your codes. Our apps are open source and our cryptography has been externally audited.
@@ -87,6 +106,14 @@ Use the recovery method for the account you are trying to access:
 If you cannot sign in to another service, use that service's recovery options or contact its support team. If you cannot sign in to Ente, see [account recovery](/photos/faq/security-and-privacy#account-recovery) and [lost second-factor help](/photos/faq/security-and-privacy#two-factor-auth).
 
 Keep your recovery materials somewhere you can reach without signing in to the account they protect. See [Enteception](/auth/faq/enteception/) if you store the second factor for Ente or your email account inside Ente Auth.
+
+### I forgot my Ente Auth password. How do I get back in? {#auth-forgot-password}
+
+On the sign-in screen, enter your email, then tap **Forgot password?** on the password screen. Ente sends a verification code to your email to confirm it's you. This step happens even if email verification is turned off for sign-in. Then enter your 24-word recovery key and set a new password.
+
+If you use the same account in Ente Photos or Locker, it has the same password and recovery key there.
+
+Ente can't reset your password or see your codes. If you've lost both your password and recovery key, check for a signed-in device, an export, or another recovery option before starting over. Without any of these, your codes can't be recovered. If you want to start over with the same email, see [I've lost my password and recovery key. Can I start over with the same email?](/photos/faq/security-and-privacy#start-fresh-same-email). You'll then need to set up 2FA again with each service.
 
 ### Can I change my recovery key if it was exposed? {#change-recovery-key}
 
@@ -271,6 +298,8 @@ Open **Settings** and tap **Sign in to backup your codes** at the top. Ente Auth
 
 Yes, you can download Ente Auth on multiple devices and sync the codes with end-to-end encryption.
 
+To move your codes to a new phone, install Ente Auth on it and sign in with the same Ente account. Your backed-up codes sync to the new phone, so you don't need to scan each QR code again. Keep the old phone until you've checked that the codes work. If you used Ente Auth without backups, first see [How do I start backing up my codes after using Ente Auth without backups?](#enable-backup-later). To move codes to a different Ente account, see [Can I merge two Ente accounts or move my Auth codes to another account?](#merge-accounts).
+
 ### Do you support exporting to Google Authenticator format? {#export-google-authenticator}
 
 Yes, you can export your codes as HTML QR codes and then scan them in Google Authenticator to import them.
@@ -289,6 +318,10 @@ The HTML export generates individual QR codes for each of your codes, making it 
 > [!IMPORTANT]
 >
 > This export is unencrypted. Handle the exported HTML file carefully and delete it after importing your codes.
+
+### What happens to my codes if I can't use Ente Auth? {#backup-outside-ente}
+
+Codes are generated on your device, so Ente Auth keeps working on a signed-in device without internet. To keep a backup that doesn't depend on Ente, [export your codes](/auth/migration/export) and store the file somewhere safe. An encrypted export can be restored in Ente Auth. For another app, check which format it accepts. Some apps can import a plain-text export, while Google Authenticator needs the **Plain HTML** QR-code export described above. These unencrypted exports let anyone with the file generate your codes, so protect them carefully. For time-based codes (TOTP), you can also add the same account to a second authenticator app when you set up 2FA. Counter-based codes (HOTP) can diverge when one app advances its counter.
 
 ### What information about my codes is stored on Ente server?
 
@@ -311,6 +344,8 @@ Common causes:
 - **Encrypted export without its password.** If the export is password-protected, enter the same password you set when you created it.
 - **Edited or corrupted file.** Do not edit the export before importing.
 - **Screenshot used in the file importer.** A screenshot is not an export file. For a QR code screenshot, use **+** then **Import from gallery** (or scan the QR code). Do not use the file importer meant for export files.
+- **An HTML file.** Ente Auth can't import HTML files, including its own **Plain HTML** export, which is only for scanning codes into Google Authenticator. If the error mentions `<!DOCTYPE html>`, the file is a web page, often saved from a browser or cloud drive preview instead of the original export. To restore codes into Ente Auth, use an encrypted or plain text Ente Auth export. If you only have the Plain HTML file, open it and scan each QR code with Ente Auth.
+- **An empty file, a PDF or an image.** Errors such as "Unexpected end of input" or a decoding error usually mean the file is empty or isn't an export at all. Export again and save the original file directly to your device before importing.
 
 What to do:
 

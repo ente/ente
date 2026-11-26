@@ -48,6 +48,26 @@ func (repo *ObjectCleanupRepository) GetFileUploadBucket(ctx context.Context, ob
 	return bucket.String, nil
 }
 
+func (repo *ObjectCleanupRepository) GetPreviewUploadBucket(ctx context.Context, objectKey string, userID int64, app ente.App) (string, error) {
+	var bucket sql.NullString
+	var cleanupState sql.NullString
+	err := repo.DB.QueryRowContext(ctx, `SELECT bucket_id, cleanup_state FROM temp_objects
+		WHERE object_key = $1
+		AND (user_id IS NULL OR user_id = $2)
+		AND (app IS NULL OR app = $3)
+		AND (purpose IS NULL OR purpose = $4)`, objectKey, userID, app, ente.PreviewVideo).Scan(&bucket, &cleanupState)
+	if err != nil {
+		return "", stacktrace.Propagate(err, "")
+	}
+	if cleanupState.Valid {
+		return "", ente.NewBadRequestWithMessage("staged upload not found")
+	}
+	if !bucket.Valid || bucket.String == "" {
+		return "", ente.NewBadRequestWithMessage("staged upload not found")
+	}
+	return bucket.String, nil
+}
+
 func (repo *ObjectCleanupRepository) ConsumeFileUpload(ctx context.Context, tx *sql.Tx, objectKey string, userID int64, app ente.App, bucket string) error {
 	res, err := tx.ExecContext(ctx, `DELETE FROM temp_objects WHERE object_key = $1
 		AND cleanup_state IS NULL

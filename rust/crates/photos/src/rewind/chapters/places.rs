@@ -10,21 +10,21 @@ use crate::rewind::report::{Places, RewindCity};
 const PLACES_MINIMUM_LOCATED: usize = 20;
 const PLACES_MINIMUM_CITIES: usize = 3;
 const PLACES_CITIES: usize = 6;
-const PLACES_CITY_CANDIDATES: usize = 3;
+const PLACES_CITY_CANDIDATES: usize = 9;
 const PLACES_MINIMUM_VISIT_PHOTOS: usize = 2;
 
-struct City<'l, 'r> {
-    name: String,
-    country: String,
-    center: Coordinate,
-    files: Vec<&'l YearFile<'r>>,
+pub(in crate::rewind) struct City<'l, 'r> {
+    pub(super) name: String,
+    pub(super) country: String,
+    pub(super) country_code: String,
+    pub(super) center: Coordinate,
+    pub(super) files: Vec<&'l YearFile<'r>>,
 }
 
-pub(in crate::rewind) fn places(
-    library: &Library<'_>,
+pub(in crate::rewind) fn cities<'l, 'r>(
+    library: &'l Library<'r>,
     lookup: &dyn CityLookup,
-    ranking: &Ranking<'_>,
-) -> Option<Places> {
+) -> Option<Vec<City<'l, 'r>>> {
     let located: Vec<(&YearFile, Coordinate)> = library
         .eligible()
         .filter_map(|file| Some((file, file.location()?)))
@@ -39,6 +39,7 @@ pub(in crate::rewind) fn places(
         .map(|group| City {
             name: group.city.name,
             country: group.city.country_name,
+            country_code: group.city.country_code.as_str().to_string(),
             center: Coordinate::new(group.city.latitude, group.city.longitude),
             files: group
                 .coordinate_indices
@@ -48,6 +49,35 @@ pub(in crate::rewind) fn places(
         })
         .filter(|city| !city.files.is_empty())
         .collect();
+    largest_first(&mut cities);
+    Some(cities)
+}
+
+pub(super) fn mentionable<'l, 'r>(
+    cities: &[City<'l, 'r>],
+    ranking: &Ranking<'_>,
+) -> Vec<City<'l, 'r>> {
+    let mut cities: Vec<City> = cities
+        .iter()
+        .map(|city| City {
+            name: city.name.clone(),
+            country: city.country.clone(),
+            country_code: city.country_code.clone(),
+            center: city.center,
+            files: city
+                .files
+                .iter()
+                .copied()
+                .filter(|file| ranking.is_mentionable(file))
+                .collect(),
+        })
+        .filter(|city| !city.files.is_empty())
+        .collect();
+    largest_first(&mut cities);
+    cities
+}
+
+fn largest_first(cities: &mut [City<'_, '_>]) {
     cities.sort_by(|first, second| {
         second
             .files
@@ -55,6 +85,9 @@ pub(in crate::rewind) fn places(
             .cmp(&first.files.len())
             .then_with(|| first.name.cmp(&second.name))
     });
+}
+
+pub(in crate::rewind) fn places(cities: &[City<'_, '_>], ranking: &Ranking<'_>) -> Option<Places> {
     let listed: Vec<RewindCity> = cities
         .iter()
         .filter_map(|city| {
@@ -73,12 +106,19 @@ pub(in crate::rewind) fn places(
         .take(PLACES_CITIES)
         .collect();
     (listed.len() >= PLACES_MINIMUM_CITIES).then(|| Places {
-        distance_km: travelled_km(&cities).round() as u32,
+        distance_km: travelled_km(cities).round() as u32,
         cities: listed,
     })
 }
 
-fn travelled_km(cities: &[City<'_, '_>]) -> f64 {
+pub(super) fn travelled_km(cities: &[City<'_, '_>]) -> f64 {
+    stays(cities)
+        .windows(2)
+        .map(|pair| distance_km(cities[pair[0]].center, cities[pair[1]].center))
+        .sum()
+}
+
+pub(super) fn stays(cities: &[City<'_, '_>]) -> Vec<usize> {
     let mut visits: Vec<(i64, i64, usize)> = cities
         .iter()
         .enumerate()
@@ -92,14 +132,13 @@ fn travelled_km(cities: &[City<'_, '_>]) -> f64 {
         .collect();
     visits.sort_unstable();
     let runs = collapse(visits.into_iter().map(|(_, _, city)| (city, 1)));
-    let stays = collapse(
+    collapse(
         runs.into_iter()
             .filter(|&(_, photos)| photos >= PLACES_MINIMUM_VISIT_PHOTOS),
-    );
-    stays
-        .windows(2)
-        .map(|pair| distance_km(cities[pair[0].0].center, cities[pair[1].0].center))
-        .sum()
+    )
+    .into_iter()
+    .map(|(city, _)| city)
+    .collect()
 }
 
 fn collapse(visits: impl IntoIterator<Item = (usize, usize)>) -> Vec<(usize, usize)> {
@@ -124,7 +163,7 @@ pub(in crate::rewind) mod tests {
     use crate::rewind::library::Library;
     use crate::rewind::ranking::Ranking;
 
-    use super::places;
+    use super::{cities, places};
 
     pub(in crate::rewind) struct Towns(pub(in crate::rewind) Vec<(&'static str, f64, f64)>);
 
@@ -209,7 +248,8 @@ pub(in crate::rewind) mod tests {
         let request = request(files);
         let library = Library::of_year(&request).unwrap();
 
-        let places = places(&library, &towns(), &Ranking::new(None, None)).unwrap();
+        let cities = cities(&library, &towns()).unwrap();
+        let places = places(&cities, &Ranking::new(None, None)).unwrap();
 
         let names: Vec<&str> = places
             .cities
@@ -219,7 +259,8 @@ pub(in crate::rewind) mod tests {
         assert_eq!(names, ["Amsterdam", "Rotterdam", "Utrecht", "Groningen"]);
         assert_eq!(places.cities[3].photo_count, 3);
         assert_eq!(places.cities[0].photo_count, 12);
-        assert_eq!(places.cities[0].file_ids, [1, 12, 2]);
+        assert_eq!(places.cities[0].file_ids[..3], [1, 12, 2]);
+        assert_eq!(places.cities[0].file_ids.len(), 9);
         let [amsterdam, utrecht, rotterdam] = [(52.37, 4.90), (52.09, 5.12), (51.92, 4.48)]
             .map(|(latitude, longitude)| Coordinate::new(latitude, longitude));
         let expected = distance_km(amsterdam, utrecht) + distance_km(utrecht, rotterdam);
@@ -237,7 +278,7 @@ pub(in crate::rewind) mod tests {
         files.push(hidden);
         let too_few = request(files.clone());
         let library = Library::of_year(&too_few).unwrap();
-        assert_eq!(places(&library, &towns(), &Ranking::new(None, None)), None);
+        assert!(cities(&library, &towns()).is_none());
 
         files.push(located(photo(21, "2026-04-04T10:00:00"), 51.92, 4.48));
         let mut archived = located(photo(22, "2026-04-05T10:00:00"), 52.16, 4.49);
@@ -245,7 +286,8 @@ pub(in crate::rewind) mod tests {
         files.push(archived);
         let enough = request(files);
         let library = Library::of_year(&enough).unwrap();
-        let places = places(&library, &towns(), &Ranking::new(None, None)).unwrap();
+        let cities = cities(&library, &towns()).unwrap();
+        let places = places(&cities, &Ranking::new(None, None)).unwrap();
         let names: Vec<&str> = places
             .cities
             .iter()

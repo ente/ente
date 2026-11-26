@@ -198,7 +198,7 @@ func (c *FileController) prepareOutdatedObjectForDeletion(qItem repo.QueueItem) 
 		return
 	}
 
-	err = c.QueueRepo.DeleteItem(repo.OutdatedObjectsQueue, qItem.Item)
+	err = c.QueueRepo.DeleteItem(repo.OutdatedObjectsQueue, qItem.Id)
 	if err != nil {
 		ctxLogger.WithError(err).Error("Failed to remove outdated object item from the queue")
 		return
@@ -244,7 +244,7 @@ func (c *FileController) deleteReadyOutdatedObject(qItem repo.QueueItem) {
 		}
 	}
 
-	err = c.QueueRepo.DeleteItem(repo.DeleteOutdatedObjectQueue, qItem.Item)
+	err = c.QueueRepo.DeleteItem(repo.DeleteOutdatedObjectQueue, qItem.Id)
 	if err != nil {
 		ctxLogger.WithError(err).Error("Failed to remove delayed outdated object item from the queue")
 		return

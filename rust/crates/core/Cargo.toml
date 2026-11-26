@@ -3,9 +3,10 @@ name = "ente-core"
 edition.workspace = true
 
 [dependencies]
-argon2 = { version = "0.6.0", default-features = false, features = ["alloc"] }
+argon2.workspace = true
 base64 = { version = "0.23.1", default-features = false, features = ["std"] }
 blake2b_simd = "1.0.5"
+chacha20poly1305 = { version = "0.11.0", default-features = false, features = ["zeroize"] }
 crypto_secretbox = { version = "0.1.0", default-features = false, features = ["alloc", "salsa20"] }
 crypto_secretstream = "=0.2.0"
 getrandom.workspace = true
@@ -30,6 +31,10 @@ bytes = "1.12.1"
 futures-core = "0.3.34"
 reqwest = { workspace = true, features = ["stream", "gzip", "brotli"] }
 tokio = { workspace = true, features = ["time"] }
+
+[target.'cfg(target_os = "ios")'.dependencies]
+rustls = { version = "0.23.45", default-features = false, features = ["ring", "std", "tls12"] }
+rustls-platform-verifier = "0.7.0"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 gloo-timers = { version = "0.4.0", features = ["futures"] }

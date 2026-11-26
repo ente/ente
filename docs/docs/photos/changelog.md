@@ -7,6 +7,21 @@ description: Release notes of recent updates to Ente Photos mobile and desktop a
 
 A short summary list of changes to the Ente Photos mobile and desktop apps. For a more descriptive list with screenshots and blog post links, see the [news](https://ente.com/news).
 
+## v1.3.70 (mobile) - Nov 2026
+
+- Made backup checks faster for libraries with many folders and reduced repeated album refreshes during backup.
+- Added a shortcut to the gallery’s Layout menu to show or hide photos shared with you.
+- Photo selection shortcuts now scroll in one row. Pull up to see the full menu.
+- Fixed cases where removing photos from the wrong person failed or an earlier correction was lost.
+- Fixed deleted people lingering in the People list until the app restarted.
+- Improved date matching in memories and fixed photos appearing out of order in shorter memories.
+- Fixed an issue on iOS where opening Ente after a background launch could skip the PIN or password lock.
+- Added a clearer message when a password sign-in attempt expires.
+- Improved on-device indexing for large JPEG XL photos and limited memory use when opening malformed Live Photos.
+- Made plan selection consistent between onboarding and subscription settings, and clarified what paid plans include in Ente Locker.
+- Animated the illustrations for empty album searches, Trash, Archive, and Links.
+- Fixed ML-related crashes on Mali GPUs
+
 ## v1.3.69 (mobile) - Nov 2026
 
 - Fixed photo viewer and text recognition reliability on Android.

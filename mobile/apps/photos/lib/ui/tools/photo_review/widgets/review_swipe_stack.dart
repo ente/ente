@@ -2,11 +2,11 @@ import "dart:async";
 import "dart:math" as math;
 
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:ente_icons/ente_icons.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:photos/core/constants.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";
@@ -224,7 +224,7 @@ class _ReviewSwipeStackState extends State<ReviewSwipeStack>
             )
             .clamp(ReviewSwipeStack._minCardWidth, double.infinity);
         _cardSize = Size(width, width / ReviewSwipeStack.aspectRatio);
-        final files = widget.files.take(3).toList();
+        final files = widget.files.take(5).toList();
         final glow =
             (_drag.dx / (_cardSize.width * ReviewSwipeStack._glowFraction))
                 .clamp(-1.0, 1.0);
@@ -261,7 +261,9 @@ class _ReviewSwipeStackState extends State<ReviewSwipeStack>
                 ),
               ),
             ),
-            for (var index = files.length - 1; index >= 0; index--)
+            for (var index = math.min(3, files.length) - 1; index >= 0; index--)
+              _positionedCard(files[index], index, tilt),
+            for (var index = 3; index < files.length; index++)
               _positionedCard(files[index], index, tilt),
           ],
         );
@@ -322,16 +324,20 @@ class _ReviewSwipeStackState extends State<ReviewSwipeStack>
             : Motion.slow,
         curve: Curves.easeOutCubic,
         transform: transform,
-        child: isTop
-            ? GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onPanStart: _onPanStart,
-                onPanUpdate: _onPanUpdate,
-                onPanEnd: _onPanEnd,
-                onPanCancel: () => _onPanEnd(DragEndDetails()),
-                child: card,
-              )
-            : IgnorePointer(child: card),
+        child: Offstage(
+          offstage: index >= 3,
+          child: IgnorePointer(
+            ignoring: !isTop,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onPanStart: _onPanStart,
+              onPanUpdate: _onPanUpdate,
+              onPanEnd: _onPanEnd,
+              onPanCancel: () => _onPanEnd(DragEndDetails()),
+              child: card,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -387,6 +393,8 @@ class _ReviewCard extends StatelessWidget {
                   file,
                   key: Key("review_swipe_${file.tag}"),
                   thumbnailSize: thumbnailLargeSize,
+                  useRequestedThumbnailSizeForLocalCache: true,
+                  useCachedThumbnailAsPlaceholder: true,
                   shouldShowSyncStatus: false,
                   shouldShowFavoriteIcon: false,
                   shouldShowVideoOverlayIcon: false,

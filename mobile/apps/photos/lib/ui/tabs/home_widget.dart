@@ -874,6 +874,10 @@ class _HomeWidgetState extends State<HomeWidget> {
         Configuration.instance.hasConfiguredAccount() &&
         !isLocalGalleryMode &&
         _shouldShowPermissionWidget();
+    final isOnLocalGalleryPermissionScreen =
+        !Configuration.instance.hasConfiguredAccount() &&
+        _startWithoutAccount &&
+        (!isLocalGalleryMode || _shouldShowPermissionWidget());
     return UserDetailsStateWidget(
       child: PopScope(
         canPop: false,
@@ -933,7 +937,11 @@ class _HomeWidgetState extends State<HomeWidget> {
           drawerEnableOpenDragGesture: false,
           drawer: enableDrawer
               ? ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 430),
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.sizeOf(context).width < 600
+                        ? double.infinity
+                        : 430,
+                  ),
                   child: Drawer(
                     width: double.infinity,
                     shape: const RoundedRectangleBorder(),
@@ -988,7 +996,9 @@ class _HomeWidgetState extends State<HomeWidget> {
           ),
 
           // Keep an AppBar so the status bar color follows the current screen.
-          appBar: isOnOnlineGrantPermissionScreen
+          appBar:
+              isOnOnlineGrantPermissionScreen ||
+                  isOnLocalGalleryPermissionScreen
               ? null
               : PreferredSize(
                   preferredSize: const Size.fromHeight(0),
@@ -1117,7 +1127,7 @@ class _HomeWidgetState extends State<HomeWidget> {
                       openDrawer: Scaffold.of(context).openDrawer,
                       physics: isPageScrollLocked
                           ? const NeverScrollableScrollPhysics()
-                          : const BouncingScrollPhysics(),
+                          : const NoLeftBounceScrollPhysics(),
                       children: [
                         _buildTabHeroMode(0, selectedTabIndex, child!),
                         _buildTabHeroMode(
@@ -1193,6 +1203,13 @@ class _HomeWidgetState extends State<HomeWidget> {
             );
           },
         ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: MediaQuery.systemGestureInsetsOf(context).bottom,
+          child: const AbsorbPointer(child: SizedBox.expand()),
+        ),
         Align(
           alignment: Alignment.bottomCenter,
           child: ValueListenableBuilder(
@@ -1243,7 +1260,9 @@ class _HomeWidgetState extends State<HomeWidget> {
         _logger.info("Initial link received: host ${initialLink.host}");
         if (!mounted) return false;
         _getCredentials(context, initialLink);
-        return true;
+        if (initialLink.queryParameters["ott"]?.isNotEmpty == true) {
+          return true;
+        }
       } else {
         _logger.info("No initial link received.");
       }

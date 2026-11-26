@@ -7,7 +7,13 @@ import "package:logging/logging.dart";
 import 'package:photos/models/selected_files.dart';
 import 'package:photos/ui/viewer/gallery/state/gallery_boundaries_provider.dart';
 import 'package:photos/ui/viewer/gallery/state/gallery_swipe_helper.dart';
+import 'package:photos/ui/viewer/gallery/state/selection_state.dart';
 import 'package:photos/ui/viewer/gallery/swipe_to_select_helper.dart';
+
+bool isSystemBackGestureEdge(BuildContext context, double x) {
+  final insets = MediaQuery.systemGestureInsetsOf(context);
+  return x < insets.left || x > MediaQuery.sizeOf(context).width - insets.right;
+}
 
 class SwipeSelectionWrapper extends StatefulWidget {
   final Widget child;
@@ -101,6 +107,11 @@ class _SwipeSelectionWrapperState extends State<SwipeSelectionWrapper>
           _currentPointerY = event.position.dy;
           _activePointer = event.pointer;
           _initialMovementWasHorizontal = null;
+          if (SelectionState.maybeOf(context)?.respectSystemGestureInsets ==
+                  true &&
+              isSystemBackGestureEdge(context, _currentPointerX)) {
+            _initialMovementWasHorizontal = false;
+          }
           _pointerDownForFirstSelection =
               widget.selectedFiles?.files.isEmpty ?? false;
         },
