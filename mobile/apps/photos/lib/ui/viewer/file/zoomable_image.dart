@@ -29,6 +29,7 @@ import "package:photos/ui/viewer/file/file_viewer_image_page_readiness.dart";
 import "package:photos/ui/viewer/file/image_zoom/image_zoom_viewer.dart";
 import 'package:photos/ui/viewer/file/thumbnail_widget.dart';
 import 'package:photos/ui/viewer/gallery/state/selection_state.dart';
+import 'package:photos/utils/device_info.dart';
 import 'package:photos/utils/dialog_util.dart';
 import 'package:photos/utils/image_util.dart';
 import "package:photos/utils/ram_check_util.dart";
@@ -41,6 +42,7 @@ class ZoomableImage extends StatefulWidget {
   final bool shouldCover;
   final bool isGuestView;
   final bool isFromMemories;
+  final bool refreshLegacyLivePhotoStill;
   final bool enableVerticalSwipeActions;
   final Function({required int memoryDuration})? onFinalFileLoad;
   final ValueChanged<File>? onFinalImageLoaded;
@@ -56,6 +58,7 @@ class ZoomableImage extends StatefulWidget {
     this.shouldCover = false,
     this.isGuestView = false,
     this.isFromMemories = false,
+    this.refreshLegacyLivePhotoStill = false,
     this.enableVerticalSwipeActions = true,
     this.onFinalFileLoad,
     this.onFinalImageLoaded,
@@ -291,7 +294,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
               if (mounted) {
                 precacheImage(imageProvider, context)
                     .then((value) {
-                      if (mounted) {
+                      if (mounted && !_loadedFinalImage) {
                         setState(() {
                           _imageProvider = imageProvider;
                           _loadedSmallThumbnail = true;
@@ -320,13 +323,29 @@ class _ZoomableImageState extends State<ZoomableImage> {
         !_loadingFinalImage &&
         !_finalImageDecryptionFailed) {
       _loadingFinalImage = true;
-      getFileFromServer(_photo, throwOnDecryptionFailure: true)
-          .then((file) {
-            if (file != null) {
-              _onFileLoaded(file);
-            } else {
+      getFileFromServer(
+            _photo,
+            throwOnDecryptionFailure: true,
+            onLegacyLivePhotoStill: widget.refreshLegacyLivePhotoStill
+                ? _displayCachedLivePhotoStill
+                : null,
+          )
+          .then((file) async {
+            if (file == null) {
               // Most network failures return null; retry them like exceptions.
               _onFinalImageFetchFailed();
+              return;
+            }
+            if (Platform.isAndroid &&
+                _photo.isLivePhoto &&
+                isCachedLivePhotoJpeg(file) &&
+                !await isAndroidSDKVersionLowerThan(28)) {
+              await _displayCachedLivePhotoStill(
+                file,
+                allowFormatFallback: true,
+              );
+            } else {
+              _onFileLoaded(file);
             }
           })
           .catchError((e, s) {
@@ -474,8 +493,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
     }
   }
 
-  void _loadWithPlatformDecoder(File file) {
-    ImageProvider imageProvider;
+  ImageProvider _platformImageProvider(FileImage provider) {
     if (isTooLargeImage) {
       _logger.info(
         "Handling very large image (${_photo.width}x${_photo.height}) by decreasing resolution to ${_maxImagePixels ~/ 1000000}MP to prevent crash",
@@ -485,16 +503,40 @@ class _ZoomableImageState extends State<ZoomableImage> {
       final targetHeight = sqrt(maxPixels / aspectRatio);
       final targetWidth = aspectRatio * targetHeight;
 
-      imageProvider = Image.file(
-        file,
-        gaplessPlayback: true,
-        cacheWidth: targetWidth.round(),
-        cacheHeight: targetHeight.round(),
-      ).image;
-    } else {
-      imageProvider = Image.file(file, gaplessPlayback: true).image;
+      return ResizeImage(
+        provider,
+        width: targetWidth.round(),
+        height: targetHeight.round(),
+      );
     }
+    return provider;
+  }
 
+  Future<bool> _displayCachedLivePhotoStill(
+    File file, {
+    bool allowFormatFallback = false,
+  }) async {
+    if (!mounted) return false;
+    final stat = await file.stat();
+    if (!mounted) return false;
+    final imageProvider = _platformImageProvider(
+      _CachedLivePhotoImage(file, (stat.modified, stat.size)),
+    );
+    if (imageProvider == _imageProvider) return true;
+    final error = await _precacheImageError(imageProvider);
+    if (!mounted) return false;
+    if (error != null) {
+      if (allowFormatFallback && !_loadedFinalImage) {
+        await _loadInSupportedFormat(file, error);
+      }
+      return false;
+    }
+    await _updateViewWithFinalImage(imageProvider, file);
+    return true;
+  }
+
+  void _loadWithPlatformDecoder(File file) {
+    final imageProvider = _platformImageProvider(FileImage(file));
     if (mounted) {
       precacheImage(
         imageProvider,
@@ -780,6 +822,21 @@ class _ZoomableImageState extends State<ZoomableImage> {
     }
     await _updateViewWithFinalImage(imageProvider, file);
   }
+}
+
+class _CachedLivePhotoImage extends FileImage {
+  final (DateTime, int) revision;
+
+  const _CachedLivePhotoImage(super.file, this.revision);
+
+  @override
+  bool operator ==(Object other) =>
+      other is _CachedLivePhotoImage &&
+      super == other &&
+      revision == other.revision;
+
+  @override
+  int get hashCode => Object.hash(super.hashCode, revision);
 }
 
 // Delay the spinner so prefetched memory images do not flash it between slides.

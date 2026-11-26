@@ -14,6 +14,7 @@ import "package:photos/models/file/extensions/file_props.dart";
 import 'package:photos/models/file/file.dart';
 import "package:photos/models/metadata/file_magic.dart";
 import 'package:photos/module/download/file.dart';
+import 'package:photos/module/live_photo/video_transform.dart';
 import "package:photos/services/file_magic_service.dart";
 import "package:photos/src/rust/api/motion_photo_api.dart";
 import "package:photos/states/detail_page_state.dart";
@@ -61,9 +62,10 @@ class _ZoomableLiveImageNewState extends State<ZoomableLiveImageNew>
   late final LiveImageLongPressRouter _longPressRouter;
   bool _showVideo = false;
   bool _isVideoFrameReady = true;
+  bool _mirrorVideo = false;
+  ({String path, DateTime changed})? _openedCachedClip;
   Future<MotionPhotoAvailability>? _videoLoad;
 
-  late final _player = Player();
   VideoController? _videoController;
 
   bool isGuestView = false;
@@ -150,10 +152,25 @@ class _ZoomableLiveImageNewState extends State<ZoomableLiveImageNew>
     }
   }
 
+  String? get _replacementClipPath {
+    final clip = _openedCachedClip;
+    if (clip == null) return null;
+    final current = FileStat.statSync(clip.path);
+    return current.type == FileSystemEntityType.file &&
+            current.changed != clip.changed
+        ? clip.path
+        : null;
+  }
+
   void _playOrLoadVideo() {
     if (!_showVideo) return;
     if (_videoController == null) {
       unawaited(_loadLiveVideo());
+      return;
+    }
+    final replacement = _replacementClipPath;
+    if (replacement != null) {
+      unawaited(_setVideoController(replacement));
       return;
     }
     _videoController!.player.seek(Duration.zero).ignore();
@@ -202,6 +219,8 @@ class _ZoomableLiveImageNewState extends State<ZoomableLiveImageNew>
       backgroundDecoration: widget.backgroundDecoration,
       isGuestView: isGuestView,
       isFromMemories: widget.isFromMemories,
+      refreshLegacyLivePhotoStill:
+          _enteFile.isLivePhoto && !widget.isFromMemories,
       onFinalFileLoad: widget.onFinalFileLoad,
       onFinalImageLoaded: widget.onFinalImageLoaded,
       onImagePageReadinessRegistration: widget.onImagePageReadinessRegistration,
@@ -243,10 +262,7 @@ class _ZoomableLiveImageNewState extends State<ZoomableLiveImageNew>
 
   @override
   void dispose() {
-    if (_videoController != null) {
-      _videoController!.player.stop();
-      _videoController!.player.dispose();
-    }
+    unawaited(_videoController?.player.dispose());
     _guestViewEventSubscription.cancel();
     super.dispose();
   }
@@ -254,7 +270,15 @@ class _ZoomableLiveImageNewState extends State<ZoomableLiveImageNew>
   Widget _getVideoPlayer() {
     return Container(
       color: Colors.black,
-      child: Video(controller: _videoController!, controls: null),
+      child: Transform.flip(
+        flipX: _mirrorVideo && Platform.isIOS,
+        flipY: _mirrorVideo && Platform.isAndroid,
+        child: Video(
+          key: ObjectKey(_videoController),
+          controller: _videoController!,
+          controls: null,
+        ),
+      ),
     );
   }
 
@@ -389,15 +413,45 @@ class _ZoomableLiveImageNewState extends State<ZoomableLiveImageNew>
   Future<void> _setVideoController(String url) async {
     if (!mounted) return;
 
-    final controller = VideoController(_player);
+    final previous = _videoController;
+    final player = Player();
+    final controller = VideoController(player);
     setState(() {
       _videoController = controller;
+      _openedCachedClip = null;
       _isVideoFrameReady = false;
     });
 
+    final isLiveMov =
+        _enteFile.isLivePhoto && url.toLowerCase().endsWith('.mov');
+    bool mirrorHorizontally = false;
     try {
-      await _player.setPlaylistMode(PlaylistMode.single);
-      await _player.open(Media(url), play: true);
+      if (previous != null) {
+        await previous.player.dispose();
+        if (!mounted) return;
+      }
+      await player.setPlaylistMode(PlaylistMode.single);
+      if (!mounted) return;
+      if (Platform.isAndroid &&
+          _enteFile.isRemoteOnlyFile &&
+          _enteFile.isLivePhoto &&
+          (_enteFile.title?.toLowerCase().endsWith('.heic') ?? false)) {
+        final stat = await FileStat.stat(url);
+        if (!mounted) return;
+        _openedCachedClip = (path: url, changed: stat.changed);
+      }
+      if (Platform.isIOS && isLiveMov) {
+        mirrorHorizontally = await hasHorizontallyMirroredVideoTrack(File(url));
+        if (!mounted || _videoController != controller) return;
+        if (mirrorHorizontally) {
+          await (player.platform as NativePlayer).setProperty(
+            'video-rotate',
+            'no',
+          );
+          if (!mounted || _videoController != controller) return;
+        }
+      }
+      await player.open(Media(url), play: true);
     } catch (e, s) {
       _logger.info(
         "Failed to initialize live photo video ${_enteFile.tag}",
@@ -409,11 +463,13 @@ class _ZoomableLiveImageNewState extends State<ZoomableLiveImageNew>
         _videoController = null;
         _isVideoFrameReady = false;
       });
+      await player.dispose();
       return;
     }
 
+    if (!mounted || _videoController != controller) return;
     if (!_showVideo) {
-      await _player.pause();
+      await player.pause();
     }
 
     try {
@@ -424,13 +480,29 @@ class _ZoomableLiveImageNewState extends State<ZoomableLiveImageNew>
       _logger.info("First frame wait failed for ${_enteFile.tag}", e, s);
     }
 
+    if (!mounted || _videoController != controller) return;
+    final rotation = player.state.videoParams.rotate;
+    final flipVideoVertically =
+        Platform.isAndroid &&
+        isLiveMov &&
+        (rotation == 180 || rotation == null) &&
+        await hasHorizontallyMirroredVideoTrack(File(url));
+    if (!mounted || _videoController != controller) return;
+
     if (_showVideo) {
-      await _player.seek(Duration.zero);
-      await _player.play();
+      await player.seek(Duration.zero);
+      if (!mounted || _videoController != controller) return;
+      if (_showVideo) await player.play();
     }
 
     if (!mounted || _videoController != controller) return;
+    final replacement = _replacementClipPath;
+    if (_showVideo && replacement != null) {
+      await _setVideoController(replacement);
+      return;
+    }
     setState(() {
+      _mirrorVideo = mirrorHorizontally || flipVideoVertically;
       _isVideoFrameReady = true;
     });
   }

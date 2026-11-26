@@ -172,19 +172,35 @@ void removeDownloadCallback(EnteFile file) {
   }
 }
 
+bool isCachedLivePhotoJpeg(File file) =>
+    const {'.jpg', '.jpeg'}.contains(extension(file.path).toLowerCase());
+
 Future<File?> getFileFromServer(
   EnteFile file, {
   ProgressCallback? progressCallback,
   bool liveVideo = false, // only needed in case of live photos
   bool forGalleryDownload = false,
   bool throwOnDecryptionFailure = false,
+  Future<bool> Function(File)? onLegacyLivePhotoStill,
 }) async {
   final cacheManager = (file.fileType == FileType.video || liveVideo)
       ? VideoCacheManager.instance
       : DefaultCacheManager();
-  final fileFromCache = await cacheManager.getFileFromCache(file.downloadUrl);
-  if (fileFromCache != null) {
-    return fileFromCache.file;
+  final cached = await cacheManager.getFileFromCache(file.downloadUrl);
+  File? fallback;
+  if (cached != null) {
+    if (onLegacyLivePhotoStill == null ||
+        liveVideo ||
+        cached.originalUrl != file.downloadUrl ||
+        !isCachedLivePhotoJpeg(cached.file) ||
+        !await canRefreshLivePhotoStill(file)) {
+      return cached.file;
+    }
+    if (await onLegacyLivePhotoStill(cached.file)) fallback = cached.file;
+    final refreshed = await cacheManager.getFileFromCache(file.downloadUrl);
+    if (refreshed != null && refreshed.originalUrl != file.downloadUrl) {
+      return refreshed.file;
+    }
   }
   final downloadID = file.uploadedFileID.toString() + liveVideo.toString();
 
@@ -215,10 +231,12 @@ Future<File?> getFileFromServer(
     }
     return downloadFuture;
   }, onComplete: () => _progressCallbacks.remove(downloadID));
-  return handleDownloadDecryptionFailureForCaller(
+  final downloadedFile = await handleDownloadDecryptionFailureForCaller(
     download,
-    rethrowDecryptionFailure: forGalleryDownload || throwOnDecryptionFailure,
+    rethrowDecryptionFailure:
+        fallback == null && (forGalleryDownload || throwOnDecryptionFailure),
   );
+  return downloadedFile ?? fallback;
 }
 
 Future<bool> isFileCached(EnteFile file, {bool liveVideo = false}) async {

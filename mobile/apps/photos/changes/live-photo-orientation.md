@@ -1,0 +1,1 @@
+- Fixed iPhone Live Photos appearing upside down on Android or flipping when held for playback on Android and iOS.
