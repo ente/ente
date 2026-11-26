@@ -63,6 +63,8 @@ steamguard -u <account name> qr # print QR code for a specific account
 
 Open Ente Auth, press the '+' button, select `Scan a QR code`, and scan the qr code.
 
+![Scan QR camera with Import from Gallery on Ente Auth mobile](https://docs-assets.ente.com/screenshots/auth-scan-qr-callout.png){width=560px}
+
 You should now have your steam code inside Ente Auth
 
 [releases]: https://github.com/dyc3/steamguard-cli/releases/latest
