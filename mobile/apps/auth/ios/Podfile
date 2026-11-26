@@ -30,13 +30,23 @@ target 'Runner' do
   use_frameworks!
   use_modular_headers!
 
+  pod 'AuthCore', :path => 'AuthCore'
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+end
+
+target 'AuthWatch' do
+  platform :watchos, '10.0'
+  use_frameworks! :linkage => :static
+  pod 'AuthCore', :path => 'AuthCore'
 end
 
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
     target.build_configurations.each do |config|
+        if target.platform_name == :watchos
+          config.build_settings['SUPPORTED_PLATFORMS'] = 'watchos watchsimulator'
+        end
         config.build_settings.delete 'IPHONEOS_DEPLOYMENT_TARGET'
     end
   end

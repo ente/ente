@@ -7,16 +7,42 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0CBCC54BBF131276A8004C9E /* AuthWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D4F0BD4488E79D6329081C7 /* AuthWatchApp.swift */; };
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
+		460CFE0256F32D2BF632A56A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 90AF0EF908DF7E8DCE837C1D /* Assets.xcassets */; };
+		5E5EA1479AE1D7484E953789 /* Pods_AuthWatch.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0E5E4D6E35C3DE9833F5D315 /* Pods_AuthWatch.framework */; };
+		668AC1B8461E814662218C94 /* AuthWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = DBA43EA2DD9A0551D4BE3E8F /* AuthWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
 		80417A98453207A394AAD2D5 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D28AA20446BAC82150599AAF /* Pods_Runner.framework */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
+		C8AAB6F323CF3053FC5F52CE /* WatchPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AE2D40BCD04F071F79752F0 /* WatchPlugin.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		E04D093170F235A7019621B4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 97C146E61CF9000F007C117D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B53DA7A22E3B2680F82E679F;
+			remoteInfo = AuthWatch;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXCopyFilesBuildPhase section */
+		727A5C0007C2592C6404CBDA /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				668AC1B8461E814662218C94 /* AuthWatch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		9705A1C41CF9048500538489 /* Embed Frameworks */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -30,14 +56,28 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		0DFF145CC0B4CA2A490CB3B9 /* Watch.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = Watch.xcconfig; sourceTree = "<group>"; };
+		0E5E4D6E35C3DE9833F5D315 /* Pods_AuthWatch.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_AuthWatch.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
 		1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GeneratedPluginRegistrant.m; sourceTree = "<group>"; };
+		15D6D953FCDD7BC70E23893A /* Pods-AuthWatch.production.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-AuthWatch.production.xcconfig"; path = "Target Support Files/Pods-AuthWatch/Pods-AuthWatch.production.xcconfig"; sourceTree = "<group>"; };
+		27C89CB8FF08F9CDA6D8B678 /* Production.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = Production.xcconfig; sourceTree = "<group>"; };
 		3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = AppFrameworkInfo.plist; path = Flutter/AppFrameworkInfo.plist; sourceTree = "<group>"; };
+		3C1ACCE81AF5BD09A7672B8A /* Debug-production.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = "Debug-production.xcconfig"; sourceTree = "<group>"; };
 		40D64528BD343A8A91B93843 /* Pods-Runner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"; sourceTree = "<group>"; };
 		41BDE1E3C8C8C388B911D127 /* Pods-Runner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"; sourceTree = "<group>"; };
+		43ACF703458997F580192E3B /* Pods-AuthWatch.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-AuthWatch.profile.xcconfig"; path = "Target Support Files/Pods-AuthWatch/Pods-AuthWatch.profile.xcconfig"; sourceTree = "<group>"; };
+		5AE2D40BCD04F071F79752F0 /* WatchPlugin.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchPlugin.swift; sourceTree = "<group>"; };
+		6D4F0BD4488E79D6329081C7 /* AuthWatchApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AuthWatchApp.swift; sourceTree = "<group>"; };
+		70EF62244A97ABC397A3C2AB /* Pods-AuthWatch.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-AuthWatch.debug.xcconfig"; path = "Target Support Files/Pods-AuthWatch/Pods-AuthWatch.debug.xcconfig"; sourceTree = "<group>"; };
 		74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
 		74858FAE1ED2DC5600515810 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
+		7BE1A7D2292BE799B664E3D6 /* Pods-AuthWatch.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-AuthWatch.release.xcconfig"; path = "Target Support Files/Pods-AuthWatch/Pods-AuthWatch.release.xcconfig"; sourceTree = "<group>"; };
+		7E0DB72437FDEF358B1513C0 /* Release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
+		8C6D98B958CEE886665CB12B /* Pods-AuthWatch.debug-production.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-AuthWatch.debug-production.xcconfig"; path = "Target Support Files/Pods-AuthWatch/Pods-AuthWatch.debug-production.xcconfig"; sourceTree = "<group>"; };
+		8F18DC77E5FBD5BCD6B9C4A1 /* Profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = Profile.xcconfig; sourceTree = "<group>"; };
+		90AF0EF908DF7E8DCE837C1D /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Debug.xcconfig; path = Flutter/Debug.xcconfig; sourceTree = "<group>"; };
 		9740EEB31CF90195004384FC /* Generated.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; name = Generated.xcconfig; path = Flutter/Generated.xcconfig; sourceTree = "<group>"; };
 		97C146EE1CF9000F007C117D /* Ente Auth.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Ente Auth.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -49,10 +89,20 @@
 		A46DC01FD11469CE90371703 /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
 		CCFD21A537966172738E199D /* Pods-Runner.production.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.production.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.production.xcconfig"; sourceTree = "<group>"; };
 		D28AA20446BAC82150599AAF /* Pods_Runner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Runner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		D9C844C19969FB9CAF3EE558 /* Debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
+		DBA43EA2DD9A0551D4BE3E8F /* AuthWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AuthWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F211A1D544CFA2F68CAED06B /* Pods-Runner.debug-production.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug-production.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug-production.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		4CE6F5663F315FB1EDDB6792 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5E5EA1479AE1D7484E953789 /* Pods_AuthWatch.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		97C146EB1CF9000F007C117D /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -72,14 +122,35 @@
 				40D64528BD343A8A91B93843 /* Pods-Runner.release.xcconfig */,
 				F211A1D544CFA2F68CAED06B /* Pods-Runner.debug-production.xcconfig */,
 				41BDE1E3C8C8C388B911D127 /* Pods-Runner.debug.xcconfig */,
+				7BE1A7D2292BE799B664E3D6 /* Pods-AuthWatch.release.xcconfig */,
+				70EF62244A97ABC397A3C2AB /* Pods-AuthWatch.debug.xcconfig */,
+				43ACF703458997F580192E3B /* Pods-AuthWatch.profile.xcconfig */,
+				15D6D953FCDD7BC70E23893A /* Pods-AuthWatch.production.xcconfig */,
+				8C6D98B958CEE886665CB12B /* Pods-AuthWatch.debug-production.xcconfig */,
 			);
 			path = Pods;
+			sourceTree = "<group>";
+		};
+		162A9B7EA10C51AECD9B78C6 /* Watch */ = {
+			isa = PBXGroup;
+			children = (
+				6D4F0BD4488E79D6329081C7 /* AuthWatchApp.swift */,
+				90AF0EF908DF7E8DCE837C1D /* Assets.xcassets */,
+				0DFF145CC0B4CA2A490CB3B9 /* Watch.xcconfig */,
+				7E0DB72437FDEF358B1513C0 /* Release.xcconfig */,
+				D9C844C19969FB9CAF3EE558 /* Debug.xcconfig */,
+				8F18DC77E5FBD5BCD6B9C4A1 /* Profile.xcconfig */,
+				27C89CB8FF08F9CDA6D8B678 /* Production.xcconfig */,
+				3C1ACCE81AF5BD09A7672B8A /* Debug-production.xcconfig */,
+			);
+			path = Watch;
 			sourceTree = "<group>";
 		};
 		3A395285A668F1F2BB041513 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 				D28AA20446BAC82150599AAF /* Pods_Runner.framework */,
+				0E5E4D6E35C3DE9833F5D315 /* Pods_AuthWatch.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -103,6 +174,7 @@
 				97C146EF1CF9000F007C117D /* Products */,
 				0ACBB6E499605C090E29FBC7 /* Pods */,
 				3A395285A668F1F2BB041513 /* Frameworks */,
+				162A9B7EA10C51AECD9B78C6 /* Watch */,
 			);
 			sourceTree = "<group>";
 		};
@@ -110,6 +182,7 @@
 			isa = PBXGroup;
 			children = (
 				97C146EE1CF9000F007C117D /* Ente Auth.app */,
+				DBA43EA2DD9A0551D4BE3E8F /* AuthWatch.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -126,6 +199,7 @@
 				1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */,
 				74858FAE1ED2DC5600515810 /* AppDelegate.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
+				5AE2D40BCD04F071F79752F0 /* WatchPlugin.swift */,
 			);
 			path = Runner;
 			sourceTree = "<group>";
@@ -143,16 +217,36 @@
 				97C146EB1CF9000F007C117D /* Frameworks */,
 				97C146EC1CF9000F007C117D /* Resources */,
 				9705A1C41CF9048500538489 /* Embed Frameworks */,
+				727A5C0007C2592C6404CBDA /* Embed Watch Content */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
 				24A75286D0BEF59803D00B53 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				FC79A49F8817D84083838188 /* PBXTargetDependency */,
 			);
 			name = Runner;
 			productName = Runner;
 			productReference = 97C146EE1CF9000F007C117D /* Ente Auth.app */;
+			productType = "com.apple.product-type.application";
+		};
+		B53DA7A22E3B2680F82E679F /* AuthWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7230DB4D189354A892EFDB7E /* Build configuration list for PBXNativeTarget "AuthWatch" */;
+			buildPhases = (
+				98A22D0076144FCEC2F2B87B /* [CP] Check Pods Manifest.lock */,
+				B115C83D082A356C5798E99F /* Sources */,
+				4CE6F5663F315FB1EDDB6792 /* Frameworks */,
+				F36BD3EDB95C1AEAE1EC28C6 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = AuthWatch;
+			productName = AuthWatch;
+			productReference = DBA43EA2DD9A0551D4BE3E8F /* AuthWatch.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -184,6 +278,7 @@
 			projectRoot = "";
 			targets = (
 				97C146ED1CF9000F007C117D /* Runner */,
+				B53DA7A22E3B2680F82E679F /* AuthWatch */,
 			);
 		};
 /* End PBXProject section */
@@ -197,6 +292,14 @@
 				3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */,
 				97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */,
 				97C146FC1CF9000F007C117D /* Main.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F36BD3EDB95C1AEAE1EC28C6 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				460CFE0256F32D2BF632A56A /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -250,6 +353,28 @@
 			shellPath = /bin/sh;
 			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" build\n";
 		};
+		98A22D0076144FCEC2F2B87B /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-AuthWatch-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
 		D94B196DDC1A292AF003E148 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -281,10 +406,28 @@
 			files = (
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
+				C8AAB6F323CF3053FC5F52CE /* WatchPlugin.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B115C83D082A356C5798E99F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0CBCC54BBF131276A8004C9E /* AuthWatchApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		FC79A49F8817D84083838188 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = AuthWatch;
+			target = B53DA7A22E3B2680F82E679F /* AuthWatch */;
+			targetProxy = E04D093170F235A7019621B4 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		97C146FA1CF9000F007C117D /* Main.storyboard */ = {
@@ -306,6 +449,13 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		05D952431CE9362986CA35C2 /* Production */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 27C89CB8FF08F9CDA6D8B678 /* Production.xcconfig */;
+			buildSettings = {
+			};
+			name = Production;
+		};
 		249021D3217E4FDB00AE95B9 /* Profile */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -708,9 +858,49 @@
 			};
 			name = "Debug-production";
 		};
+		312B442C3A13FAC7955EA2FB /* Profile */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 8F18DC77E5FBD5BCD6B9C4A1 /* Profile.xcconfig */;
+			buildSettings = {
+			};
+			name = Profile;
+		};
+		5DE194F5F3D2684B660A104D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = D9C844C19969FB9CAF3EE558 /* Debug.xcconfig */;
+			buildSettings = {
+			};
+			name = Debug;
+		};
+		71830297C1CD7714BA80BE47 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 7E0DB72437FDEF358B1513C0 /* Release.xcconfig */;
+			buildSettings = {
+			};
+			name = Release;
+		};
+		92F1F0FCEA6BCA0C15E2A7E1 /* Debug-production */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 3C1ACCE81AF5BD09A7672B8A /* Debug-production.xcconfig */;
+			buildSettings = {
+			};
+			name = "Debug-production";
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		7230DB4D189354A892EFDB7E /* Build configuration list for PBXNativeTarget "AuthWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				71830297C1CD7714BA80BE47 /* Release */,
+				5DE194F5F3D2684B660A104D /* Debug */,
+				312B442C3A13FAC7955EA2FB /* Profile */,
+				05D952431CE9362986CA35C2 /* Production */,
+				92F1F0FCEA6BCA0C15E2A7E1 /* Debug-production */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		97C146E91CF9000F007C117D /* Build configuration list for PBXProject "Runner" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

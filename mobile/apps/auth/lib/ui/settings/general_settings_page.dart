@@ -8,6 +8,7 @@ import 'package:ente_auth/ui/settings/app_icon_selection_screen.dart';
 import 'package:ente_auth/ui/settings/components/auth_settings_navigation.dart';
 import 'package:ente_auth/ui/settings/components/auth_settings_page_scaffold.dart';
 import 'package:ente_auth/ui/settings/language_picker.dart';
+import 'package:ente_auth/ui/settings/watch_settings_page.dart';
 import 'package:ente_auth/utils/toast_util.dart';
 import 'package:ente_components/ente_components.dart';
 import 'package:ente_components/hugeicons.dart';
@@ -38,6 +39,13 @@ class GeneralSettingsPage extends StatelessWidget {
             icon: HugeIcons.strokeRoundedImage01,
             onTap: () =>
                 pushAuthSettingsPage(context, const AppIconSelectionScreen()),
+          ),
+          const SizedBox(height: Spacing.sm),
+          SettingsItem(
+            title: l10n.watch,
+            icon: HugeIcons.strokeRoundedWatch01,
+            onTap: () =>
+                pushAuthSettingsPage(context, const WatchSettingsPage()),
           ),
         ],
         const SizedBox(height: Spacing.lg),

@@ -122,6 +122,7 @@ class SettingsSearchRegistry {
         l10n.general,
         l10n.language,
         if (Platform.isIOS || Platform.isAndroid) l10n.appIcon,
+        if (Platform.isIOS || Platform.isAndroid) l10n.watch,
         l10n.showLargeIcons,
         l10n.compactMode,
         l10n.shouldHideCode,

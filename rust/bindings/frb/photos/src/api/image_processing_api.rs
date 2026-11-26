@@ -1,10 +1,9 @@
 use ente_image::{
-    BoundedDecodeOptions, DecodedImage, ImageError, ImageInput,
-    decode::decode_image_from_path,
+    BoundedDecodeOptions, DecodedImage, ImageError, ImageInput, decode::decode_image_from_path,
     decode_bounded,
-    image_compression::{EncodedImageFormat, encode_rgb},
 };
 use ente_ml::face::thumbnail::{FaceBox, generate_face_thumbnails_from_path};
+use flutter_rust_bridge::frb;
 
 #[derive(Clone, Debug)]
 pub enum RustImageDecodeError {
@@ -36,37 +35,58 @@ pub fn generate_face_thumbnails(
     generate_face_thumbnails_from_path(&image_path, &face_boxes).map_err(|e| e.to_string())
 }
 
-// Use ente_heic instead of the platform decoder, which may fail on HEIC/HEIF.
-pub fn decode_to_jpeg(
+#[frb(opaque)]
+pub struct RustRgbaImage {
+    width: u32,
+    height: u32,
+    pixels: Vec<u8>,
+}
+
+impl RustRgbaImage {
+    #[frb(sync)]
+    pub fn width(&self) -> u32 {
+        self.width
+    }
+
+    #[frb(sync)]
+    pub fn height(&self) -> u32 {
+        self.height
+    }
+
+    #[frb(sync)]
+    pub fn pixels_address(&self) -> i64 {
+        self.pixels.as_ptr() as i64
+    }
+}
+
+pub fn decode_to_rgba(
     image_path: String,
     max_side: u32,
-    quality: Option<u8>,
-) -> Result<Vec<u8>, RustImageDecodeError> {
+) -> Result<RustRgbaImage, RustImageDecodeError> {
     let options = BoundedDecodeOptions {
         max_side,
         ..BoundedDecodeOptions::default()
     };
     let decoded = decode_bounded(ImageInput::Path(&image_path), options)?.image;
-    Ok(encode_jpeg(&decoded, quality)?)
+    Ok(rgba_image(decoded))
 }
 
-pub fn decode_full_to_jpeg(
-    image_path: String,
-    quality: Option<u8>,
-) -> Result<Vec<u8>, RustImageDecodeError> {
-    let decoded = decode_image_from_path(&image_path)?;
-    Ok(encode_jpeg(&decoded, quality)?)
+pub fn decode_full_to_rgba(image_path: String) -> Result<RustRgbaImage, RustImageDecodeError> {
+    Ok(rgba_image(decode_image_from_path(&image_path)?))
 }
 
-fn encode_jpeg(decoded: &DecodedImage, quality: Option<u8>) -> Result<Vec<u8>, ImageError> {
-    encode_rgb(
-        &decoded.rgb,
-        decoded.dimensions.width,
-        decoded.dimensions.height,
-        EncodedImageFormat::Jpeg420 {
-            quality: quality.unwrap_or(95),
-        },
-    )
+fn rgba_image(decoded: DecodedImage) -> RustRgbaImage {
+    let (rgb, _) = decoded.rgb.as_chunks::<3>();
+    let pixels = rgb
+        .iter()
+        .map(|&[r, g, b]| [r, g, b, u8::MAX])
+        .collect::<Vec<_>>()
+        .into_flattened();
+    RustRgbaImage {
+        width: decoded.dimensions.width,
+        height: decoded.dimensions.height,
+        pixels,
+    }
 }
 
 impl From<ImageError> for RustImageDecodeError {
@@ -100,5 +120,26 @@ impl TryFrom<RustFaceBox> for FaceBox {
             width: value.width as f32,
             height: value.height as f32,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ente_image::Dimensions;
+
+    #[test]
+    fn rgba_image_appends_opaque_alpha() {
+        let image = rgba_image(DecodedImage {
+            dimensions: Dimensions {
+                width: 2,
+                height: 1,
+            },
+            rgb: vec![1, 2, 3, 4, 5, 6],
+        });
+
+        assert_eq!((image.width(), image.height()), (2, 1));
+        assert_eq!(image.pixels, [1, 2, 3, 255, 4, 5, 6, 255]);
+        assert_eq!(image.pixels_address(), image.pixels.as_ptr() as i64);
     }
 }

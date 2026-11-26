@@ -43,6 +43,7 @@ import "package:photos/ui/viewer/file/file_viewer_filmstrip_coordinator.dart";
 import "package:photos/ui/viewer/file/file_viewer_image_page_readiness.dart";
 import 'package:photos/ui/viewer/file/file_widget.dart';
 import "package:photos/ui/viewer/file/gallery_file_viewer_filmstrip.dart";
+import "package:photos/ui/viewer/file/image_zoom/viewer_jpeg_image.dart";
 import "package:photos/ui/viewer/file/ocr/inline_text_detection.dart";
 import "package:photos/ui/viewer/file/panorama_viewer_screen.dart";
 import "package:photos/ui/viewer/file/pip/pip_action.dart";
@@ -216,6 +217,9 @@ class _BodyState extends State<_Body> {
   _captionUpdatedSubscription;
   QrCodeDetectionHelper? _qrHelper;
   final Map<String, File> _renderedFiles = {};
+  Size _jpegViewport = Size.zero;
+  int _jpegPreloadGeneration = 0;
+  int _swipeDirection = 1;
   final _playbackSpeed = ValueNotifier<double>(1.0);
   final Map<EnteFile, int> _fileIndexByIdentity = Map.identity();
   final Map<EnteFile, VideoStreamChangeController>
@@ -449,7 +453,26 @@ class _BodyState extends State<_Body> {
         body: Center(
           child: Stack(
             children: [
-              _buildPageView(),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final physicalViewport =
+                      constraints.biggest *
+                      MediaQuery.devicePixelRatioOf(context);
+                  if (physicalViewport != _jpegViewport) {
+                    _jpegViewport = physicalViewport;
+                    scheduleMicrotask(_warmAdjacentJpegs);
+                  }
+                  return NotificationListener<ScrollEndNotification>(
+                    onNotification: (event) {
+                      if (event.depth == 0) {
+                        scheduleMicrotask(_warmAdjacentJpegs);
+                      }
+                      return false;
+                    },
+                    child: _buildPageView(),
+                  );
+                },
+              ),
               if (widget.config.mode == DetailPageMode.full)
                 Positioned(
                   left: 0,
@@ -677,65 +700,77 @@ class _BodyState extends State<_Body> {
         if (!_filmstripCoordinator.isUserScrollSessionActive) {
           _preloadFiles(index);
         }
-        final Widget fileContent = FileWidget(
-          file,
-          autoPlay: shouldAutoPlay(),
-          tagPrefix: widget.config.tagPrefix,
-          shouldDisableScroll: (value) {
-            if (_selectedFile?.tag != file.tag) return;
-            if (_shouldDisableScroll != value) {
-              setState(() {
-                _logger.info('setState $_shouldDisableScroll to $value');
-                _shouldDisableScroll = value;
+        final autoPlay = shouldAutoPlay();
+        Widget buildPage(bool? isSelectedViewerPage) {
+          final fileContent = FileWidget(
+            file,
+            autoPlay: autoPlay,
+            isSelectedViewerPage: isSelectedViewerPage,
+            tagPrefix: widget.config.tagPrefix,
+            shouldDisableScroll: (value) {
+              if (_selectedFile?.tag != file.tag) return;
+              if (_shouldDisableScroll != value) {
+                setState(() {
+                  _logger.info('setState $_shouldDisableScroll to $value');
+                  _shouldDisableScroll = value;
+                });
+              }
+            },
+            playbackCallback: (shouldEnable, reason) {
+              if (widget.config.mode == DetailPageMode.selection) return;
+              Future.delayed(Duration.zero, () {
+                if (!context.mounted) return;
+                InheritedDetailPageState.of(
+                  context,
+                ).requestFullScreen(shouldEnable: shouldEnable, reason: reason);
               });
-            }
-          },
-          playbackCallback: (shouldEnable, reason) {
-            if (widget.config.mode == DetailPageMode.selection) return;
-            Future.delayed(Duration.zero, () {
-              if (!context.mounted) return;
-              InheritedDetailPageState.of(
-                context,
-              ).requestFullScreen(shouldEnable: shouldEnable, reason: reason);
-            });
-          },
-          backgroundDecoration: const BoxDecoration(color: Colors.black),
-          onFinalImageLoaded: (localFile) {
-            _renderedFiles[file.tag] = localFile;
-            if (_selectedFile?.tag == file.tag) {
-              _evaluateQrIfEligible(file);
-            }
-          },
-          onImagePageReadinessRegistration: _shouldShowFilmstrip
-              ? _imagePageReadinessRegistration
-              : null,
-          qrDetectionsNotifier: _qrHelper?.qrDetectionsNotifier,
-          playbackSpeed: _playbackSpeed,
-          streamChangeController: _videoStreamChangeControllerFor(file),
-          pipController: _videoPipControllerFor(file),
-          onTextSelectionStart:
-              flagService.ocrOverlayEnabled &&
-                  widget.config.mode == DetailPageMode.full &&
-                  !file.isLiveOrMotionPhoto
-              ? (details) => _inlineTextDetectionController
-                    .startTextSelectionAt(file, details.globalPosition)
-              : null,
-        );
-        final page = GestureDetector(
-          onTap: () {
-            if (widget.config.mode != DetailPageMode.selection &&
-                file.fileType != FileType.video) {
-              InheritedDetailPageState.of(context).toggleFullScreenByUser();
-            }
-          },
-          child: fileContent,
-        );
+            },
+            backgroundDecoration: const BoxDecoration(color: Colors.black),
+            onFinalImageLoaded: (localFile) {
+              _renderedFiles[file.tag] = localFile;
+              if (_selectedFile?.tag == file.tag) {
+                _evaluateQrIfEligible(file);
+                unawaited(_warmAdjacentJpegs());
+              }
+            },
+            onImagePageReadinessRegistration: _shouldShowFilmstrip
+                ? _imagePageReadinessRegistration
+                : null,
+            qrDetectionsNotifier: _qrHelper?.qrDetectionsNotifier,
+            playbackSpeed: _playbackSpeed,
+            streamChangeController: _videoStreamChangeControllerFor(file),
+            pipController: _videoPipControllerFor(file),
+            onTextSelectionStart:
+                flagService.ocrOverlayEnabled &&
+                    widget.config.mode == DetailPageMode.full &&
+                    !file.isLiveOrMotionPhoto
+                ? (details) => _inlineTextDetectionController
+                      .startTextSelectionAt(file, details.globalPosition)
+                : null,
+          );
+          return GestureDetector(
+            onTap: () {
+              if (widget.config.mode != DetailPageMode.selection &&
+                  file.fileType != FileType.video) {
+                InheritedDetailPageState.of(context).toggleFullScreenByUser();
+              }
+            },
+            child: fileContent,
+          );
+        }
+
         return KeyedSubtree(
           key: ObjectKey(file),
           child: ValueListenableBuilder(
             valueListenable: _selectedIndexNotifier,
-            builder: (context, selectedIndex, _) =>
-                HeroMode(enabled: index == selectedIndex, child: page),
+            child: isViewerJpeg(file) ? null : buildPage(null),
+            builder: (context, selectedIndex, child) {
+              final selected = index == selectedIndex;
+              return HeroMode(
+                enabled: selected,
+                child: child ?? buildPage(selected),
+              );
+            },
           ),
         );
       },
@@ -747,6 +782,7 @@ class _BodyState extends State<_Body> {
         }
         final selectedFileChanged = _selectedFile?.tag != file.tag;
         if (selectedFileChanged) {
+          _swipeDirection = index >= _selectedIndexNotifier.value ? 1 : -1;
           _clearZoomStateForSelectedFileChange();
         }
         if (_selectedIndexNotifier.value == index) {
@@ -807,6 +843,48 @@ class _BodyState extends State<_Body> {
     if (index < _files!.length - 1) {
       preloadThumbnail(_files![index + 1]);
       preloadFile(_files![index + 1]);
+    }
+  }
+
+  Future<void> _warmAdjacentJpegs() async {
+    if (!mounted || !_pageController.hasClients) return;
+    final current = _selectedFile;
+    if (current == null) return;
+    final currentFile = _renderedFiles[current.tag];
+    if (current.fileType != FileType.video && currentFile == null) return;
+
+    final generation = ++_jpegPreloadGeneration;
+    final viewport = _jpegViewport;
+    bool stillCurrent() =>
+        mounted &&
+        generation == _jpegPreloadGeneration &&
+        identical(current, _selectedFile) &&
+        _pageController.hasClients &&
+        !_pageController.position.isScrollingNotifier.value &&
+        !_filmstripCoordinator.isUserScrollSessionActive;
+    if (!stillCurrent() || viewport.isEmpty) return;
+    Future<void> warm(File file) => precacheImage(
+      ViewerJpegImage.fit(file, viewport),
+      context,
+      onError: (error, _) =>
+          _logger.fine("JPEG preview prefetch failed: $error"),
+    );
+
+    final index = _selectedIndexNotifier.value;
+    final neighbors = [
+      _fileAt(index + _swipeDirection),
+      _fileAt(index - _swipeDirection),
+    ];
+    if (currentFile != null && isViewerJpeg(current)) {
+      // A resize can leave the selected photo's old preview in the cache.
+      await warm(currentFile);
+    }
+    for (final neighbor in neighbors) {
+      if (!stillCurrent()) return;
+      if (neighbor == null || !isViewerJpeg(neighbor)) continue;
+      final file = await getFile(neighbor);
+      if (!mounted || !stillCurrent()) return;
+      if (file != null) await warm(file);
     }
   }
 

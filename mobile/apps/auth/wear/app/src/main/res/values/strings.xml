@@ -1,0 +1,33 @@
+<resources>
+    <string name="app_name">Ente Auth</string>
+    <string name="setup_instructions">Choose Set up watch, then approve this watch on your phone.</string>
+    <string name="approve_phone">Open Ente Auth → Settings → General → Watch on your phone to approve this watch.</string>
+    <string name="select_accounts">No shared accounts yet. Open Watch settings in Auth on your phone.</string>
+    <string name="offline">Offline. Open both apps to sync changes.</string>
+    <string name="unlock_watch">Set a watch screen lock. Lock and unlock your watch, then open this app again.</string>
+    <string name="storage_failed">Cannot open watch storage. Erase watch data and set up again.</string>
+    <string name="sync_failed">Could not apply an update. Your saved codes are still available.</string>
+    <string name="connect_phone">Connect your phone and open Ente Auth on both devices.</string>
+    <string name="setup">Set up watch</string>
+    <string name="sync">Check for changes</string>
+    <string name="code">Code</string>
+    <string name="code_spoken">Code: %1$s</string>
+    <string name="codes_hidden">Codes hidden</string>
+    <string name="all_tags">All</string>
+    <string name="tags">Tags</string>
+    <string name="filter_by_tag">Filter by tag</string>
+    <string name="next_code">Next: %1$s</string>
+    <string name="next_code_spoken">Next code: %1$s</string>
+    <string name="unlock">Unlock watch</string>
+    <string name="pinned">Pinned</string>
+    <string name="erase">Erase watch data</string>
+    <string name="erase_title">Erase watch data?</string>
+    <string name="erase_description">This removes the codes from this watch. Your phone accounts remain available.</string>
+    <string name="erase_action">Erase</string>
+    <string name="secure_storage_unavailable">This watch cannot provide the protected storage required for offline codes.</string>
+    <string name="setup_failed">Could not set up this watch. Keep both apps open and try again.</string>
+    <plurals name="seconds_remaining">
+        <item quantity="one">%1$d second</item>
+        <item quantity="other">%1$d seconds</item>
+    </plurals>
+</resources>

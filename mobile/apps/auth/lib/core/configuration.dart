@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:ente_account_deletion/account_deletion.dart';
 import 'package:ente_auth/services/authenticated_session.dart';
+import 'package:ente_auth/services/watch/service.dart';
 import 'package:ente_auth/src/rust/third_party/ente_frb_lib/account_deletion.dart'
     as account_deletion;
 import 'package:ente_auth/src/rust/third_party/ente_frb_lib/recovery.dart'
@@ -115,6 +116,7 @@ class Configuration extends BaseConfiguration
   @override
   Future<void> logout({bool autoLogout = false}) async {
     clearAuthenticatedSession();
+    await WatchService.clearBeforeLogout();
     _authSecretKey = null;
     await super.logout();
   }
