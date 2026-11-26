@@ -18,14 +18,9 @@ typedef LivePhotoFiles = ({File image, File video});
 
 final _logger = Logger('FileUtil');
 
-Future<bool> canRefreshLivePhotoStill(
-  EnteFile file, {
-  String? imageName,
-}) async =>
+Future<bool> canRefreshLivePhotoStill(EnteFile file) async =>
     Platform.isAndroid &&
     file.fileType == FileType.livePhoto &&
-    (extension(file.title ?? '').toLowerCase() == '.heic' ||
-        extension(imageName ?? '').toLowerCase() == '.heic') &&
     !await isAndroidSDKVersionLowerThan(28);
 
 Future<LivePhotoFiles?> downloadLivePhotoFiles(
@@ -53,10 +48,7 @@ Future<LivePhotoFiles?> downloadLivePhotoFiles(
       archiveFile: decryptedFile,
       outputDirectory: extractionDirectory,
     );
-    final checkRotation = await canRefreshLivePhotoStill(
-      file,
-      imageName: parts.image.fileName,
-    );
+    final checkRotation = await canRefreshLivePhotoStill(file);
     return await _cacheParts(file, parts.image, parts.video, checkRotation);
   } catch (error, stackTrace) {
     _logger.warning(

@@ -1,6 +1,7 @@
 package io.ente.photos.platform.flutter
 
 import android.content.ContentResolver
+import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.os.Build
 import android.os.Bundle
@@ -77,6 +78,12 @@ internal class LocalMediaChannelAdapter : MethodChannel.MethodCallHandler {
         val rotation = try {
             retriever.setDataSource(path)
             retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_IMAGE_ROTATION)?.toIntOrNull()
+        } catch (error: RuntimeException) {
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeFile(path, bounds)
+            val mime = bounds.outMimeType
+            if (mime != null && mime != "image/heif" && mime != "image/heic") return null
+            throw error
         } finally {
             retriever.release()
         }

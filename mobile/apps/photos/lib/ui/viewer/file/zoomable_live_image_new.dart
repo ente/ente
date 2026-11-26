@@ -434,8 +434,7 @@ class _ZoomableLiveImageNewState extends State<ZoomableLiveImageNew>
       if (!mounted) return;
       if (Platform.isAndroid &&
           _enteFile.isRemoteOnlyFile &&
-          _enteFile.isLivePhoto &&
-          (_enteFile.title?.toLowerCase().endsWith('.heic') ?? false)) {
+          _enteFile.isLivePhoto) {
         final stat = await FileStat.stat(url);
         if (!mounted) return;
         _openedCachedClip = (path: url, changed: stat.changed);
