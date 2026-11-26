@@ -411,7 +411,7 @@ class RewindService {
     if (stored == null ||
         !_isFresh(stored, now) ||
         await _libraryChanged(stored) ||
-        (afterMlRun && stored.mlChaptersPending && await hasEnoughMl())) {
+        (afterMlRun && !stored.isFinal && stored.mlChaptersPending)) {
       final libraryCount = await _libraryCount(now.microsecondsSinceEpoch);
       final computed = await _compute(
         owner,
