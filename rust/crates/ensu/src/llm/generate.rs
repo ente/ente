@@ -4,6 +4,9 @@ use llama_cpp_2::model::LlamaModel;
 use llama_cpp_2::mtmd::{MtmdBitmap, MtmdInputText, mtmd_default_marker};
 use llama_cpp_2::sampling::LlamaSampler;
 use llama_cpp_2::token::LlamaToken;
+use llama_cpp_2::token::data::LlamaTokenData;
+use llama_cpp_2::token::data_array::LlamaTokenDataArray;
+use llama_cpp_2::token::logit_bias::LlamaLogitBias;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::panic::{AssertUnwindSafe, catch_unwind};
@@ -15,7 +18,8 @@ use std::time::Instant;
 use super::context::LocalContext;
 use super::event::{EventSink, FinishReason, GenerationEvent, GenerationSummary, JobId};
 use super::execution::{ExecutionContext, ExecutionState, MIN_GPU_PROMPT_TOKENS, MultimodalPrompt};
-use super::template::build_chat_prompt;
+use super::template::build_prompt;
+use super::tools::{self, Format, ToolCall, ToolOutcome, ToolRequest};
 use super::{Error, format_error, lock};
 
 static JOB_COUNTER: AtomicI64 = AtomicI64::new(1);
@@ -56,10 +60,22 @@ impl Drop for JobGuard {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ChatMessage {
     pub role: String,
     pub content: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tool_calls: Vec<ToolCall>,
+}
+
+impl ChatMessage {
+    pub fn new(role: impl Into<String>, content: impl Into<String>) -> Self {
+        Self {
+            role: role.into(),
+            content: content.into(),
+            tool_calls: Vec::new(),
+        }
+    }
 }
 
 struct SamplingParams {
@@ -91,6 +107,8 @@ pub struct ChatRequest {
     pub seed: Option<i64>,
     pub stop_sequences: Option<Vec<String>>,
     pub grammar: Option<String>,
+    #[serde(default)]
+    pub tools: Option<ToolRequest>,
 }
 
 fn token_piece_string(model: &LlamaModel, token: LlamaToken) -> Option<String> {
@@ -276,6 +294,110 @@ struct GenerationJob<'a> {
     prompt_tokens: i32,
     generated_tokens: i32,
     finish_reason: FinishReason,
+    tool: Option<ToolDecode>,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum ToolState {
+    Undecided,
+    Reply,
+    Call,
+}
+
+struct ToolDecode {
+    format: Format,
+    request: ToolRequest,
+    open: LlamaToken,
+    grammar: LlamaSampler,
+    state: ToolState,
+    raw: Vec<u8>,
+    probability: Option<f32>,
+}
+
+fn token_probability(logits: &[f32], token: LlamaToken) -> f32 {
+    let Some(target) = usize::try_from(token.0).ok().and_then(|i| logits.get(i)) else {
+        return 0.0;
+    };
+    let max = logits.iter().copied().fold(f32::NEG_INFINITY, f32::max);
+    let sum: f64 = logits
+        .iter()
+        .map(|logit| f64::from(logit - max).exp())
+        .sum();
+    (f64::from(target - max).exp() / sum) as f32
+}
+
+impl ToolDecode {
+    fn pick(
+        &mut self,
+        ctx: &LlamaContext,
+        index: i32,
+        reply: &mut LlamaSampler,
+    ) -> Result<LlamaToken, Error> {
+        match self.state {
+            ToolState::Undecided => {
+                let probability = token_probability(ctx.get_logits_ith(index), self.open);
+                self.probability = Some(probability);
+                if probability >= self.request.min_call_probability {
+                    self.state = ToolState::Call;
+                    self.grammar.accept(self.open);
+                    Ok(self.open)
+                } else {
+                    self.state = ToolState::Reply;
+                    Ok(reply.sample(ctx, index))
+                }
+            }
+            ToolState::Reply => Ok(reply.sample(ctx, index)),
+            ToolState::Call => self.constrained(ctx, index),
+        }
+    }
+
+    fn constrained(&mut self, ctx: &LlamaContext, index: i32) -> Result<LlamaToken, Error> {
+        let logits = ctx.get_logits_ith(index);
+        let best = logits
+            .iter()
+            .enumerate()
+            .max_by(|a, b| a.1.total_cmp(b.1))
+            .map(|(i, logit)| (i as i32, *logit))
+            .ok_or(super::ToolCallFailure::Invalid)?;
+        let mut single = LlamaTokenDataArray::new(
+            vec![LlamaTokenData::new(LlamaToken(best.0), best.1, 0.0)],
+            false,
+        );
+        self.grammar.apply(&mut single);
+        let token = if single.data[0].logit().is_finite() {
+            LlamaToken(best.0)
+        } else {
+            let mut all = ctx.token_data_array_ith(index);
+            self.grammar.apply(&mut all);
+            all.data
+                .iter()
+                .filter(|candidate| candidate.logit().is_finite())
+                .max_by(|a, b| a.logit().total_cmp(&b.logit()))
+                .map(LlamaTokenData::id)
+                .ok_or(super::ToolCallFailure::Invalid)?
+        };
+        if !ctx.model.vocab().is_eog(token) {
+            self.grammar.accept(token);
+        }
+        Ok(token)
+    }
+
+    fn finish(self, reason: FinishReason) -> Result<ToolOutcome, Error> {
+        let calls = if self.state == ToolState::Call {
+            tools::finished_calls(
+                self.format,
+                &self.raw,
+                &self.request,
+                reason == FinishReason::Eog,
+            )?
+        } else {
+            Vec::<ToolCall>::new()
+        };
+        Ok(ToolOutcome {
+            calls,
+            call_probability: self.probability,
+        })
+    }
 }
 
 impl GenerationJob<'_> {
@@ -295,7 +417,10 @@ impl GenerationJob<'_> {
         for sample_index in 0..self.max_tokens {
             check_cancelled(self.cancel_flag)?;
 
-            let token = sampler.sample(ctx.get()?, logits_index);
+            let token = match self.tool.as_mut() {
+                Some(tool) => tool.pick(ctx.get()?, logits_index, sampler)?,
+                None => sampler.sample(ctx.get()?, logits_index),
+            };
             check_cancelled(self.cancel_flag)?;
 
             if ctx.model.vocab().is_eog(token) {
@@ -310,7 +435,16 @@ impl GenerationJob<'_> {
             self.generated_tokens = self.generated_tokens.saturating_add(1);
 
             let bytes = ctx.model.vocab().token_to_piece(token, true, None);
-            let step = decoder.push_bytes(&bytes);
+            let step = match self.tool.as_mut() {
+                Some(tool) if tool.state == ToolState::Call => {
+                    tool.raw.extend_from_slice(&bytes);
+                    DecodeStep {
+                        text: None,
+                        stop: false,
+                    }
+                }
+                _ => decoder.push_bytes(&bytes),
+            };
 
             if let Some(text) = step.text {
                 self.emit_text(text, Some(token.0));
@@ -379,8 +513,16 @@ fn build_sampler(
     model: &LlamaModel,
     request: &SamplingParams,
     context_size: i32,
+    banned: &[LlamaToken],
 ) -> Result<LlamaSampler, Error> {
     let mut samplers = Vec::new();
+    if !banned.is_empty() {
+        let biases: Vec<_> = banned
+            .iter()
+            .map(|token| LlamaLogitBias::new(*token, f32::NEG_INFINITY))
+            .collect();
+        samplers.push(LlamaSampler::logit_bias(model.vocab().n_tokens(), &biases));
+    }
 
     let mut repeat_penalty = request.repeat_penalty.unwrap_or(1.0);
     if repeat_penalty <= 0.0 {
@@ -453,13 +595,14 @@ impl LocalContext {
             ));
         }
         self.with_model(|model| {
-            let prompt = build_chat_prompt(
+            let prompt = build_prompt(
                 model,
                 request.messages.clone(),
                 request.template_override.clone(),
                 request.add_assistant.unwrap_or(true),
+                request.tools.as_ref(),
             )?;
-            Ok(tokenize_text_prompt(model, &prompt)?.len())
+            Ok(tokenize_text_prompt(model, &prompt.text)?.len())
         })
     }
 
@@ -553,7 +696,20 @@ fn generate_chat_stream(
         seed,
         stop_sequences,
         grammar,
+        tools: tool_request,
     } = request;
+    if let Some(request) = &tool_request {
+        if grammar.is_some() {
+            return Err(Error::InvalidInput(
+                "Tools cannot be combined with a custom grammar".into(),
+            ));
+        }
+        if image_paths.as_ref().is_some_and(|paths| !paths.is_empty()) {
+            return Err(Error::Unsupported("Tools are not available with images"));
+        }
+        request.validate()?;
+    }
+    let tools_requested = tool_request.is_some();
 
     let max_tokens = max_tokens.unwrap_or(DEFAULT_GENERATION_MAX_TOKENS);
     let max_tokens = usize::try_from(max_tokens.max(0)).unwrap_or(0);
@@ -568,6 +724,7 @@ fn generate_chat_stream(
         prompt_tokens: 0,
         generated_tokens: 0,
         finish_reason: FinishReason::Unknown,
+        tool: None,
     };
 
     let result = match catch_unwind(AssertUnwindSafe(|| {
@@ -609,7 +766,36 @@ fn generate_chat_stream(
                 }
             }
 
-            let prompt = build_chat_prompt(ctx.model, messages, template_override, add_assistant)?;
+            let built = build_prompt(
+                ctx.model,
+                messages,
+                template_override,
+                add_assistant,
+                tool_request.as_ref(),
+            )?;
+            let prompt = built.text;
+            let mut banned = Vec::new();
+            if let Some(format) = built.native_format
+                && let Some(open) = tools::single_token(ctx.model, format.open())
+            {
+                banned.push(open);
+                if let Some(request) = tool_request {
+                    let grammar = tools::grammar(format, &request, ctx.model)?;
+                    let grammar =
+                        LlamaSampler::grammar(ctx.model, &grammar, "root").map_err(|err| {
+                            Error::InvalidInput(format_error("Invalid tool grammar", err))
+                        })?;
+                    job.tool = Some(ToolDecode {
+                        format,
+                        request,
+                        open,
+                        grammar,
+                        state: ToolState::Undecided,
+                        raw: Vec::new(),
+                        probability: None,
+                    });
+                }
+            }
 
             let sampler_request = SamplingParams {
                 temperature,
@@ -701,7 +887,8 @@ fn generate_chat_stream(
                     });
                 }
 
-                let mut sampler = build_sampler(ctx.model, &sampler_request, ctx.n_ctx() as i32)?;
+                let mut sampler =
+                    build_sampler(ctx.model, &sampler_request, ctx.n_ctx() as i32, &banned)?;
                 sampler.accept_many(prompt_tokens.iter());
 
                 let pos = prompt_tokens.len() as i32;
@@ -809,7 +996,8 @@ fn generate_chat_stream(
             )?;
             check_cancelled(&cancel_flag)?;
 
-            let mut sampler = build_sampler(ctx.model, &sampler_request, ctx.n_ctx() as i32)?;
+            let mut sampler =
+                build_sampler(ctx.model, &sampler_request, ctx.n_ctx() as i32, &banned)?;
             let mut prompt_tokens = Vec::new();
             for index in 0..chunks.len() {
                 if let Some(chunk) = chunks.get(index)
@@ -842,12 +1030,18 @@ fn generate_chat_stream(
     };
     result?;
 
+    let tools = match job.tool.take() {
+        Some(tool) => Some(tool.finish(job.finish_reason)?),
+        None if tools_requested => Some(ToolOutcome::default()),
+        None => None,
+    };
     let summary = GenerationSummary {
         job_id,
         prompt_tokens: Some(job.prompt_tokens),
         generated_tokens: Some(job.generated_tokens),
         total_time_ms: Some(start.elapsed().as_millis() as i64),
         finish_reason: job.finish_reason,
+        tools,
     };
 
     Ok(summary)
@@ -903,11 +1097,22 @@ pub fn cancel(job_id: JobId) {
 
 #[cfg(test)]
 mod tests {
-    use super::{StreamDecoder, reusable_prefix_len};
+    use super::{StreamDecoder, reusable_prefix_len, token_probability};
     use llama_cpp_2::token::LlamaToken;
 
     fn tokens(ids: &[i32]) -> Vec<LlamaToken> {
         ids.iter().copied().map(LlamaToken).collect()
+    }
+
+    #[test]
+    fn token_probability_is_the_softmax_share() {
+        let logits = [0.0, (3.0_f32).ln(), 0.0];
+        assert!((token_probability(&logits, LlamaToken(1)) - 0.6).abs() < 1e-6);
+        assert!((token_probability(&logits, LlamaToken(0)) - 0.2).abs() < 1e-6);
+        let large = [1000.0, 1000.0];
+        assert!((token_probability(&large, LlamaToken(0)) - 0.5).abs() < 1e-6);
+        assert_eq!(token_probability(&logits, LlamaToken(3)), 0.0);
+        assert_eq!(token_probability(&logits, LlamaToken(-1)), 0.0);
     }
 
     #[test]

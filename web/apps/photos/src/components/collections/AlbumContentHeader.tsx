@@ -5,6 +5,7 @@ import {
     type CollectionShareProps,
 } from "@/components/collections/CollectionShare";
 import type { FileListHeaderOrFooter } from "@/components/FileList";
+import { collectionHeadingHeight } from "@/components/gallery/header-styles";
 import {
     AlbumsHeader,
     albumsHeaderHeight,
@@ -98,40 +99,63 @@ export const AlbumContentHeader: React.FC<AlbumContentHeaderProps> = ({
             (activeCollection ||
                 collectionSummary.id <= PseudoCollectionID.all);
 
-        const showAlbums =
-            collectionSummary?.type == "hiddenItems" ||
-            collectionSummary?.type == "archiveItems";
+        const isHidden = collectionSummary?.type == "hiddenItems";
+        const isArchive = collectionSummary?.type == "archiveItems";
+        const hasAlbums = albums.length > 0;
+        const hasFiles = (collectionSummary?.fileCount ?? 0) > 0;
+        const showSectionHeader = isArchive || (isHidden && hasAlbums);
+        const showItemsHeader = isHidden
+            ? !hasAlbums || hasFiles
+            : isArchive
+              ? hasAlbums && hasFiles
+              : true;
+        const sectionHeaderHeight = hasAlbums
+            ? albumsHeaderHeight
+            : collectionHeadingHeight;
 
         setFileListHeader({
             component: shouldRenderCollectionHeader ? (
                 <Box sx={{ width: "100%" }}>
-                    {showAlbums && (
+                    {showSectionHeader && (
                         <AlbumsHeader
                             title={t(
                                 collectionSummary.type == "hiddenItems"
-                                    ? "hidden_albums"
+                                    ? "section_hidden"
                                     : "section_archive",
                             )}
                             albums={albums}
+                            height={sectionHeaderHeight}
+                            fileCount={
+                                isArchive && !hasAlbums
+                                    ? collectionSummary.fileCount
+                                    : undefined
+                            }
                         />
                     )}
-                    <CollectionHeader
-                        {...{
-                            activeCollection,
-                            isActiveCollectionDownloadInProgress,
-                            onRemotePull,
-                            onAddSaveGroup,
-                            onCollectionSlideshow,
-                            showBackToAlbums,
-                        }}
-                        collectionSummary={collectionSummary}
-                        onCollectionShare={openCollectionShare}
-                        onCollectionManageLink={openCollectionManageLink}
-                        onCollectionCast={showCollectionCast}
-                        onEditAlbumDetails={onEditAlbumDetails}
-                        hasActiveFileSelection={hasActiveFileSelection}
-                        onDescriptionHeightChange={setDescriptionHeight}
-                    />
+                    {showItemsHeader && (
+                        <CollectionHeader
+                            {...{
+                                activeCollection,
+                                isActiveCollectionDownloadInProgress,
+                                onRemotePull,
+                                onAddSaveGroup,
+                                onCollectionSlideshow,
+                                showBackToAlbums,
+                            }}
+                            collectionSummary={collectionSummary}
+                            onCollectionShare={openCollectionShare}
+                            onCollectionManageLink={openCollectionManageLink}
+                            onCollectionCast={showCollectionCast}
+                            onEditAlbumDetails={onEditAlbumDetails}
+                            hasActiveFileSelection={hasActiveFileSelection}
+                            showSectionBack={
+                                (isHidden && !hasAlbums) ||
+                                collectionSummary.type == "uncategorized" ||
+                                collectionSummary.type == "trash"
+                            }
+                            onDescriptionHeightChange={setDescriptionHeight}
+                        />
+                    )}
                 </Box>
             ) : collectionSummary ? (
                 <GalleryItemsHeaderAdapter>
@@ -144,8 +168,8 @@ export const AlbumContentHeader: React.FC<AlbumContentHeaderProps> = ({
                 <></>
             ),
             height:
-                72 +
-                (showAlbums ? (albums.length ? albumsHeaderHeight : 78) : 0) +
+                (showItemsHeader ? collectionHeadingHeight : 0) +
+                (showSectionHeader ? sectionHeaderHeight : 0) +
                 (albumDescription ? descriptionHeight : 0),
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps

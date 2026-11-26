@@ -1,11 +1,17 @@
 import shellescape from "any-shell-escape";
 import { app } from "electron/main";
 import { exec } from "node:child_process";
+import { existsSync } from "node:fs";
 import path from "node:path";
 import { promisify } from "node:util";
 import log from "../log";
 
 export const isDev = !app.isPackaged;
+
+export const isFlatpak =
+    process.platform == "linux" &&
+    existsSync("/.flatpak-info") &&
+    process.execPath.startsWith("/app/");
 
 // Persisted and IPC paths use POSIX separators on every platform.
 export const posixPath = (platformPath: string) =>

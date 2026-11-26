@@ -1,18 +1,3 @@
-import {
-    CollectionDialogTileButton as AlbumButton,
-    CollectionDialogTileCover as AlbumCover,
-    CollectionDialogSearchField as SearchField,
-} from "@/components/CollectionDialog/Primitives";
-import {
-    collectionDialogFullScreenQuery,
-    collectionDialogHeaderActionsSx as headerActionsSx,
-    collectionDialogHeaderRowSx as headerRowSx,
-    collectionDialogHeaderSx as headerSx,
-    collectionDialogIconButtonSx as iconButtonSx,
-    collectionDialogNoResultsSx as noResultsSx,
-    collectionDialogPaperSx as paperSx,
-    collectionDialogTitleSx as titleSx,
-} from "@/components/CollectionDialog/styles";
 import { CollectionsSortOptions } from "@/components/CollectionsSortOptions";
 import { useCollectionsSortBy } from "@/components/utils/use-collections-sort-by";
 import {
@@ -39,6 +24,21 @@ import { CenteredFill } from "ente-base/components/containers";
 import type { ModalVisibilityProps } from "ente-base/components/utils/modal";
 import { isSxArray } from "ente-base/components/utils/sx";
 import type { Collection } from "ente-media/collection";
+import {
+    CollectionDialogTileButton as AlbumButton,
+    CollectionDialogTileCover as AlbumCover,
+    CollectionDialogSearchField as SearchField,
+} from "ente-new/photos/components/CollectionDialog/Primitives";
+import {
+    collectionDialogFullScreenQuery,
+    collectionDialogHeaderActionsSx as headerActionsSx,
+    collectionDialogHeaderRowSx as headerRowSx,
+    collectionDialogHeaderSx as headerSx,
+    collectionDialogIconButtonSx as iconButtonSx,
+    collectionDialogNoResultsSx as noResultsSx,
+    collectionDialogPaperSx as paperSx,
+    collectionDialogTitleSx as titleSx,
+} from "ente-new/photos/components/CollectionDialog/styles";
 import { ItemCard } from "ente-new/photos/components/Tiles";
 import {
     canAddToCollection,
@@ -207,6 +207,7 @@ export const CollectionSelector: React.FC<CollectionSelectorProps> = (
         <Dialog
             open={open}
             onClose={handleClose}
+            onKeyDown={(event) => event.stopPropagation()}
             fullScreen={isFullScreen}
             maxWidth={false}
             slotProps={{

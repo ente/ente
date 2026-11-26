@@ -109,6 +109,29 @@ func TestErrorLogsWarnForExpectedClientErrors(t *testing.T) {
 	}
 }
 
+func TestErrorReportsCodesForIncorrectVerificationCodes(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	for _, tt := range []struct {
+		err  error
+		code ente.ErrorCode
+	}{
+		{err: ente.ErrIncorrectOTT, code: ente.IncorrectOTT},
+		{err: ente.ErrIncorrectTOTP, code: ente.IncorrectTOTP},
+	} {
+		t.Run(string(tt.code), func(t *testing.T) {
+			recorder, ctx := testContext()
+
+			Error(ctx, stacktrace.Propagate(stacktrace.Propagate(tt.err, ""), ""))
+
+			require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			var body ente.ApiError
+			require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &body))
+			require.Equal(t, tt.code, body.Code)
+		})
+	}
+}
+
 func TestErrorLogsWarnForInvalidJSON(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 

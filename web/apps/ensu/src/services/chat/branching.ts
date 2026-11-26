@@ -182,7 +182,7 @@ const dedupeSiblingDuplicates = (messages: ChatMessage[]) => {
 };
 
 const isDuplicate = (a: ChatMessage, b: ChatMessage) => {
-    if (a.sender !== b.sender) return false;
+    if (a.sender !== b.sender || a.sender === "assistant") return false;
     if (a.text !== b.text) return false;
 
     const aAttachments = a.attachments ?? [];

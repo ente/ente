@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::num::NonZeroUsize;
 
 use super::Result;
-use super::library::Library;
+use super::library::{Library, YearFile};
 use super::queries::TextEmbedding;
 use super::report::RewindColour;
 use crate::face_clustering::dot;
@@ -11,7 +11,6 @@ use crate::ml_db::vector_encoding::decode_f32;
 use crate::ml_store::MlStore;
 
 const SCAN_PAGE: NonZeroUsize = NonZeroUsize::new(1000).unwrap();
-const MATCH_SIMILARITY: f32 = 0.225;
 
 pub(super) const COLOURS: [RewindColour; 10] = [
     RewindColour::CherryBomb,
@@ -43,7 +42,7 @@ pub(super) enum Subject {
     Artwork,
 }
 
-const SUBJECTS: [Subject; 13] = [
+pub(super) const SUBJECTS: [Subject; 13] = [
     Subject::GoldenHour,
     Subject::Pets,
     Subject::Food,
@@ -59,6 +58,25 @@ const SUBJECTS: [Subject; 13] = [
     Subject::Artwork,
 ];
 
+impl Subject {
+    fn match_similarity(self) -> f32 {
+        match self {
+            Self::Pets | Self::Plants => 0.18,
+            Self::Architecture => 0.19,
+            Self::GoldenHour
+            | Self::Food
+            | Self::Indoors
+            | Self::Outdoors
+            | Self::SportsAction
+            | Self::Concerts
+            | Self::Artwork => 0.2,
+            Self::Festivities => 0.215,
+            Self::Parties => 0.23,
+            Self::Outfits => 0.25,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(super) struct Similarities {
     pub(super) colours: [f32; COLOURS.len()],
@@ -67,7 +85,7 @@ pub(super) struct Similarities {
 
 impl Similarities {
     pub(super) fn matches(&self, subject: Subject) -> bool {
-        self.subject(subject) >= MATCH_SIMILARITY
+        self.subject(subject) >= subject.match_similarity()
     }
 
     pub(super) fn subject(&self, subject: Subject) -> f32 {
@@ -81,16 +99,27 @@ pub(super) struct Clip {
 
 impl Clip {
     pub(super) fn load(library: &Library<'_>, store: &MlStore) -> Result<Self> {
+        let mut similarities = HashMap::new();
+        let mut ids = library
+            .taken()
+            .filter(|file| file.is_image())
+            .map(YearFile::id);
+        let Some(first_id) = ids.next() else {
+            return Ok(Self { similarities });
+        };
+        let (min_id, mut max_id) = ids.fold((first_id, first_id), |(min, max), id| {
+            (min.min(id), max.max(id))
+        });
         let colour_queries = COLOURS.map(|colour| unit(colour.embedding()));
         let subject_queries = SUBJECTS.map(|subject| unit(subject.embedding()));
-        let mut similarities = HashMap::new();
-        let mut before_file_id = None;
         loop {
-            let page = store.db().get_clip_rows_before(before_file_id, SCAN_PAGE)?;
+            let page = store
+                .db()
+                .get_clip_rows_in_range(min_id..=max_id, SCAN_PAGE)?;
             let Some(last_row) = page.last() else {
                 break;
             };
-            before_file_id = Some(last_row.file_id);
+            let last_id = last_row.file_id;
             for row in page {
                 if !library
                     .get(row.file_id)
@@ -116,6 +145,10 @@ impl Clip {
                     },
                 );
             }
+            if last_id == min_id {
+                break;
+            }
+            max_id = last_id - 1;
         }
         Ok(Self { similarities })
     }
@@ -147,8 +180,8 @@ pub(super) mod tests {
 
     use super::{COLOURS, Clip, SUBJECTS, Similarities, Subject, unit};
     use crate::face_clustering::dot;
-    use crate::ml_db::CLIP_EMBEDDING_DIMENSIONS;
-    use crate::rewind::fixtures::{add_clip, daily_photos, request, store};
+    use crate::ml_db::{CLIP_EMBEDDING_DIMENSIONS, CLIP_ML_VERSION, ClipEmbedding};
+    use crate::rewind::fixtures::{add_clip, daily_photos, photo, request, store};
     use crate::rewind::input::{RewindFileType, RewindVisibility};
     use crate::rewind::library::Library;
     use crate::rewind::report::RewindColour;
@@ -187,6 +220,17 @@ pub(super) mod tests {
     }
 
     #[test]
+    fn each_subject_matches_from_its_own_similarity() {
+        let mut similarities = showing(&[]);
+        similarities.subjects[Subject::Pets as usize] = 0.19;
+        similarities.subjects[Subject::Parties as usize] = 0.22;
+        similarities.subjects[Subject::Outfits as usize] = 0.24;
+        assert!(similarities.matches(Subject::Pets));
+        assert!(!similarities.matches(Subject::Parties));
+        assert!(!similarities.matches(Subject::Outfits));
+    }
+
+    #[test]
     fn the_scan_scores_taken_year_images_against_every_query() {
         let mut files = daily_photos(1, "2026-01-01T10:00:00", 5);
         files[1].visibility = RewindVisibility::Hidden;
@@ -217,5 +261,37 @@ pub(super) mod tests {
         let red = colour_vector(RewindColour::CherryBomb);
         assert!((similarities.colours[0] - dot(&food, &red) as f32).abs() < 1e-3);
         assert!([2, 3, 4, 5].iter().all(|&id| clip.get(id).is_none()));
+    }
+
+    #[test]
+    fn scores_every_page_including_the_first_and_last_file_ids() {
+        let ids: Vec<_> = [i64::MIN, i64::MAX].into_iter().chain(1..=1000).collect();
+        let request = request(
+            ids.iter()
+                .map(|&id| photo(id, "2026-01-01T10:00:00"))
+                .collect(),
+        );
+        let (_directory, store) = store();
+        let food: Vec<_> = unit(Subject::Food.embedding())
+            .into_iter()
+            .map(f64::from)
+            .collect();
+        let embeddings: Vec<_> = ids
+            .iter()
+            .map(|&file_id| ClipEmbedding {
+                file_id,
+                embedding: food.clone(),
+                version: CLIP_ML_VERSION,
+            })
+            .collect();
+        store.db().insert_clip_rows(&embeddings).unwrap();
+
+        let clip = Clip::load(&Library::of_year(&request).unwrap(), &store).unwrap();
+
+        assert_eq!(clip.similarities.len(), ids.len());
+        assert!(
+            ids.iter()
+                .all(|&id| clip.get(id).unwrap().matches(Subject::Food))
+        );
     }
 }

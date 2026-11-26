@@ -157,15 +157,15 @@ smtp:
     encryption:
 ```
 
-| Variable           | Description                  | Default |
-| ------------------ | ---------------------------- | ------- |
-| `smtp.host`        | SMTP server host             |         |
-| `smtp.port`        | SMTP server port             |         |
-| `smtp.username`    | SMTP auth username           |         |
-| `smtp.password`    | SMTP auth password           |         |
-| `smtp.email`       | Sender email address         |         |
-| `smtp.sender-name` | Custom name for email sender |         |
-| `smtp.encryption`  | Encryption method (tls, ssl) |         |
+| Variable           | Description                                                                     | Default |
+| ------------------ | ------------------------------------------------------------------------------- | ------- |
+| `smtp.host`        | SMTP server host                                                                |         |
+| `smtp.port`        | SMTP server port                                                                |         |
+| `smtp.username`    | SMTP auth username                                                              |         |
+| `smtp.password`    | SMTP auth password                                                              |         |
+| `smtp.email`       | Sender email address                                                            |         |
+| `smtp.sender-name` | Custom name for email sender                                                    |         |
+| `smtp.encryption`  | `tls`, `ssl`, or `none` (plaintext SMTP to a trusted relay without auth)        |         |
 
 > [!NOTE]
 >

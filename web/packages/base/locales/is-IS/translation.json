@@ -1080,7 +1080,7 @@
     "filters": "Myndefnissíur",
     "invert_colors": "Víxla litum",
     "reset": "Endurstilla",
-    "faster_upload": "Hraðari upphleðslur",
+    "smart_routing": "",
     "faster_upload_description": "Nýta nærliggjandi netþjóna við upphleðslu",
     "open_ente_on_startup": "Opna Ente við ræsingu",
     "cast_album_to_tv": "Flytja myndsafn í sjónvarpinu",

@@ -1,4 +1,4 @@
-use std::{fs::File, io::Read};
+use std::{borrow::Cow, fs::File, io::Read};
 
 use image::{DynamicImage, ImageBuffer, metadata::Orientation};
 use zune_jpeg::{
@@ -144,6 +144,9 @@ fn decode_bytes(
     if required_bytes(retained_bytes, &source, &target) > options.max_memory_bytes {
         return Err(too_large());
     }
+    if source.height == 0 {
+        return Err(unsupported("height defined by a DNL marker"));
+    }
     let orientation = decoder
         .exif()
         .and_then(|exif| Orientation::from_exif_chunk(exif))
@@ -163,7 +166,7 @@ fn decode_bytes(
         {
             ScanlineReadStatus::RowsProcessed { rows } => {
                 let rgb = rows_rgb(
-                    &rows_buffer[..rows * row_bytes],
+                    &mut rows_buffer[..rows * row_bytes],
                     source.width,
                     rows as u32,
                     color,
@@ -220,31 +223,31 @@ fn next_scan(bytes: &[u8], mut offset: usize) -> Option<ScanHeader> {
     }
 }
 
-fn rows_rgb(
-    bytes: &[u8],
+fn rows_rgb<'a>(
+    bytes: &'a mut [u8],
     width: u32,
     rows: u32,
     color: ColorSpace,
     converter: &mut IccConverter<'_>,
-) -> ImageResult<Vec<u8>> {
+) -> ImageResult<Cow<'a, [u8]>> {
     let invalid = || ImageError::Decode("invalid JPEG row layout".into());
-    let data = bytes.to_vec();
     let image = match color {
-        ColorSpace::Luma => {
-            DynamicImage::ImageLuma8(ImageBuffer::from_raw(width, rows, data).ok_or_else(invalid)?)
-        }
-        ColorSpace::LumaA => {
-            DynamicImage::ImageLumaA8(ImageBuffer::from_raw(width, rows, data).ok_or_else(invalid)?)
-        }
         ColorSpace::RGB => {
-            DynamicImage::ImageRgb8(ImageBuffer::from_raw(width, rows, data).ok_or_else(invalid)?)
+            converter.apply_to_rgb8(bytes);
+            return Ok(Cow::Borrowed(bytes));
         }
-        ColorSpace::RGBA => {
-            DynamicImage::ImageRgba8(ImageBuffer::from_raw(width, rows, data).ok_or_else(invalid)?)
-        }
+        ColorSpace::Luma => DynamicImage::ImageLuma8(
+            ImageBuffer::from_raw(width, rows, bytes.to_vec()).ok_or_else(invalid)?,
+        ),
+        ColorSpace::LumaA => DynamicImage::ImageLumaA8(
+            ImageBuffer::from_raw(width, rows, bytes.to_vec()).ok_or_else(invalid)?,
+        ),
+        ColorSpace::RGBA => DynamicImage::ImageRgba8(
+            ImageBuffer::from_raw(width, rows, bytes.to_vec()).ok_or_else(invalid)?,
+        ),
         _ => return Err(invalid()),
     };
-    Ok(converter.apply(image).into_rgb8().into_raw())
+    Ok(Cow::Owned(converter.apply(image).into_rgb8().into_raw()))
 }
 
 fn unsupported(reason: &str) -> ImageError {
@@ -614,6 +617,21 @@ mod tests {
                 decode_bounded(ImageInput::Bytes(&bytes), options(8)),
                 Err(ImageError::Decode(message)) if message.contains("unsupported JPEG")
             ));
+        }
+    }
+
+    #[test]
+    fn jpegs_with_heights_from_dnl_markers_are_rejected() {
+        let bytes = encode(&rgb(16, 16), 16, 16, ExtendedColorType::Rgb8, None, None);
+        for width in [16, 7000] {
+            let result = decode_bounded(
+                ImageInput::Bytes(&with_dimensions(&bytes, width, 0)),
+                options(6000),
+            );
+            assert!(
+                matches!(&result, Err(ImageError::Decode(message)) if message.contains("DNL")),
+                "{width}: {result:?}"
+            );
         }
     }
 

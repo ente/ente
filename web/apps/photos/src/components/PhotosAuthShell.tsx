@@ -1,11 +1,13 @@
 import { AuthPageShell } from "ente-accounts/components/auth/AuthPageShell";
 import type { AuthPresentationConfig } from "ente-accounts/components/auth/styles";
 import { isDesktop } from "ente-base/app";
+import { RiveIllustration } from "ente-base/components/RiveIllustration";
 import { t } from "i18next";
 import type React from "react";
 
 interface PhotosAuthShellProps extends React.PropsWithChildren {
     contentWidth?: 400 | 420;
+    isPlanSelection?: boolean;
 }
 
 const photosAuthTheme: AuthPresentationConfig = {
@@ -26,9 +28,16 @@ const photosAuthTheme: AuthPresentationConfig = {
     illustrationHeights: { desktop: 219, tablet: 172, mobile: 127, wide: 249 },
 };
 
+const planSelectionTheme: AuthPresentationConfig = {
+    ...photosAuthTheme,
+    lightContentBackground: "#f4f4f4",
+    darkContentBackground: "#171717",
+};
+
 export function PhotosAuthShell({
     children,
     contentWidth,
+    isPlanSelection,
 }: PhotosAuthShellProps): React.JSX.Element {
     return (
         <AuthPageShell
@@ -41,8 +50,33 @@ export function PhotosAuthShell({
                     t("auth_independently_audited"),
                 ],
             }}
-            presentationConfig={photosAuthTheme}
+            presentationConfig={
+                isPlanSelection ? planSelectionTheme : photosAuthTheme
+            }
             contentWidth={contentWidth}
+            contentLayout={isPlanSelection ? "content-scroll" : undefined}
+            illustration={
+                <RiveIllustration
+                    src={
+                        new URL(
+                            "../assets/ente-login-ducky.riv",
+                            import.meta.url,
+                        )
+                    }
+                    stateMachine="Ducky"
+                    fallback={
+                        <img
+                            src="/images/auth-ducky.svg"
+                            alt=""
+                            style={{
+                                display: "block",
+                                width: "100%",
+                                height: 370,
+                            }}
+                        />
+                    }
+                />
+            }
             viewportHeight={
                 isDesktop
                     ? "calc(100svh - env(titlebar-area-height, 30px))"

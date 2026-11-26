@@ -3,6 +3,7 @@ name = "ente-vecdb"
 edition.workspace = true
 
 [dependencies]
+ente-core.workspace = true
 log.workspace = true
 thiserror.workspace = true
 

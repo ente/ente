@@ -480,7 +480,9 @@ class NativeVideoEditorPlugin : FlutterPlugin, MethodCallHandler, EventChannel.S
             SlideshowMusic(
                 path = requireNotNull(value["path"] as? String),
                 fadeInMs = requireNotNull(value["fadeInMs"] as? Number).toLong(),
-                fadeOutMs = requireNotNull(value["fadeOutMs"] as? Number).toLong()
+                fadeOutMs = requireNotNull(value["fadeOutMs"] as? Number).toLong(),
+                duckedVolume = requireNotNull(value["duckedVolume"] as? Number).toDouble(),
+                duckFadeMs = requireNotNull(value["duckFadeMs"] as? Number).toLong()
             )
         }
         SlideshowExportRequest(

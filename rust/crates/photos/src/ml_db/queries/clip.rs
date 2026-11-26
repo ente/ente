@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::num::NonZeroUsize;
+use std::ops::RangeInclusive;
 
 use super::helpers::pair;
 use crate::db::{self, Row};
@@ -126,6 +127,24 @@ impl MlDb {
                 read_clip_row,
             ),
         }
+    }
+
+    pub(crate) fn get_clip_rows_in_range(
+        &self,
+        file_ids: RangeInclusive<i64>,
+        limit: NonZeroUsize,
+    ) -> Result<Vec<ClipRow>> {
+        self.read_all(
+            r#"
+            SELECT file_id, embedding
+            FROM clip
+            WHERE file_id BETWEEN ? AND ?
+            ORDER BY file_id DESC
+            LIMIT ?
+            "#,
+            (file_ids.start(), file_ids.end(), limit.get() as i64),
+            read_clip_row,
+        )
     }
 }
 

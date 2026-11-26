@@ -48,7 +48,7 @@ workflows:
     '.github/workflows/codex-review.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         - 'actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3'
-        - 'openai/codex-action@bdf19a4a223ec2549a3e2274a0cf61556bc07675'
+        - 'openai/codex-action@306c6a196a99dcc6582530c396a19d2672d5e9ec'
     '.github/workflows/copycat-db-release.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
     '.github/workflows/dependabot-follow-up.yml':
@@ -57,7 +57,7 @@ workflows:
         - 'actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333'
         - 'actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3'
         - 'actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9'
-        - 'openai/codex-action@bdf19a4a223ec2549a3e2274a0cf61556bc07675'
+        - 'openai/codex-action@306c6a196a99dcc6582530c396a19d2672d5e9ec'
     '.github/workflows/dependency-review.yml':
         - 'actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294'
     '.github/workflows/desktop-lint.yml':
@@ -152,7 +152,7 @@ workflows:
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         - 'actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510'
         - 'actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3'
-        - 'openai/codex-action@bdf19a4a223ec2549a3e2274a0cf61556bc07675'
+        - 'openai/codex-action@306c6a196a99dcc6582530c396a19d2672d5e9ec'
     '.github/workflows/repo-lint.yml':
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         - 'actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1'
@@ -183,6 +183,7 @@ workflows:
         - 'actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9'
         - 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
         - 'actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e'
+        - 'actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78'
         - 'actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1'
         - 'swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0'
     '.github/workflows/web-crowdin-push-sources-and-translations.yml':
@@ -325,9 +326,9 @@ dependencies:
         commit: 'sha1-339a81892b84b4eeb0f6e744e4574d79d0d9b8dd'
         owner_id: 5712756
         repo_id: 204020546
-    'openai/codex-action@bdf19a4a223ec2549a3e2274a0cf61556bc07675':
-        ref: 'v1.13'
-        commit: 'sha1-bdf19a4a223ec2549a3e2274a0cf61556bc07675'
+    'openai/codex-action@306c6a196a99dcc6582530c396a19d2672d5e9ec':
+        ref: 'v1.14'
+        commit: 'sha1-306c6a196a99dcc6582530c396a19d2672d5e9ec'
         owner_id: 14957082
         repo_id: 1068091251
         uses:

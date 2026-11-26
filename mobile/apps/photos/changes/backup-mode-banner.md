@@ -1,1 +1,0 @@
-- Clarified the backup mode prompt.

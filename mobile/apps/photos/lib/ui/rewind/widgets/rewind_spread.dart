@@ -1,9 +1,10 @@
 import "package:flutter/widgets.dart";
 
 class RewindSpread extends StatelessWidget {
-  const RewindSpread({required this.child, super.key});
+  const RewindSpread({required this.child, this.mirror, super.key});
 
   final Widget child;
+  final Widget? mirror;
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +16,7 @@ class RewindSpread extends StatelessWidget {
           Positioned.fill(
             child: FractionalTranslation(
               translation: Offset(side, 0),
-              child: Transform.flip(flipX: true, child: child),
+              child: Transform.flip(flipX: true, child: mirror ?? child),
             ),
           ),
         child,

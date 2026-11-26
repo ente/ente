@@ -19,6 +19,7 @@ thiserror.workspace = true
 ente-assets.workspace = true
 ente-location.workspace = true
 ente-vecdb.workspace = true
+flate2.workspace = true
 futures-util.workspace = true
 rusqlite = { workspace = true, default-features = true }
 

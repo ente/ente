@@ -9,7 +9,7 @@ use uuid::Uuid;
 use super::*;
 
 const GB: i64 = 1 << 30;
-const PASSWORD: &str = "disposable-cli-integration-password";
+pub(super) const PASSWORD: &str = "disposable-cli-integration-password";
 
 #[test]
 fn login_and_photos_across_processes() -> TestResult {
@@ -287,6 +287,77 @@ fn login_save_failures_follow_the_vault_replacement() -> TestResult {
                 );
             }
         }
+        Ok(())
+    })
+}
+
+#[test]
+fn sessions_list_and_revoke_other_logins() -> TestResult {
+    Museum::run_async(|origin| async move {
+        let email = format!("sessions-{}@example.org", Uuid::new_v4());
+        create_account(&origin, &email).await;
+        let home = TestHome::new();
+        login(&home, "photos", &email, &["--host", &origin, "--no-input"]);
+        let other = TestHome::new();
+        login(&other, "photos", &email, &["--host", &origin, "--no-input"]);
+        let current = |home: &TestHome| {
+            let listed = home.json(&["account", "session", "list"]);
+            let current = listed
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter(|session| session["current"] == true)
+                .collect::<Vec<_>>();
+            assert_eq!(current.len(), 1, "{listed}");
+            (current[0]["id"].as_str().unwrap().to_owned(), listed)
+        };
+        let (theirs, _) = current(&other);
+        let (mine, listed) = current(&home);
+        assert_ne!(mine, theirs);
+        let listed = listed.as_array().unwrap();
+        assert_eq!(listed.len(), 3, "{listed:?}");
+        let entry = listed.iter().find(|s| s["id"] == theirs).unwrap();
+        assert_eq!(
+            entry["userAgent"],
+            concat!("ente-cli/", env!("CARGO_PKG_VERSION"))
+        );
+        for field in ["device", "ip", "createdAt", "lastUsedAt"] {
+            assert!(
+                entry[field].as_str().is_some_and(|value| !value.is_empty()),
+                "{entry}"
+            );
+        }
+        let plain = String::from_utf8(success(home.run(&["account", "session", "list"])).stdout)?;
+        assert!(plain.starts_with("CURRENT  DEVICE"), "{plain}");
+        assert!(
+            plain
+                .lines()
+                .any(|line| line.starts_with('*') && line.ends_with(&mine)),
+            "{plain}"
+        );
+
+        let revoke = |id: &str, options: &[&str]| {
+            let mut args = vec!["account", "session", "revoke", id, "--no-input"];
+            args.extend_from_slice(options);
+            home.run(&args)
+        };
+        assert!(failure(&revoke(&theirs, &[])).contains("supply --yes"));
+        assert!(failure(&revoke(&mine, &["--yes"])).contains("use account logout --app photos"));
+        assert!(
+            failure(&revoke("th:unknown", &["--yes"]))
+                .contains("no active Ente Photos session has ID \"th:unknown\"")
+        );
+        let revoked: Value =
+            serde_json::from_slice(&success(revoke(&theirs, &["--yes", "--json"])).stdout)?;
+        assert_eq!(revoked["app"], "photos");
+        assert_eq!(revoked["session"]["id"], theirs);
+        assert_eq!(revoked["session"]["current"], false);
+
+        assert!(failure(&other.run(&["account", "session", "list"])).contains("401"));
+        let remaining = home.json(&["account", "session", "list"]);
+        let remaining = remaining.as_array().unwrap();
+        assert_eq!(remaining.len(), 2, "{remaining:?}");
+        assert!(remaining.iter().all(|session| session["id"] != theirs));
         Ok(())
     })
 }

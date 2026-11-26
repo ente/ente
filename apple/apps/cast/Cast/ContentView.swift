@@ -21,7 +21,6 @@ struct ContentView: View {
             case .slideshow:
                 SlideshowView(
                     imageData: viewModel.currentImageData,
-                    videoData: viewModel.currentVideoData,
                     isVideo: viewModel.currentFile?.isVideo ?? false,
                     slideshowService: viewModel.slideshowService,
                 )

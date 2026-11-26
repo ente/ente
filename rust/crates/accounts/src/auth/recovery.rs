@@ -7,6 +7,12 @@ use super::KeyAttributes;
 use crate::error::{Error, Result};
 
 pub fn get_recovery_key(master_key: &Key, attributes: &KeyAttributes) -> Result<String> {
+    Ok(hex::encode(
+        get_recovery_key_bytes(master_key, attributes)?.as_bytes(),
+    ))
+}
+
+pub(crate) fn get_recovery_key_bytes(master_key: &Key, attributes: &KeyAttributes) -> Result<Key> {
     let encrypted_recovery_key = attributes
         .recovery_key_encrypted_with_master_key
         .as_ref()
@@ -33,7 +39,7 @@ pub fn get_recovery_key(master_key: &Key, attributes: &KeyAttributes) -> Result<
         .map_err(|_| Error::InvalidKeyAttributes)?,
     );
 
-    Ok(hex::encode(&recovery_key))
+    Key::try_from_slice(&recovery_key).map_err(Into::into)
 }
 
 // Accept 24-word English BIP-39 mnemonics and legacy hex recovery keys.

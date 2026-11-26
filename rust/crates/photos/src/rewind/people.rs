@@ -23,14 +23,6 @@ pub(super) struct Face {
     pub(super) score: f64,
     pub(super) blur: f64,
     pub(super) area: f64,
-    pub(super) eyes: Option<Eyes>,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub(super) struct Eyes {
-    pub(super) left: (f64, f64),
-    pub(super) right: (f64, f64),
-    pub(super) nose: (f64, f64),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -44,20 +36,12 @@ pub(super) struct Entity {
 struct Detection {
     #[serde(rename = "box")]
     face_box: FaceBox,
-    #[serde(default)]
-    landmarks: Vec<Landmark>,
 }
 
 #[derive(Deserialize)]
 struct FaceBox {
     width: f64,
     height: f64,
-}
-
-#[derive(Deserialize)]
-struct Landmark {
-    x: f64,
-    y: f64,
 }
 
 impl People {
@@ -69,10 +53,11 @@ impl People {
         let db = store.db();
         let mut faces = HashMap::new();
         let mut face_counts = HashMap::new();
-        db.for_each_face_without_embedding(|face| {
-            if library.get(face.file_id).is_some_and(YearFile::is_eligible) {
+        db.for_each_face_without_embedding(
+            |file_id| library.get(file_id).is_some_and(YearFile::is_eligible),
+            |face| {
                 *face_counts.entry(face.file_id).or_insert(0) += 1;
-                let (area, eyes) = shape(&face.detection_json);
+                let area = face_area(&face.detection_json);
                 faces.insert(
                     face.face_id,
                     Face {
@@ -80,11 +65,10 @@ impl People {
                         score: face.score,
                         blur: face.blur,
                         area,
-                        eyes,
                     },
                 );
-            }
-        })?;
+            },
+        )?;
         let people: HashMap<&str, &RewindPerson> = request
             .people
             .iter()
@@ -203,17 +187,8 @@ fn in_year(entities: HashMap<String, Entity>) -> Vec<Entity> {
     entities
 }
 
-fn shape(detection_json: &str) -> (f64, Option<Eyes>) {
-    let Ok(detection) = serde_json::from_str::<Detection>(detection_json) else {
-        return (0.0, None);
-    };
-    let eyes = match detection.landmarks.as_slice() {
-        [left, right, nose, ..] => Some(Eyes {
-            left: (left.x, left.y),
-            right: (right.x, right.y),
-            nose: (nose.x, nose.y),
-        }),
-        _ => None,
-    };
-    (detection.face_box.width * detection.face_box.height, eyes)
+fn face_area(detection_json: &str) -> f64 {
+    serde_json::from_str::<Detection>(detection_json).map_or(0.0, |detection| {
+        detection.face_box.width * detection.face_box.height
+    })
 }

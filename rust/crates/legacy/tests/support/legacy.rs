@@ -44,6 +44,7 @@ pub async fn create_accepted_pair(endpoint: &str, recovery_notice_in_days: i32) 
     ente_legacy::add_contact(
         &owner_session,
         &trusted.email,
+        &trusted.key_attributes.public_key,
         Some(recovery_notice_in_days),
     )
     .await

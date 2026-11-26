@@ -1,8 +1,11 @@
 import "dart:async";
+import "dart:io";
 import "dart:math";
 import "dart:typed_data";
 import "dart:ui" as ui;
 
+import "package:ente_pure_utils/ente_pure_utils.dart"
+    show isFileSystemPathMissing;
 import "package:flutter/widgets.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/constants.dart";
@@ -14,10 +17,10 @@ typedef RewindBytes =
     Future<Uint8List?> Function(EnteFile file, {bool cachedOnly});
 
 typedef RewindPhotoBuilder =
-    Widget Function(EnteFile file, {ui.Image? decoded});
+    Widget Function(EnteFile file, {ui.Image? decoded, Key? key});
 
-Widget rewindPhoto(EnteFile file, {ui.Image? decoded}) =>
-    RewindPhoto(file, decoded: decoded);
+Widget rewindPhoto(EnteFile file, {ui.Image? decoded, Key? key}) =>
+    RewindPhoto(file, decoded: decoded, key: key);
 
 typedef RewindTilePainter =
     void Function(Canvas canvas, ui.Image image, Rect cell, int index);
@@ -26,10 +29,35 @@ Future<Uint8List?> rewindThumbnailBytes(
   EnteFile file, {
   bool cachedOnly = false,
 }) async {
-  if (!cachedOnly || !file.isRemoteOnlyFile) return getThumbnail(file);
-  final cached = cachedThumbnailPath(file);
-  return await cached.exists() ? cached.readAsBytes() : null;
+  if (!file.isUploaded) {
+    return getThumbnailFromLocal(file, size: thumbnailLargeSize);
+  }
+  if (!cachedOnly) return _serverThumbnail(file);
+  final saved = await _savedThumbnail(file);
+  if (saved != null || file.isRemoteOnlyFile) return saved;
+  return getThumbnailFromLocal(file, size: thumbnailLargeSize);
 }
+
+Future<Uint8List?> _savedThumbnail(EnteFile file) async {
+  final saved = cachedThumbnailPath(file);
+  if (!await saved.exists()) return null;
+  try {
+    return await saved.readAsBytes();
+  } on FileSystemException catch (e) {
+    if (isFileSystemPathMissing(e)) return null;
+    rethrow;
+  }
+}
+
+Future<Uint8List?> _serverThumbnail(EnteFile file) async {
+  try {
+    return await getThumbnailFromServer(file);
+  } catch (_) {
+    return null;
+  }
+}
+
+void preloadRewindPhoto(EnteFile file) => rewindThumbnailBytes(file).ignore();
 
 class RewindAtlas {
   RewindAtlas._(this.image, this.tile, this.columns, this.files);
@@ -160,12 +188,16 @@ class RewindAtlas {
     bool stalled,
     void Function() onStall,
   ) async {
-    final remote = file.isRemoteOnlyFile ? file.uploadedFileID : null;
+    final clock = Stopwatch()..start();
+    final remote = file.isUploaded ? file.uploadedFileID : null;
     final cachedOnly = _unfinished.length >= _mostUnfinished;
+    final fallsBack = remote != null && !file.isRemoteOnlyFile && !cachedOnly;
     final request = bytes(file, cachedOnly: cachedOnly);
     final hurried = remote != null && stalled && !cachedOnly;
+    final serverPatience = fallsBack ? _patience ~/ 2 : _patience;
+    Uint8List? data;
     try {
-      return await request.timeout(hurried ? _grace : _patience);
+      data = await request.timeout(hurried ? _grace : serverPatience);
     } on TimeoutException {
       if (remote != null && !cachedOnly) {
         onStall();
@@ -176,7 +208,18 @@ class RewindAtlas {
               .whenComplete(() => _unfinished.remove(remote)),
         );
       }
-      return null;
+    } catch (_) {}
+    if (data != null || !fallsBack) return data;
+    return _fromDevice(file, bytes, _patience - clock.elapsed);
+  }
+
+  static Future<Uint8List?> _fromDevice(
+    EnteFile file,
+    RewindBytes bytes,
+    Duration patience,
+  ) async {
+    try {
+      return await bytes(file, cachedOnly: true).timeout(patience);
     } catch (_) {
       return null;
     }
@@ -309,6 +352,21 @@ class RewindDecoded {
     RewindBytes bytes,
   ) => RewindWarm(() => _load(photos, bytes), (decoded) => decoded.dispose());
 
+  static Future<RewindDecoded> available(
+    List<EnteFile> photos,
+    RewindBytes bytes,
+  ) async {
+    final images = await Future.wait([
+      for (final photo in photos) _image(photo, bytes),
+    ]);
+    return RewindDecoded._(
+      Map.identity()..addEntries([
+        for (final (index, photo) in photos.indexed)
+          if (images[index] case final image?) MapEntry(photo, image),
+      ]),
+    );
+  }
+
   static Future<RewindDecoded?> _load(
     List<EnteFile> photos,
     RewindBytes bytes,
@@ -330,9 +388,22 @@ class RewindDecoded {
     );
   }
 
+  static Future<Uint8List?> _bytes(EnteFile photo, RewindBytes bytes) async {
+    const patience = RewindAtlas._patience;
+    if (!photo.isUploaded || photo.isRemoteOnlyFile) {
+      return bytes(photo).timeout(patience);
+    }
+    final clock = Stopwatch()..start();
+    final served = await bytes(
+      photo,
+    ).timeout(patience ~/ 2, onTimeout: () => null);
+    return served ??
+        RewindAtlas._fromDevice(photo, bytes, patience - clock.elapsed);
+  }
+
   static Future<ui.Image?> _image(EnteFile photo, RewindBytes bytes) async {
     try {
-      final data = await bytes(photo).timeout(RewindAtlas._patience);
+      final data = await _bytes(photo, bytes);
       if (data == null) return null;
       return await RewindAtlas._decode(
         data,
@@ -361,8 +432,6 @@ class RewindWarmBuilder<T extends Object> extends StatefulWidget {
 
 class _RewindWarmBuilderState<T extends Object>
     extends State<RewindWarmBuilder<T>> {
-  static const _retryAfterSeconds = [3, 6, 12, 24, 48];
-
   late T? _value = widget.warm.loaded;
 
   @override
@@ -386,8 +455,7 @@ class _RewindWarmBuilderState<T extends Object>
         setState(() => _value = value);
         return;
       }
-      final wait = min(attempt, _retryAfterSeconds.length - 1);
-      await Future<void>.delayed(Duration(seconds: _retryAfterSeconds[wait]));
+      await Future<void>.delayed(rewindRetryAfter(attempt));
     }
   }
 

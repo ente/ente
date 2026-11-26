@@ -43,6 +43,12 @@ Yes. Ente Photos is also available on the web at [photos.ente.com](https://photo
 
 You don't need to install anything - just log in with your email and password.
 
+### Can I use Ente Photos on a Chromebook? {#chromebook}
+
+There's no separate Ente Photos app made for ChromeOS. On a Chromebook, use the web app at [photos.ente.com](https://photos.ente.com) and sign in with your Ente account.
+
+If your Chromebook can install Android apps, you may also find Ente Photos in the Google Play Store. It only appears there if Google Play lists it as compatible with your Chromebook.
+
 ### Why is the latest version not available on F-Droid? {#fdroid-delay}
 
 Releases over F-Droid are generally slower than other stores since they run their own build servers. The latest updates are usually available within 2 weeks of release.

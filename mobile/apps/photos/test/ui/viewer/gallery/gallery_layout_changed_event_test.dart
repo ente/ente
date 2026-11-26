@@ -30,6 +30,7 @@ import "package:photos/ui/viewer/gallery/gallery.dart";
 import "package:photos/ui/viewer/gallery/gallery_app_bar_config.dart";
 import "package:photos/ui/viewer/gallery/gallery_grid_zoom.dart";
 import "package:photos/ui/viewer/gallery/layout_settings.dart";
+import "package:photos/ui/viewer/gallery/scrollbar/custom_scroll_bar.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_boundaries_provider.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
 import "package:shared_preferences/shared_preferences.dart";
@@ -64,9 +65,48 @@ void main() {
     await localSettings.setGalleryLayoutType(GalleryLayoutType.grid);
   });
 
-  testWidgets("filename sort loads the full album and restores date headers", (
+  testWidgets("tall headers fit during initial gallery measurement", (
     tester,
   ) async {
+    final file = _justifiedTestFile(0);
+    final appBar = GalleryAppBarConfig(
+      sliverBuilder: (_) => const SliverAppBarComponent(
+        title: "Album",
+        expandedHeight: 92,
+        collapsedHeight: kToolbarHeight,
+      ),
+      geometryBuilder: (context) => SliverAppBarComponent.resolveGeometry(
+        context,
+        expandedHeight: 92,
+        collapsedHeight: kToolbarHeight,
+      ),
+    );
+    for (final withAppBar in [false, true]) {
+      await tester.pumpWidget(
+        _viewSizedGalleryHost(
+          Gallery(
+            tagPrefix: "tall_header_$withAppBar",
+            appBar: withAppBar ? appBar : null,
+            header: const SizedBox(height: 1000),
+            scrollInitialPlaceholder: !withAppBar,
+            initialFiles: [file],
+            asyncLoader: (start, end, {limit, asc}) async =>
+                FileLoadResult([file], false),
+          ),
+        ),
+      );
+      expect(tester.takeException(), isNull);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+    }
+  });
+
+  testWidgets("filename sort loads the full album and hides year divisions", (
+    tester,
+  ) async {
+    await localSettings.setPhotoGridSize(4);
     final key = GlobalKey<GalleryState>();
     Completer<FileLoadResult>? pendingLoad;
     var order = FileSortOrder.filenameAscending;
@@ -74,6 +114,9 @@ void main() {
       201,
       (index) => _justifiedTestFile(index)
         ..title = "IMG${201 - index}.jpg"
+        ..creationTime = DateTime(
+          index < 100 ? 2024 : 2025,
+        ).microsecondsSinceEpoch
         ..uploadedFileID = index + 1,
     );
     await tester.pumpWidget(
@@ -129,6 +172,12 @@ void main() {
     expect(key.currentState!.galleryGroups!.groupType, GroupType.day);
     expect(key.currentState!.galleryGroups!.groupHeaderExtent, greaterThan(2));
     expect(key.currentState!.galleryGroups!.allFiles.first.title, "IMG201.jpg");
+    final scrollbarInUse = key.currentState!.scrollBarInUseNotifier;
+    scrollbarInUse.value = true;
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(ScrollBarDivider, "2025"), findsOneWidget);
+    scrollbarInUse.value = false;
+    await tester.pumpAndSettle();
 
     order = FileSortOrder.filenameDescending;
     Bus.instance.fire(
@@ -138,6 +187,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(key.currentState!.galleryGroups!.groupType, GroupType.none);
     expect(key.currentState!.galleryGroups!.allFiles.first.title, "IMG201.jpg");
+    scrollbarInUse.value = true;
+    await tester.pumpAndSettle();
+    expect(find.byType(ScrollBarDivider), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 100));
   });
@@ -501,7 +553,7 @@ void main() {
   testWidgets(
     "pinching selection galleries changes density without changing selection",
     (tester) async {
-      for (final mode in ["sheet", "single", "selected"]) {
+      for (final mode in ["sheet", "single", "selected", "alias"]) {
         await localSettings.setPhotoGridSize(4);
         final galleryKey = GlobalKey<GalleryState>();
         final files = List.generate(
@@ -512,8 +564,16 @@ void main() {
             ..fileType = FileType.image
             ..title = "photo-$index.jpg",
         );
-        final selectedFiles = SelectedFiles();
+        final selectedFiles = SelectedFiles(dedupeByUploadID: mode == "alias");
         if (mode == "selected") selectedFiles.selectAll({files.first});
+        if (mode == "alias") {
+          files.first.uploadedFileID = 100;
+          selectedFiles.selectAll({
+            EnteFile()
+              ..generatedID = 100
+              ..uploadedFileID = 100,
+          });
+        }
         var selectionChanges = 0;
         selectedFiles.addListener(() => selectionChanges++);
         final selectionBefore = selectedFiles.files.toSet();
@@ -549,6 +609,16 @@ void main() {
           findsOneWidget,
           reason: mode,
         );
+        for (final key in [
+          "gallery-grid-zoom-selection-shade",
+          "gallery-grid-zoom-selection",
+        ]) {
+          expect(
+            find.byKey(ValueKey((key, 0))),
+            selectedFiles.files.isEmpty ? findsNothing : findsOneWidget,
+            reason: mode,
+          );
+        }
         expect(localSettings.getPhotoGridSize(), 4, reason: mode);
         await first.up();
         await second.up();

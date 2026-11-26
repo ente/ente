@@ -92,6 +92,10 @@ func IsLocalEnvironment() bool {
 	return evn == "" || evn == "local"
 }
 
+func IsRateLimitDisabled() bool {
+	return IsLocalEnvironment() && viper.GetBool("internal.disable-rate-limit")
+}
+
 func CredentialFilePath(name string) (string, error) {
 	credentialsDir := viper.GetString("credentials-dir")
 	if credentialsDir == "" {

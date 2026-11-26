@@ -7,6 +7,16 @@ description: Release notes of recent updates to Ente Locker
 
 A short summary list of changes to Ente Locker.
 
+## v1.0.13 (mobile) - Nov 2026
+
+- Fix unlocking with existing desktop PINs containing letters or symbols.
+- Hid app content earlier during iOS app-lock transitions.
+- Fixed singular item counts and localized the Add item button's accessibility label.
+- Added Indonesian, Swedish, and Simplified Chinese language support.
+- Improved screen reader labels and announcements for buttons, menus, and scanner controls.
+- Added search filters and multi-selection for items and collections.
+- Removed item and collection selection counts below the search filters.
+
 ## v1.0.12 (mobile) - Nov 2026
 
 - Fixed deleted collections remaining selected.

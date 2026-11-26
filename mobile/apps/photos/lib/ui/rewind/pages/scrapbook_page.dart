@@ -3,6 +3,7 @@ import "dart:math";
 import "package:flutter/material.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/story/rewind_colours.dart";
@@ -14,7 +15,6 @@ import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
 import "package:photos/ui/rewind/widgets/rewind_elapsed.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
-import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo_frames.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
@@ -53,13 +53,13 @@ class ScrapbookPage extends RewindPage {
     required this.report,
     required this.photos,
     required this.people,
-    required this.cityNames,
+    required this.cities,
   });
 
   final rust.RewindReport report;
   final List<EnteFile> photos;
   final List<RewindFace> people;
-  final List<String> cityNames;
+  final List<rust.RewindCity> cities;
 
   @override
   String get key => "scrapbook";
@@ -69,7 +69,8 @@ class ScrapbookPage extends RewindPage {
       const Duration(milliseconds: 3800 + RewindMotion.reelReadingMs);
 
   @override
-  RewindChrome get chrome => const RewindChrome(foreground: RewindColors.cream);
+  RewindChrome get chrome =>
+      const RewindChrome(foreground: RewindColors.cream, nextArrow: true);
 
   @override
   Widget build(
@@ -235,6 +236,7 @@ class _Summary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final copy = RewindCopy.of(context);
     final report = page.report;
     final totals = report.totals;
     final colour = report.colour?.colour;
@@ -246,7 +248,10 @@ class _Summary extends StatelessWidget {
           ].take(3).toList();
     final places = report.places == null
         ? const <String>[]
-        : page.cityNames.take(3).toList();
+        : [
+            for (final city in page.cities.take(3))
+              copy.city(city.name, city.country),
+          ];
     final firstRow = totals != null || colour != null;
     final secondTop = firstRow ? 620.0 : 520.0;
     return Stack(
@@ -260,36 +265,28 @@ class _Summary extends StatelessWidget {
           child: CustomPaint(painter: _ScallopPainter()),
         ),
         if (totals != null) ...[
-          const Positioned(
-            left: 35,
-            top: 520,
-            child: _Label("Photos uploaded"),
-          ),
+          Positioned(left: 35, top: 520, child: _Label(copy.scrapbookPhotos)),
           Positioned(
             left: 35,
-            top: 545,
+            top: 555,
             child: _Uploads(files: totals.files, topPercent: totals.topPercent),
           ),
         ],
         if (colour != null) ...[
-          const Positioned(
-            left: 212,
-            top: 520,
-            child: _Label("Colour of the year"),
-          ),
+          Positioned(left: 212, top: 520, child: _Label(copy.scrapbookColour)),
           Positioned(
             left: 212,
             top: 546,
             width: 153,
             height: 67,
-            child: _Colour(name: colour.label, color: colour.color),
+            child: _Colour(name: copy.colourName(colour), color: colour.color),
           ),
         ],
         if (names.isNotEmpty) ...[
           Positioned(
             left: 35,
             top: secondTop,
-            child: const _Label("Top people"),
+            child: _Label(copy.scrapbookPeople),
           ),
           Positioned(
             left: 35,
@@ -302,7 +299,7 @@ class _Summary extends StatelessWidget {
           Positioned(
             left: 212,
             top: secondTop,
-            child: const _Label("Top places"),
+            child: _Label(copy.scrapbookPlaces),
           ),
           Positioned(
             left: 212,
@@ -347,7 +344,7 @@ class _Uploads extends StatelessWidget {
           child: FittedBox(
             fit: BoxFit.scaleDown,
             child: RewindOutlinedText(
-              rewindCount(files),
+              RewindCopy.of(context).number(files),
               style: RewindTextStyles.display(
                 47,
                 color: _summaryGreen,
@@ -385,7 +382,10 @@ class _Seal extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text("TOP", style: RewindTextStyles.body(8, height: 10 / 8)),
+                  Text(
+                    RewindCopy.of(context).scrapbookTop,
+                    style: RewindTextStyles.body(8, height: 10 / 8),
+                  ),
                   Text(
                     "$topPercent%",
                     style: RewindTextStyles.body(16, height: 18 / 16),

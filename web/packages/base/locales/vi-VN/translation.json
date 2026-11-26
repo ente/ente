@@ -1080,7 +1080,7 @@
     "filters": "Bộ lọc",
     "invert_colors": "Đảo ngược màu",
     "reset": "Đặt lại",
-    "faster_upload": "Tải lên nhanh hơn",
+    "smart_routing": "",
     "faster_upload_description": "Tải lên các máy chủ gần bạn",
     "open_ente_on_startup": "Mở Ente khi khởi động",
     "cast_album_to_tv": "Phát album trên TV",

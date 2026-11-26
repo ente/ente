@@ -16,12 +16,19 @@ export const useBaseContext = (): BaseContextT => useContext(BaseContext)!;
 export const deriveBaseContext = ({
     logout,
     showMiniDialog,
-}: Omit<BaseContextT, "onGenericError">): BaseContextT => {
+    getErrorDialogAttributes,
+}: Omit<BaseContextT, "onGenericError"> & {
+    getErrorDialogAttributes?: (
+        error: unknown,
+    ) => MiniDialogAttributes | undefined;
+}): BaseContextT => {
     const onGenericError = (e: unknown) => {
         log.error(e);
         // Let a dialog action close its dialog before showing the error dialog.
         setTimeout(() => {
-            showMiniDialog(genericErrorDialogAttributes());
+            showMiniDialog(
+                getErrorDialogAttributes?.(e) ?? genericErrorDialogAttributes(),
+            );
         }, 0);
     };
 

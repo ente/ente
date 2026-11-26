@@ -28,8 +28,8 @@ import "package:locker/ui/pages/physical_records_page.dart";
 import "package:locker/utils/bottom_sheet_illustration.dart";
 import "package:locker/utils/error_sheet.dart";
 import "package:locker/utils/file_actions.dart";
+import "package:locker/utils/file_opener.dart";
 import "package:logging/logging.dart";
-import "package:open_file/open_file.dart";
 import "package:path/path.dart" as p;
 
 class FileUtil {
@@ -473,7 +473,7 @@ class FileUtil {
     EnteFile? lockerFile,
     required Future<void> Function({
       required String error,
-      ResultType? resultType,
+      FileOpenerResultType? resultType,
     })
     showError,
   }) async {
@@ -490,9 +490,12 @@ class FileUtil {
         throw Exception("File is missing or empty");
       }
 
-      final result = await OpenFile.open(fileToOpen.path);
-      if (result.type != ResultType.done) {
-        await showError(error: result.message, resultType: result.type);
+      final result = await LockerFileOpener.open(fileToOpen.path);
+      if (result.type != FileOpenerResultType.done) {
+        await showError(
+          error: result.message ?? "Could not open file",
+          resultType: result.type,
+        );
       }
     } catch (e) {
       await showError(error: e.toString());
@@ -570,7 +573,7 @@ class FileUtil {
   static Future<void> _showOpenFileError(
     BuildContext context, {
     required String error,
-    ResultType? resultType,
+    FileOpenerResultType? resultType,
     EnteFile? lockerFile,
   }) async {
     await showBottomSheetComponent(
@@ -595,9 +598,9 @@ class FileUtil {
   static String _openFileErrorMessage(
     BuildContext context,
     String error, {
-    ResultType? resultType,
+    FileOpenerResultType? resultType,
   }) {
-    if (resultType == ResultType.noAppToOpen) {
+    if (resultType == FileOpenerResultType.noAppToOpen) {
       return context.strings.noAppToOpenFileDownloadInstead;
     }
 

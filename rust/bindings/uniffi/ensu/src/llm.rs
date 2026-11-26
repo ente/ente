@@ -93,6 +93,76 @@ impl LlmExecutionControl {
 pub struct LlmChatMessage {
     pub role: String,
     pub content: String,
+    #[uniffi(default = [])]
+    pub tool_calls: Vec<LlmToolCall>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Enum)]
+pub enum LlmToolValue {
+    Text { value: String },
+    Integer { value: i64 },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct LlmToolArgument {
+    pub name: String,
+    pub value: LlmToolValue,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct LlmToolCall {
+    pub name: String,
+    pub arguments: Vec<LlmToolArgument>,
+}
+
+#[derive(Debug, uniffi::Object)]
+pub struct LlmToolRequest(pub(crate) llm::ToolExchange);
+
+impl From<llm::ToolValue> for LlmToolValue {
+    fn from(value: llm::ToolValue) -> Self {
+        match value {
+            llm::ToolValue::Text(value) => Self::Text { value },
+            llm::ToolValue::Integer(value) => Self::Integer { value },
+        }
+    }
+}
+
+impl From<LlmToolValue> for llm::ToolValue {
+    fn from(value: LlmToolValue) -> Self {
+        match value {
+            LlmToolValue::Text { value } => Self::Text(value),
+            LlmToolValue::Integer { value } => Self::Integer(value),
+        }
+    }
+}
+
+impl From<llm::ToolCall> for LlmToolCall {
+    fn from(call: llm::ToolCall) -> Self {
+        Self {
+            name: call.name,
+            arguments: call
+                .arguments
+                .into_iter()
+                .map(|(name, value)| LlmToolArgument {
+                    name,
+                    value: value.into(),
+                })
+                .collect(),
+        }
+    }
+}
+
+impl From<LlmToolCall> for llm::ToolCall {
+    fn from(call: LlmToolCall) -> Self {
+        Self {
+            name: call.name,
+            arguments: call
+                .arguments
+                .into_iter()
+                .map(|argument| (argument.name, argument.value.into()))
+                .collect(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, uniffi::Record)]
@@ -113,6 +183,8 @@ pub struct LlmChatRequest {
     pub seed: Option<i64>,
     pub stop_sequences: Option<Vec<String>>,
     pub grammar: Option<String>,
+    #[uniffi(default = None)]
+    pub tools: Option<Arc<LlmToolRequest>>,
 }
 
 #[derive(Debug, Clone, uniffi::Record)]
@@ -121,6 +193,7 @@ pub struct LlmGenerationSummary {
     pub prompt_tokens: Option<i32>,
     pub generated_tokens: Option<i32>,
     pub total_time_ms: Option<i64>,
+    pub called_tools: bool,
 }
 
 #[derive(Debug, Clone, uniffi::Enum)]
@@ -240,8 +313,13 @@ impl LlmContext {
         callback: Arc<dyn LlmGenerationEventCallback>,
     ) -> Result<LlmGenerationSummary, LlmError> {
         let mut sink = CallbackSink { callback };
+        let tools = request.tools.clone();
         self.handle
-            .generate_chat_stream(request.into(), &mut sink)
+            .generate_with_tools(
+                request.into(),
+                tools.as_ref().map(|tools| &tools.0),
+                &mut sink,
+            )
             .map(Into::into)
             .map_err(LlmError::from)
     }
@@ -340,6 +418,7 @@ impl From<LlmChatMessage> for llm::ChatMessage {
         Self {
             role: value.role,
             content: value.content,
+            tool_calls: value.tool_calls.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -349,6 +428,7 @@ impl From<llm::ChatMessage> for LlmChatMessage {
         Self {
             role: value.role,
             content: value.content,
+            tool_calls: value.tool_calls.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -372,6 +452,7 @@ impl From<LlmChatRequest> for llm::ChatRequest {
             seed: value.seed,
             stop_sequences: value.stop_sequences,
             grammar: value.grammar,
+            tools: None,
         }
     }
 }
@@ -383,6 +464,7 @@ impl From<llm::GenerationSummary> for LlmGenerationSummary {
             prompt_tokens: value.prompt_tokens,
             generated_tokens: value.generated_tokens,
             total_time_ms: value.total_time_ms,
+            called_tools: value.tools.is_some_and(|tools| !tools.calls.is_empty()),
         }
     }
 }

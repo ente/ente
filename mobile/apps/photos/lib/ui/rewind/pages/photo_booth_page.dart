@@ -6,18 +6,19 @@ import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_svg/flutter_svg.dart";
 import "package:photos/models/file/file.dart";
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/story/rewind_face.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
+import "package:photos/ui/rewind/theme/rewind_motion.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
 import "package:photos/ui/rewind/widgets/rewind_keyframes.dart";
 import "package:photos/ui/rewind/widgets/rewind_layer.dart";
-import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo_frames.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
@@ -32,20 +33,7 @@ class PhotoBoothPage extends RewindPage {
     this.place = 0,
   });
 
-  static const _billings = [
-    (key: "people_booth", you: "YOUR NO. 1", me: "MY NO. 1"),
-    (
-      key: "people_booth_2",
-      you: "ALWAYS IN THE PICTURE",
-      me: "ALWAYS IN THE PICTURE",
-    ),
-    (
-      key: "people_booth_3",
-      you: "NEVER OUT OF FRAME",
-      me: "NEVER OUT OF FRAME",
-    ),
-  ];
-  static final pageKeys = [for (final billing in _billings) billing.key];
+  static const pageKeys = ["people_booth", "people_booth_2", "people_booth_3"];
 
   final RewindFace person;
   final int count;
@@ -54,11 +42,17 @@ class PhotoBoothPage extends RewindPage {
   final int place;
 
   @override
-  String get key => _billings[place].key;
+  String get key => pageKeys[place];
 
   @override
-  Duration? get reelHold =>
-      place == 0 ? const Duration(milliseconds: 3300) : null;
+  Duration? get reelHold => place == 0
+      ? const Duration(
+          milliseconds: _Booth.printedMs + RewindMotion.reelReadingMs,
+        )
+      : null;
+
+  @override
+  Duration get clipHold => _Booth.clipHold(photos);
 
   @override
   List<EnteFile> get reelThumbnails => photos;
@@ -69,8 +63,8 @@ class PhotoBoothPage extends RewindPage {
     double position, {
     required bool isActive,
   }) {
+    final copy = RewindCopy.of(context);
     final name = (person.name ?? "").toUpperCase();
-    final billing = _billings[place];
     final covered = RewindPageScope.coveredOf(context);
     return RewindShareable(
       child: Stack(
@@ -118,8 +112,7 @@ class PhotoBoothPage extends RewindPage {
                   active: isActive,
                   delayMs: 150,
                   child: RewindVoice(
-                    you: billing.you,
-                    me: billing.me,
+                    copy.boothBilling(place),
                     builder: (text) => Text(
                       text,
                       style: RewindTextStyles.display(20, letterSpacing: 0.3),
@@ -191,7 +184,7 @@ class PhotoBoothPage extends RewindPage {
                   active: isActive,
                   delayMs: 450,
                   child: Text(
-                    "${rewindCounted(count, "photo", "photos")} this year!",
+                    copy.boothPhotos(count),
                     style: RewindTextStyles.body(18),
                   ),
                 ),
@@ -214,6 +207,16 @@ class _Booth extends StatefulWidget {
   static const printedMs = _printStartMs + _printMs;
   static const _printStartMs = 750;
   static const _printMs = 2600;
+
+  static Duration clipHold(List<EnteFile> photos) {
+    final strips = _BoothState._stripsOf(photos).length;
+    return Duration(
+      milliseconds:
+          printedMs +
+          (strips - 1) * (_BoothState._clipHangMs + _printMs) +
+          _BoothState._clipLastHangMs,
+    );
+  }
 
   final List<EnteFile> photos;
   final Map<EnteFile, Alignment> focus;
@@ -242,7 +245,9 @@ class _BoothState extends State<_Booth> with TickerProviderStateMixin {
   static const _swayMs = 1300;
   static const _nudgeStartMs = _Booth.printedMs + _swayMs + 300;
   static const _nudgeMs = 650;
-  static const _hangMs = 5000;
+  static const _hangMs = 3000;
+  static const _clipHangMs = 3500;
+  static const _clipLastHangMs = _swayMs + 2000;
   static const _tugMs = 480;
   static const _tugDistance = 34.0;
   static const _tearDistance = 24.0;
@@ -253,6 +258,7 @@ class _BoothState extends State<_Booth> with TickerProviderStateMixin {
   static const _drop = Cubic(0.2, 0.8, 0.3, 1);
 
   late final _reel = RewindPageScope.reelOf(context);
+  late final _clip = RewindPageScope.clipOf(context);
   late final _strips = _stripsOf(widget.photos);
   late final _controller = AnimationController(
     vsync: this,
@@ -260,7 +266,7 @@ class _BoothState extends State<_Booth> with TickerProviderStateMixin {
   );
   late final _wait = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: _hangMs - _tugMs),
+    duration: Duration(milliseconds: (_clip ? _clipHangMs : _hangMs) - _tugMs),
   );
   late final _tugging = AnimationController(
     vsync: this,
@@ -341,7 +347,10 @@ class _BoothState extends State<_Booth> with TickerProviderStateMixin {
   double get _elapsed =>
       _controller.value * _controller.duration!.inMilliseconds;
 
-  bool get _autoDrops => _strips.length > 1 && !_still;
+  bool get _autoDrops =>
+      _strips.length > 1 &&
+      !_still &&
+      (_clip ? _prints < _strips.length - 1 : !_reel);
 
   double get _tug =>
       _tugDistance * Curves.easeInOutCubic.transform(_tugging.value);

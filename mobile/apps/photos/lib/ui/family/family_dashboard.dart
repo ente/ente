@@ -166,9 +166,10 @@ class FamilyDashboard extends StatelessWidget {
     }
     if (a.isAdmin != b.isAdmin) return a.isAdmin ? -1 : 1;
 
-    final displayNameComparison = _displayNameFor(
-      a,
-    ).toLowerCase().compareTo(_displayNameFor(b).toLowerCase());
+    final displayNameComparison = compareNames(
+      _displayNameFor(a),
+      _displayNameFor(b),
+    );
     return displayNameComparison != 0
         ? displayNameComparison
         : a.email.toLowerCase().compareTo(b.email.toLowerCase());

@@ -72,6 +72,16 @@ impl FaceClusteringRun {
 }
 
 impl MlStore {
+    pub(crate) fn has_faces_to_cluster(&self, file_ids: &HashSet<i64>) -> Result<bool> {
+        let mut found = false;
+        self.db
+            .for_each_unclustered_face_embedding(|file_id, embedding| {
+                found = found
+                    || (file_ids.contains(&file_id) && clusterable_embedding(embedding).is_some());
+            })?;
+        Ok(found)
+    }
+
     pub fn start_face_clustering(
         &self,
         mut request: FaceClusteringRequest,

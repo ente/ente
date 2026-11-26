@@ -12,6 +12,7 @@ class RewindPageStack extends StatelessWidget {
     required this.scroll,
     required this.navigator,
     this.reel = false,
+    this.clip = false,
     super.key,
   });
 
@@ -20,6 +21,7 @@ class RewindPageStack extends StatelessWidget {
   final double scroll;
   final RewindNavigator navigator;
   final bool reel;
+  final bool clip;
 
   static List<int> startsOf(List<RewindPage> pages) {
     final starts = <int>[];
@@ -59,13 +61,14 @@ class RewindPageStack extends StatelessWidget {
       page: page,
       navigator: navigator,
       reel: reel,
+      clip: clip,
       child: Builder(
         builder: (context) => page.build(context, position, isActive: isActive),
       ),
     );
     final entering = !page.pinned && position < 0;
     return ClipPath(
-      key: ValueKey(page.key),
+      key: ObjectKey(page),
       clipper: _WaveClipper(entering ? 1 + position : 1),
       clipBehavior: entering ? Clip.antiAlias : Clip.none,
       child: content,

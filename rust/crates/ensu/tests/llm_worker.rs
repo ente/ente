@@ -40,10 +40,7 @@ fn context() -> llm::ContextRef {
 
 fn request() -> ChatRequest {
     ChatRequest {
-        messages: vec![ChatMessage {
-            role: "user".to_owned(),
-            content: "Count from one to five.".to_owned(),
-        }],
+        messages: vec![ChatMessage::new("user", "Count from one to five.")],
         temperature: Some(0.0),
         max_tokens: Some(16),
         ..Default::default()
@@ -248,14 +245,12 @@ fn default_model_reuses_multi_turn_cache_and_reloads() {
     let first = request();
     let (answer, _) = collect(&warm, first.clone());
     let mut followup = first;
-    followup.messages.push(ChatMessage {
-        role: "assistant".to_owned(),
-        content: answer,
-    });
-    followup.messages.push(ChatMessage {
-        role: "user".to_owned(),
-        content: "What comes next?".to_owned(),
-    });
+    followup
+        .messages
+        .push(ChatMessage::new("assistant", answer));
+    followup
+        .messages
+        .push(ChatMessage::new("user", "What comes next?"));
     let (cached, _) = collect(&warm, followup.clone());
     drop(warm);
     let fresh = Context::new(&owner, params).unwrap();
@@ -373,14 +368,9 @@ fn execution_handoffs_preserve_output_and_followup_cache() {
             if turn > 0 {
                 assert!(cached.unwrap() > 0);
             }
-            chat.messages.push(ChatMessage {
-                role: "assistant".to_owned(),
-                content: actual,
-            });
-            chat.messages.push(ChatMessage {
-                role: "user".to_owned(),
-                content: "What comes next?".to_owned(),
-            });
+            chat.messages.push(ChatMessage::new("assistant", actual));
+            chat.messages
+                .push(ChatMessage::new("user", "What comes next?"));
         }
     }
 }

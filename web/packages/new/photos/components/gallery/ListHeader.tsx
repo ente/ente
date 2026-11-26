@@ -14,7 +14,7 @@ interface GalleryItemsSummaryProps {
     description?: string;
     descriptionMaxWidth?: number;
     nameProps?: TypographyProps;
-    fileCount: number;
+    fileCount?: number;
     countLabel?: string;
     endIcon?: React.ReactNode;
     // This cannot be the only way to invoke the action; it is mouse-only.
@@ -55,32 +55,31 @@ export const GalleryItemsSummary: React.FC<GalleryItemsSummaryProps> = ({
             {name}
         </Typography>
 
-        <Stack
-            direction="row"
-            sx={{
-                gap: 1.5,
-                // Keep the header height stable without an end icon.
-                minHeight: "20px",
-                mt: "2px",
-            }}
-        >
-            <Typography
-                variant="small"
-                sx={{
-                    color: "text.muted",
-                    fontSize: "14px",
-                    fontWeight: 500,
-                    lineHeight: "20px",
-                }}
+        {(fileCount !== undefined || countLabel !== undefined) && (
+            <Stack
+                direction="row"
+                sx={{ gap: 1.5, minHeight: "20px", mt: "2px" }}
             >
-                {countLabel ?? t("photos_count", { count: fileCount })}
-            </Typography>
-            {endIcon && (
-                <Box sx={{ svg: { fontSize: "17px", color: "text.muted" } }}>
-                    {endIcon}
-                </Box>
-            )}
-        </Stack>
+                <Typography
+                    variant="small"
+                    sx={{
+                        color: "text.muted",
+                        fontSize: "14px",
+                        fontWeight: 500,
+                        lineHeight: "20px",
+                    }}
+                >
+                    {countLabel ?? t("photos_count", { count: fileCount })}
+                </Typography>
+                {endIcon && (
+                    <Box
+                        sx={{ svg: { fontSize: "17px", color: "text.muted" } }}
+                    >
+                        {endIcon}
+                    </Box>
+                )}
+            </Stack>
+        )}
 
         <AlbumDescription
             description={description}

@@ -3,8 +3,7 @@ import "dart:ui" show ImageFilter;
 
 import "package:flutter/material.dart";
 import "package:flutter_svg/flutter_svg.dart";
-import "package:intl/intl.dart";
-import "package:photos/services/rewind/rewind_edition.dart";
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/story/rewind_rituals.dart";
@@ -14,7 +13,6 @@ import "package:photos/ui/rewind/theme/rewind_motion.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
-import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
 import "package:photos/ui/rewind/widgets/rewind_reveal_layer.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
@@ -24,10 +22,10 @@ const _defaultIcons = ["💪", "🎨", "🪴", "👟"];
 typedef _Spot = ({Offset center, double size, double turn, int delayMs});
 
 const List<_Spot> _stickerSpots = [
-  (center: Offset(86.9, 104.9), size: 86, turn: 21.9, delayMs: 700),
-  (center: Offset(291.2, 105.7), size: 108, turn: -47.5, delayMs: 820),
-  (center: Offset(89.2, 423.9), size: 129, turn: 7, delayMs: 940),
-  (center: Offset(280.1, 431.3), size: 119, turn: -14, delayMs: 1060),
+  (center: Offset(86.9, 117.9), size: 86, turn: 21.9, delayMs: 700),
+  (center: Offset(291.2, 119.2), size: 108, turn: -47.5, delayMs: 820),
+  (center: Offset(88.7, 449.7), size: 129, turn: 7, delayMs: 940),
+  (center: Offset(280.4, 457.4), size: 119, turn: -14, delayMs: 1060),
 ];
 
 typedef _Tile = ({
@@ -39,21 +37,21 @@ typedef _Tile = ({
 });
 
 const _Tile _leftTile = (
-  center: Offset(74.5, 700.9),
+  center: Offset(74.5, 672.9),
   size: Size(94.7, 104),
   turn: -17.43,
   curl: true,
   delayMs: 1700,
 );
 const _Tile _middleTile = (
-  center: Offset(195.7, 647.2),
+  center: Offset(195.7, 619.2),
   size: Size(172.6, 124.4),
   turn: 0,
   curl: false,
   delayMs: 1550,
 );
 const _Tile _rightTile = (
-  center: Offset(311.7, 707.3),
+  center: Offset(311.8, 679.3),
   size: Size(95, 104),
   turn: 22.7,
   curl: true,
@@ -82,10 +80,9 @@ class RitualStreakPage extends RewindPage {
     double position, {
     required bool isActive,
   }) {
-    final streak = rewindCount(rituals.longestStreak);
-    final month = DateFormat.MMMM(
-      "en_US",
-    ).format(DateTime(RewindEdition.year, rituals.busiestMonth));
+    final copy = RewindCopy.of(context);
+    final streak = copy.number(rituals.longestStreak);
+    final month = copy.monthName(rituals.busiestMonth);
     final icons = [
       ...rituals.icons,
       ..._defaultIcons.where((icon) => !rituals.icons.contains(icon)),
@@ -105,23 +102,23 @@ class RitualStreakPage extends RewindPage {
             grain: 0.045,
           ),
           Semantics(
-            label:
-                "Your longest ritual streak: $streak. "
-                "${rewindCounted(rituals.checkIns, "check-in", "check-ins")} "
-                "this year, most in $month. "
-                "${rewindCounted(rituals.continued, "ritual", "rituals")} "
-                "still going.",
+            label: copy.streakLabel(
+              streak: rituals.longestStreak,
+              checkIns: rituals.checkIns,
+              month: rituals.busiestMonth,
+              continued: rituals.continued,
+            ),
             child: ExcludeSemantics(
               child: RewindStage(
                 children: [
                   Positioned.fill(
                     child: RewindLeave(
                       position: position,
-                      centerY: 260,
+                      centerY: 280,
                       child: RewindEntrance(
                         preset: RewindPreset.bubble,
                         active: isActive,
-                        origin: RewindStage.alignmentOf(const Offset(195, 261)),
+                        origin: RewindStage.alignmentOf(const Offset(195, 281)),
                         child: const CustomPaint(painter: _BlobPainter()),
                       ),
                     ),
@@ -149,7 +146,7 @@ class RitualStreakPage extends RewindPage {
                     ),
                   RewindRevealLayer(
                     left: 24,
-                    top: 166,
+                    top: 186,
                     width: 342,
                     height: 22,
                     position: position,
@@ -158,8 +155,7 @@ class RitualStreakPage extends RewindPage {
                     delayMs: 150,
                     child: Center(
                       child: RewindVoice(
-                        you: "YOUR LONGEST STREAK",
-                        me: "MY LONGEST STREAK",
+                        copy.streakKicker,
                         builder: (text) => RewindOutlinedText(
                           text,
                           style: RewindTextStyles.display(
@@ -175,7 +171,7 @@ class RitualStreakPage extends RewindPage {
                   ),
                   RewindRevealLayer(
                     left: 24,
-                    top: 194,
+                    top: 214,
                     width: 342,
                     height: 178,
                     position: position,
@@ -194,59 +190,24 @@ class RitualStreakPage extends RewindPage {
                       ),
                     ),
                   ),
-                  RewindRevealLayer(
-                    left: 34,
-                    top: 509,
-                    width: 320,
-                    height: 66,
-                    position: position,
-                    active: isActive,
-                    delayMs: 1250,
-                    child: Column(
-                      children: [
-                        RewindVoice(
-                          you: "Apparently,\nconsistency is your thing.",
-                          me: "Apparently,\nconsistency is my thing.",
-                          builder: (text) => Text(
-                            text,
-                            textAlign: TextAlign.center,
-                            style: RewindTextStyles.body(
-                              20,
-                              height: 26 / 20,
-                              color: RewindColors.white,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(
-                          width: 96,
-                          height: 11,
-                          child: CustomPaint(painter: _UnderlinePainter()),
-                        ),
-                      ],
-                    ),
-                  ),
                   _tile(
                     _leftTile,
-                    rewindCount(rituals.checkIns),
-                    rituals.checkIns == 1
-                        ? "Check-in\nthis year"
-                        : "Check-ins\nthis year",
+                    copy.number(rituals.checkIns),
+                    copy.checkInsLabel(rituals.checkIns),
                     position,
                     isActive,
                   ),
                   _tile(
                     _rightTile,
-                    rewindCount(rituals.continued),
-                    rituals.continued == 1
-                        ? "Ritual\ncontinued"
-                        : "Rituals\ncontinued",
+                    copy.number(rituals.continued),
+                    copy.ritualsContinuedLabel(rituals.continued),
                     position,
                     isActive,
                   ),
                   _tile(
                     _middleTile,
                     month,
-                    "Most active\nmonth",
+                    copy.mostActiveMonthLabel,
                     position,
                     isActive,
                   ),
@@ -503,7 +464,7 @@ class _BlobPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     canvas.save();
-    canvas.translate(40, 92);
+    canvas.translate(40, 112);
     canvas.drawPath(
       Path()
         ..moveTo(2.0982, 135.046)
@@ -516,7 +477,7 @@ class _BlobPainter extends CustomPainter {
     );
     canvas.restore();
     canvas.save();
-    canvas.translate(21, 69);
+    canvas.translate(22, 90);
     canvas.drawPath(
       Path()
         ..moveTo(6.00928, 128.189)
@@ -535,25 +496,4 @@ class _BlobPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_BlobPainter oldDelegate) => false;
-}
-
-class _UnderlinePainter extends CustomPainter {
-  const _UnderlinePainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.drawPath(
-      Path()
-        ..moveTo(1.5, 8.607)
-        ..cubicTo(27.103, -0.324, 72.639, 0.497, 94.473, 3.856),
-      Paint()
-        ..color = RitualStreakPage._yellow
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3
-        ..strokeCap = StrokeCap.round,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_UnderlinePainter oldDelegate) => false;
 }

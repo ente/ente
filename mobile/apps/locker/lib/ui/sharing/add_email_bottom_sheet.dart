@@ -128,9 +128,8 @@ class _AddEmailSheetState extends State<AddEmailSheet> {
             )
             .toList()
           ..sort(
-            (a, b) => a.resolvedDisplayName.toLowerCase().compareTo(
-              b.resolvedDisplayName.toLowerCase(),
-            ),
+            (a, b) =>
+                compareNames(a.resolvedDisplayName, b.resolvedDisplayName),
           );
 
     if (filteredUsers.isEmpty) {
@@ -384,9 +383,7 @@ class _AddEmailSheetState extends State<AddEmailSheet> {
     }
 
     suggestedUsers.sort((a, b) {
-      final byName = a.resolvedDisplayName.toLowerCase().compareTo(
-        b.resolvedDisplayName.toLowerCase(),
-      );
+      final byName = compareNames(a.resolvedDisplayName, b.resolvedDisplayName);
       return byName != 0 ? byName : a.email.compareTo(b.email);
     });
     return suggestedUsers;

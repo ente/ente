@@ -43,8 +43,9 @@ function PlanPage(): JSX.Element {
 
     return (
         <>
-            <PhotosAuthShell contentWidth={420}>
+            <PhotosAuthShell contentWidth={420} isPlanSelection>
                 <PlanSelectorContents
+                    variant="signup"
                     onClose={handleContinue}
                     setLoading={setIsLoading}
                     onManageFamily={handleContinue}

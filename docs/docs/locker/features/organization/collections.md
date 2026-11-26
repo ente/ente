@@ -63,6 +63,8 @@ Unlike folders, items in Locker can belong to multiple collections at once. This
 2. Leave all collections unselected to use **Uncategorized**. Or select one or more of your collections
 3. Complete creating the item
 
+![Collections chips on a new item form on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-collection-picker-v1013.png){width=560px}
+
 ### Adding existing items to a collection
 
 ![Family docs collection chip highlighted on Edit item sheet on Ente Locker Android](https://docs-assets.ente.com/screenshots/locker-add-existing-callout.png){width=320px}
@@ -123,6 +125,8 @@ An item can be in Uncategorized and another collection at the same time. Adding 
 4. Deselect the collection you want to remove the item from
 5. Tap **Save**
 
+![Selected Documents collection chip highlighted on the Add to collection sheet on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-remove-from-collection-callout-v1013.png){width=560px}
+
 The item remains in any other collections it belongs to.
 
 ## Important collection
@@ -134,6 +138,8 @@ To add an item to Important:
 1. Long press on the item
 2. Tap the star or favorite icon
 3. The item is added to the Important collection
+
+![Important action highlighted on the long-press toolbar on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-mark-important-callout-v1013.png){width=560px}
 
 The Important collection is automatically created when you first mark an item as important.
 

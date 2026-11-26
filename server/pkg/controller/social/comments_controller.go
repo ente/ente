@@ -1,6 +1,8 @@
 package social
 
 import (
+	"context"
+
 	"github.com/ente/museum/ente"
 	socialentity "github.com/ente/museum/ente/social"
 	"github.com/ente/museum/pkg/controller/access"
@@ -10,10 +12,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type CommentPushNotifier interface {
+	NotifyFileComment(ctx context.Context, recipients []int64)
+	NotifyCommentReply(ctx context.Context, recipientID int64)
+}
+
 type CommentsController struct {
 	Repo           *socialrepo.CommentsRepository
 	CollectionRepo *repo.CollectionRepository
 	AccessCtrl     access.Controller
+	PushCtrl       CommentPushNotifier
 }
 
 type CreateCommentRequest struct {
@@ -124,7 +132,28 @@ func (c *CommentsController) Create(ctx *gin.Context, req CreateCommentRequest) 
 	if err := c.Repo.Insert(ctx, comment); err != nil {
 		return "", stacktrace.Propagate(err, "")
 	}
+	if comment.FileID != nil && c.PushCtrl != nil {
+		if parentComment == nil {
+			notifyAlbumMembers(ctx.Request.Context(), c.CollectionRepo, comment.CollectionID, comment.UserID, c.PushCtrl.NotifyFileComment)
+		} else {
+			c.notifyCommentReply(ctx, comment, parentComment)
+		}
+	}
 	return comment.ID, nil
+}
+
+func (c *CommentsController) notifyCommentReply(ctx *gin.Context, comment socialentity.Comment, parent *socialentity.Comment) {
+	recipientID := parent.UserID
+	if recipientID <= 0 || recipientID == comment.UserID {
+		return
+	}
+	if _, err := c.AccessCtrl.GetCollection(ctx, &access.GetCollectionParams{
+		CollectionID: comment.CollectionID,
+		ActorUserID:  recipientID,
+	}); err != nil {
+		return
+	}
+	go c.PushCtrl.NotifyCommentReply(ctx.Request.Context(), recipientID)
 }
 
 func (c *CommentsController) Diff(ctx *gin.Context, req CommentDiffRequest) ([]socialentity.Comment, bool, error) {

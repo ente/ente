@@ -5,6 +5,7 @@ import "package:flutter/material.dart";
 import "package:flutter/semantics.dart";
 import "package:photos/services/rewind/rewind_edition.dart";
 import "package:photos/ui/home/memories/memory_card_constants.dart";
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/entry/rewind_entry.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
@@ -29,12 +30,14 @@ class RewindMemoryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final copy = RewindCopy.of(context);
     final onDismiss = this.onDismiss;
     final status = entry.completed
-        ? "Watch again"
+        ? copy.watchAgain
         : entry.started
-        ? "Continue, ${entry.resumeIndex + 1} of ${entry.pageCount}"
-        : "New";
+        ? "${copy.resume}, "
+              "${copy.progress(entry.resumeIndex + 1, entry.pageCount)}"
+        : copy.newStatus;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: kMemoryCardStripGap / 2),
       child: Semantics(
@@ -42,7 +45,7 @@ class RewindMemoryTile extends StatelessWidget {
         label: "Rewind ${RewindEdition.year}, $status",
         customSemanticsActions: onDismiss == null
             ? null
-            : {const CustomSemanticsAction(label: "Dismiss"): onDismiss},
+            : {CustomSemanticsAction(label: copy.dismiss): onDismiss},
         child: RewindPressable(
           onTap: onTap,
           pressedScale: 0.96,
@@ -77,13 +80,20 @@ class _TileArt extends StatelessWidget {
   const _TileArt({required this.entry});
 
   static const _design = Size(148, 215);
+  static const _lockup = Rect.fromLTWH(10.73, 14.83, 127, 96);
+  static const _ducky = Rect.fromLTWH(16.65, 112.86, 122, 103);
+  static const _replayLockup = Rect.fromLTWH(7, 11, 119, 90);
+  static const _replayDucky = Rect.fromLTWH(5, 108, 137, 107);
+  static const _replayDim = Color(0x52000000);
 
   final RewindEntry entry;
 
   @override
   Widget build(BuildContext context) {
+    final copy = RewindCopy.of(context);
     final page = entry.resumeIndex + 1;
     final pages = entry.pageCount;
+    final completed = entry.completed;
     return ExcludeSemantics(
       child: MediaQuery.withClampedTextScaling(
         maxScaleFactor: 1.2,
@@ -96,17 +106,27 @@ class _TileArt extends StatelessWidget {
               children: [
                 const Positioned.fill(child: RewindDoodleTile()),
                 Positioned.fromRect(
-                  rect: const Rect.fromLTWH(12.73, 18.83, 120, 91),
+                  rect: completed ? _replayLockup : _lockup,
                   child: Image.file(
-                    RewindAssets.file(RewindAssets.tileLockup),
-                    fit: BoxFit.contain,
+                    RewindAssets.file(
+                      completed
+                          ? RewindAssets.tileReplayLockup
+                          : RewindAssets.tileLockup,
+                    ),
+                    fit: BoxFit.fill,
                   ),
                 ),
+                if (completed)
+                  const Positioned.fill(child: ColoredBox(color: _replayDim)),
                 Positioned.fromRect(
-                  rect: const Rect.fromLTWH(20.47, 118.83, 106.27, 119.4),
+                  rect: completed ? _replayDucky : _ducky,
                   child: Image.file(
-                    RewindAssets.file(RewindAssets.tileDucky),
-                    fit: BoxFit.contain,
+                    RewindAssets.file(
+                      completed
+                          ? RewindAssets.tileReplayDucky
+                          : RewindAssets.tileDucky,
+                    ),
+                    fit: BoxFit.fill,
                   ),
                 ),
                 if (!entry.opened)
@@ -115,16 +135,15 @@ class _TileArt extends StatelessWidget {
                     bottom: 12,
                     child: Transform.rotate(
                       angle: -8 * pi / 180,
-                      child: const RewindLabelSticker("NEW", size: 13),
+                      child: RewindLabelSticker(copy.newSticker, size: 13),
                     ),
                   ),
                 if (entry.started)
                   _TileFooter(
-                    label: "Continue",
-                    detail: "$page of $pages",
+                    label: copy.resume,
+                    detail: copy.progress(page, pages),
                     progress: page / pages,
                   ),
-                if (entry.completed) const _TileFooter(label: "Watch again"),
               ],
             ),
           ),

@@ -1,9 +1,12 @@
 use std::collections::{HashMap, HashSet};
+use std::ops::Range;
 
 use ente_exif::DateTime;
 use ente_location::Coordinate;
 
-use super::input::{RewindFile, RewindFileType, RewindRequest, RewindVisibility};
+use super::input::{
+    RewindCoverageFile, RewindFile, RewindFileType, RewindRequest, RewindVisibility,
+};
 use super::{Error, Result};
 use crate::memories::LocalDate;
 use crate::ml_store::MlStore;
@@ -16,6 +19,8 @@ pub(super) struct Library<'r> {
     files: Vec<YearFile<'r>>,
     positions: HashMap<i64, usize>,
     start: i64,
+    end: i64,
+    utc_offset: i64,
     elapsed_days: usize,
     year_has_ended: bool,
 }
@@ -33,17 +38,18 @@ pub(super) struct YearFile<'r> {
 
 impl<'r> Library<'r> {
     pub(super) fn of_year(request: &'r RewindRequest) -> Result<Self> {
-        let start = start_of_year(request.year)?;
-        let end = start_of_year(request.year + 1)?;
-        let local_now = request.now + i64::from(request.utc_offset_seconds) * MICROS_PER_SECOND;
-        let mut seen = HashSet::new();
-        let files: Vec<YearFile<'r>> = request
-            .files
-            .iter()
-            .filter(|file| seen.insert(file.id))
-            .map(YearFile::new)
-            .filter(|file| (start..end).contains(&file.local_time))
-            .collect();
+        let year = year_range(request.year)?;
+        let Range { start, end } = year;
+        let utc_offset = i64::from(request.utc_offset_seconds) * MICROS_PER_SECOND;
+        let local_now = request.now + utc_offset;
+        let files: Vec<YearFile<'r>> = files_in_year(
+            request.files.iter(),
+            year,
+            |file| file.id,
+            |file| local_time(file),
+        )
+        .map(|(file, time)| YearFile::new(file, time))
+        .collect();
         let positions = files
             .iter()
             .enumerate()
@@ -53,6 +59,8 @@ impl<'r> Library<'r> {
             files,
             positions,
             start,
+            end,
+            utc_offset,
             elapsed_days: ((local_now.clamp(start, end - 1) - start) / MICROS_PER_DAY) as usize + 1,
             year_has_ended: local_now >= end,
         })
@@ -80,12 +88,20 @@ impl<'r> Library<'r> {
         self.start
     }
 
-    pub(super) fn elapsed_days(&self) -> usize {
-        self.elapsed_days
-    }
-
     pub(super) fn year_has_ended(&self) -> bool {
         self.year_has_ended
+    }
+
+    pub(super) fn had_ended_at(&self, time: i64) -> bool {
+        time + self.utc_offset >= self.end
+    }
+
+    pub(super) fn file_ids_until_year_end(&self, request: &RewindRequest) -> HashSet<i64> {
+        file_ids_before(request, self.end)
+    }
+
+    pub(super) fn file_ids_before_year(&self, request: &RewindRequest) -> HashSet<i64> {
+        file_ids_before(request, self.start)
     }
 
     pub(super) fn complete_months(&self) -> usize {
@@ -97,24 +113,90 @@ impl<'r> Library<'r> {
     }
 
     pub(super) fn ml_coverage(&self, store: &MlStore) -> Result<f32> {
-        let indexed = store.db().get_fully_indexed_file_ids(false)?;
-        let indexable: Vec<i64> = self
-            .files
-            .iter()
-            .filter(|file| file.file.file_type != RewindFileType::Other)
-            .map(|file| file.file.id)
-            .collect();
-        if indexable.is_empty() {
-            return Ok(1.0);
-        }
-        let covered = indexable.iter().filter(|id| indexed.contains(id)).count();
-        Ok(covered as f32 / indexable.len() as f32)
+        coverage(
+            store,
+            self.files
+                .iter()
+                .map(|file| (file.id(), file.file.file_type)),
+        )
+    }
+
+    pub(super) fn earlier_ml_coverage(
+        &self,
+        request: &RewindRequest,
+        store: &MlStore,
+    ) -> Result<f32> {
+        coverage(
+            store,
+            request
+                .files
+                .iter()
+                .filter(|file| local_time(file) < self.start)
+                .map(|file| (file.id, file.file_type)),
+        )
     }
 }
 
+pub(super) fn ml_coverage_for_year(
+    year: i32,
+    files: &[RewindCoverageFile],
+    store: &MlStore,
+) -> Result<f32> {
+    let files = files_in_year(
+        files.iter(),
+        year_range(year)?,
+        |file| file.id,
+        |file| {
+            capture_local_time(
+                file.creation_time,
+                file.local_date_time.as_deref(),
+                file.utc_offset_seconds,
+            )
+        },
+    );
+    coverage(store, files.map(|(file, _)| (file.id, file.file_type)))
+}
+
+fn files_in_year<T>(
+    files: impl Iterator<Item = T>,
+    year: Range<i64>,
+    id: impl Fn(&T) -> i64,
+    time: impl Fn(&T) -> i64,
+) -> impl Iterator<Item = (T, i64)> {
+    let mut seen = HashSet::new();
+    files.filter_map(move |file| {
+        if !seen.insert(id(&file)) {
+            return None;
+        }
+        let time = time(&file);
+        year.contains(&time).then_some((file, time))
+    })
+}
+
+fn file_ids_before(request: &RewindRequest, time: i64) -> HashSet<i64> {
+    request
+        .files
+        .iter()
+        .filter(|file| local_time(file) < time)
+        .map(|file| file.id)
+        .collect()
+}
+
+fn coverage(store: &MlStore, files: impl Iterator<Item = (i64, RewindFileType)>) -> Result<f32> {
+    let mut indexable: Vec<i64> = files
+        .filter_map(|(id, file_type)| (file_type != RewindFileType::Other).then_some(id))
+        .collect();
+    indexable.sort_unstable();
+    indexable.dedup();
+    let covered = store.db().count_fully_indexed_files(&indexable)?;
+    if indexable.is_empty() {
+        return Ok(1.0);
+    }
+    Ok(covered as f32 / indexable.len() as f32)
+}
+
 impl<'r> YearFile<'r> {
-    fn new(file: &'r RewindFile) -> Self {
-        let local_time = local_time(file);
+    fn new(file: &'r RewindFile, local_time: i64) -> Self {
         let day = local_time.div_euclid(MICROS_PER_DAY);
         let date = LocalDate::of_local_time(local_time);
         Self {
@@ -157,10 +239,25 @@ impl<'r> YearFile<'r> {
 }
 
 pub(super) fn local_time(file: &RewindFile) -> i64 {
-    file.local_date_time
-        .as_deref()
+    capture_local_time(
+        file.creation_time,
+        file.local_date_time.as_deref(),
+        file.utc_offset_seconds,
+    )
+}
+
+fn capture_local_time(
+    creation_time: i64,
+    local_date_time: Option<&str>,
+    utc_offset_seconds: i32,
+) -> i64 {
+    local_date_time
         .and_then(wall_clock_micros)
-        .unwrap_or(file.creation_time + i64::from(file.utc_offset_seconds) * MICROS_PER_SECOND)
+        .unwrap_or(creation_time + i64::from(utc_offset_seconds) * MICROS_PER_SECOND)
+}
+
+fn year_range(year: i32) -> Result<Range<i64>> {
+    Ok(start_of_year(year)?..start_of_year(year + 1)?)
 }
 
 fn start_of_year(year: i32) -> Result<i64> {

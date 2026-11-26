@@ -43,7 +43,7 @@
   },
   "canNotOpenBody": "Sentitzen dugu, album hau ezin da aplikazioan ireki.",
   "canNotOpenTitle": "Ezin dut album hau ireki",
-  "canOnlyRemoveFilesOwnedByYou": "Zure fitxategiak baino ezin duzu ezabatu",
+  "canOnlyRemoveFilesOwnedByYou": "Zure fitxategiak baino ezin dituzu kendu",
   "changeEmail": "Aldatu e-maila",
   "@changeEmail": {
     "description": "Change email button label"
@@ -172,7 +172,7 @@
   "enterCode": "Sartu kodea",
   "enterCodeDescription": "Sartu zure lagunak emandako kodea, biontzat debaldeko biltegiratzea lortzeko",
   "enterEmail": "Sartu e-maila",
-  "enterNewPasswordToEncrypt": "Sartu pasahitz berri bat, zure data zifratu ahal izateko",
+  "enterNewPasswordToEncrypt": "Sartu pasahitz berri bat, zure datuak zifratu ahal izateko",
   "@enterNewPasswordToEncrypt": {
     "description": "Prompt to enter new password for encryption"
   },
@@ -180,7 +180,7 @@
   "@enterPassword": {
     "description": "Enter password field label"
   },
-  "enterPasswordToEncrypt": "Sartu pasahitz bat, zure data deszifratu ahal izateko",
+  "enterPasswordToEncrypt": "Sartu pasahitz bat, zure datuak zifratu ahal izateko",
   "@enterPasswordToEncrypt": {
     "description": "Prompt to enter password for encryption"
   },
@@ -286,7 +286,7 @@
   "@noDeviceLimit": {
     "description": "Text to indicate that there is limit on number of devices"
   },
-  "noRecoveryKeyNoDecryption": "Gure puntutik-puntura zifratze protokoloa dela eta, zure data ezin da deszifratu zure pasahitza edo berreskuratze giltzarik gabe",
+  "noRecoveryKeyNoDecryption": "Gure puntutik-puntura zifratze protokoloa dela eta, zure datuak ezin dira deszifratu zure pasahitza edo berreskuratze giltzarik gabe",
   "@noRecoveryKeyNoDecryption": {
     "description": "Explanation that data cannot be decrypted without password or recovery key"
   },
@@ -321,7 +321,7 @@
       }
     }
   },
-  "passwordWarning": "Ezin dugu zure pasahitza gorde, beraz, ahazten baduzu, <underline>ezin dugu zure data deszifratu</underline>",
+  "passwordWarning": "Ezin dugu zure pasahitza gorde, beraz, ahazten baduzu, <underline>ezin ditugu zure datuak deszifratu</underline>",
   "@passwordWarning": {
     "description": "Warning about password storage"
   },
@@ -355,7 +355,7 @@
   "@recoveryKeyCopiedToClipboard": {
     "description": "Recovery key copied message"
   },
-  "recoveryKeyOnForgotPassword": "Zure pasahitza ahazten baduzu, zure datuak berreskuratzeko modu bakarra gailu honen bidez izango da.",
+  "recoveryKeyOnForgotPassword": "Zure pasahitza ahazten baduzu, zure datuak berreskuratzeko modu bakarra giltza honen bidez izango da.",
   "@recoveryKeyOnForgotPassword": {
     "description": "Recovery key importance explanation"
   },
@@ -381,7 +381,7 @@
     "description": "menuSectionTitle for removing a participant"
   },
   "removePublicLink": "Ezabatu esteka publikoa",
-  "removeWithQuestionMark": "Ezabatuko?",
+  "removeWithQuestionMark": "Kendu?",
   "removingFromFavorites": "Gogokoetatik kentzen...",
   "resetPasswordTitle": "Berrezarri pasahitza",
   "@resetPasswordTitle": {
@@ -531,7 +531,7 @@
   },
   "yesConvertToViewer": "Bai, egin ikusle",
   "yesDelete": "Bai, ezabatu",
-  "yesRemove": "Bai, ezabatu",
+  "yesRemove": "Bai, kendu",
   "you": "Zu",
   "youCannotShareWithYourself": "Ezin duzu zeure buruarekin partekatu"
 }

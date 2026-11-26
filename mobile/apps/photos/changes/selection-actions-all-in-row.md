@@ -1,1 +1,0 @@
-- Added all photo selection actions to the collapsed row.

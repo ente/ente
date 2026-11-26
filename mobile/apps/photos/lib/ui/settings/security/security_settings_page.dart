@@ -35,6 +35,7 @@ class SecuritySettingsPage extends StatefulWidget {
 class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
   final _config = Configuration.instance;
   late StreamSubscription<UserDetailsChangedEvent> _userDetailsChangedEvent;
+  late Future<bool?> _twoFactorStatus;
   final Logger _logger = Logger("SecuritySettingsPage");
 
   @override
@@ -43,11 +44,13 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
     _userDetailsChangedEvent = Bus.instance
         .on<UserDetailsChangedEvent>()
         .listen((event) async {
-          if (mounted) {
-            setState(() {});
-          }
+          final status = await _twoFactorStatus;
+          if (!mounted) return;
+          setState(() {
+            if (status == null) _twoFactorStatus = _refreshSecurityDetails();
+          });
         });
-    _refreshSecurityDetails().ignore();
+    _twoFactorStatus = _refreshSecurityDetails();
   }
 
   @override
@@ -69,10 +72,7 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
           SettingsItem(
             title: l10n.twofactor,
             icon: HugeIcons.strokeRoundedSmartPhone01,
-            trailing: ToggleSwitchComponent.async(
-              value: () => UserService.instance.hasEnabledTwoFactor(),
-              onChanged: () => _onTwoFactorToggle(context),
-            ),
+            trailing: _buildTwoFactorControl(),
           ),
           const SizedBox(height: 8),
           SettingsItem(
@@ -125,17 +125,57 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
     );
   }
 
-  Future<void> _refreshSecurityDetails() async {
+  Widget _buildTwoFactorControl() {
+    return FutureBuilder<bool?>(
+      future: _twoFactorStatus,
+      builder: (context, snapshot) {
+        final done = snapshot.connectionState == ConnectionState.done;
+        if (done && snapshot.hasData) {
+          return ToggleSwitchComponent.async(
+            value: () => UserService.instance.hasEnabledTwoFactor() == true,
+            onChanged: () => _onTwoFactorToggle(context),
+          );
+        }
+        final cached = UserService.instance.hasEnabledTwoFactor();
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (done)
+              IconButton(
+                tooltip: context.strings.retry,
+                icon: const Icon(Icons.refresh),
+                onPressed: () {
+                  setState(() {
+                    _twoFactorStatus = _refreshSecurityDetails();
+                  });
+                },
+              ),
+            if (cached != null)
+              ToggleSwitchComponent(
+                selected: cached,
+                onChanged: null,
+                showStateIcon: true,
+              )
+            else if (!done)
+              const LoadingComponent(size: LoadingComponentSize.small),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<bool?> _refreshSecurityDetails() async {
     if (!_config.hasConfiguredAccount() || isLocalGalleryMode) {
-      return;
+      return null;
     }
     try {
-      await UserService.instance.getUserDetailsV2(memoryCount: false);
-      if (mounted) {
-        setState(() {});
-      }
+      final details = await UserService.instance.getUserDetailsV2(
+        memoryCount: false,
+      );
+      return details.profileData?.isTwoFactorEnabled;
     } catch (e, s) {
       _logger.warning("failed to refresh security details", e, s);
+      return null;
     }
   }
 
@@ -146,7 +186,8 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
           context,
           context.strings.authToConfigureTwofactorAuthentication,
         );
-    final isTwoFactorEnabled = UserService.instance.hasEnabledTwoFactor();
+    final isTwoFactorEnabled =
+        UserService.instance.hasEnabledTwoFactor() == true;
     if (hasAuthenticated) {
       if (isTwoFactorEnabled) {
         await _disableTwoFactor();

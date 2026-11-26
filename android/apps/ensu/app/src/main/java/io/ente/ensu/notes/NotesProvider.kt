@@ -144,6 +144,12 @@ class NotesProvider(private val context: Context) {
         }
     }
 
+    internal suspend fun inspectSourceRevision(id: String, cancel: NotesCancellation) = withAccess {
+        withSource(registration(id), cancel) { source ->
+            handle(id).use { it.inspectSourceRevision(source, cancel) }
+        }
+    }
+
     internal suspend fun index(
         id: String,
         embedding: LlmContext,

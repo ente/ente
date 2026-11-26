@@ -10,6 +10,8 @@ import "package:photos/ui/rewind/reel/rewind_video_format.dart";
 abstract interface class RewindVideoSink {
   Future<void> get ready;
 
+  void prepareMusic();
+
   Future<void> add(ByteData rgba);
 
   Future<File> finish();
@@ -148,6 +150,9 @@ class RewindFfmpegVideoSink implements RewindVideoSink {
   }
 
   @override
+  void prepareMusic() {}
+
+  @override
   Future<void> add(ByteData rgba) => _write = _add(rgba);
 
   Future<void> _add(ByteData rgba) async {
@@ -229,6 +234,8 @@ class RewindNativeVideoSink implements RewindVideoSink {
   var _write = Future<void>.value();
   var _hasCover = false;
   FfmpegJob? _job;
+  FfmpegJob? _musicJob;
+  Future<bool>? _encodedMusic;
 
   static RewindNativeVideoSink open({
     required File output,
@@ -261,6 +268,36 @@ class RewindNativeVideoSink implements RewindVideoSink {
 
   String get _coverPath => "${output.path}.cover.rgba";
 
+  String get _musicPath => "${output.path}.music.m4a";
+
+  @override
+  void prepareMusic() {
+    final music = _music;
+    if (music == null || _encodedMusic != null) return;
+    _encodedMusic = _encodeMusic(music);
+  }
+
+  Future<bool> _encodeMusic(File music) async {
+    final job = _musicJob = FfmpegService.instance.start([
+      "-y",
+      "-stream_loop",
+      "-1",
+      "-i",
+      music.path,
+      "-vn",
+      ..._musicArguments(_duration),
+      "-t",
+      _seconds(_duration),
+      _musicPath,
+    ]);
+    final encoded = await job.completed.then(
+      (result) => result.isSuccess,
+      onError: (Object _) => false,
+    );
+    if (!encoded) await _delete(_musicPath);
+    return encoded;
+  }
+
   @override
   Future<void> add(ByteData rgba) => _write = _add(rgba);
 
@@ -277,11 +314,22 @@ class RewindNativeVideoSink implements RewindVideoSink {
   Future<File> finish() async {
     await (await _stream).finish();
     final music = _music;
+    final encodedMusic = await _encodedMusic ?? false;
+    final musicInput = encodedMusic
+        ? ["-i", _musicPath]
+        : music == null
+        ? const <String>[]
+        : ["-stream_loop", "-1", "-i", music.path];
+    final musicEncoding = encodedMusic
+        ? const ["-c:a", "copy"]
+        : music == null
+        ? const <String>[]
+        : _musicArguments(_duration);
     final job = _job = FfmpegService.instance.start([
       "-y",
       "-i",
       _videoPath,
-      if (music != null) ...["-stream_loop", "-1", "-i", music.path],
+      ...musicInput,
       "-f",
       "rawvideo",
       "-pixel_format",
@@ -300,7 +348,7 @@ class RewindNativeVideoSink implements RewindVideoSink {
       "-c:v:0",
       "copy",
       ..._coverArguments,
-      if (music != null) ..._musicArguments(_duration),
+      ...musicEncoding,
       "-t",
       _seconds(_duration),
       "-movflags",
@@ -319,19 +367,24 @@ class RewindNativeVideoSink implements RewindVideoSink {
     } finally {
       await _delete(_videoPath);
       await _delete(_coverPath);
+      await _delete(_musicPath);
     }
   }
 
   @override
   Future<void> abort() async {
     final cancelled = _job?.cancel();
+    final musicCancelled = _musicJob?.cancel();
     await _stream
         .then((stream) => stream.cancel())
         .then<void>((_) {}, onError: (Object _) {});
     await _write.then<void>((_) {}, onError: (Object _) {});
     await cancelled;
+    await musicCancelled;
+    await _encodedMusic;
     await _delete(output.path);
     await _delete(_videoPath);
     await _delete(_coverPath);
+    await _delete(_musicPath);
   }
 }

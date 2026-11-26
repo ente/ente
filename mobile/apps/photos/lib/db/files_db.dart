@@ -1720,6 +1720,19 @@ class FilesDB with SqlDbBase {
     return result;
   }
 
+  Future<List<EnteFile>> getAllRowsForUploadedFileIDs(
+    List<int> uploadedFileIDs,
+  ) async {
+    if (uploadedFileIDs.isEmpty) {
+      return [];
+    }
+    final db = await instance.sqliteAsyncDB;
+    final results = await db.getAll(
+      'SELECT * FROM $filesTable WHERE $columnUploadedFileID IN (${uploadedFileIDs.join(',')})',
+    );
+    return convertToFiles(results);
+  }
+
   Future<Map<int, List<EnteFile>>> getAllFilesGroupByCollectionID(
     List<int> ids,
   ) async {
@@ -2009,6 +2022,37 @@ class FilesDB with SqlDbBase {
     return result.files;
   }
 
+  Future<List<OwnedFileDate>> getOwnedFileDates(int userID) async {
+    final files = <OwnedFileDate>[];
+    final seen = <int>{};
+    await _readFilePages(
+      columns:
+          '$columnGeneratedID, $columnUploadedFileID, $columnCreationTime, '
+          '$columnFileType, $columnPubMMdEncodedJson',
+      whereClause:
+          '$columnOwnerID = ? AND $columnUploadedFileID IS NOT NULL '
+          'AND $columnUploadedFileID != -1 AND $columnCreationTime IS NOT NULL',
+      whereArguments: [userID],
+      order: _MaterializedFileOrder.creationThenIdDescending,
+      onPage: (rows) {
+        for (final row in rows) {
+          final id = row[columnUploadedFileID] as int;
+          if (!seen.add(id)) continue;
+          final metadata = PubMagicMetadata.fromEncodedJson(
+            row[columnPubMMdEncodedJson] as String? ?? '{}',
+          );
+          files.add((
+            id: id,
+            creationTime: row[columnCreationTime] as int,
+            localDateTime: metadata.dateTime,
+            fileType: getFileType(row[columnFileType] as int),
+          ));
+        }
+      },
+    );
+    return files;
+  }
+
   Future<List<EnteFile>> _convertPageInWorkerIsolate(
     List<Map<String, dynamic>> rows,
   ) {
@@ -2033,6 +2077,25 @@ class FilesDB with SqlDbBase {
     int? limit,
   }) async {
     final files = <EnteFile>[];
+    final rawRowCount = await _readFilePages(
+      whereClause: whereClause,
+      whereArguments: whereArguments,
+      order: order,
+      limit: limit,
+      onPage: (rows) async => files.addAll(await convertPage(rows)),
+    );
+    final filteredFiles = await applyDBFilters(files, filterOptions);
+    return FileLoadResult(filteredFiles, limit != null && rawRowCount == limit);
+  }
+
+  Future<int> _readFilePages({
+    String columns = '*',
+    required String whereClause,
+    required List<Object?> whereArguments,
+    required _MaterializedFileOrder order,
+    required FutureOr<void> Function(List<Map<String, dynamic>>) onPage,
+    int? limit,
+  }) async {
     final normalizedLimit = limit != null && limit >= 0 ? limit : null;
     var rawRowCount = 0;
 
@@ -2048,6 +2111,7 @@ class FilesDB with SqlDbBase {
 
         final rows = await transaction.getAll(
           _buildMaterializedFileQuery(
+            columns: columns,
             whereClause: whereClause,
             order: order,
             hasPageBoundary: pageBoundary != null,
@@ -2072,8 +2136,7 @@ class FilesDB with SqlDbBase {
         }
 
         pageBoundary = order.boundaryFrom(rows.last);
-        final convertedPage = await convertPage(rows);
-        files.addAll(convertedPage);
+        await onPage(rows);
 
         if (remaining != null) {
           remaining -= rows.length;
@@ -2084,11 +2147,11 @@ class FilesDB with SqlDbBase {
       }
     });
 
-    final filteredFiles = await applyDBFilters(files, filterOptions);
-    return FileLoadResult(filteredFiles, limit != null && rawRowCount == limit);
+    return rawRowCount;
   }
 
   String _buildMaterializedFileQuery({
+    required String columns,
     required String whereClause,
     required _MaterializedFileOrder order,
     required bool hasPageBoundary,
@@ -2097,7 +2160,7 @@ class FilesDB with SqlDbBase {
         ? ' AND (${order.columns.join(', ')}) ${order.comparison} '
               '(${List.filled(order.columns.length, '?').join(', ')})'
         : '';
-    return 'SELECT * FROM $filesTable '
+    return 'SELECT $columns FROM $filesTable '
         'WHERE ($whereClause)$pageBoundaryClause '
         'ORDER BY ${order.orderByClause} LIMIT ?';
   }
@@ -2142,6 +2205,56 @@ class FilesDB with SqlDbBase {
       filterOptions,
     );
     return FileLoadResult(filteredFiles, files.length == limit);
+  }
+
+  Future<int> countOwnedFilesUpdatedSince(
+    int ownerID,
+    int time, {
+    required int capturedBefore,
+  }) async {
+    final db = await instance.sqliteAsyncDB;
+    final row = await db.get(
+      'SELECT COUNT(DISTINCT $columnUploadedFileID) AS count FROM $filesTable '
+      'WHERE $columnOwnerID = ? AND $columnUploadedFileID IS NOT NULL '
+      'AND $columnUploadedFileID IS NOT -1 AND $columnUpdationTime > ? '
+      'AND $columnCreationTime < ?',
+      [ownerID, time, capturedBefore],
+    );
+    return row['count'] as int;
+  }
+
+  Future<int> countProcessedOfflineFiles(
+    int processingVersion, {
+    required int capturedBefore,
+  }) async {
+    final db = await instance.sqliteAsyncDB;
+    final row = await db.get(
+      'SELECT COUNT(DISTINCT $columnLocalID) AS count FROM $filesTable '
+      'WHERE ($columnUploadedFileID IS NULL OR $columnUploadedFileID IS -1) '
+      'AND $columnLocalID IS NOT NULL AND $columnLocalID IS NOT -1 '
+      'AND $columnMetadataVersion >= ? AND $columnCreationTime < ?',
+      [processingVersion, capturedBefore],
+    );
+    return row['count'] as int;
+  }
+
+  Future<({int total, int unread})> countOfflineFilesCapturedBetween(
+    int processingVersion, {
+    required int capturedFrom,
+    required int capturedBefore,
+  }) async {
+    final db = await instance.sqliteAsyncDB;
+    final row = await db.get(
+      'SELECT COUNT(DISTINCT $columnLocalID) AS total, '
+      'COUNT(DISTINCT CASE WHEN $columnMetadataVersion IS NULL OR '
+      '$columnMetadataVersion < ? THEN $columnLocalID END) AS unread '
+      'FROM $filesTable '
+      'WHERE ($columnUploadedFileID IS NULL OR $columnUploadedFileID IS -1) '
+      'AND $columnLocalID IS NOT NULL AND $columnLocalID IS NOT -1 '
+      'AND $columnCreationTime >= ? AND $columnCreationTime < ?',
+      [processingVersion, capturedFrom, capturedBefore],
+    );
+    return (total: row['total'] as int, unread: row['unread'] as int);
   }
 
   Future<int> remoteFileCount() async {
@@ -2381,6 +2494,13 @@ class FilesDB with SqlDbBase {
     return file;
   }
 }
+
+typedef OwnedFileDate = ({
+  int id,
+  int creationTime,
+  String? localDateTime,
+  FileType fileType,
+});
 
 typedef _FilePageConverter =
     Future<List<EnteFile>> Function(List<Map<String, dynamic>> rows);

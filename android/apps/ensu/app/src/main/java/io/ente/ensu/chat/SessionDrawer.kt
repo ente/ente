@@ -54,6 +54,7 @@ fun SessionDrawer(
     selectedSessionId: String?,
     onSelectSession: (ChatSession) -> Unit,
     onDeleteSession: (ChatSession) -> Unit,
+    onOpenTodos: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
     var searchQuery by remember { mutableStateOf("") }
@@ -93,7 +94,11 @@ fun SessionDrawer(
 
             HorizontalDivider(color = EnsuColor.border())
 
-            DrawerFooter(onOpenSettings = onOpenSettings)
+            DrawerFooterRow(label = "To Do", onClick = onOpenTodos)
+
+            HorizontalDivider(color = EnsuColor.border())
+
+            DrawerFooterRow(label = "Settings", onClick = onOpenSettings)
         }
     }
 }
@@ -311,22 +316,21 @@ private fun SessionTile(
 }
 
 @Composable
-private fun DrawerFooter(onOpenSettings: () -> Unit) {
+private fun DrawerFooterRow(label: String, onClick: () -> Unit) {
     Row(
-        modifier =
-            Modifier.fillMaxWidth().clickable(onClick = onOpenSettings).padding(EnsuSpacing.lg.dp),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(EnsuSpacing.lg.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(EnsuSpacing.md.dp),
     ) {
         Text(
-            text = "Settings",
+            text = label,
             style = EnsuTypography.body,
             color = EnsuColor.textPrimary(),
             modifier = Modifier.weight(1f),
         )
         Icon(
             painter = painterResource(HugeIcons.ArrowRight01Icon),
-            contentDescription = "Settings",
+            contentDescription = label,
             modifier = Modifier.size(18.dp),
             tint = EnsuColor.textMuted(),
         )

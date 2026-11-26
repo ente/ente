@@ -228,9 +228,9 @@ const sidebarActions = (): SidebarAction[] => {
         },
         {
             id: "preferences.fasterUpload",
-            label: t("faster_upload"),
-            path: [preferencesCategory, t("advanced"), t("faster_upload")],
-            keywords: ["faster", "upload", "proxy"],
+            label: t("smart_routing"),
+            path: [preferencesCategory, t("advanced"), t("smart_routing")],
+            keywords: ["faster uploads", "upload", "proxy", "routing"],
         },
         {
             id: "preferences.openOnStartup",

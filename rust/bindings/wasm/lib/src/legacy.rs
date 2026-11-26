@@ -199,11 +199,17 @@ pub fn legacy_verification_id(public_key_b64: String) -> Result<String, Error> {
 pub async fn legacy_add_contact(
     session: &Session,
     email: String,
+    public_key: String,
     recovery_notice_in_days: Option<i32>,
 ) -> Result<(), Error> {
-    ente_legacy::add_contact(session.inner(), &email, recovery_notice_in_days)
-        .await
-        .map_err(Into::into)
+    ente_legacy::add_contact(
+        session.inner(),
+        &email,
+        &public_key,
+        recovery_notice_in_days,
+    )
+    .await
+    .map_err(Into::into)
 }
 
 #[wasm_bindgen(js_name = legacyUpdateContact)]

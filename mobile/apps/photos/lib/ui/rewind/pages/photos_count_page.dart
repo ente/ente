@@ -3,22 +3,24 @@ import "dart:math";
 import "package:flutter/material.dart";
 import "package:flutter_svg/flutter_svg.dart";
 import "package:photos/models/file/file.dart";
-import "package:photos/services/rewind/rewind_edition.dart";
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
+import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
 import "package:photos/ui/rewind/theme/rewind_motion.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
+import "package:photos/ui/rewind/widgets/rewind_count_lockup.dart";
 import "package:photos/ui/rewind/widgets/rewind_count_up.dart";
 import "package:photos/ui/rewind/widgets/rewind_elapsed.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
 import "package:photos/ui/rewind/widgets/rewind_keyframes.dart";
 import "package:photos/ui/rewind/widgets/rewind_layer.dart";
-import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo_frames.dart";
+import "package:photos/ui/rewind/widgets/rewind_rive.dart";
 import "package:photos/ui/rewind/widgets/rewind_spread.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
@@ -30,7 +32,7 @@ class PhotosCountPage extends RewindPage {
   static const maxPhotos = 24;
   static const _minimumPhotos = 8;
 
-  static const _ducky = Rect.fromLTWH(90, 191, 210, 234);
+  static const _ducky = Rect.fromLTWH(49, 174.5, 288.3, 290.2);
   static const _burstPivot = Offset(195, 457);
   static const _cloud = Color(0xFFFFF4DC);
 
@@ -63,6 +65,7 @@ class PhotosCountPage extends RewindPage {
     double position, {
     required bool isActive,
   }) {
+    final copy = RewindCopy.of(context);
     final number = RewindTextStyles.display(
       95.144,
       color: RewindColors.hotPink,
@@ -74,6 +77,15 @@ class PhotosCountPage extends RewindPage {
       outline: 2.8,
       shadow: const Offset(3.5, 4.2),
     );
+    final unitStyle = RewindTextStyles.display(
+      44.228,
+      color: RewindColors.white,
+      letterSpacing: -1.77,
+    );
+    final covered = RewindPageScope.coveredOf(context);
+    final playing = isActive && !covered;
+    final launched =
+        (isActive || (position < 0 && position > -0.9)) && !covered;
 
     return RewindShareable(
       child: Stack(
@@ -96,7 +108,7 @@ class PhotosCountPage extends RewindPage {
                 position: position,
                 child: RewindEntrance(
                   preset: RewindPreset.cloud,
-                  active: isActive,
+                  active: launched,
                   child: RewindSpread(
                     child: Image.file(
                       RewindAssets.file(RewindAssets.cloudsBack),
@@ -110,16 +122,16 @@ class PhotosCountPage extends RewindPage {
                   child: RewindLeave(
                     position: position,
                     centerY: 420,
-                    child: _Popcorn(photos: photos, active: isActive),
+                    child: _Popcorn(photos: photos, active: launched),
                   ),
                 ),
               RewindLayer(
                 rect: _ducky,
                 position: position,
                 child: RewindKeyframes(
-                  active: isActive,
-                  delayMs: 850,
-                  durationMs: 1050,
+                  active: launched,
+                  delayMs: 380,
+                  durationMs: 1350,
                   curve: RewindMotion.hop,
                   hiddenBeforeStart: true,
                   origin: Alignment(
@@ -133,10 +145,7 @@ class PhotosCountPage extends RewindPage {
                     RewindPose(0.88, dy: -3, sx: 0.99, sy: 1.01),
                     RewindPose(1),
                   ],
-                  child: Image.file(
-                    RewindAssets.file(RewindAssets.heroDucky),
-                    fit: BoxFit.contain,
-                  ),
+                  child: const RewindDucky(RewindAssets.superheroDucky),
                 ),
               ),
               RewindLayer(
@@ -144,7 +153,7 @@ class PhotosCountPage extends RewindPage {
                 position: position,
                 child: RewindEntrance(
                   preset: RewindPreset.cloud,
-                  active: isActive,
+                  active: launched,
                   delayMs: 90,
                   child: Stack(
                     clipBehavior: Clip.none,
@@ -173,17 +182,20 @@ class PhotosCountPage extends RewindPage {
                 child: RewindEntrance(
                   preset: RewindPreset.line,
                   active: isActive,
-                  delayMs: 1250,
+                  delayMs: 700,
                   child: Center(
-                    child: RewindVoice(
-                      you: "IN ${RewindEdition.year}, YOU CLICKED",
-                      me: "IN ${RewindEdition.year}, I CLICKED",
-                      builder: (text) => Text(
-                        text,
-                        style: RewindTextStyles.display(
-                          22,
-                          color: RewindColors.ink,
-                          letterSpacing: -0.88,
+                    child: RewindFitWidth(
+                      width: 224,
+                      alignment: Alignment.center,
+                      child: RewindVoice(
+                        copy.photosCountKicker,
+                        builder: (text) => Text(
+                          text,
+                          style: RewindTextStyles.display(
+                            22,
+                            color: RewindColors.ink,
+                            letterSpacing: -0.88,
+                          ),
                         ),
                       ),
                     ),
@@ -198,58 +210,51 @@ class PhotosCountPage extends RewindPage {
                   child: RewindFitWidth(
                     width: 310,
                     alignment: Alignment.topCenter,
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(top: 6, right: 7),
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(minWidth: 170),
-                            child: RewindEntrance(
-                              preset: RewindPreset.slap,
-                              active: isActive,
-                              delayMs: 1400,
-                              child: Stack(
-                                alignment: Alignment.centerRight,
-                                children: [
-                                  Opacity(
-                                    opacity: 0,
-                                    child: big(rewindCount(count)),
-                                  ),
-                                  RewindCountUp(
-                                    value: count,
-                                    active: isActive,
-                                    delayMs: 1450,
-                                    builder: (context, text) => big(text),
-                                  ),
-                                ],
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: RewindCountLockup(
+                        numberText: copy.number(count),
+                        numberStyle: number,
+                        labelText: copy.memoriesUnit(count),
+                        labelStyle: unitStyle,
+                        overhang: 7,
+                        drop: 22.1,
+                        minNumberWidth: 170,
+                        number: RewindEntrance(
+                          preset: RewindPreset.slap,
+                          active: isActive,
+                          delayMs: 850,
+                          child: Stack(
+                            alignment: Alignment.centerRight,
+                            children: [
+                              Opacity(
+                                opacity: 0,
+                                child: big(copy.number(count)),
                               ),
+                              RewindCountUp(
+                                value: count,
+                                active: playing,
+                                delayMs: 900,
+                                builder: (context, text) => big(text),
+                              ),
+                            ],
+                          ),
+                        ),
+                        label: RewindEntrance(
+                          preset: RewindPreset.pop,
+                          active: isActive,
+                          delayMs: 1150,
+                          child: Transform.rotate(
+                            angle: -1.7 * pi / 180,
+                            child: RewindOutlinedText(
+                              copy.memoriesUnit(count),
+                              style: unitStyle,
+                              outline: 4,
+                              ink: const Color(0xFF0A0A0A),
                             ),
                           ),
                         ),
-                        Positioned(
-                          right: 0,
-                          top: 66,
-                          child: RewindEntrance(
-                            preset: RewindPreset.pop,
-                            active: isActive,
-                            delayMs: 1700,
-                            child: Transform.rotate(
-                              angle: -1.7 * pi / 180,
-                              child: RewindOutlinedText(
-                                count == 1 ? "memory" : "memories",
-                                style: RewindTextStyles.display(
-                                  44.228,
-                                  color: RewindColors.white,
-                                  letterSpacing: -1.77,
-                                ),
-                                outline: 4,
-                                ink: const Color(0xFF0A0A0A),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -310,8 +315,8 @@ class _Popcorn extends StatelessWidget {
 
   static const _launchY = 650.0;
   static const _flightMs = 1750.0;
-  static const _burstFromMs = 1420.0;
-  static const _burstMs = 1400.0;
+  static const _burstFromMs = 200.0;
+  static const _burstMs = 1000.0;
   static const _burstCount = 16;
   static const _belted = 5;
   static const _firstBelted = _burstCount - _belted;
@@ -339,27 +344,21 @@ class _Popcorn extends StatelessWidget {
       for (final file in photos)
         RewindPolaroid(
           width: _width,
-          photo: RewindPhoto(
-            file,
-            placeholder: const Color(0x1F151515),
-            zoomable: false,
-          ),
+          photo: RewindPhoto(file, placeholder: const Color(0x1F151515)),
         ),
     ];
-    return IgnorePointer(
-      child: RewindElapsed(
-        active: active,
-        stillMs: 5200,
-        builder: (context, ms) => Stack(
-          clipBehavior: Clip.none,
-          children: [
-            for (final slot in _beltSlots(ms))
-              _onBelt(prints[(_firstBelted + slot) % prints.length], slot, ms),
-            for (var k = 0; k < _burstCount; k++)
-              if (_burst[k] <= ms && ms < _burst[k] + _flightMs)
-                _flight(prints[k % prints.length], k, ms),
-          ],
-        ),
+    return RewindElapsed(
+      active: active,
+      stillMs: 5200,
+      builder: (context, ms) => Stack(
+        clipBehavior: Clip.none,
+        children: [
+          for (final slot in _beltSlots(ms))
+            _onBelt(prints[(_firstBelted + slot) % prints.length], slot, ms),
+          for (var k = 0; k < _burstCount; k++)
+            if (_burst[k] <= ms && ms < _burst[k] + _flightMs)
+              _flight(prints[k % prints.length], k, ms),
+        ],
       ),
     );
   }

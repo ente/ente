@@ -1,3 +1,5 @@
+import "dart:async";
+import "dart:math";
 import "dart:ui" as ui;
 
 import "package:flutter/widgets.dart";
@@ -24,14 +26,33 @@ class RewindPhoto extends StatefulWidget {
   final ui.Image? decoded;
 
   @override
-  State<RewindPhoto> createState() => _RewindPhotoState();
+  State<RewindPhoto> createState() => RewindPhotoState();
 }
 
-class _RewindPhotoState extends State<RewindPhoto> {
+class RewindPhotoState extends State<RewindPhoto> {
   var _lifted = false;
   var _zooming = false;
+  var _failures = 0;
+  var _reloads = 0;
 
-  Widget get _thumbnail => switch (widget.decoded) {
+  @override
+  void didUpdateWidget(RewindPhoto oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.file != oldWidget.file) _failures = 0;
+  }
+
+  Future<void> _reload() async {
+    final file = widget.file;
+    final cache = RewindThumbnailCache();
+    bool shows() => mounted && widget.file == file;
+    do {
+      await Future<void>.delayed(rewindRetryAfter(_failures++));
+      if (!shows()) return;
+    } while (file.isUploaded && !await cache.save(file));
+    if (shows()) setState(() => _reloads++);
+  }
+
+  Widget _thumbnail({VoidCallback? onLoadFailed}) => switch (widget.decoded) {
     final decoded? => RawImage(
       image: decoded,
       fit: BoxFit.cover,
@@ -39,7 +60,7 @@ class _RewindPhotoState extends State<RewindPhoto> {
     ),
     null => ThumbnailWidget(
       widget.file,
-      key: ValueKey(widget.file.tag),
+      key: ValueKey((widget.file.tag, _reloads)),
       alignment: widget.focus,
       rawThumbnail: true,
       shouldShowSyncStatus: false,
@@ -48,28 +69,29 @@ class _RewindPhotoState extends State<RewindPhoto> {
       thumbnailSize: thumbnailLargeSize,
       useRequestedThumbnailSizeForLocalCache: true,
       placeholderColor: widget.placeholder,
+      onLoadFailed: onLoadFailed,
     ),
   };
 
   @override
   Widget build(BuildContext context) {
-    final thumbnail = _thumbnail;
+    final thumbnail = _thumbnail(onLoadFailed: () => unawaited(_reload()));
     if (!widget.zoomable) return thumbnail;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: _zoom,
+      onTap: zoom,
       child: Opacity(opacity: _lifted ? 0 : 1, child: thumbnail),
     );
   }
 
-  Future<void> _zoom() async {
+  Future<void> zoom() async {
     if (_zooming) return;
     _zooming = true;
     await showRewindPhotoZoom(
       context,
       file: widget.file,
       focus: widget.focus,
-      placeholder: _thumbnail,
+      placeholder: _thumbnail(),
       placement: () => mounted ? rewindPhotoPlacement(context) : null,
       onLifted: () => setState(() => _lifted = true),
       onReturned: _settle,
@@ -83,6 +105,14 @@ class _RewindPhotoState extends State<RewindPhoto> {
   }
 }
 
+const _retryAfterSeconds = [3, 6, 12, 24, 48];
+const _libraryPatience = Duration(seconds: 10);
+const _serverPatience = Duration(seconds: 20);
+
+Duration rewindRetryAfter(int attempt) => Duration(
+  seconds: _retryAfterSeconds[min(attempt, _retryAfterSeconds.length - 1)],
+);
+
 Future<bool> loadRewindPhoto(EnteFile file) async {
   final isOnDevice =
       !file.isRemoteOnlyFile &&
@@ -93,4 +123,55 @@ Future<bool> loadRewindPhoto(EnteFile file) async {
   return true;
 }
 
-void preloadRewindPhoto(EnteFile file) => loadRewindPhoto(file).ignore();
+class RewindThumbnailCache {
+  RewindThumbnailCache({this.stopsAfterServerStall = false});
+
+  final bool stopsAfterServerStall;
+  var _libraryStalled = false;
+  var _serverStalled = false;
+
+  bool get serverStalled => _serverStalled;
+
+  bool get _stopped => stopsAfterServerStall && _serverStalled;
+
+  Future<bool> save(EnteFile file) async {
+    if (!file.isUploaded) return false;
+    try {
+      if (await cachedThumbnailPath(file).exists()) return true;
+    } catch (_) {
+      return false;
+    }
+    if (!_stopped && await _savesFromServer(file)) return true;
+    return !_stopped &&
+        !file.isRemoteOnlyFile &&
+        !_libraryStalled &&
+        await _savesFromLibrary(file);
+  }
+
+  Future<bool> _savesFromLibrary(EnteFile file) async {
+    try {
+      final saved = await getThumbnailForUploadedFile(
+        file,
+      ).timeout(_libraryPatience);
+      return saved != null;
+    } on TimeoutException {
+      _libraryStalled = true;
+      return false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> _savesFromServer(EnteFile file) async {
+    try {
+      await getThumbnailFromServer(file).timeout(_serverPatience);
+      return true;
+    } on TimeoutException {
+      removePendingGetThumbnailRequestIfAny(file);
+      _serverStalled = true;
+      return false;
+    } catch (_) {
+      return false;
+    }
+  }
+}

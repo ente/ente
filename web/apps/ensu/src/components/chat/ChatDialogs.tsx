@@ -80,6 +80,16 @@ const formatNotesUpdatedAt = (timestamp: number) =>
         timeStyle: "short",
     });
 
+const notesActivityMessages: Partial<
+    Record<NonNullable<NotesCollectionView["activity"]>, string>
+> = {
+    updateRequested: "Update queued. Keep Ensu open.",
+    updateScheduled: "Changes detected in this folder.",
+    waitingForGeneration: "Indexing will resume after the current response.",
+    waitingForModel: "Indexing will start when the model is ready.",
+    waitingForChat: "Indexing will resume when chat is idle.",
+};
+
 const compactInlineLinkSx = {
     border: 0,
     p: 0,
@@ -888,26 +898,33 @@ export const ChatDialogs = memo(
                                 const starting =
                                     collection.activity === "starting";
                                 const progress = collection.indexingProgress;
+                                const updatePending =
+                                    collection.activity === "updateRequested" ||
+                                    collection.activity === "updateScheduled";
                                 const canRetry =
-                                    collection.status === "error" ||
-                                    collection.status === "unavailable" ||
-                                    collection.activity === "failed";
+                                    collection.activity === "failed" ||
+                                    (!updatePending &&
+                                        (collection.status === "error" ||
+                                            collection.status ===
+                                                "unavailable"));
+                                const canUpdate =
+                                    !indexing &&
+                                    !starting &&
+                                    !canRetry &&
+                                    updatePending;
                                 const waitingMessage =
-                                    collection.activity ===
-                                    "waitingForGeneration"
-                                        ? "Indexing will resume after the current response."
-                                        : collection.activity ===
-                                            "waitingForModel"
-                                          ? "Indexing will start when the model is ready."
-                                          : collection.activity ===
-                                              "waitingForChat"
-                                            ? "Indexing will resume when chat is idle."
-                                            : null;
+                                    collection.activity &&
+                                    notesActivityMessages[collection.activity];
+                                const requestUpdate = () =>
+                                    handleIndexNotesCollection(
+                                        collection.id,
+                                        true,
+                                    );
                                 return (
                                     <Stack
                                         key={collection.id}
                                         sx={{
-                                            gap: 1.25,
+                                            gap: 1.5,
                                             p: 2,
                                             borderRadius: 2,
                                             bgcolor: "fill.faint",
@@ -923,13 +940,22 @@ export const ChatDialogs = memo(
                                             <Stack
                                                 sx={{ flex: 1, minWidth: 0 }}
                                             >
-                                                <Typography variant="h6" noWrap>
+                                                <Typography
+                                                    variant="h6"
+                                                    sx={{
+                                                        overflowWrap:
+                                                            "anywhere",
+                                                    }}
+                                                >
                                                     {collection.label}
                                                 </Typography>
                                                 <Typography
                                                     variant="mini"
-                                                    noWrap
-                                                    sx={{ color: "text.muted" }}
+                                                    sx={{
+                                                        color: "text.muted",
+                                                        overflowWrap:
+                                                            "anywhere",
+                                                    }}
                                                 >
                                                     {starting &&
                                                     collection.indexedDocumentCount ===
@@ -1004,6 +1030,7 @@ export const ChatDialogs = memo(
                                                 }}
                                             >
                                                 <LinearProgress
+                                                    aria-label={`Updating ${collection.label}`}
                                                     variant="determinate"
                                                     value={progress ?? 0}
                                                     sx={{ flex: 1 }}
@@ -1016,16 +1043,46 @@ export const ChatDialogs = memo(
                                                 </Typography>
                                             </Stack>
                                         )}
-                                        {starting && <LinearProgress />}
-                                        {waitingMessage && (
-                                            <Typography
-                                                variant="small"
-                                                sx={{ color: "text.muted" }}
-                                            >
-                                                {waitingMessage}
-                                            </Typography>
+                                        {starting && (
+                                            <LinearProgress
+                                                aria-label={`Updating ${collection.label}`}
+                                            />
                                         )}
-                                        {collection.lastError && (
+                                        {waitingMessage && (
+                                            <Stack
+                                                sx={{
+                                                    gap: 1,
+                                                    alignItems: "flex-start",
+                                                }}
+                                            >
+                                                <Typography
+                                                    variant="small"
+                                                    role="status"
+                                                    sx={{
+                                                        color:
+                                                            canUpdate ||
+                                                            collection.activity ===
+                                                                "updateRequested"
+                                                                ? "text.base"
+                                                                : "text.muted",
+                                                    }}
+                                                >
+                                                    {waitingMessage}
+                                                </Typography>
+                                                {canUpdate && (
+                                                    <Button
+                                                        variant="contained"
+                                                        color="accent"
+                                                        size="small"
+                                                        aria-label={`Update ${collection.label} now`}
+                                                        onClick={requestUpdate}
+                                                    >
+                                                        Update now
+                                                    </Button>
+                                                )}
+                                            </Stack>
+                                        )}
+                                        {canRetry && collection.lastError && (
                                             <Typography
                                                 variant="small"
                                                 sx={{ color: "critical.main" }}
@@ -1042,6 +1099,7 @@ export const ChatDialogs = memo(
                                             </Typography>
                                         )}
                                         {collection.status === "unavailable" &&
+                                            canRetry &&
                                             !collection.lastError && (
                                                 <Typography
                                                     variant="small"
@@ -1050,23 +1108,23 @@ export const ChatDialogs = memo(
                                                     Folder unavailable
                                                 </Typography>
                                             )}
-                                        {(canRetry ||
-                                            collection.watcherError) && (
-                                            <Button
-                                                size="small"
-                                                onClick={() =>
-                                                    handleIndexNotesCollection(
-                                                        collection.id,
-                                                        true,
-                                                    )
-                                                }
-                                                sx={{ alignSelf: "flex-start" }}
-                                            >
-                                                {canRetry
-                                                    ? "Try again"
-                                                    : "Refresh"}
-                                            </Button>
-                                        )}
+                                        {!canUpdate &&
+                                            !starting &&
+                                            !indexing &&
+                                            (canRetry ||
+                                                collection.watcherError) && (
+                                                <Button
+                                                    size="small"
+                                                    onClick={requestUpdate}
+                                                    sx={{
+                                                        alignSelf: "flex-start",
+                                                    }}
+                                                >
+                                                    {canRetry
+                                                        ? "Try again"
+                                                        : "Refresh"}
+                                                </Button>
+                                            )}
                                     </Stack>
                                 );
                             })}

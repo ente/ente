@@ -630,9 +630,178 @@ fn creation_enrollment_and_login_across_processes() -> ente_test_support::TestRe
     })
 }
 
+#[test]
+fn security_changes_need_confirmation_or_a_code_without_prompts() {
+    let home = TestHome::new();
+    for command in ["totp", "email-mfa"] {
+        let error = failure(&home.run(&["account", command, "disable", "--no-input"]));
+        assert!(error.contains("supply --yes"), "{error}");
+    }
+    let error = failure(&home.run(&[
+        "account",
+        "change-email",
+        "--email",
+        "new@example.org",
+        "--no-input",
+    ]));
+    assert!(error.contains("supply --input"), "{error}");
+    let error = failure(&home.with_input(
+        &[
+            "account",
+            "change-email",
+            "--email",
+            "new@example.org",
+            "--input",
+            "-",
+            "--no-input",
+        ],
+        br#"{"otp": ""}"#,
+    ));
+    assert!(error.contains("supply a nonempty otp"), "{error}");
+}
+
+#[cfg(feature = "museum")]
+#[test]
+fn security_settings_and_email_change_across_processes() -> ente_test_support::TestResult {
+    use super::museum::{PASSWORD, create_account, login};
+    use ente_test_support::{Museum, account_fixture::current_totp};
+    let inbox = super::mail::MailInbox::new();
+    let port = inbox.port.to_string();
+    let env = [
+        ("ENTE_SMTP_HOST", "127.0.0.1"),
+        ("ENTE_SMTP_PORT", &port),
+        ("ENTE_SMTP_USERNAME", ""),
+        ("ENTE_SMTP_PASSWORD", ""),
+        ("ENTE_SMTP_ENCRYPTION", ""),
+    ];
+    Museum::run_with_env(&env, |museum| {
+        let origin = museum.endpoint();
+        let email = format!("cli-security-{}@example.org", uuid::Uuid::new_v4());
+        tokio::runtime::Runtime::new()?.block_on(create_account(origin, &email));
+        let home = TestHome::new();
+        login(&home, "photos", &email, &["--host", origin, "--no-input"]);
+        let password_login = |email: &str| {
+            TestHome::new().with_input(
+                &[
+                    "account",
+                    "login",
+                    "--app",
+                    "photos",
+                    "--host",
+                    origin,
+                    "--input",
+                    "-",
+                    "--no-input",
+                ],
+                &serde_json::to_vec(&json!({"email": email, "password": PASSWORD})).unwrap(),
+            )
+        };
+
+        assert_eq!(
+            home.json(&["account", "email-mfa", "status"]),
+            json!({"emailMfaEnabled": false, "canDisableEmailMfa": true})
+        );
+        assert_eq!(
+            home.json(&["account", "email-mfa", "enable"]),
+            json!({"emailMfaEnabled": true})
+        );
+        assert_eq!(
+            home.json(&["account", "email-mfa", "status"])["emailMfaEnabled"],
+            true
+        );
+        assert!(failure(&password_login(&email)).contains("login requires otp"));
+        assert_eq!(
+            home.json(&["account", "email-mfa", "disable", "--yes", "--no-input"]),
+            json!({"emailMfaEnabled": false})
+        );
+        success(password_login(&email));
+
+        let secret = home.json(&["account", "totp", "setup"])["secret"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        success(home.with_input(
+            &["account", "totp", "enable", "--input", "-"],
+            &serde_json::to_vec(&json!({"secret": secret, "totp": current_totp(&secret)?}))?,
+        ));
+        assert!(failure(&password_login(&email)).contains("supply totp in --input"));
+        assert_eq!(
+            home.json(&["account", "totp", "disable", "--yes", "--no-input"]),
+            json!({"totpEnabled": false})
+        );
+        assert_eq!(
+            home.json(&["account", "totp", "status"]),
+            json!({"totpEnabled": false})
+        );
+        success(password_login(&email));
+
+        let new_email = format!("cli-changed-{}@example.org", uuid::Uuid::new_v4());
+        assert_eq!(
+            home.json(&[
+                "account",
+                "request-otp",
+                "--email",
+                &new_email,
+                "--host",
+                origin,
+                "--purpose",
+                "change",
+            ])["purpose"],
+            "change"
+        );
+        let message = inbox.receive("Subject: Verification code:");
+        assert!(message.contains(&format!("RCPT TO:<{new_email}>")));
+        let code = message
+            .lines()
+            .find_map(|line| line.strip_prefix("Subject: Verification code: "))
+            .unwrap()
+            .trim()
+            .to_owned();
+        let padded_email = format!(" {} ", new_email.to_uppercase());
+        let change = [
+            "account",
+            "change-email",
+            "--email",
+            &padded_email,
+            "--input",
+            "-",
+            "--no-input",
+        ];
+        let wrong_code = format!("{:06}", (code.parse::<u32>()? + 1) % 1_000_000);
+        let error =
+            failure(&home.with_input(&change, &serde_json::to_vec(&json!({"otp": wrong_code}))?));
+        assert!(
+            error.contains("Incorrect email verification code"),
+            "{error}"
+        );
+        assert_eq!(home.json(&["account", "view"])["email"], email);
+        let output = success(home.with_input(
+            &[&change[..], &["--json"]].concat(),
+            &serde_json::to_vec(&json!({"otp": code}))?,
+        ));
+        let changed: Value = serde_json::from_slice(&output.stdout)?;
+        assert_eq!(changed["account"]["email"], new_email);
+        assert_eq!(changed["account"]["name"], email);
+        assert_eq!(home.json(&["account", "view"]), changed["account"]);
+        assert_eq!(
+            home.json(&["photos", "api", "/users/details/v2"])["email"],
+            new_email
+        );
+        let relogin = TestHome::new();
+        login(
+            &relogin,
+            "photos",
+            &new_email,
+            &["--host", origin, "--no-input"],
+        );
+        assert_eq!(relogin.json(&["account", "view"])["email"], new_email);
+        Ok(())
+    })
+}
+
 #[cfg(all(unix, feature = "museum"))]
 #[test]
-fn interactive_creation_password_retry_and_enrollment() -> ente_test_support::TestResult {
+fn interactive_prompts_from_creation_to_email_change() -> ente_test_support::TestResult {
     use std::io::{BufRead, BufReader};
 
     ente_test_support::Museum::run(|museum| {
@@ -652,21 +821,36 @@ fn interactive_creation_password_retry_and_enrollment() -> ente_test_support::Te
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
                 .spawn()?;
+            let mut stdin = child.stdin.take().unwrap();
+            let mut stdout = BufReader::new(child.stdout.take().unwrap());
             let mut ready = String::new();
-            BufReader::new(child.stdout.take().unwrap()).read_line(&mut ready)?;
+            stdout.read_line(&mut ready)?;
             assert_eq!(ready.trim(), "expire");
             museum.execute_sql("UPDATE temp_two_factor SET expiration_time = 1")?;
-            writeln!(child.stdin.take().unwrap(), "expired")?;
+            writeln!(stdin, "expired")?;
+            ready.clear();
+            stdout.read_line(&mut ready)?;
+            assert_eq!(ready.trim(), "code");
+            let code =
+                museum.query_sql("SELECT ott FROM otts ORDER BY creation_time DESC LIMIT 1")?;
+            writeln!(stdin, "{code}")?;
             child.wait_with_output()?
         });
-        assert_eq!(home.json(&["account", "view"])["name"], email);
+        let changed = format!("changed-{email}");
+        let account = home.json(&["account", "view"]);
+        assert_eq!(account["name"], email);
+        assert_eq!(account["email"], changed);
         assert_eq!(
             home.json(&["account", "totp", "status"]),
-            json!({"totpEnabled": true})
+            json!({"totpEnabled": false})
+        );
+        assert_eq!(
+            home.json(&["account", "email-mfa", "status"]),
+            json!({"emailMfaEnabled": false, "canDisableEmailMfa": true})
         );
         assert_eq!(
             home.json(&["photos", "api", "/users/details/v2"])["email"],
-            email
+            changed
         );
         Ok(())
     })
@@ -734,9 +918,9 @@ fn family_usage_reports_the_admin_plan_and_the_member_limit() {
     let home = TestHome::new();
     home.seed(&server.url());
     let family = json!({"storage": 200 * GB, "expiryTime": 4942020944746699i64, "adminBonus": 0, "members": [
-        {"id": "a", "email": "admin@example.org", "status": "ACCEPTED", "usage": 50 * GB, "isAdmin": true},
-        {"id": "b", "email": "fixture@example.org", "status": "ACCEPTED", "usage": 3 * GB, "storageLimit": 5 * GB},
-        {"id": "c", "email": "new@example.org", "status": "INVITED"}
+        {"id": "00000000-0000-4000-8000-00000000000a", "email": "admin@example.org", "status": "SELF", "usage": 50 * GB, "isAdmin": true},
+        {"id": "00000000-0000-4000-8000-00000000000b", "email": "fixture@example.org", "status": "ACCEPTED", "usage": 3 * GB, "isAdmin": false, "storageLimit": 5 * GB},
+        {"id": "00000000-0000-4000-8000-00000000000c", "email": "new@example.org", "status": "INVITED", "usage": 0, "isAdmin": false}
     ]});
     // A member's own subscription is a lapsed plan; the family plan is what counts.
     let mut body: Value = serde_json::from_str(&details_body(family)).unwrap();
@@ -786,9 +970,9 @@ fn family_usage_free_space_respects_both_quotas() {
         let mut server = mockito::Server::new();
         let home = TestHome::new();
         home.seed(&server.url());
-        let family = json!({"storage": 200 * GB, "expiryTime": 4942020944746699i64, "members": [
-            {"email": "admin@example.org", "status": "ACCEPTED", "usage": (family_used - 3) * GB, "isAdmin": true},
-            {"email": "fixture@example.org", "status": "ACCEPTED", "usage": 3 * GB,
+        let family = json!({"storage": 200 * GB, "expiryTime": 4942020944746699i64, "adminBonus": 0, "members": [
+            {"id": "00000000-0000-4000-8000-00000000000a", "email": "admin@example.org", "status": "SELF", "usage": (family_used - 3) * GB, "isAdmin": true},
+            {"id": "00000000-0000-4000-8000-00000000000b", "email": "fixture@example.org", "status": "ACCEPTED", "usage": 3 * GB, "isAdmin": false,
                 "storageLimit": member_limit.map(|limit| limit * GB)}
         ]});
         let details = server
@@ -898,4 +1082,75 @@ fn usage_marks_an_expired_plan() {
         "{plain}"
     );
     details.assert();
+}
+
+#[test]
+fn sessions_fail_when_the_server_returns_raw_tokens() {
+    let mut server = mockito::Server::new();
+    let home = TestHome::new();
+    home.seed(&server.url());
+    let entry = |token: &str, current: bool| {
+        json!({"token": token, "isCurrent": current, "creationTime": 1_763_715_600_000_000i64,
+            "lastUsedTime": 1_763_715_600_000_000i64, "ip": "203.0.113.7",
+            "ua": "ente-cli", "prettyUA": "Other, Other"})
+    };
+    let sessions = server
+        .mock("GET", "/users/sessions")
+        .with_body(
+            json!({"sessions": [entry("th:hash", true), entry("raw-other-token", false)]})
+                .to_string(),
+        )
+        .expect(3)
+        .create();
+    let revoke = server
+        .mock("DELETE", "/users/session")
+        .match_query(Matcher::Any)
+        .expect(0)
+        .create();
+
+    for args in [
+        &["account", "session", "list"][..],
+        &["account", "session", "list", "--json"],
+        &[
+            "account",
+            "session",
+            "revoke",
+            "th:hash",
+            "--yes",
+            "--no-input",
+        ],
+    ] {
+        let output = home.run(args);
+        let error = failure(&output);
+        assert!(
+            error.contains(
+                "does not return session IDs; listing sessions requires a current Museum release"
+            ),
+            "{error}"
+        );
+        for stream in [&output.stdout, &output.stderr] {
+            assert!(!String::from_utf8_lossy(stream).contains("raw-"), "{error}");
+        }
+    }
+    sessions.assert();
+    revoke.assert();
+}
+
+#[test]
+fn session_revoke_never_echoes_an_id_that_is_not_a_session_id() {
+    let home = TestHome::new();
+    home.seed("http://127.0.0.1:9");
+    let output = home.run(&[
+        "account",
+        "session",
+        "revoke",
+        "raw-bearer-token",
+        "--yes",
+        "--no-input",
+    ]);
+    let error = failure(&output);
+    assert!(error.contains("session IDs start with th:"), "{error}");
+    for stream in [&output.stdout, &output.stderr] {
+        assert!(!String::from_utf8_lossy(stream).contains("raw-"), "{error}");
+    }
 }

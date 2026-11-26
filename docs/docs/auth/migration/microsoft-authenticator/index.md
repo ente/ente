@@ -52,6 +52,8 @@ Open Ente Auth.
 
 Tap the add button and scan the QR code shown by the service.
 
+![Scan QR camera with Import from Gallery on Ente Auth mobile](https://docs-assets.ente.com/screenshots/auth-scan-qr-callout.png){width=560px}
+
 If you cannot scan the QR code, choose the manual setup option on the service and copy the secret key into Ente Auth.
 
 ### Step 5: Verify the code

@@ -7,6 +7,7 @@ import "package:flutter/services.dart";
 import "package:flutter_svg/flutter_svg.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
@@ -19,7 +20,6 @@ import "package:photos/ui/rewind/widgets/rewind_confetti.dart";
 import "package:photos/ui/rewind/widgets/rewind_count_up.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
 import "package:photos/ui/rewind/widgets/rewind_keyframes.dart";
-import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo_frames.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo_gallery.dart";
@@ -31,7 +31,6 @@ import "package:photos/ui/rewind/widgets/rewind_wave.dart";
 typedef PlaceStamp = ({
   rust.RewindCity city,
   EnteFile? photo,
-  List<EnteFile> extras,
   List<EnteFile> gallery,
 });
 
@@ -57,7 +56,7 @@ class PlacesQuizPage extends RewindPage {
 
   @override
   List<EnteFile> get reelThumbnails => [
-    for (final stamp in stamps) ...[?stamp.photo, ...stamp.extras],
+    for (final stamp in stamps) ?stamp.photo,
   ];
 
   @override
@@ -137,8 +136,12 @@ class _PlacesQuiz extends StatefulWidget {
 }
 
 class _PlacesQuizState extends State<_PlacesQuiz> {
-  static const _background = Color(0xFF3F78F0);
-  static const _stripes = Color(0xFF4A82F5);
+  RewindCopy get _copy => RewindCopy.of(context);
+
+  String _cityOf(rust.RewindCity city) => _copy.city(city.name, city.country);
+
+  static const _background = Color(0xFF123E97);
+  static const _stripes = Color(0xFF0C3B9B);
   static const _revealMs = 1250;
   static const _rankMs = 600;
   static const _rankGapMs = 330;
@@ -325,7 +328,7 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
               child: Column(
                 children: [
                   Text(
-                    "WHERE DID YOU SHOOT MOST?",
+                    _copy.placesQuestion,
                     textAlign: TextAlign.center,
                     style: RewindTextStyles.display(
                       20,
@@ -336,7 +339,7 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
                   ),
                   const SizedBox(height: 7),
                   Text(
-                    "Make a guess 👀",
+                    _copy.placesHint,
                     textAlign: TextAlign.center,
                     style: RewindTextStyles.body(17, height: 1.2),
                   ),
@@ -354,10 +357,10 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
           child: _leave(
             150,
             RewindSwapIn(
-              text: _stamps[picked].city.name,
+              text: _cityOf(_stamps[picked].city),
               alignment: Alignment.centerLeft,
               child: Text(
-                "${_stamps[picked].city.name}? Let’s check\nthe postmarks.",
+                _copy.placesPicked(_cityOf(_stamps[picked].city)),
                 style: RewindTextStyles.body(19, height: 1.15),
               ),
             ),
@@ -446,16 +449,8 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
   bool _opensGallery(int rank) =>
       _phase == _Phase.done && _stamps[rank].gallery.length > 1;
 
-  Widget _stamp(int rank, _Slot slot, Size size, double lift) =>
-      _stampOf(_stamps[rank].photo, rank, slot, size, lift);
-
-  Widget _stampOf(
-    EnteFile? photo,
-    int rank,
-    _Slot slot,
-    Size size,
-    double lift,
-  ) {
+  Widget _stamp(int rank, _Slot slot, Size size, double lift) {
+    final photo = _stamps[rank].photo;
     return SizedBox.fromSize(
       size: size,
       child: RewindStamp(
@@ -466,7 +461,7 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
                 placeholder: const Color(0xFFD9D9D9),
                 zoomable: _phase == _Phase.done && !_opensGallery(rank),
               ),
-        label: _stamps[rank].city.name,
+        label: _cityOf(_stamps[rank].city),
         portrait: slot.portrait,
         width: size.width,
         lift: lift * 139.6 / size.width,
@@ -498,29 +493,10 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
 
   int _rankDelay(int rank) => _rankMs + (2 - rank) * _rankGapMs;
 
-  static const _fans = [
-    (dx: -16.0, dy: 2.0, turn: -13.0),
-    (dx: 15.0, dy: 0.0, turn: 11.0),
-  ];
-
-  EdgeInsets _fanReach(int rank, Size size) {
-    final unit = size.width / 139.6;
-    var side = 0.0;
-    var rise = 0.0;
-    for (final fan in _fans.take(_stamps[rank].extras.length)) {
-      final turn = fan.turn.abs() * pi / 180;
-      side = max(side, size.height * sin(turn) + fan.dx.abs() * unit);
-      rise = max(rise, size.width / 2 * sin(turn) + fan.dy.abs() * unit);
-    }
-    return EdgeInsets.symmetric(horizontal: side, vertical: rise);
-  }
-
   Widget _podiumStamp(int rank, Rect rect, bool revealed) {
     final slot = _Slot.podium[rank];
-    final reach = _fanReach(rank, rect.size);
-    final stamp = Offset(reach.left, reach.top) & rect.size;
     return Positioned.fromRect(
-      rect: reach.inflateRect(rect),
+      rect: rect,
       child: _leave(
         rect.center.dy,
         RewindKeyframes(
@@ -533,28 +509,7 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
             onTap: _opensGallery(rank) ? () => _showGallery(rank) : null,
             child: Transform.rotate(
               angle: slot.turn * pi / 180,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  for (final (i, photo)
-                      in _stamps[rank].extras.indexed.toList().reversed)
-                    Positioned.fromRect(
-                      rect: stamp,
-                      child: _fannedStamp(
-                        photo,
-                        rank,
-                        i,
-                        slot,
-                        rect.size,
-                        revealed,
-                      ),
-                    ),
-                  Positioned.fromRect(
-                    rect: stamp,
-                    child: _stamp(rank, slot, rect.size, 4),
-                  ),
-                ],
-              ),
+              child: _stamp(rank, slot, rect.size, 4),
             ),
           ),
         ),
@@ -573,50 +528,16 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
         child: RewindStamp(
           photo: photo == null
               ? const ColoredBox(color: Color(0xFFD9D9D9))
-              : RewindPhoto(
-                  photo,
-                  placeholder: const Color(0xFFD9D9D9),
-                  zoomable: false,
-                ),
+              : RewindPhoto(photo, placeholder: const Color(0xFFD9D9D9)),
           label: stamp.city.country.isEmpty
-              ? stamp.city.name
+              ? _cityOf(stamp.city)
               : stamp.city.country,
           width: width,
         ),
       ),
       headerSize: const Size(width, width * 93.9 / 139.6),
-      title: stamp.city.name,
+      title: _cityOf(stamp.city),
       photos: stamp.gallery,
-    );
-  }
-
-  Widget _fannedStamp(
-    EnteFile photo,
-    int rank,
-    int index,
-    _Slot slot,
-    Size size,
-    bool revealed,
-  ) {
-    final fan = _fans[index % _fans.length];
-    final reach = size.width / 139.6;
-    return RewindKeyframes(
-      active: revealed,
-      delayMs: _rankDelay(rank) + 140 + 110 * index,
-      durationMs: 620,
-      curve: const Cubic(0.2, 0.9, 0.3, 1.35),
-      origin: Alignment.bottomCenter,
-      poses: [
-        const RewindPose(0, scale: 0.96),
-        RewindPose(
-          1,
-          dx: fan.dx * reach,
-          dy: fan.dy * reach,
-          turn: fan.turn,
-          scale: 0.96,
-        ),
-      ],
-      child: _stampOf(photo, rank, slot, size, 3),
     );
   }
 
@@ -701,7 +622,7 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
                 delayMs: delay,
                 durationMs: 700,
                 builder: (context, text) => Text(
-                  "$text ${count == 1 ? "photo" : "photos"}",
+                  _copy.photoTally(text, count),
                   style: RewindTextStyles.body(first ? 15.43 : 14, height: 1.2)
                       .copyWith(
                         fontFeatures: const [FontFeature.tabularFigures()],
@@ -767,8 +688,7 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
           110,
           swap(
             RewindVoice(
-              you: travelled ? "YOUR PHOTOS TRAVELLED" : "YOUR TOP PLACE",
-              me: travelled ? "MY PHOTOS TRAVELLED" : "MY TOP PLACE",
+              _copy.placesHeading(travelled: travelled),
               builder: (text) => Text(
                 text,
                 style: RewindTextStyles.display(17, letterSpacing: 0.3),
@@ -787,8 +707,8 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
               width: 330,
               child: RewindOutlinedText(
                 travelled
-                    ? "${rewindCount(places.distanceKm)} KM"
-                    : winner.name.toUpperCase(),
+                    ? _copy.distance(places.distanceKm)
+                    : _cityOf(winner).toUpperCase(),
                 style: RewindTextStyles.display(
                   71.872,
                   color: RewindColors.yellow,
@@ -817,23 +737,15 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
     final guess = _guess ?? 0;
     final cities = [for (final stamp in _stamps) stamp.city];
     final winner = cities.first;
-    final winning = rewindCounted(winner.photoCount, "photo", "photos");
+    final won = _copy.placesWon(_cityOf(winner), winner.photoCount);
     if (guess == 0) {
-      final next = cities.skip(1).take(2).map((city) => city.name).toList();
-      return switch (next.length) {
-        0 => "${winner.name} won with $winning.",
-        1 => "${winner.name} won with $winning. ${next[0]} came next.",
-        _ =>
-          "${winner.name} won with $winning. "
-              "${next[0]} and ${next[1]} came next.",
-      };
+      final next = cities.skip(1).take(2).map(_cityOf).toList();
+      return next.isEmpty ? won : "$won ${_copy.placesNext(next)}";
     }
     final pick = cities[guess];
-    if (guess < 3) {
-      return "${pick.name} came ${guess == 1 ? "2nd" : "3rd"}. "
-          "${winner.name} won with $winning.";
-    }
-    return "${pick.name} had ${rewindCount(pick.photoCount)}. "
-        "${winner.name} won with $winning.";
+    final placing = guess < 3
+        ? _copy.placesPlaced(_cityOf(pick), guess + 1)
+        : _copy.placesHad(_cityOf(pick), pick.photoCount);
+    return "$placing $won";
   }
 }

@@ -1,6 +1,5 @@
 import "dart:async";
 
-import "package:collection/collection.dart";
 import "package:dotted_border/dotted_border.dart";
 import "package:ente_components/ente_components.dart";
 import "package:ente_components/hugeicons.dart";
@@ -613,7 +612,7 @@ class _MergeClustersToPersonPageState extends State<MergeClustersToPersonPage> {
       if (compareValue != 0) {
         return compareValue;
       }
-      return compareAsciiLowerCaseNatural(a.name(), b.name());
+      return compareNames(a.name(), b.name());
     });
   }
 

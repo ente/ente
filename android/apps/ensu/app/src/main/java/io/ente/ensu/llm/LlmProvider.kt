@@ -23,6 +23,7 @@ import io.ente.ensu.bindings.LlmGenerationSummary as NativeSummary
 import io.ente.ensu.bindings.LlmMemoryOperation
 import io.ente.ensu.bindings.LlmModel
 import io.ente.ensu.bindings.LlmModelLoadParams
+import io.ente.ensu.bindings.LlmToolRequest
 import io.ente.ensu.bindings.ModelRuntimeSurface
 import io.ente.ensu.bindings.Transcriber
 import io.ente.ensu.bindings.knowledgeEmbeddingModelAsset
@@ -55,6 +56,12 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 private const val BACKGROUND_CACHE_RETENTION_MILLIS = 60_000L
+
+internal enum class EmbeddingUse {
+    Retrieval,
+    AutomaticIndexing,
+    ManualIndexing,
+}
 
 internal class ModelMemoryDeferred : Exception()
 
@@ -550,15 +557,21 @@ class LlmProvider(
         messages: List<NativeChatMessage>,
         maxTokens: UInt,
         temperature: Float,
+        tools: LlmToolRequest?,
         onToken: (String) -> Unit,
     ): GenerationSummary {
         val summary =
             generateStreamWithCallback(
                 context,
-                chatRequest(messages, emptyList(), null, temperature, maxTokens.toInt()),
+                chatRequest(messages, emptyList(), null, temperature, maxTokens.toInt(), tools),
                 onToken,
             )
-        return GenerationSummary(summary.jobId, summary.generatedTokens ?: 0, summary.totalTimeMs)
+        return GenerationSummary(
+            summary.jobId,
+            summary.generatedTokens ?: 0,
+            summary.totalTimeMs,
+            summary.calledTools,
+        )
     }
 
     private fun chatRequest(
@@ -567,6 +580,7 @@ class LlmProvider(
         mmprojPath: String?,
         temperature: Float,
         maxTokens: Int?,
+        tools: LlmToolRequest? = null,
     ) =
         LlmChatRequest(
             messages = messages,
@@ -585,13 +599,14 @@ class LlmProvider(
             seed = null,
             stopSequences = null,
             grammar = null,
+            tools = tools,
         )
 
     suspend fun <T> withRetrievalContext(
         queryBytes: Int,
         block: suspend (embed: (String) -> List<Float>) -> T,
     ): T = withModelContext {
-        withEmbeddingContext(maintenance = false, queryBytes = queryBytes) { embedding ->
+        withEmbeddingContext(use = EmbeddingUse.Retrieval, queryBytes = queryBytes) { embedding ->
             block { text ->
                 if (!appForeground) {
                     updateExecutionPolicy()
@@ -603,7 +618,7 @@ class LlmProvider(
     }
 
     internal suspend fun <T> withEmbeddingContext(
-        maintenance: Boolean = true,
+        use: EmbeddingUse,
         queryBytes: Int = 0,
         checkCancellation: () -> Unit = {},
         block: suspend (LlmContext) -> T,
@@ -613,21 +628,27 @@ class LlmProvider(
                 checkCancellation()
                 deviceCapabilityProvider.chatCapability().requireChatSupported()
                 if (!isEmbeddingModelReady()) throw EmbeddingAssetInvalid()
-                if (maintenance && memoryPressure.suppressesOptionalWork())
+                if (
+                    use == EmbeddingUse.AutomaticIndexing && memoryPressure.suppressesOptionalWork()
+                )
                     throw ModelMemoryDeferred()
                 unloadTranscriptionModelIfLoaded()
                 releaseProjector()
                 if (
                     !canAllocate(
                         LlmMemoryOperation.EMBEDDING,
-                        queryBytes.takeUnless { maintenance },
+                        queryBytes.takeIf { use == EmbeddingUse.Retrieval },
                     )
                 ) {
-                    if (maintenance && chatForeground && loadedModel != null)
+                    if (
+                        use == EmbeddingUse.AutomaticIndexing &&
+                            chatForeground &&
+                            loadedModel != null
+                    )
                         throw ModelMemoryDeferred()
                     unloadModel()
                     if (!hasRequiredWorkReserve()) {
-                        if (maintenance) throw ModelMemoryDeferred()
+                        if (use == EmbeddingUse.AutomaticIndexing) throw ModelMemoryDeferred()
                         throw ModelMemoryUnavailable()
                     }
                 }

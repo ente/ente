@@ -1,3 +1,4 @@
+use std::collections::TryReserveError;
 use std::fs::File;
 use std::io::{BufReader, ErrorKind, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
@@ -5,14 +6,21 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use super::arena::{MAX_KEY_BYTES, validate_key};
+use super::cipher::{Cipher, NONCE_LEN, TAG_LEN};
 use super::crc::{Crc32, crc32};
 use super::kernel::{
     StoredVector, VectorPayload, is_within_quantized_range, splitmix64, validate_dims,
+    validate_dims_up_to,
 };
-use super::{AttrValue, Attribute, StorageKind, VecDbError};
+use super::{AttrValue, Attribute, EncryptionMismatch, StorageKind, VecDbError};
 
 pub(crate) const HEADER_LEN: usize = 32;
 const MAGIC: [u8; 4] = *b"EVDB";
+const SEALED_MAGIC: [u8; 4] = *b"EVDE";
+const HEADER_FIELDS_LEN: usize = 28;
+const HEADER_CRC_LEN: usize = 4;
+pub(crate) const SEALED_HEADER_LEN: usize =
+    HEADER_FIELDS_LEN + NONCE_LEN + TAG_LEN + HEADER_CRC_LEN;
 const FORMAT_VERSION: u16 = 1;
 const STORAGE_TAG_OFFSET: usize = 6;
 const METRIC_TAG_OFFSET: usize = 7;
@@ -21,7 +29,11 @@ const RECORD_TYPE_ADD: u8 = 1;
 const RECORD_TYPE_TOMBSTONE: u8 = 2;
 const RECORD_PREFIX_LEN: usize = 3;
 const RECORD_CRC_LEN: usize = 4;
-const ENCODE_FLUSH_BYTES: usize = 64 * 1024;
+const MIN_RECORD_LEN: usize = RECORD_PREFIX_LEN + 1 + RECORD_CRC_LEN;
+const FRAME_LEN_BYTES: usize = 4;
+const FRAME_PREFIX_LEN: usize = FRAME_LEN_BYTES + NONCE_LEN;
+const FRAME_OVERHEAD: usize = FRAME_PREFIX_LEN + TAG_LEN;
+pub(crate) const ENCODE_FLUSH_BYTES: usize = 64 * 1024;
 const MAX_ATTR_COUNT: usize = 16;
 const MAX_ATTR_NAME_BYTES: usize = 64;
 const MAX_ATTR_STR_BYTES: usize = 1024;
@@ -68,6 +80,7 @@ pub(crate) struct Log {
     end_offset: u64,
     encode_buffer: Vec<u8>,
     rollback_pending: bool,
+    cipher: Option<Cipher>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -116,10 +129,11 @@ impl Log {
         path: &Path,
         dims: usize,
         storage: StorageKind,
+        cipher: Option<&Cipher>,
     ) -> Result<Self, VecDbError> {
-        validate_dims(dims, storage)?;
+        validate_log_dims(dims, storage, cipher)?;
         let file = open_writer_file(path, true)?;
-        Self::initialize(file, path, dims, storage)
+        Self::initialize(file, path, dims, storage, cipher)
     }
 
     pub(crate) fn open(
@@ -127,29 +141,40 @@ impl Log {
         path: &Path,
         expected_dims: usize,
         requested: StorageKind,
+        cipher: Option<&Cipher>,
     ) -> Result<Self, VecDbError> {
         let file_len = file
             .metadata()
             .map_err(|source| VecDbError::io(path, source))?
             .len();
-        if file_len < HEADER_LEN as u64 {
+        if !header_is_complete(&mut file, path, file_len, cipher)? {
             log::warn!(
                 "reinitializing {} whose {file_len}-byte header was never completed",
                 path.display()
             );
-            validate_dims(expected_dims, requested)?;
-            return Self::initialize(file, path, expected_dims, requested);
+            validate_log_dims(expected_dims, requested, cipher)?;
+            return Self::initialize(file, path, expected_dims, requested, cipher);
         }
         file.seek(SeekFrom::Start(0))
-            .map_err(|source| VecDbError::io(path, source))?;
-        let mut header = [0u8; HEADER_LEN];
-        file.read_exact(&mut header)
             .map_err(|source| VecDbError::io(path, source))?;
         let Header {
             generation,
             dims,
             storage,
-        } = decode_header(&header)?;
+        } = match cipher {
+            None => {
+                let mut header = [0u8; HEADER_LEN];
+                file.read_exact(&mut header)
+                    .map_err(|source| VecDbError::io(path, source))?;
+                decode_header(&header)?
+            }
+            Some(cipher) => {
+                let mut header = [0u8; SEALED_HEADER_LEN];
+                file.read_exact(&mut header)
+                    .map_err(|source| VecDbError::io(path, source))?;
+                decode_sealed_header(&header, path, cipher)?
+            }
+        };
         if requested != storage {
             return Err(VecDbError::StorageMismatch {
                 expected: requested,
@@ -162,7 +187,7 @@ impl Log {
                 actual: dims,
             });
         }
-        validate_dims(expected_dims, storage)?;
+        validate_log_dims(expected_dims, storage, cipher)?;
         Ok(Self {
             file,
             path: path.to_path_buf(),
@@ -172,6 +197,7 @@ impl Log {
             end_offset: file_len,
             encode_buffer: Vec::new(),
             rollback_pending: false,
+            cipher: cipher.cloned(),
         })
     }
 
@@ -180,11 +206,26 @@ impl Log {
         path: &Path,
         dims: usize,
         storage: StorageKind,
+        cipher: Option<&Cipher>,
     ) -> Result<Self, VecDbError> {
-        let generation = fresh_generation();
+        let (generation, header) = match cipher {
+            None => {
+                let generation = fresh_generation();
+                (
+                    generation,
+                    encode_header(dims as u32, &generation, storage).to_vec(),
+                )
+            }
+            Some(cipher) => {
+                let generation = random_generation();
+                let header = encode_sealed_header(dims as u32, &generation, storage, cipher)
+                    .map_err(|error| VecDbError::io(path, std::io::Error::other(error)))?;
+                (generation, header.to_vec())
+            }
+        };
         file.seek(SeekFrom::Start(0))
             .map_err(|source| VecDbError::io(path, source))?;
-        file.write_all(&encode_header(dims as u32, &generation, storage))
+        file.write_all(&header)
             .map_err(|source| VecDbError::io(path, source))?;
         file.sync_all()
             .map_err(|source| VecDbError::io(path, source))?;
@@ -195,9 +236,10 @@ impl Log {
             dims,
             storage,
             generation,
-            end_offset: HEADER_LEN as u64,
+            end_offset: header.len() as u64,
             encode_buffer: Vec::new(),
             rollback_pending: false,
+            cipher: cipher.cloned(),
         })
     }
 
@@ -205,24 +247,28 @@ impl Log {
         path: &Path,
         dims: usize,
         storage: StorageKind,
+        cipher: Option<&Cipher>,
     ) -> Result<(Self, PathBuf), VecDbError> {
         remove_stale_temp_sibling(path)?;
         let temp_path = temp_sibling_path(path);
-        let log = Self::create(&temp_path, dims, storage)?;
+        let log = Self::create(&temp_path, dims, storage, cipher)?;
         Ok((log, temp_path))
     }
 
     pub(crate) fn scan(&mut self) -> Result<LogScanner<'_>, VecDbError> {
+        let header_len = self.header_len();
         self.file
-            .seek(SeekFrom::Start(HEADER_LEN as u64))
+            .seek(SeekFrom::Start(header_len))
             .map_err(|source| VecDbError::io(&self.path, source))?;
         Ok(LogScanner {
             reader: BufReader::new(&mut self.file),
             path: &self.path,
             dims: self.dims,
             storage: self.storage,
+            generation: self.generation,
+            cipher: self.cipher.as_ref(),
             log_end: self.end_offset,
-            offset: HEADER_LEN as u64,
+            offset: header_len,
             scratch: Vec::new(),
             done: false,
         })
@@ -275,7 +321,18 @@ impl Log {
         self.encode_buffer.clear();
         let mut written = 0u64;
         for entry in entries {
-            encode_record_into(&mut self.encode_buffer, entry);
+            match &self.cipher {
+                None => encode_record_into(&mut self.encode_buffer, entry),
+                Some(cipher) => {
+                    let frame_offset = self.end_offset + written + self.encode_buffer.len() as u64;
+                    encode_sealed_record_into(
+                        &mut self.encode_buffer,
+                        entry,
+                        cipher,
+                        &frame_additional_data(&self.generation, frame_offset),
+                    )?;
+                }
+            }
             if self.encode_buffer.len() >= ENCODE_FLUSH_BYTES {
                 written += self.drain_encode_buffer()?;
             }
@@ -312,7 +369,7 @@ impl Log {
     }
 
     pub(crate) fn truncate_to(&mut self, offset: u64) -> Result<(), VecDbError> {
-        let target = offset.max(HEADER_LEN as u64);
+        let target = offset.max(self.header_len());
         if target >= self.end_offset {
             return Ok(());
         }
@@ -346,9 +403,14 @@ impl Log {
         }
         let tail_len = self.end_offset - start;
         let step = step_bytes.max(1);
-        let overlap = max_record_len(self.storage, self.dims).saturating_sub(1);
+        let max_frame_len = match self.cipher {
+            None => max_record_len(self.storage, self.dims),
+            Some(_) => max_sealed_frame_len(self.storage, self.dims),
+        };
+        let overlap = max_frame_len.saturating_sub(1);
         let window_len = (step.saturating_add(overlap) as u64).min(tail_len) as usize;
-        let mut window = vec![0u8; window_len];
+        let mut window = zeroed_buffer(window_len).map_err(|_| out_of_memory(&self.path))?;
+        let mut sealed = Vec::new();
         let mut base = 0u64;
         loop {
             let len = (window.len() as u64).min(tail_len - base) as usize;
@@ -360,10 +422,22 @@ impl Log {
                 .map_err(|source| VecDbError::io(&self.path, source))?;
             let reaches_end = base + len as u64 == tail_len;
             let probe_end = if reaches_end { len } else { step.min(len) };
-            if (0..probe_end)
-                .any(|offset| valid_record_at(&window[offset..len], self.storage, self.dims))
-            {
-                return Ok(true);
+            for offset in 0..probe_end {
+                let valid = match &self.cipher {
+                    None => valid_record_at(&window[offset..len], self.storage, self.dims),
+                    Some(cipher) => valid_sealed_frame_at(
+                        &window[offset..len],
+                        &frame_additional_data(&self.generation, start + base + offset as u64),
+                        cipher,
+                        self.storage,
+                        self.dims,
+                        &mut sealed,
+                    )
+                    .map_err(|_| out_of_memory(&self.path))?,
+                };
+                if valid {
+                    return Ok(true);
+                }
             }
             if reaches_end {
                 return Ok(false);
@@ -401,6 +475,21 @@ impl Log {
         self.storage
     }
 
+    pub(crate) fn cipher(&self) -> Option<&Cipher> {
+        self.cipher.as_ref()
+    }
+
+    pub(crate) fn header_len(&self) -> u64 {
+        header_len(self.cipher.as_ref()) as u64
+    }
+
+    pub(crate) fn record_overhead(&self) -> u64 {
+        match self.cipher {
+            None => 0,
+            Some(_) => FRAME_OVERHEAD as u64,
+        }
+    }
+
     pub(crate) fn path(&self) -> &Path {
         &self.path
     }
@@ -415,6 +504,8 @@ pub(crate) struct LogScanner<'a> {
     path: &'a Path,
     dims: usize,
     storage: StorageKind,
+    generation: [u8; 16],
+    cipher: Option<&'a Cipher>,
     log_end: u64,
     offset: u64,
     scratch: Vec<u8>,
@@ -432,48 +523,88 @@ impl LogScanner<'_> {
             self.done = true;
             return Ok(None);
         }
-        if remaining < (RECORD_PREFIX_LEN + RECORD_CRC_LEN) as u64 {
+        let read = match self.cipher {
+            None => self.read_record(remaining)?,
+            Some(cipher) => self.read_sealed_record(start, remaining, cipher)?,
+        };
+        let Some((record, len)) = read else {
             return Ok(self.stop());
+        };
+        self.offset = start + len;
+        Ok(Some((record, start)))
+    }
+
+    fn read_record(&mut self, remaining: u64) -> Result<Option<(LogRecord, u64)>, VecDbError> {
+        if remaining < (RECORD_PREFIX_LEN + RECORD_CRC_LEN) as u64 {
+            return Ok(None);
         }
         let mut prefix = [0u8; RECORD_PREFIX_LEN];
         if !self.fill(&mut prefix)? {
-            return Ok(self.stop());
+            return Ok(None);
         }
         let record_type = prefix[0];
         let key_len = u16::from_le_bytes([prefix[1], prefix[2]]) as usize;
         if key_len == 0 || key_len > MAX_KEY_BYTES {
-            return Ok(self.stop());
+            return Ok(None);
         }
         let fixed_len = match record_type {
             RECORD_TYPE_ADD => key_len + vector_payload_len(self.storage, self.dims) + 1,
             RECORD_TYPE_TOMBSTONE => key_len,
-            _ => return Ok(self.stop()),
+            _ => return Ok(None),
         };
         let body_budget = remaining - (RECORD_PREFIX_LEN + RECORD_CRC_LEN) as u64;
         self.scratch.clear();
         if fixed_len as u64 > body_budget || !self.fill_scratch(fixed_len)? {
-            return Ok(self.stop());
+            return Ok(None);
         }
         if record_type == RECORD_TYPE_ADD && !self.read_attr_bytes(body_budget)? {
-            return Ok(self.stop());
+            return Ok(None);
         }
         let mut crc_bytes = [0u8; RECORD_CRC_LEN];
         if !self.fill(&mut crc_bytes)? {
-            return Ok(self.stop());
+            return Ok(None);
         }
         let mut hasher = Crc32::new();
         hasher.update(&prefix);
         hasher.update(&self.scratch);
         if hasher.finalize() != u32::from_le_bytes(crc_bytes) {
-            return Ok(self.stop());
+            return Ok(None);
         }
-        let Some(record) =
+        let len = (RECORD_PREFIX_LEN + self.scratch.len() + RECORD_CRC_LEN) as u64;
+        Ok(
             decode_body(record_type, key_len, self.storage, self.dims, &self.scratch)
-        else {
-            return Ok(self.stop());
+                .map(|record| (record, len)),
+        )
+    }
+
+    fn read_sealed_record(
+        &mut self,
+        start: u64,
+        remaining: u64,
+        cipher: &Cipher,
+    ) -> Result<Option<(LogRecord, u64)>, VecDbError> {
+        let mut prefix = [0u8; FRAME_PREFIX_LEN];
+        if remaining < FRAME_PREFIX_LEN as u64 || !self.fill(&mut prefix)? {
+            return Ok(None);
+        }
+        let len_bytes = [prefix[0], prefix[1], prefix[2], prefix[3]];
+        let Some(frame_len) = plausible_frame_len(len_bytes, self.storage, self.dims) else {
+            return Ok(None);
         };
-        self.offset = start + (RECORD_PREFIX_LEN + self.scratch.len() + RECORD_CRC_LEN) as u64;
-        Ok(Some((record, start)))
+        if frame_len as u64 > remaining {
+            return Ok(None);
+        }
+        let sealed_len = frame_len - FRAME_PREFIX_LEN;
+        self.scratch.clear();
+        if !self.fill_scratch(sealed_len)? {
+            return Ok(None);
+        }
+        let (record, tag) = self.scratch.split_at_mut(sealed_len - TAG_LEN);
+        let additional_data = frame_additional_data(&self.generation, start);
+        if !cipher.open(record, &additional_data, &prefix[FRAME_LEN_BYTES..], tag) {
+            return Ok(None);
+        }
+        Ok(decode_record(record, self.storage, self.dims).map(|record| (record, frame_len as u64)))
     }
 
     pub(crate) fn recoverable_end(&self) -> u64 {
@@ -553,6 +684,10 @@ impl LogScanner<'_> {
     }
 
     fn fill_scratch(&mut self, len: usize) -> Result<bool, VecDbError> {
+        if self.scratch.try_reserve(len).is_err() {
+            self.done = true;
+            return Err(out_of_memory(self.path));
+        }
         let old_len = self.scratch.len();
         self.scratch.resize(old_len + len, 0);
         match self.reader.read_exact(&mut self.scratch[old_len..]) {
@@ -688,18 +823,91 @@ fn max_record_len(storage: StorageKind, dims: usize) -> usize {
     )
 }
 
+fn max_sealed_frame_len(storage: StorageKind, dims: usize) -> usize {
+    max_record_len(storage, dims).saturating_add(FRAME_OVERHEAD)
+}
+
+fn plausible_frame_len(
+    len_bytes: [u8; FRAME_LEN_BYTES],
+    storage: StorageKind,
+    dims: usize,
+) -> Option<usize> {
+    let sealed_len = usize::try_from(u32::from_le_bytes(len_bytes)).ok()?;
+    let max_sealed_len = max_record_len(storage, dims).saturating_add(TAG_LEN);
+    if !(MIN_RECORD_LEN + TAG_LEN..=max_sealed_len).contains(&sealed_len) {
+        return None;
+    }
+    FRAME_PREFIX_LEN.checked_add(sealed_len)
+}
+
+fn frame_additional_data(generation: &[u8; 16], frame_offset: u64) -> [u8; 24] {
+    let mut additional_data = [0u8; 24];
+    additional_data[..16].copy_from_slice(generation);
+    additional_data[16..].copy_from_slice(&frame_offset.to_le_bytes());
+    additional_data
+}
+
 fn valid_record_at(bytes: &[u8], storage: StorageKind, dims: usize) -> bool {
-    let Some(record_len) = plausible_record_len(bytes, storage, dims) else {
-        return false;
+    plausible_record_len(bytes, storage, dims)
+        .is_some_and(|record_len| record_crc_matches(&bytes[..record_len]))
+}
+
+fn valid_sealed_frame_at(
+    bytes: &[u8],
+    additional_data: &[u8],
+    cipher: &Cipher,
+    storage: StorageKind,
+    dims: usize,
+    scratch: &mut Vec<u8>,
+) -> Result<bool, TryReserveError> {
+    let Some(frame) = bytes
+        .first_chunk::<FRAME_LEN_BYTES>()
+        .and_then(|&len_bytes| plausible_frame_len(len_bytes, storage, dims))
+        .and_then(|frame_len| bytes.get(..frame_len))
+    else {
+        return Ok(false);
     };
-    let crc_start = record_len - RECORD_CRC_LEN;
-    let stored = u32::from_le_bytes([
-        bytes[crc_start],
-        bytes[crc_start + 1],
-        bytes[crc_start + 2],
-        bytes[crc_start + 3],
-    ]);
-    crc32(&bytes[..crc_start]) == stored
+    let sealed = &frame[FRAME_PREFIX_LEN..];
+    scratch.clear();
+    scratch.try_reserve(sealed.len())?;
+    scratch.extend_from_slice(sealed);
+    let (record, tag) = scratch.split_at_mut(sealed.len() - TAG_LEN);
+    Ok(cipher.open(
+        record,
+        additional_data,
+        &frame[FRAME_LEN_BYTES..FRAME_PREFIX_LEN],
+        tag,
+    ))
+}
+
+fn zeroed_buffer(len: usize) -> Result<Vec<u8>, TryReserveError> {
+    let mut buffer = Vec::new();
+    buffer.try_reserve_exact(len)?;
+    buffer.resize(len, 0);
+    Ok(buffer)
+}
+
+fn out_of_memory(path: &Path) -> VecDbError {
+    VecDbError::io(path, std::io::Error::from(ErrorKind::OutOfMemory))
+}
+
+fn record_crc_matches(record: &[u8]) -> bool {
+    let (body, crc) = record.split_at(record.len() - RECORD_CRC_LEN);
+    crc32(body).to_le_bytes() == crc
+}
+
+fn decode_record(bytes: &[u8], storage: StorageKind, dims: usize) -> Option<LogRecord> {
+    if plausible_record_len(bytes, storage, dims)? != bytes.len() || !record_crc_matches(bytes) {
+        return None;
+    }
+    let key_len = u16::from_le_bytes([bytes[1], bytes[2]]) as usize;
+    decode_body(
+        bytes[0],
+        key_len,
+        storage,
+        dims,
+        &bytes[RECORD_PREFIX_LEN..bytes.len() - RECORD_CRC_LEN],
+    )
 }
 
 fn plausible_record_len(bytes: &[u8], storage: StorageKind, dims: usize) -> Option<usize> {
@@ -758,17 +966,143 @@ fn plausible_attrs_len(bytes: &[u8]) -> Option<usize> {
     Some(1 + attr_bytes)
 }
 
-fn encode_header(dims: u32, generation: &[u8; 16], storage: StorageKind) -> [u8; HEADER_LEN] {
-    let mut bytes = [0u8; HEADER_LEN];
-    bytes[0..4].copy_from_slice(&MAGIC);
+pub(crate) fn header_len(cipher: Option<&Cipher>) -> usize {
+    match cipher {
+        None => HEADER_LEN,
+        Some(_) => SEALED_HEADER_LEN,
+    }
+}
+
+pub(crate) fn header_is_complete(
+    file: &mut File,
+    path: &Path,
+    file_len: u64,
+    cipher: Option<&Cipher>,
+) -> Result<bool, VecDbError> {
+    if file_len < MAGIC.len() as u64 {
+        return Ok(false);
+    }
+    let mut magic = [0u8; 4];
+    read_from_start(file, path, &mut magic)?;
+    match (cipher, magic) {
+        (None, MAGIC) => Ok(file_len >= HEADER_LEN as u64),
+        (Some(_), SEALED_MAGIC) if file_len >= SEALED_HEADER_LEN as u64 => Ok(true),
+        (Some(_), SEALED_MAGIC) => Err(VecDbError::Corrupt(format!(
+            "encrypted log header has only {file_len} of {SEALED_HEADER_LEN} bytes"
+        ))),
+        (None, SEALED_MAGIC) => {
+            let prefix = read_header_prefix(file, path, file_len, SEALED_HEADER_LEN)?;
+            let relabeled_plaintext = prefix.len() < SEALED_HEADER_LEN
+                && prefix
+                    .get(..HEADER_LEN)
+                    .is_some_and(|header| header_crc_matches_with_magic(header, MAGIC));
+            if relabeled_plaintext {
+                return Err(bad_magic(magic));
+            }
+            Err(format_mismatch(
+                &prefix,
+                SEALED_HEADER_LEN,
+                path,
+                EncryptionMismatch::MissingKey,
+            ))
+        }
+        (Some(_), MAGIC) => {
+            let prefix = read_header_prefix(file, path, file_len, HEADER_LEN)?;
+            Err(format_mismatch(
+                &prefix,
+                HEADER_LEN,
+                path,
+                EncryptionMismatch::UnexpectedKey,
+            ))
+        }
+        _ if file_len >= HEADER_LEN as u64 => Err(bad_magic(magic)),
+        _ => Ok(false),
+    }
+}
+
+fn read_from_start(file: &mut File, path: &Path, buffer: &mut [u8]) -> Result<(), VecDbError> {
+    file.seek(SeekFrom::Start(0))
+        .and_then(|_| file.read_exact(buffer))
+        .map_err(|source| VecDbError::io(path, source))
+}
+
+fn read_header_prefix(
+    file: &mut File,
+    path: &Path,
+    file_len: u64,
+    header_len: usize,
+) -> Result<Vec<u8>, VecDbError> {
+    let mut prefix = vec![0u8; file_len.min(header_len as u64) as usize];
+    read_from_start(file, path, &mut prefix)?;
+    Ok(prefix)
+}
+
+fn header_crc_matches_with_magic(header: &[u8], magic: [u8; 4]) -> bool {
+    let (covered, crc) = header.split_at(header.len() - HEADER_CRC_LEN);
+    let mut hasher = Crc32::new();
+    hasher.update(&magic);
+    hasher.update(&covered[magic.len()..]);
+    hasher.finalize().to_le_bytes() == crc
+}
+
+fn bad_magic(magic: [u8; 4]) -> VecDbError {
+    VecDbError::Corrupt(format!("bad log magic {magic:02x?}"))
+}
+
+fn format_mismatch(
+    prefix: &[u8],
+    header_len: usize,
+    path: &Path,
+    mismatch: EncryptionMismatch,
+) -> VecDbError {
+    match prefix.get(..header_len).map(verify_header_crc) {
+        Some(Err(corrupt)) => corrupt,
+        _ => VecDbError::encryption_mismatch(path, mismatch),
+    }
+}
+
+fn encode_header_fields(
+    magic: [u8; 4],
+    dims: u32,
+    generation: &[u8; 16],
+    storage: StorageKind,
+) -> [u8; HEADER_FIELDS_LEN] {
+    let mut bytes = [0u8; HEADER_FIELDS_LEN];
+    bytes[0..4].copy_from_slice(&magic);
     bytes[4..6].copy_from_slice(&FORMAT_VERSION.to_le_bytes());
     bytes[STORAGE_TAG_OFFSET] = storage.header_tag();
     bytes[METRIC_TAG_OFFSET] = COSINE_METRIC_TAG;
     bytes[8..12].copy_from_slice(&dims.to_le_bytes());
     bytes[12..28].copy_from_slice(generation);
-    let crc = crc32(&bytes[0..28]);
-    bytes[28..32].copy_from_slice(&crc.to_le_bytes());
     bytes
+}
+
+fn encode_header(dims: u32, generation: &[u8; 16], storage: StorageKind) -> [u8; HEADER_LEN] {
+    let mut bytes = [0u8; HEADER_LEN];
+    bytes[..HEADER_FIELDS_LEN]
+        .copy_from_slice(&encode_header_fields(MAGIC, dims, generation, storage));
+    let crc = crc32(&bytes[..HEADER_FIELDS_LEN]);
+    bytes[HEADER_FIELDS_LEN..].copy_from_slice(&crc.to_le_bytes());
+    bytes
+}
+
+fn encode_sealed_header(
+    dims: u32,
+    generation: &[u8; 16],
+    storage: StorageKind,
+    cipher: &Cipher,
+) -> ente_core::crypto::Result<[u8; SEALED_HEADER_LEN]> {
+    let fields = encode_header_fields(SEALED_MAGIC, dims, generation, storage);
+    let (nonce, tag) = cipher.seal(&mut [], &fields)?;
+    let mut bytes = [0u8; SEALED_HEADER_LEN];
+    let tag_start = HEADER_FIELDS_LEN + NONCE_LEN;
+    let crc_start = tag_start + TAG_LEN;
+    bytes[..HEADER_FIELDS_LEN].copy_from_slice(&fields);
+    bytes[HEADER_FIELDS_LEN..tag_start].copy_from_slice(nonce.as_bytes());
+    bytes[tag_start..crc_start].copy_from_slice(&tag);
+    let crc = crc32(&bytes[..crc_start]);
+    bytes[crc_start..].copy_from_slice(&crc.to_le_bytes());
+    Ok(bytes)
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -779,19 +1113,74 @@ struct Header {
 }
 
 fn decode_header(bytes: &[u8; HEADER_LEN]) -> Result<Header, VecDbError> {
-    if bytes[0..4] != MAGIC {
+    verify_header_integrity(bytes, MAGIC)?;
+    decode_header_fields(bytes)
+}
+
+fn decode_sealed_header(
+    bytes: &[u8; SEALED_HEADER_LEN],
+    path: &Path,
+    cipher: &Cipher,
+) -> Result<Header, VecDbError> {
+    verify_header_integrity(bytes, SEALED_MAGIC)?;
+    let header = decode_header_fields(bytes)?;
+    let tag_start = HEADER_FIELDS_LEN + NONCE_LEN;
+    let authentic = cipher.open(
+        &mut [],
+        &bytes[..HEADER_FIELDS_LEN],
+        &bytes[HEADER_FIELDS_LEN..tag_start],
+        &bytes[tag_start..tag_start + TAG_LEN],
+    );
+    if !authentic {
+        return Err(VecDbError::encryption_mismatch(
+            path,
+            EncryptionMismatch::WrongKey,
+        ));
+    }
+    Ok(header)
+}
+
+fn verify_header_integrity(bytes: &[u8], magic: [u8; 4]) -> Result<(), VecDbError> {
+    if bytes[0..4] != magic {
         return Err(VecDbError::Corrupt(format!(
             "bad log magic {:02x?}",
             &bytes[0..4]
         )));
     }
-    let stored_crc = u32::from_le_bytes([bytes[28], bytes[29], bytes[30], bytes[31]]);
-    let computed_crc = crc32(&bytes[0..28]);
+    verify_header_crc(bytes)
+}
+
+pub(crate) fn validate_log_dims(
+    dims: usize,
+    storage: StorageKind,
+    cipher: Option<&Cipher>,
+) -> Result<(), VecDbError> {
+    match cipher {
+        None => validate_dims(dims, storage),
+        Some(_) => validate_dims_up_to(dims, storage, max_sealed_dims(storage)),
+    }
+}
+
+fn max_sealed_dims(storage: StorageKind) -> usize {
+    let record_budget = u32::MAX as usize - TAG_LEN - max_record_len(storage, 0);
+    let bytes_per_dim = vector_payload_len(storage, 1) - vector_payload_len(storage, 0);
+    let lane_width = storage.lane_width();
+    (record_budget / bytes_per_dim / lane_width * lane_width).min(storage.max_dims())
+}
+
+fn verify_header_crc(bytes: &[u8]) -> Result<(), VecDbError> {
+    let (covered, crc) = bytes.split_at(bytes.len() - HEADER_CRC_LEN);
+    let stored_crc = u32::from_le_bytes([crc[0], crc[1], crc[2], crc[3]]);
+    let computed_crc = crc32(covered);
     if stored_crc != computed_crc {
         return Err(VecDbError::Corrupt(format!(
             "log header crc mismatch: stored {stored_crc:08x}, computed {computed_crc:08x}"
         )));
     }
+    Ok(())
+}
+
+fn decode_header_fields(bytes: &[u8]) -> Result<Header, VecDbError> {
     let version = u16::from_le_bytes([bytes[4], bytes[5]]);
     if version != FORMAT_VERSION {
         return Err(VecDbError::Corrupt(format!(
@@ -945,6 +1334,28 @@ fn encode_record_into(buffer: &mut Vec<u8>, entry: &LogEntry<'_>) {
     buffer.extend_from_slice(&crc.to_le_bytes());
 }
 
+fn encode_sealed_record_into(
+    buffer: &mut Vec<u8>,
+    entry: &LogEntry<'_>,
+    cipher: &Cipher,
+    additional_data: &[u8],
+) -> Result<(), VecDbError> {
+    let frame_start = buffer.len();
+    let record_start = frame_start + FRAME_PREFIX_LEN;
+    buffer.resize(record_start, 0);
+    encode_record_into(buffer, entry);
+    let too_large = || VecDbError::InvalidVector("the record is too large to encrypt".to_string());
+    let sealed_len =
+        u32::try_from(buffer.len() - record_start + TAG_LEN).map_err(|_| too_large())?;
+    let (nonce, tag) = cipher
+        .seal(&mut buffer[record_start..], additional_data)
+        .map_err(|_| too_large())?;
+    buffer.extend_from_slice(&tag);
+    buffer[frame_start..frame_start + FRAME_LEN_BYTES].copy_from_slice(&sealed_len.to_le_bytes());
+    buffer[frame_start + FRAME_LEN_BYTES..record_start].copy_from_slice(nonce.as_bytes());
+    Ok(())
+}
+
 fn encode_attr_into(buffer: &mut Vec<u8>, attr: &Attribute) {
     buffer.push(attr.name.len() as u8);
     buffer.extend_from_slice(attr.name.as_bytes());
@@ -979,6 +1390,12 @@ fn fresh_generation() -> [u8; 16] {
     let mut generation = [0u8; 16];
     generation[0..8].copy_from_slice(&splitmix64(&mut state).to_le_bytes());
     generation[8..16].copy_from_slice(&splitmix64(&mut state).to_le_bytes());
+    generation
+}
+
+fn random_generation() -> [u8; 16] {
+    let mut generation = [0u8; 16];
+    generation.copy_from_slice(&ente_core::crypto::random_bytes(16));
     generation
 }
 
@@ -1088,7 +1505,7 @@ mod tests {
 
     fn reopen(path: &Path, dims: usize, storage: StorageKind) -> Log {
         let file = open_writer_file(path, false).unwrap();
-        Log::open(file, path, dims, storage).unwrap()
+        Log::open(file, path, dims, storage, None).unwrap()
     }
 
     fn append_bounds(log: &mut Log, entries: &[LogEntry<'_>]) -> (u64, u64) {
@@ -1179,14 +1596,14 @@ mod tests {
         mutate(&mut bytes);
         std::fs::write(&path, bytes).unwrap();
         let file = File::options().read(true).write(true).open(&path).unwrap();
-        Log::open(file, &path, expected_dims, StorageKind::F32)
+        Log::open(file, &path, expected_dims, StorageKind::F32, None)
     }
 
     #[test]
     fn header_round_trips_through_create_and_reopen() {
         let dir = TempDir::new().unwrap();
         let path = dir.path().join("log");
-        let created = Log::create(&path, 512, StorageKind::F32).unwrap();
+        let created = Log::create(&path, 512, StorageKind::F32, None).unwrap();
         let generation = created.generation();
         assert_eq!(created.current_end_offset(), HEADER_LEN as u64);
         assert_eq!(created.path(), path.as_path());
@@ -1202,7 +1619,7 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let path = dir.path().join("log");
         let alias = dir.path().join("alias");
-        let created = Log::create(&path, 8, StorageKind::F32).unwrap();
+        let created = Log::create(&path, 8, StorageKind::F32, None).unwrap();
         std::fs::hard_link(&path, &alias).unwrap();
         let reader = File::open(&alias).unwrap();
         assert_eq!(reader.metadata().unwrap().len(), HEADER_LEN as u64);
@@ -1319,7 +1736,7 @@ mod tests {
             let path = dir.path().join("log");
             std::fs::write(&path, vec![1u8; junk_len]).unwrap();
             let file = File::options().read(true).write(true).open(&path).unwrap();
-            let mut log = Log::open(file, &path, 8, StorageKind::F32).unwrap();
+            let mut log = Log::open(file, &path, 8, StorageKind::F32, None).unwrap();
             assert_eq!(log.current_end_offset(), HEADER_LEN as u64);
             assert_eq!(std::fs::metadata(&path).unwrap().len(), HEADER_LEN as u64);
             let (records, _) = scan_all(&mut log);
@@ -1346,11 +1763,11 @@ mod tests {
     fn create_rejects_invalid_dimensions() {
         let dir = TempDir::new().unwrap();
         assert!(matches!(
-            Log::create(&dir.path().join("a"), 0, StorageKind::F32),
+            Log::create(&dir.path().join("a"), 0, StorageKind::F32, None),
             Err(VecDbError::InvalidDimensions { dims: 0, .. })
         ));
         assert!(matches!(
-            Log::create(&dir.path().join("b"), 12, StorageKind::F32),
+            Log::create(&dir.path().join("b"), 12, StorageKind::F32, None),
             Err(VecDbError::InvalidDimensions { dims: 12, .. })
         ));
     }
@@ -1359,10 +1776,14 @@ mod tests {
     fn open_rejects_invalid_dimensions() {
         let dir = TempDir::new().unwrap();
         let path = dir.path().join("log");
-        drop(Log::create(&path, 8, StorageKind::F32).unwrap().into_file());
+        drop(
+            Log::create(&path, 8, StorageKind::F32, None)
+                .unwrap()
+                .into_file(),
+        );
         let file = File::options().read(true).write(true).open(&path).unwrap();
         assert!(matches!(
-            Log::open(file, &path, 12, StorageKind::F32),
+            Log::open(file, &path, 12, StorageKind::F32, None),
             Err(VecDbError::DimensionMismatch {
                 expected: 12,
                 actual: 8
@@ -1483,7 +1904,7 @@ mod tests {
         for dims in [8usize, 512] {
             let dir = TempDir::new().unwrap();
             let path = dir.path().join("log");
-            let mut log = Log::create(&path, dims, StorageKind::F32).unwrap();
+            let mut log = Log::create(&path, dims, StorageKind::F32, None).unwrap();
             let vector = seeded_vector(1, dims);
             let entries = [
                 LogEntry::Add {
@@ -1523,7 +1944,7 @@ mod tests {
         ];
         let dir = TempDir::new().unwrap();
         let path = dir.path().join("log");
-        let mut log = Log::create(&path, 8, StorageKind::F32).unwrap();
+        let mut log = Log::create(&path, 8, StorageKind::F32, None).unwrap();
         let vector = seeded_vector(5, 8);
         for key in keys {
             log.append(&[LogEntry::Add {
@@ -1558,7 +1979,7 @@ mod tests {
     fn decodes_non_finite_components_without_panicking() {
         let dir = TempDir::new().unwrap();
         let path = dir.path().join("log");
-        let mut log = Log::create(&path, 8, StorageKind::F32).unwrap();
+        let mut log = Log::create(&path, 8, StorageKind::F32, None).unwrap();
         let vector = [
             f32::NAN,
             f32::INFINITY,
@@ -1594,7 +2015,7 @@ mod tests {
     fn scanner_stops_at_last_complete_record_for_every_torn_length() {
         let dir = TempDir::new().unwrap();
         let build_path = dir.path().join("log");
-        let mut log = Log::create(&build_path, 8, StorageKind::F32).unwrap();
+        let mut log = Log::create(&build_path, 8, StorageKind::F32, None).unwrap();
         let vectors: Vec<Vec<f32>> = (0..3).map(|seed| seeded_vector(seed, 8)).collect();
         let mut boundaries = Vec::new();
         for (index, vector) in vectors.iter().enumerate() {
@@ -1627,7 +2048,7 @@ mod tests {
     fn truncate_to_repairs_torn_tail_for_clean_appends() {
         let dir = TempDir::new().unwrap();
         let path = dir.path().join("log");
-        let mut log = Log::create(&path, 8, StorageKind::F32).unwrap();
+        let mut log = Log::create(&path, 8, StorageKind::F32, None).unwrap();
         let vector = seeded_vector(1, 8);
         let (_, first_end) = append_bounds(
             &mut log,
@@ -1678,7 +2099,7 @@ mod tests {
     fn extend_end_offset_grows_to_target_clamps_to_file_and_never_shrinks() {
         let dir = TempDir::new().unwrap();
         let path = dir.path().join("log");
-        let mut log = Log::create(&path, 8, StorageKind::F32).unwrap();
+        let mut log = Log::create(&path, 8, StorageKind::F32, None).unwrap();
         let vector = seeded_vector(1, 8);
         let (_, captured_end) = append_bounds(
             &mut log,
@@ -1718,7 +2139,7 @@ mod tests {
     fn discard_unacked_tail_drops_phantom_frames_before_reopen() {
         let dir = TempDir::new().unwrap();
         let path = dir.path().join("log");
-        let mut log = Log::create(&path, 8, StorageKind::F32).unwrap();
+        let mut log = Log::create(&path, 8, StorageKind::F32, None).unwrap();
         let vector = seeded_vector(1, 8);
         let (_, acked_end) = append_bounds(
             &mut log,
@@ -1748,7 +2169,7 @@ mod tests {
     fn pending_rollback_truncates_stale_records_before_the_next_append() {
         let dir = TempDir::new().unwrap();
         let path = dir.path().join("log");
-        let mut log = Log::create(&path, 8, StorageKind::F32).unwrap();
+        let mut log = Log::create(&path, 8, StorageKind::F32, None).unwrap();
         let vector = seeded_vector(6, 8);
         let (_, acked_end) = append_bounds(
             &mut log,
@@ -1794,8 +2215,8 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let synced_path = dir.path().join("synced");
         let staged_path = dir.path().join("staged");
-        let mut synced = Log::create(&synced_path, 8, StorageKind::F32).unwrap();
-        let mut staged = Log::create(&staged_path, 8, StorageKind::F32).unwrap();
+        let mut synced = Log::create(&synced_path, 8, StorageKind::F32, None).unwrap();
+        let mut staged = Log::create(&staged_path, 8, StorageKind::F32, None).unwrap();
         let vectors: Vec<Vec<f32>> = (0..3).map(|seed| seeded_vector(seed, 8)).collect();
         let attrs = [Attribute {
             name: "model".to_string(),
@@ -1845,7 +2266,7 @@ mod tests {
     fn append_failure_rolls_back_without_disturbing_acked_records() {
         let dir = TempDir::new().unwrap();
         let path = dir.path().join("log");
-        let mut log = Log::create(&path, 8, StorageKind::F32).unwrap();
+        let mut log = Log::create(&path, 8, StorageKind::F32, None).unwrap();
         let vector = seeded_vector(2, 8);
         let (_, acked_end) = append_bounds(
             &mut log,
@@ -1857,7 +2278,7 @@ mod tests {
         );
         drop(log);
         let unwritable = File::open(&path).unwrap();
-        let mut log = Log::open(unwritable, &path, 8, StorageKind::F32).unwrap();
+        let mut log = Log::open(unwritable, &path, 8, StorageKind::F32, None).unwrap();
         assert!(matches!(
             log.append(&[LogEntry::Add {
                 key: "lost",
@@ -1879,7 +2300,7 @@ mod tests {
     fn append_after_phantom_frames_overwrites_at_the_acked_offset() {
         let dir = TempDir::new().unwrap();
         let path = dir.path().join("log");
-        let mut log = Log::create(&path, 8, StorageKind::F32).unwrap();
+        let mut log = Log::create(&path, 8, StorageKind::F32, None).unwrap();
         let vector = seeded_vector(3, 8);
         let (_, acked_end) = append_bounds(
             &mut log,
@@ -1920,7 +2341,7 @@ mod tests {
     fn scanner_stops_at_corrupted_middle_record() {
         let dir = TempDir::new().unwrap();
         let build_path = dir.path().join("log");
-        let mut log = Log::create(&build_path, 8, StorageKind::F32).unwrap();
+        let mut log = Log::create(&build_path, 8, StorageKind::F32, None).unwrap();
         let vectors: Vec<Vec<f32>> = (0..3).map(|seed| seeded_vector(seed, 8)).collect();
         let mut boundaries = Vec::new();
         for (index, vector) in vectors.iter().enumerate() {
@@ -1999,7 +2420,7 @@ mod tests {
     fn append_offsets_match_scanner_offsets() {
         let dir = TempDir::new().unwrap();
         let path = dir.path().join("log");
-        let mut log = Log::create(&path, 8, StorageKind::F32).unwrap();
+        let mut log = Log::create(&path, 8, StorageKind::F32, None).unwrap();
         log.append(&[]).unwrap();
         assert_eq!(log.current_end_offset(), HEADER_LEN as u64);
         let vector = seeded_vector(7, 8);
@@ -2034,7 +2455,7 @@ mod tests {
     fn append_validates_keys_and_vector_dims() {
         let dir = TempDir::new().unwrap();
         let path = dir.path().join("log");
-        let mut log = Log::create(&path, 8, StorageKind::F32).unwrap();
+        let mut log = Log::create(&path, 8, StorageKind::F32, None).unwrap();
         let vector = seeded_vector(1, 8);
         let wrong_dims = seeded_vector(1, 16);
         assert!(matches!(
@@ -2076,8 +2497,8 @@ mod tests {
     #[test]
     fn generation_is_distinct_across_creates() {
         let dir = TempDir::new().unwrap();
-        let first = Log::create(&dir.path().join("first"), 8, StorageKind::F32).unwrap();
-        let second = Log::create(&dir.path().join("second"), 8, StorageKind::F32).unwrap();
+        let first = Log::create(&dir.path().join("first"), 8, StorageKind::F32, None).unwrap();
+        let second = Log::create(&dir.path().join("second"), 8, StorageKind::F32, None).unwrap();
         assert_ne!(first.generation(), second.generation());
     }
 
@@ -2085,10 +2506,11 @@ mod tests {
     fn temp_sibling_gets_fresh_generation_and_replaces_stale_tmp() {
         let dir = TempDir::new().unwrap();
         let path = dir.path().join("log");
-        let log = Log::create(&path, 8, StorageKind::F32).unwrap();
+        let log = Log::create(&path, 8, StorageKind::F32, None).unwrap();
         let stale_path = dir.path().join("log.tmp");
         std::fs::write(&stale_path, b"stale leftover").unwrap();
-        let (temp_log, temp_path) = Log::create_temp_sibling(&path, 8, StorageKind::F32).unwrap();
+        let (temp_log, temp_path) =
+            Log::create_temp_sibling(&path, 8, StorageKind::F32, None).unwrap();
         assert_eq!(temp_path, stale_path);
         assert_ne!(temp_log.generation(), log.generation());
         assert_eq!(temp_log.current_end_offset(), HEADER_LEN as u64);
@@ -2121,8 +2543,9 @@ mod tests {
                 attrs: &[],
             })
             .collect();
-        let mut bulk_log = Log::create(&bulk_path, dims, StorageKind::F32).unwrap();
-        let mut sequential_log = Log::create(&sequential_path, dims, StorageKind::F32).unwrap();
+        let mut bulk_log = Log::create(&bulk_path, dims, StorageKind::F32, None).unwrap();
+        let mut sequential_log =
+            Log::create(&sequential_path, dims, StorageKind::F32, None).unwrap();
         let (_, bulk_end) = append_bounds(&mut bulk_log, &entries);
         let mut sequential_end = 0;
         for entry in &entries {
@@ -2162,8 +2585,8 @@ mod tests {
                 attrs: &[],
             },
         ];
-        let mut bulk_log = Log::create(&bulk_path, 8, StorageKind::F32).unwrap();
-        let mut sequential_log = Log::create(&sequential_path, 8, StorageKind::F32).unwrap();
+        let mut bulk_log = Log::create(&bulk_path, 8, StorageKind::F32, None).unwrap();
+        let mut sequential_log = Log::create(&sequential_path, 8, StorageKind::F32, None).unwrap();
         let (bulk_start, bulk_end) = append_bounds(&mut bulk_log, &entries);
         let mut sequential_end = 0;
         for entry in &entries {
@@ -2212,7 +2635,7 @@ mod tests {
         let vector = seeded_vector(8, 8);
         for (index, attrs) in singles.iter().chain([&full_set]).enumerate() {
             let path = dir.path().join(format!("log-{index}"));
-            let mut log = Log::create(&path, 8, StorageKind::F32).unwrap();
+            let mut log = Log::create(&path, 8, StorageKind::F32, None).unwrap();
             log.append(&[LogEntry::Add {
                 key: "k",
                 vector: VectorPayload::F32(&vector),
@@ -2247,7 +2670,7 @@ mod tests {
         let vector = seeded_vector(9, 8);
         for (index, attrs) in cases.iter().enumerate() {
             let path = dir.path().join(format!("log-{index}"));
-            let mut log = Log::create(&path, 8, StorageKind::F32).unwrap();
+            let mut log = Log::create(&path, 8, StorageKind::F32, None).unwrap();
             log.append(&[LogEntry::Add {
                 key: "k",
                 vector: VectorPayload::F32(&vector),
@@ -2285,7 +2708,7 @@ mod tests {
         ];
         let dir = TempDir::new().unwrap();
         let path = dir.path().join("log");
-        let mut log = Log::create(&path, 8, StorageKind::F32).unwrap();
+        let mut log = Log::create(&path, 8, StorageKind::F32, None).unwrap();
         let vector = seeded_vector(10, 8);
         for attrs in &invalid {
             assert!(matches!(
@@ -2325,7 +2748,7 @@ mod tests {
             .map(|(index, value)| attr(&format!("f{index}"), AttrValue::F64(*value)))
             .collect();
         let dir = TempDir::new().unwrap();
-        let mut log = Log::create(&dir.path().join("log"), 8, StorageKind::F32).unwrap();
+        let mut log = Log::create(&dir.path().join("log"), 8, StorageKind::F32, None).unwrap();
         let vector = seeded_vector(11, 8);
         log.append(&[LogEntry::Add {
             key: "k",
@@ -2867,18 +3290,18 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let i8_path = dir.path().join("i8");
         let f32_path = dir.path().join("f32");
-        let created = Log::create(&i8_path, 32, StorageKind::I8).unwrap();
+        let created = Log::create(&i8_path, 32, StorageKind::I8, None).unwrap();
         assert_eq!(created.storage(), StorageKind::I8);
         let generation = created.generation();
         drop(created.into_file());
         drop(
-            Log::create(&f32_path, 32, StorageKind::F32)
+            Log::create(&f32_path, 32, StorageKind::F32, None)
                 .unwrap()
                 .into_file(),
         );
         let open = |path: &Path, requested: StorageKind| {
             let file = File::options().read(true).write(true).open(path).unwrap();
-            Log::open(file, path, 32, requested)
+            Log::open(file, path, 32, requested, None)
         };
         let detected = open(&i8_path, StorageKind::I8).unwrap();
         assert_eq!(detected.storage(), StorageKind::I8);
@@ -2915,7 +3338,7 @@ mod tests {
         let path = dir.path().join("log");
         std::fs::write(&path, [1u8; 5]).unwrap();
         let file = File::options().read(true).write(true).open(&path).unwrap();
-        let log = Log::open(file, &path, 64, StorageKind::I8).unwrap();
+        let log = Log::open(file, &path, 64, StorageKind::I8, None).unwrap();
         assert_eq!(log.storage(), StorageKind::I8);
         drop(log);
         assert_eq!(
@@ -2926,7 +3349,7 @@ mod tests {
         std::fs::write(&other, [1u8; 5]).unwrap();
         let file = File::options().read(true).write(true).open(&other).unwrap();
         assert_eq!(
-            Log::open(file, &other, 64, StorageKind::I8)
+            Log::open(file, &other, 64, StorageKind::I8, None)
                 .unwrap()
                 .storage(),
             StorageKind::I8
@@ -2938,21 +3361,27 @@ mod tests {
         let dir = TempDir::new().unwrap();
         for dims in [8usize, 16, 24, 40] {
             assert!(matches!(
-                Log::create(&dir.path().join(format!("a{dims}")), dims, StorageKind::I8),
+                Log::create(&dir.path().join(format!("a{dims}")), dims, StorageKind::I8, None),
                 Err(VecDbError::InvalidDimensions {
                     dims: rejected,
-                    storage: StorageKind::I8
+                    storage: StorageKind::I8, ..
                 }) if rejected == dims
             ));
             assert!(
-                Log::create(&dir.path().join(format!("b{dims}")), dims, StorageKind::F32).is_ok()
+                Log::create(
+                    &dir.path().join(format!("b{dims}")),
+                    dims,
+                    StorageKind::F32,
+                    None
+                )
+                .is_ok()
             );
         }
-        assert!(Log::create(&dir.path().join("c"), 32, StorageKind::I8).is_ok());
+        assert!(Log::create(&dir.path().join("c"), 32, StorageKind::I8, None).is_ok());
         let path = dir.path().join("c");
         let file = File::options().read(true).write(true).open(&path).unwrap();
         assert!(matches!(
-            Log::open(file, &path, 8, StorageKind::I8),
+            Log::open(file, &path, 8, StorageKind::I8, None),
             Err(VecDbError::DimensionMismatch {
                 expected: 8,
                 actual: 32
@@ -2968,10 +3397,11 @@ mod tests {
             .open(&forged_path)
             .unwrap();
         assert!(matches!(
-            Log::open(file, &forged_path, 8, StorageKind::I8),
+            Log::open(file, &forged_path, 8, StorageKind::I8, None),
             Err(VecDbError::InvalidDimensions {
                 dims: 8,
-                storage: StorageKind::I8
+                storage: StorageKind::I8,
+                ..
             })
         ));
     }
@@ -2981,7 +3411,7 @@ mod tests {
         for dims in [32usize, 512] {
             let dir = TempDir::new().unwrap();
             let path = dir.path().join("log");
-            let mut log = Log::create(&path, dims, StorageKind::I8).unwrap();
+            let mut log = Log::create(&path, dims, StorageKind::I8, None).unwrap();
             let scales = [
                 f32::from_bits(0x3a1f_8f3c),
                 0.0,
@@ -3043,8 +3473,8 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let i8_path = dir.path().join("i8");
         let f32_path = dir.path().join("f32");
-        let mut i8_log = Log::create(&i8_path, 32, StorageKind::I8).unwrap();
-        let mut f32_log = Log::create(&f32_path, 32, StorageKind::F32).unwrap();
+        let mut i8_log = Log::create(&i8_path, 32, StorageKind::I8, None).unwrap();
+        let mut f32_log = Log::create(&f32_path, 32, StorageKind::F32, None).unwrap();
         let values = seeded_vector(4, 32);
         let quantized = StoredVector::quantize(&values);
         assert!(matches!(
@@ -3111,7 +3541,7 @@ mod tests {
         let dims = 32usize;
         let dir = TempDir::new().unwrap();
         let build_path = dir.path().join("log");
-        let mut log = Log::create(&build_path, dims, StorageKind::I8).unwrap();
+        let mut log = Log::create(&build_path, dims, StorageKind::I8, None).unwrap();
         let mut boundaries = Vec::new();
         for index in 0..3u64 {
             let key = format!("key-{index}");
@@ -3273,5 +3703,385 @@ mod tests {
             !log.tail_contains_valid_record_windowed(recoverable_end - 1 + tail_len, step)
                 .unwrap()
         );
+    }
+
+    fn test_cipher(seed: u8) -> Cipher {
+        Cipher::new(&ente_core::crypto::Key::from_bytes([seed; 32]))
+    }
+
+    fn reopen_sealed(path: &Path, dims: usize, cipher: Option<&Cipher>) -> Result<Log, VecDbError> {
+        let file = open_writer_file(path, false).unwrap();
+        Log::open(file, path, dims, StorageKind::F32, cipher)
+    }
+
+    fn contains_bytes(haystack: &[u8], needle: &[u8]) -> bool {
+        haystack
+            .windows(needle.len())
+            .any(|window| window == needle)
+    }
+
+    fn assert_mismatch(opened: Result<Log, VecDbError>, expected: EncryptionMismatch) {
+        assert!(
+            matches!(opened, Err(VecDbError::Encryption { mismatch, .. }) if mismatch == expected)
+        );
+    }
+
+    fn sealed_log_with_adds(path: &Path, cipher: &Cipher, count: usize) -> Vec<(u64, u64)> {
+        let mut log = Log::create(path, 8, StorageKind::F32, Some(cipher)).unwrap();
+        (0..count)
+            .map(|index| {
+                let key = format!("key-{index}");
+                let vector = seeded_vector(index as u64, 8);
+                append_bounds(
+                    &mut log,
+                    &[LogEntry::Add {
+                        key: &key,
+                        vector: VectorPayload::F32(&vector),
+                        attrs: &[],
+                    }],
+                )
+            })
+            .collect()
+    }
+
+    #[test]
+    fn sealed_records_round_trip_without_plaintext_on_disk() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("log");
+        let cipher = test_cipher(1);
+        let mut log = Log::create(&path, 8, StorageKind::F32, Some(&cipher)).unwrap();
+        assert_eq!(log.current_end_offset(), SEALED_HEADER_LEN as u64);
+        let vector = seeded_vector(3, 8);
+        let attrs = vec![Attribute {
+            name: "label".into(),
+            value: AttrValue::Str("needle".into()),
+        }];
+        let entries = [
+            LogEntry::Add {
+                key: "alpha",
+                vector: VectorPayload::F32(&vector),
+                attrs: &attrs,
+            },
+            LogEntry::Tombstone { key: "beta" },
+            LogEntry::Add {
+                key: "gamma",
+                vector: VectorPayload::F32(&vector),
+                attrs: &[],
+            },
+        ];
+        let (first, _) = append_bounds(&mut log, &entries[..1]);
+        let (second, end) = append_bounds(&mut log, &entries[1..]);
+        assert_eq!(first, SEALED_HEADER_LEN as u64);
+        assert_eq!(
+            second - first,
+            add_record_len("alpha", 8, StorageKind::F32, &attrs) + log.record_overhead()
+        );
+        drop(log);
+        let mut reopened = reopen_sealed(&path, 8, Some(&cipher)).unwrap();
+        let (records, recoverable_end) = scan_all(&mut reopened);
+        assert_eq!(
+            records
+                .iter()
+                .map(|(record, _)| record.clone())
+                .collect::<Vec<_>>(),
+            entries.iter().map(expected_record).collect::<Vec<_>>()
+        );
+        assert_eq!(records[0].1, first);
+        assert_eq!(records[1].1, second);
+        assert_eq!(recoverable_end, end);
+        let bytes = std::fs::read(&path).unwrap();
+        assert_eq!(bytes[..4], SEALED_MAGIC);
+        let vector_bytes: Vec<u8> = vector[..2]
+            .iter()
+            .flat_map(|value| value.to_le_bytes())
+            .collect();
+        for needle in [
+            &b"alpha"[..],
+            b"beta",
+            b"gamma",
+            b"label",
+            b"needle",
+            &vector_bytes,
+        ] {
+            assert!(!contains_bytes(&bytes, needle));
+        }
+    }
+
+    #[test]
+    fn sealed_header_reports_wrong_keys_and_corruption_separately() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("log");
+        let cipher = test_cipher(2);
+        sealed_log_with_adds(&path, &cipher, 1);
+        let clean = std::fs::read(&path).unwrap();
+        assert_mismatch(
+            reopen_sealed(&path, 8, Some(&test_cipher(3))),
+            EncryptionMismatch::WrongKey,
+        );
+        assert_mismatch(
+            reopen_sealed(&path, 8, None),
+            EncryptionMismatch::MissingKey,
+        );
+        assert_eq!(std::fs::read(&path).unwrap(), clean);
+
+        let mut corrupted = clean.clone();
+        corrupted[8] ^= 0x01;
+        std::fs::write(&path, &corrupted).unwrap();
+        assert!(matches!(
+            reopen_sealed(&path, 8, Some(&cipher)),
+            Err(VecDbError::Corrupt(_))
+        ));
+
+        let mut retagged = clean;
+        retagged[HEADER_FIELDS_LEN + NONCE_LEN] ^= 0x01;
+        let crc_start = SEALED_HEADER_LEN - HEADER_CRC_LEN;
+        let crc = crc32(&retagged[..crc_start]);
+        retagged[crc_start..SEALED_HEADER_LEN].copy_from_slice(&crc.to_le_bytes());
+        std::fs::write(&path, &retagged).unwrap();
+        assert_mismatch(
+            reopen_sealed(&path, 8, Some(&cipher)),
+            EncryptionMismatch::WrongKey,
+        );
+        assert_eq!(std::fs::read(&path).unwrap(), retagged);
+    }
+
+    #[test]
+    fn plaintext_logs_refuse_a_key_and_short_files_follow_their_magic() {
+        let dir = TempDir::new().unwrap();
+        let cipher = test_cipher(4);
+
+        let plain = dir.path().join("plain");
+        drop(Log::create(&plain, 8, StorageKind::F32, None).unwrap());
+        let plain_bytes = std::fs::read(&plain).unwrap();
+        assert_mismatch(
+            reopen_sealed(&plain, 8, Some(&cipher)),
+            EncryptionMismatch::UnexpectedKey,
+        );
+        assert_eq!(std::fs::read(&plain).unwrap(), plain_bytes);
+
+        let torn_plain = dir.path().join("torn-plain");
+        std::fs::write(&torn_plain, &plain_bytes[..10]).unwrap();
+        assert_mismatch(
+            reopen_sealed(&torn_plain, 8, Some(&cipher)),
+            EncryptionMismatch::UnexpectedKey,
+        );
+        assert_eq!(std::fs::read(&torn_plain).unwrap(), plain_bytes[..10]);
+
+        let sealed = dir.path().join("sealed");
+        drop(Log::create(&sealed, 8, StorageKind::F32, Some(&cipher)).unwrap());
+        let sealed_bytes = std::fs::read(&sealed).unwrap();
+        for cut in [
+            4,
+            14,
+            SEALED_HEADER_LEN - HEADER_CRC_LEN,
+            SEALED_HEADER_LEN - 1,
+        ] {
+            let torn_sealed = dir.path().join(format!("torn-sealed-{cut}"));
+            std::fs::write(&torn_sealed, &sealed_bytes[..cut]).unwrap();
+            assert_mismatch(
+                reopen_sealed(&torn_sealed, 8, None),
+                EncryptionMismatch::MissingKey,
+            );
+            for key in [&cipher, &test_cipher(5)] {
+                assert!(matches!(
+                    reopen_sealed(&torn_sealed, 8, Some(key)),
+                    Err(VecDbError::Corrupt(_))
+                ));
+            }
+            assert_eq!(std::fs::read(&torn_sealed).unwrap(), sealed_bytes[..cut]);
+        }
+
+        let stub = dir.path().join("stub");
+        std::fs::write(&stub, [0u8; 2]).unwrap();
+        let created = reopen_sealed(&stub, 8, Some(&cipher)).unwrap();
+        assert_eq!(created.current_end_offset(), SEALED_HEADER_LEN as u64);
+        assert_eq!(std::fs::read(&stub).unwrap()[..4], SEALED_MAGIC);
+    }
+
+    #[test]
+    fn sealed_scanner_stops_at_the_last_complete_frame_for_every_torn_length() {
+        let dir = TempDir::new().unwrap();
+        let build_path = dir.path().join("log");
+        let cipher = test_cipher(5);
+        let boundaries = sealed_log_with_adds(&build_path, &cipher, 3);
+        let full_bytes = std::fs::read(&build_path).unwrap();
+        let intact_end = boundaries[1].1;
+        for cut in intact_end..boundaries[2].1 {
+            let torn_path = dir.path().join(format!("torn-{cut}"));
+            std::fs::write(&torn_path, &full_bytes[..cut as usize]).unwrap();
+            let mut torn_log = reopen_sealed(&torn_path, 8, Some(&cipher)).unwrap();
+            let (records, recoverable_end) = scan_all(&mut torn_log);
+            assert_eq!(records.len(), 2);
+            assert_eq!(records[1].1, boundaries[1].0);
+            assert_eq!(recoverable_end, intact_end);
+            assert!(
+                !torn_log
+                    .tail_contains_valid_record(recoverable_end)
+                    .unwrap()
+            );
+        }
+    }
+
+    #[test]
+    fn sealed_frames_are_bound_to_their_offset_and_their_log() {
+        let dir = TempDir::new().unwrap();
+        let cipher = test_cipher(6);
+        let path = dir.path().join("log");
+        let boundaries = sealed_log_with_adds(&path, &cipher, 3);
+        let frame_len = (boundaries[0].1 - boundaries[0].0) as usize;
+        let bytes = std::fs::read(&path).unwrap();
+        let second_start = SEALED_HEADER_LEN + frame_len;
+        let third_start = second_start + frame_len;
+
+        let mut swapped = bytes[..SEALED_HEADER_LEN].to_vec();
+        swapped.extend_from_slice(&bytes[second_start..third_start]);
+        swapped.extend_from_slice(&bytes[SEALED_HEADER_LEN..second_start]);
+        swapped.extend_from_slice(&bytes[third_start..]);
+        let swapped_path = dir.path().join("swapped");
+        std::fs::write(&swapped_path, &swapped).unwrap();
+        let mut swapped_log = reopen_sealed(&swapped_path, 8, Some(&cipher)).unwrap();
+        let (records, recoverable_end) = scan_all(&mut swapped_log);
+        assert!(records.is_empty());
+        assert_eq!(recoverable_end, SEALED_HEADER_LEN as u64);
+        assert!(
+            swapped_log
+                .tail_contains_valid_record(recoverable_end)
+                .unwrap()
+        );
+
+        let other_path = dir.path().join("other");
+        drop(Log::create(&other_path, 8, StorageKind::F32, Some(&cipher)).unwrap());
+        let mut spliced = std::fs::read(&other_path).unwrap();
+        spliced.extend_from_slice(&bytes[SEALED_HEADER_LEN..]);
+        std::fs::write(&other_path, &spliced).unwrap();
+        let mut spliced_log = reopen_sealed(&other_path, 8, Some(&cipher)).unwrap();
+        let (records, recoverable_end) = scan_all(&mut spliced_log);
+        assert!(records.is_empty());
+        assert!(
+            !spliced_log
+                .tail_contains_valid_record(recoverable_end)
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn recovery_buffers_report_unrepresentable_sizes_instead_of_panicking() {
+        assert!(zeroed_buffer(isize::MAX as usize + 1).is_err());
+        assert_eq!(zeroed_buffer(3).unwrap(), vec![0u8; 3]);
+        let path = Path::new("/vectors/log");
+        let error = out_of_memory(path);
+        assert!(
+            matches!(&error, VecDbError::Io { path: reported, source } if reported == path && source.kind() == ErrorKind::OutOfMemory)
+        );
+    }
+
+    #[test]
+    fn sealed_tail_probe_finds_frames_across_window_boundaries() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("log");
+        let cipher = test_cipher(7);
+        let boundaries = sealed_log_with_adds(&path, &cipher, 6);
+        let frame_len = (boundaries[0].1 - boundaries[0].0) as usize;
+        let last_start = boundaries[boundaries.len() - 1].0;
+        let mut log = reopen_sealed(&path, 8, Some(&cipher)).unwrap();
+        for step in [1, 7, frame_len - 1, frame_len, 4096] {
+            for &(start, _) in &boundaries[1..] {
+                assert!(
+                    log.tail_contains_valid_record_windowed(start - 1, step)
+                        .unwrap()
+                );
+            }
+            assert!(
+                !log.tail_contains_valid_record_windowed(last_start, step)
+                    .unwrap()
+            );
+        }
+    }
+
+    #[test]
+    fn damaged_headers_of_the_other_format_are_corrupt_rather_than_a_key_mismatch() {
+        let dir = TempDir::new().unwrap();
+        let cipher = test_cipher(8);
+        let plain = dir.path().join("plain");
+        let mut plain_log = Log::create(&plain, 8, StorageKind::F32, None).unwrap();
+        let vector = seeded_vector(8, 8);
+        plain_log
+            .append(&[LogEntry::Add {
+                key: "plain-record",
+                vector: VectorPayload::F32(&vector),
+                attrs: &[],
+            }])
+            .unwrap();
+        drop(plain_log);
+        let sealed = dir.path().join("sealed");
+        sealed_log_with_adds(&sealed, &cipher, 1);
+
+        let mut relabeled = std::fs::read(&plain).unwrap();
+        assert!(relabeled.len() >= SEALED_HEADER_LEN);
+        relabeled[..4].copy_from_slice(&SEALED_MAGIC);
+        let mut sealed_bad_crc = std::fs::read(&sealed).unwrap();
+        sealed_bad_crc[8] ^= 0x01;
+        let mut plain_bad_crc = std::fs::read(&plain).unwrap();
+        plain_bad_crc[8] ^= 0x01;
+        let cases = [
+            ("relabeled", relabeled, None),
+            ("sealed-bad-crc", sealed_bad_crc, None),
+            ("plain-bad-crc", plain_bad_crc, Some(&cipher)),
+        ];
+        for (name, bytes, key) in cases {
+            let path = dir.path().join(name);
+            std::fs::write(&path, &bytes).unwrap();
+            assert!(
+                matches!(reopen_sealed(&path, 8, key), Err(VecDbError::Corrupt(_))),
+                "{name}"
+            );
+            assert_eq!(std::fs::read(&path).unwrap(), bytes, "{name}");
+        }
+    }
+
+    #[test]
+    fn malformed_frame_lengths_stop_the_scan_without_panicking() {
+        let dir = TempDir::new().unwrap();
+        let cipher = test_cipher(9);
+        let path = dir.path().join("log");
+        let boundaries = sealed_log_with_adds(&path, &cipher, 2);
+        let bytes = std::fs::read(&path).unwrap();
+        let first_start = boundaries[0].0 as usize;
+        for length in [
+            u32::MAX,
+            u32::MAX - 27,
+            0,
+            (MIN_RECORD_LEN + TAG_LEN - 1) as u32,
+        ] {
+            let mut tail = bytes.clone();
+            tail.extend_from_slice(&length.to_le_bytes());
+            tail.extend_from_slice(&[0xAB; FRAME_PREFIX_LEN]);
+            let tail_path = dir.path().join(format!("tail-{length}"));
+            std::fs::write(&tail_path, &tail).unwrap();
+            let mut tail_log = reopen_sealed(&tail_path, 8, Some(&cipher)).unwrap();
+            let (records, recoverable_end) = scan_all(&mut tail_log);
+            assert_eq!(records.len(), 2);
+            assert_eq!(recoverable_end, boundaries[1].1);
+            assert!(
+                !tail_log
+                    .tail_contains_valid_record(recoverable_end)
+                    .unwrap()
+            );
+
+            let mut middle = bytes.clone();
+            middle[first_start..first_start + FRAME_LEN_BYTES]
+                .copy_from_slice(&length.to_le_bytes());
+            let middle_path = dir.path().join(format!("middle-{length}"));
+            std::fs::write(&middle_path, &middle).unwrap();
+            let mut middle_log = reopen_sealed(&middle_path, 8, Some(&cipher)).unwrap();
+            let (records, recoverable_end) = scan_all(&mut middle_log);
+            assert!(records.is_empty());
+            assert_eq!(recoverable_end, boundaries[0].0);
+            assert!(
+                middle_log
+                    .tail_contains_valid_record(recoverable_end)
+                    .unwrap()
+            );
+        }
     }
 }

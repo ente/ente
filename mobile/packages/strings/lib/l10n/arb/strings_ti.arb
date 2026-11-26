@@ -11,9 +11,9 @@
   },
   "crashAndErrorReporting": "ጸብጻብ ውድቀትን ጌጋን",
   "data": "ሓበሬታ",
-  "deleteCodeMessage": "ነዚ ኮድ ክትድምስሶ ከም እትደሊ ርግጸኛ ዲኻ፧ እዚ ተግባር ንድሕሪት ዘይምለስ ኣይኮነን።",
+  "deleteCodeMessage": "ነዚ ኮድ ክትድምስሶ ከም እትደሊ ርግጸኛ ዲኻ፧ እዚ ተግባር ንድሕሪት ዘይምለስ እዩ።",
   "deleteCodeTitle": "ኮድ ይደምሰሰ፧",
-  "doNotSignOut": "ኣውጽኡኒ።",
+  "doNotSignOut": "ኣይተውጽኡኒ።",
   "@doNotSignOut": {
     "description": "Do not sign out button label"
   },

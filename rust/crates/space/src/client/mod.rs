@@ -1,6 +1,5 @@
 mod assets;
 mod comments;
-mod entity_keys;
 mod friends;
 mod keys;
 mod links;

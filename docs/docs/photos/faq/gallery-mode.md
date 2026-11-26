@@ -31,6 +31,12 @@ On Android 10 and older, deleting photos from your device is permanent. Learn mo
 
 Yes. Face recognition runs entirely on your device in gallery mode. Enable it from the banner on the Search tab or from `Settings > Machine learning`. All processing happens locally -- no data leaves your phone.
 
+### Can I name people in gallery mode? {#offline-name-people}
+
+No. In gallery mode, Ente groups similar faces on your device, but you can't give a group a name. When you open a face group, Ente asks you to sign up to tag them. Naming people needs an Ente account.
+
+Face groups made in gallery mode are not kept after you sign up. See [Will I lose my photos or ML data when I sign up?](#data-preserved-on-signup)
+
 ### Does magic search work without an account? {#offline-magic-search}
 
 Yes. Natural language search (magic search) also runs on-device. After enabling ML, Ente indexes your photos locally so you can search using descriptions like "beach sunset" or "birthday cake".

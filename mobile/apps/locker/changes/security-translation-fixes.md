@@ -1,0 +1,1 @@
+- Corrected translations that misdescribed passkeys, recovery keys, legacy kits, sharing, and security prompts in several languages.

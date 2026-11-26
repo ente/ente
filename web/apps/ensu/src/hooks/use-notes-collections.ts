@@ -10,8 +10,8 @@ import {
     type NotesCollection,
 } from "@/services/notes";
 import {
+    notesCollectionActivity,
     NotesLifecycleController,
-    type NotesCollectionActivity,
     type NotesCollectionView,
 } from "@/services/notes-lifecycle";
 import { tauriCommandError } from "@/services/tauri-error";
@@ -22,11 +22,16 @@ const NOTES_INDEX_RERUN_YIELD_MS = 25;
 const NOTES_REMOVE_WAIT_ERROR =
     "Wait for indexing to finish, then remove this folder.";
 
+interface NotesOperationError {
+    message: string;
+    indexCollectionId?: string;
+}
+
 interface UseNotesCollectionsOptions {
     isTauriRuntime: boolean;
     isGenerating: boolean;
     isIndexingPaused: boolean;
-    isIndexingBlocked: () => boolean;
+    isIndexingBlocked: (manual?: boolean) => boolean;
     modelReady: boolean;
     ensureProvider: () => Promise<LlmProvider>;
     cancelIndexing: () => void;
@@ -44,9 +49,12 @@ export const useNotesCollections = ({
     confirmRemoval,
 }: UseNotesCollectionsOptions) => {
     const [collections, setCollections] = useState<NotesCollection[]>([]);
+    const collectionsRef = useRef(collections);
+    collectionsRef.current = collections;
     const [loading, setLoading] = useState(false);
     const [loaded, setLoaded] = useState(false);
-    const [operationError, setOperationError] = useState<string | null>(null);
+    const [operationError, setOperationError] =
+        useState<NotesOperationError | null>(null);
     const [listError, setListError] = useState<string | null>(null);
     const [subscriptionError, setSubscriptionError] = useState<string | null>(
         null,
@@ -134,27 +142,30 @@ export const useNotesCollections = ({
     );
 
     const startIndex = useCallback(
-        (
-            collectionId: string,
-            force = false,
-            automatic = false,
-            automaticRequestKey?: number,
-        ) => {
-            const blocked = !modelReady || isIndexingBlocked();
+        (collectionId: string, force = false, automatic = false) => {
+            const latestCollection = () =>
+                collectionsRef.current.find(
+                    (collection) => collection.id === collectionId,
+                );
+            const latestRequestKey = () =>
+                latestCollection()?.updateDueAtMs ?? undefined;
+            const sourceUnavailable = () =>
+                !force && latestCollection()?.status === "unavailable";
+            if (sourceUnavailable()) return;
+            let requestKey = latestRequestKey();
+            const blocked = !modelReady || isIndexingBlocked(force);
             const request = automatic
-                ? controller.ensureIndex(
-                      collectionId,
-                      blocked,
-                      automaticRequestKey,
-                  )
+                ? controller.ensureIndex(collectionId, blocked, requestKey)
                 : controller.requestIndex(collectionId, force, blocked);
             if (request === "ignored") return;
             lifecycleChanged();
+            setOperationError((current) =>
+                current?.indexCollectionId === collectionId ? null : current,
+            );
             if (request === "queued") {
                 log.info("Your Notes indexing queued", { collectionId });
                 return;
             }
-            setOperationError(null);
             log.info("Your Notes indexing started", {
                 collectionId,
                 automatic,
@@ -162,21 +173,23 @@ export const useNotesCollections = ({
             });
 
             const ownsIndex = () => controller.canContinueIndex(collectionId);
-            const canStartIndex = () => ownsIndex() && !isIndexingBlocked();
+            const canStartIndex = () =>
+                ownsIndex() &&
+                !isIndexingBlocked(force) &&
+                !sourceUnavailable();
             void ensureProvider()
                 .then((provider) =>
                     provider.withKnowledgeRetrieval(async (retrievalEpoch) => {
                         let needsRerun = true;
                         let bypassQuietPeriod = force;
                         while (needsRerun && ownsIndex()) {
-                            if (isIndexingBlocked()) {
-                                controller.queueIndex(
-                                    collectionId,
-                                    bypassQuietPeriod,
-                                );
+                            if (sourceUnavailable()) return;
+                            if (isIndexingBlocked(force)) {
+                                controller.queueIndex(collectionId, force);
                                 lifecycleChanged();
                                 return;
                             }
+                            requestKey = latestRequestKey();
                             const result = await indexNotesCollection(
                                 collectionId,
                                 bypassQuietPeriod,
@@ -209,8 +222,11 @@ export const useNotesCollections = ({
                             { collectionId },
                         );
                     } else if (name !== "not_due") {
-                        controller.failIndex(collectionId);
-                        setOperationError(notesErrorMessage(error));
+                        controller.failIndex(collectionId, requestKey);
+                        setOperationError({
+                            message: notesErrorMessage(error),
+                            indexCollectionId: collectionId,
+                        });
                         log.error("Failed to index Your Notes", error);
                     }
                     void refresh();
@@ -220,7 +236,7 @@ export const useNotesCollections = ({
                     lifecycleChanged();
                     if (completion.clearedRemovalWait) {
                         setOperationError((current) =>
-                            current === NOTES_REMOVE_WAIT_ERROR
+                            current?.message === NOTES_REMOVE_WAIT_ERROR
                                 ? null
                                 : current,
                         );
@@ -245,15 +261,23 @@ export const useNotesCollections = ({
     );
 
     useEffect(() => {
-        const blocked = !modelReady || isIndexingBlocked();
-        const queued = controller.drainQueued(blocked);
-        if (queued.length > 0) {
-            lifecycleChanged();
-            for (const [collectionId, force] of queued) {
-                startIndex(collectionId, force);
+        let discarded = false;
+        for (const collection of collections) {
+            if (collection.status === "unavailable") {
+                discarded =
+                    controller.discardQueuedAutomaticIndex(collection.id) ||
+                    discarded;
             }
         }
+        if (discarded) lifecycleChanged();
+        const blocked = !modelReady || isIndexingBlocked();
+        const next = controller.takeNextQueued(
+            blocked,
+            !modelReady || isIndexingBlocked(true),
+        );
+        if (next) startIndex(...next);
     }, [
+        collections,
         controller,
         isGenerating,
         isIndexingPaused,
@@ -298,24 +322,39 @@ export const useNotesCollections = ({
     }, [controller, isTauriRuntime, refresh, syncAttempt, updateCollection]);
 
     useEffect(() => {
-        if (!isTauriRuntime || !modelReady) return;
+        if (!isTauriRuntime) return;
+        if (
+            collections.some(
+                (collection) =>
+                    collection.id === operationError?.indexCollectionId &&
+                    collection.status !== "unavailable" &&
+                    controller.hasNewerUpdate(
+                        collection.id,
+                        collection.updateDueAtMs ?? undefined,
+                    ),
+            )
+        ) {
+            setOperationError((current) =>
+                current === operationError ? null : current,
+            );
+        }
+        if (!modelReady) return;
         const timeouts: number[] = [];
         const now = Date.now();
         for (const collection of collections) {
             if (
                 collection.updateDueAtMs != null &&
+                collection.status !== "unavailable" &&
                 (collection.status === "ready" ||
-                    collection.status === "pending")
+                    collection.status === "pending" ||
+                    controller.hasNewerUpdate(
+                        collection.id,
+                        collection.updateDueAtMs,
+                    ))
             ) {
                 timeouts.push(
                     window.setTimeout(
-                        () =>
-                            startIndex(
-                                collection.id,
-                                false,
-                                true,
-                                collection.updateDueAtMs ?? undefined,
-                            ),
+                        () => startIndex(collection.id, false, true),
                         Math.max(0, collection.updateDueAtMs - now),
                     ),
                 );
@@ -324,7 +363,15 @@ export const useNotesCollections = ({
         return () => {
             for (const timeout of timeouts) window.clearTimeout(timeout);
         };
-    }, [collections, isTauriRuntime, modelReady, startIndex]);
+    }, [
+        collections,
+        controller,
+        isTauriRuntime,
+        lifecycleRevision,
+        modelReady,
+        operationError,
+        startIndex,
+    ]);
 
     useEffect(() => {
         if (!isTauriRuntime || !modelReady) return;
@@ -361,7 +408,7 @@ export const useNotesCollections = ({
                 replaceCollection(collection);
                 runIndex(collection.id);
             } catch (error) {
-                setOperationError(notesErrorMessage(error));
+                setOperationError({ message: notesErrorMessage(error) });
                 log.error("Failed to add Notes folder", error);
             }
         },
@@ -373,7 +420,7 @@ export const useNotesCollections = ({
             confirmRemoval(label, async () => {
                 const removal = controller.beginRemoval(collectionId);
                 if (removal.kind === "wait") {
-                    setOperationError(NOTES_REMOVE_WAIT_ERROR);
+                    setOperationError({ message: NOTES_REMOVE_WAIT_ERROR });
                     return;
                 }
                 setOperationError(null);
@@ -386,7 +433,7 @@ export const useNotesCollections = ({
                     );
                 } catch (error) {
                     controller.cancelRemoval(collectionId);
-                    setOperationError(notesErrorMessage(error));
+                    setOperationError({ message: notesErrorMessage(error) });
                     log.error("Failed to remove Notes collection", error);
                     void refresh();
                     if (removal.queuedForce !== undefined) {
@@ -400,43 +447,16 @@ export const useNotesCollections = ({
 
     const collectionViews = useMemo<NotesCollectionView[]>(
         () =>
-            collections.map((collection) => {
-                const lifecycleActivity = controller.indexActivity(
-                    collection.id,
-                );
-                let activity: NotesCollectionActivity;
-                if (
-                    collection.status === "indexing" ||
-                    collection.status === "updating"
-                ) {
-                    activity = null;
-                } else if (lifecycleActivity === "failed") {
-                    activity = "failed";
-                } else if (lifecycleActivity === "starting") {
-                    activity = "starting";
-                } else if (lifecycleActivity === "queued") {
-                    activity = !modelReady
-                        ? "waitingForModel"
-                        : isIndexingPaused
-                          ? "waitingForChat"
-                          : isGenerating || isIndexingBlocked()
-                            ? "waitingForGeneration"
-                            : "starting";
-                } else if (collection.updateDueAtMs != null) {
-                    activity = null;
-                } else if (collection.status !== "pending") {
-                    activity = null;
-                } else if (!modelReady) {
-                    activity = "waitingForModel";
-                } else if (isIndexingPaused) {
-                    activity = "waitingForChat";
-                } else if (isGenerating || isIndexingBlocked()) {
-                    activity = "waitingForGeneration";
-                } else {
-                    activity = "starting";
-                }
-                return { ...collection, activity };
-            }),
+            collections.map((collection) => ({
+                ...collection,
+                activity: notesCollectionActivity(
+                    collection,
+                    controller,
+                    modelReady,
+                    isIndexingPaused,
+                    isGenerating || isIndexingBlocked(true),
+                ),
+            })),
         [
             collections,
             controller,
@@ -452,7 +472,8 @@ export const useNotesCollections = ({
         collections: collectionViews,
         loading,
         loaded,
-        error: subscriptionError ?? listError ?? operationError,
+        error:
+            subscriptionError ?? listError ?? operationError?.message ?? null,
         retry,
         addFolder,
         removeCollection,

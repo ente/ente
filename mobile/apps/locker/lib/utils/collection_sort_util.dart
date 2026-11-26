@@ -1,3 +1,4 @@
+import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:locker/services/collections/models/collection.dart';
 
 class CollectionSortUtil {
@@ -13,7 +14,7 @@ class CollectionSortUtil {
       }
       final nameA = a.name ?? a.name ?? '';
       final nameB = b.name ?? b.name ?? '';
-      return nameA.toLowerCase().compareTo(nameB.toLowerCase());
+      return compareNames(nameA, nameB);
     });
   }
 
@@ -47,7 +48,7 @@ class CollectionSortUtil {
     }
     final nameA = a.name ?? a.name ?? '';
     final nameB = b.name ?? b.name ?? '';
-    return nameA.toLowerCase().compareTo(nameB.toLowerCase());
+    return compareNames(nameA, nameB);
   }
 
   static int compareCollectionsWithFavoritesPriority(

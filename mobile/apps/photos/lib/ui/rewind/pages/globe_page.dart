@@ -8,17 +8,18 @@ import "package:flutter/scheduler.dart";
 import "package:flutter/services.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
+import "package:photos/ui/rewind/theme/rewind_motion.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
 import "package:photos/ui/rewind/widgets/rewind_count_up.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
 import "package:photos/ui/rewind/widgets/rewind_hint.dart";
-import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
 import "package:photos/ui/rewind/widgets/rewind_pixels.dart";
 import "package:photos/ui/rewind/widgets/rewind_reveal_layer.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
@@ -34,10 +35,9 @@ class GlobePage extends RewindPage {
 
   static const pageKey = "globe";
   static const earthKm = 40075;
-  static const _reelJourneyMs = 2800.0;
 
-  static const _space = Color(0xFF1C1B66);
-  static const _spaceRay = Color(0xFF222174);
+  static const _space = Color(0xFF07389D);
+  static const _spaceRay = Color(0xFF0D3EAB);
 
   final rust.Globe globe;
   final List<EnteFile?> photos;
@@ -54,10 +54,15 @@ class GlobePage extends RewindPage {
   @override
   String get key => pageKey;
 
-  double get _reelJourney => min(_world.journeyMs, _reelJourneyMs);
+  @override
+  Duration? get reelHold =>
+      Duration(milliseconds: _world.endMs.round() + RewindMotion.reelReadingMs);
 
   @override
-  Duration? get reelHold => Duration(milliseconds: 1450 + _reelJourney.round());
+  Duration? get clipHold =>
+      Duration(milliseconds: (_world.endMs + _clipEndMs).round());
+
+  static const _clipEndMs = 5500.0;
 
   @override
   List<EnteFile> get reelThumbnails => [for (final photo in photos) ?photo];
@@ -77,23 +82,23 @@ class GlobePage extends RewindPage {
     double position, {
     required bool isActive,
   }) {
+    final copy = RewindCopy.of(context);
     final km = globe.distanceKm;
     final lap = km >= earthKm
-        ? "That’s ${(km / earthKm).toStringAsFixed(1)} times around the Earth."
-        : "That’s ${max(1, (100 * km / earthKm).round())}% of the way "
-              "around the Earth.";
+        ? copy.globeLaps(km / earthKm)
+        : copy.globeLapShare(max(1, (100 * km / earthKm).round()));
     return Stack(
       fit: StackFit.expand,
       children: [
         _card(
           position,
           isActive,
+          isActive && !RewindPageScope.coveredOf(context),
           km,
           lap,
-          RewindPageScope.reelOf(context) ? _reelJourney : _world.journeyMs,
         ),
         RewindHint(
-          "DRAG TO SPIN",
+          copy.globeHint,
           centerY: 540,
           active: isActive,
           position: position,
@@ -106,9 +111,9 @@ class GlobePage extends RewindPage {
   Widget _card(
     double position,
     bool isActive,
+    bool playing,
     int km,
     String body,
-    double journeyMs,
   ) {
     return RewindWarmBuilder<RewindDecoded>(
       warm: _pins,
@@ -127,7 +132,7 @@ class GlobePage extends RewindPage {
               ),
             ),
             Semantics(
-              label: "Your photos flew ${rewindCount(km)} kilometres. $body",
+              label: RewindCopy.of(context).globeLabel(km, body),
               child: ExcludeSemantics(
                 child: RewindStage(
                   children: [
@@ -141,7 +146,7 @@ class GlobePage extends RewindPage {
                           photos: photos,
                           photo: photo,
                           pins: pins,
-                          active: isActive,
+                          active: playing,
                         ),
                       ),
                     ),
@@ -154,8 +159,7 @@ class GlobePage extends RewindPage {
                       active: isActive,
                       delayMs: 500,
                       child: RewindVoice(
-                        you: "YOUR PHOTOS FLEW",
-                        me: "MY PHOTOS FLEW",
+                        RewindCopy.of(context).globeKicker,
                         builder: (text) => Text(
                           text,
                           style: RewindTextStyles.display(17, height: 1.05),
@@ -175,9 +179,9 @@ class GlobePage extends RewindPage {
                         width: 322,
                         child: RewindCountUp(
                           value: km,
-                          active: isActive,
+                          active: playing,
                           delayMs: _World.introMs.round(),
-                          durationMs: journeyMs.round(),
+                          durationMs: _world.journeyMs.round(),
                           builder: (context, text) => RewindOutlinedText(
                             "$text KM",
                             style: RewindTextStyles.display(
@@ -509,10 +513,10 @@ class _GlobeViewState extends State<_GlobeView>
   static const _apart = 0.36;
   static const _callouts = 6;
   static const _nearby = 0.035;
+  static const _notchDegrees = 15.0;
   static const _slots = [-128.0, -98.0, -8.0, 28.0, 62.0, 118.0, 152.0, 188.0];
 
   late final _reel = RewindPageScope.reelOf(context);
-  late final _reelPace = max(1.0, _world.journeyMs / GlobePage._reelJourneyMs);
   late final Ticker _ticker = createTicker(_onTick);
   var _last = Duration.zero;
   var _ms = 0.0;
@@ -603,11 +607,7 @@ class _GlobeViewState extends State<_GlobeView>
   }
 
   void _onTick(Duration elapsed) {
-    final travelling = _ms >= _World.introMs && _ms < _world.endMs;
-    final dt =
-        (elapsed - _last).inMicroseconds /
-        1000 *
-        (_reel && travelling ? _reelPace : 1);
+    final dt = (elapsed - _last).inMicroseconds / 1000;
     _last = elapsed;
     if (dt <= 0) return;
     _ms += dt;
@@ -689,7 +689,13 @@ class _GlobeViewState extends State<_GlobeView>
       ),
       facing.longitude - drag.dx * 180 / (pi * _GlobeView.radius),
     );
+    if (_notchOf(_facing) != _notchOf(facing)) HapticFeedback.selectionClick();
   }
+
+  static (int, int) _notchOf(({double latitude, double longitude}) facing) => (
+    (facing.latitude / _notchDegrees).floor(),
+    (facing.longitude / _notchDegrees).floor(),
+  );
 
   late final Map<int, Offset> _berths = _berth();
 
@@ -897,10 +903,11 @@ class _GlobeViewState extends State<_GlobeView>
               opacity: (_ms / _World.introMs - 0.6).clamp(0.0, 1.0),
               child: _Board(
                 done
-                    ? "${rewindCounted(widget.globe.cityCount, "CITY", "CITIES")}"
-                          "  ·  "
-                          "${rewindCounted(widget.globe.countryCount, "COUNTRY", "COUNTRIES")}"
-                    : "${here.name.toUpperCase()}"
+                    ? RewindCopy.of(context).globeTally(
+                        widget.globe.cityCount,
+                        widget.globe.countryCount,
+                      )
+                    : "${RewindCopy.of(context).city(here.name, here.countryCode).toUpperCase()}"
                           "${here.countryCode.isEmpty ? "" : ", ${here.countryCode}"}",
                 tally: done
                     ? null

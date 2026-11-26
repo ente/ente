@@ -34,6 +34,10 @@ func TestAccountRecoveryTokensAreNotLogged(t *testing.T) {
 	require.False(t, shouldSkipBodyLog(http.MethodGet, "/users/recover-account"))
 }
 
+func TestSignUpSourceIsNotLogged(t *testing.T) {
+	require.True(t, shouldSkipBodyLog(http.MethodPut, "/users/source"))
+}
+
 func TestEventsShareGlobalRateLimitAcrossPublicAndAuthenticatedRoutes(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	rateLimiter := &RateLimitMiddleware{

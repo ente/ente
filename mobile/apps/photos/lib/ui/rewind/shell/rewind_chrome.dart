@@ -1,6 +1,8 @@
+import "dart:async";
 import "dart:math";
 
 import "package:flutter/material.dart";
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_music.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
@@ -29,6 +31,12 @@ class RewindChromeLayout {
     wordmarkSize.height,
   );
 
+  Rect get nextArrow => Rect.fromCenter(
+    center: Offset(size.width / 2, size.height - bottom - buttonSize / 2),
+    width: buttonSize,
+    height: buttonSize,
+  );
+
   Offset get rail {
     final scale = RewindStage.scaleFor(size);
     return Offset(14 * scale, RewindStage.originFor(size).dy + 186 * scale);
@@ -43,6 +51,7 @@ class RewindChromeOverlay extends StatelessWidget {
     required this.pageCount,
     required this.music,
     required this.onClose,
+    required this.onNext,
     required this.shareKey,
     required this.videoKey,
     this.onShare,
@@ -56,6 +65,7 @@ class RewindChromeOverlay extends StatelessWidget {
   final int pageCount;
   final RewindMusic music;
   final VoidCallback onClose;
+  final VoidCallback onNext;
   final GlobalKey shareKey;
   final GlobalKey videoKey;
   final VoidCallback? onShare;
@@ -63,6 +73,7 @@ class RewindChromeOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final copy = RewindCopy.of(context);
     final wordmark = chrome.wordmark;
     return Stack(
       children: [
@@ -71,7 +82,7 @@ class RewindChromeOverlay extends StatelessWidget {
           right: RewindChromeLayout.sideInset,
           child: RewindRoundButton(
             glyph: RewindGlyph.close,
-            label: "Close",
+            label: copy.close,
             size: 36,
             ring: false,
             onTap: onClose,
@@ -80,10 +91,13 @@ class RewindChromeOverlay extends StatelessWidget {
         Positioned(
           right: layout.rail.dx,
           top: layout.rail.dy,
-          child: RewindProgressRail(
+          child: _PeekingRail(
             index: page,
-            count: pageCount,
-            color: chrome.foreground,
+            child: RewindProgressRail(
+              index: page,
+              count: pageCount,
+              color: chrome.foreground,
+            ),
           ),
         ),
         if (chrome.muteButton)
@@ -94,7 +108,7 @@ class RewindChromeOverlay extends StatelessWidget {
               listenable: music,
               builder: (context, _) => RewindRoundButton(
                 glyph: music.muted ? RewindGlyph.muted : RewindGlyph.sound,
-                label: music.muted ? "Play music" : "Mute music",
+                label: music.muted ? copy.playMusic : copy.muteMusic,
                 onTap: music.toggleMuted,
               ),
             ),
@@ -116,13 +130,17 @@ class RewindChromeOverlay extends StatelessWidget {
             ),
           ),
         ),
+        Positioned.fromRect(
+          rect: layout.nextArrow,
+          child: _NextArrow(visible: chrome.nextArrow, onTap: onNext),
+        ),
         Positioned(
           right: RewindChromeLayout.sideInset,
           bottom: layout.bottom,
           child: _PopButton(
             buttonKey: shareKey,
             glyph: RewindGlyph.share,
-            label: "Share",
+            label: copy.share,
             onTap: onShare,
           ),
         ),
@@ -134,7 +152,7 @@ class RewindChromeOverlay extends StatelessWidget {
             child: _PopButton(
               buttonKey: videoKey,
               glyph: RewindGlyph.video,
-              label: "Share video",
+              label: copy.shareVideo,
               onTap: onShareVideo,
             ),
           ),
@@ -183,6 +201,80 @@ class _PopButton extends StatelessWidget {
   }
 }
 
+class _NextArrow extends StatefulWidget {
+  const _NextArrow({required this.visible, required this.onTap});
+
+  final bool visible;
+  final VoidCallback onTap;
+
+  @override
+  State<_NextArrow> createState() => _NextArrowState();
+}
+
+class _NextArrowState extends State<_NextArrow>
+    with SingleTickerProviderStateMixin {
+  static const _hopShare = 0.4;
+  static const _hopDepth = 5.0;
+
+  late final _bob = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1600),
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncBob();
+  }
+
+  @override
+  void didUpdateWidget(_NextArrow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncBob();
+  }
+
+  void _syncBob() {
+    final bobbing = widget.visible && !MediaQuery.disableAnimationsOf(context);
+    if (!bobbing) {
+      _bob.stop();
+    } else if (!_bob.isAnimating) {
+      unawaited(_bob.repeat());
+    }
+  }
+
+  double get _drop {
+    final t = _bob.value;
+    return t < _hopShare ? _hopDepth * sin(pi * t / _hopShare) : 0;
+  }
+
+  @override
+  void dispose() {
+    _bob.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      ignoring: !widget.visible,
+      child: AnimatedOpacity(
+        opacity: widget.visible ? 1 : 0,
+        duration: const Duration(milliseconds: 300),
+        child: AnimatedBuilder(
+          animation: _bob,
+          builder: (context, child) =>
+              Transform.translate(offset: Offset(0, _drop), child: child),
+          child: RewindRoundButton(
+            glyph: RewindGlyph.next,
+            label: RewindCopy.of(context).nextCard,
+            onTap: widget.onTap,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class RewindProgressRail extends StatelessWidget {
   const RewindProgressRail({
     required this.index,
@@ -198,7 +290,7 @@ class RewindProgressRail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: "Page ${index + 1} of $count",
+      label: RewindCopy.of(context).pageOf(index + 1, count),
       child: ExcludeSemantics(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -217,6 +309,64 @@ class RewindProgressRail extends StatelessWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _PeekingRail extends StatefulWidget {
+  const _PeekingRail({required this.index, required this.child});
+
+  final int index;
+  final Widget child;
+
+  @override
+  State<_PeekingRail> createState() => _PeekingRailState();
+}
+
+class _PeekingRailState extends State<_PeekingRail> {
+  static const _shownFor = Duration(milliseconds: 1600);
+
+  Timer? _hide;
+  var _visible = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _peek();
+  }
+
+  @override
+  void didUpdateWidget(_PeekingRail oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.index != widget.index) _peek();
+  }
+
+  void _peek() {
+    _hide?.cancel();
+    _visible = widget.index > 0;
+    if (_visible) {
+      _hide = Timer(_shownFor, () {
+        if (mounted) setState(() => _visible = false);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _hide?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: AnimatedOpacity(
+        opacity: _visible ? 1 : 0,
+        duration: Duration(milliseconds: _visible ? 200 : 600),
+        curve: Curves.easeOut,
+        alwaysIncludeSemantics: true,
+        child: widget.child,
       ),
     );
   }

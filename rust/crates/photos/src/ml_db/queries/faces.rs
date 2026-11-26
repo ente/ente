@@ -178,7 +178,10 @@ impl MlDb {
                 self.read_all(&sql, parameters.as_slice(), read_face_without_embedding)?;
             if !faces.is_empty() {
                 if let Some(avatar_file_id) = avatar_file_id
-                    && let Some(face) = faces.iter().find(|face| face.file_id == avatar_file_id)
+                    && let Some(face) = faces
+                        .iter()
+                        .find(|face| Some(face.face_id.as_str()) == avatar_face_id)
+                        .or_else(|| faces.iter().find(|face| face.file_id == avatar_file_id))
                 {
                     return Ok(Some(face.clone()));
                 }
@@ -237,13 +240,16 @@ impl MlDb {
 
     pub(crate) fn for_each_face_without_embedding(
         &self,
+        mut accepts_file: impl FnMut(i64) -> bool,
         mut visit: impl FnMut(FaceWithoutEmbedding),
     ) -> Result<()> {
         self.read_each(
             &format!("SELECT {FACE_WITHOUT_EMBEDDING_COLUMNS} FROM faces"),
             (),
             |row| {
-                visit(read_face_without_embedding(row)?);
+                if accepts_file(row.get(1)?) {
+                    visit(read_face_without_embedding(row)?);
+                }
                 Ok(())
             },
         )
@@ -447,6 +453,29 @@ impl MlDb {
         )
     }
 
+    pub(crate) fn for_each_unclustered_face_embedding(
+        &self,
+        mut visit: impl FnMut(i64, &[u8]),
+    ) -> Result<()> {
+        self.read_each(
+            r#"
+                SELECT f.file_id, f.embedding
+                FROM faces f
+                LEFT JOIN face_clusters fc
+                    ON f.face_id = fc.face_id
+                WHERE f.score > ?
+                    AND f.blur > ?
+                    AND fc.face_id IS NULL
+                "#,
+            (MINIMUM_QUALITY_FACE_SCORE, LAPLACIAN_HARD_THRESHOLD),
+            |row| {
+                let embedding: Vec<u8> = row.get(1)?;
+                visit(row.get(0)?, &embedding);
+                Ok(())
+            },
+        )
+    }
+
     pub fn get_all_file_ids_of_face_ids_not_in_any_cluster(&self) -> Result<HashSet<i64>> {
         self.read_column(
             r#"
@@ -497,6 +526,25 @@ impl MlDb {
         }
         self.read_column(&sql, params_from_iter(parameters))
     }
+
+    pub(crate) fn count_fully_indexed_files(&self, file_ids: &[i64]) -> Result<i64> {
+        let file_ids = serde_json::to_string(file_ids)
+            .map_err(|error| Error::Invalid(format!("could not encode file IDs: {error}")))?;
+        self.read_value(
+            r#"
+            SELECT COUNT(*)
+            FROM json_each(?) AS requested
+            WHERE EXISTS (
+                SELECT 1 FROM faces
+                WHERE file_id = requested.value AND ml_version >= ?
+            ) AND EXISTS (
+                SELECT 1 FROM clip
+                WHERE file_id = requested.value AND ml_version >= ?
+            )
+            "#,
+            (file_ids, FACE_ML_VERSION, CLIP_ML_VERSION),
+        )
+    }
 }
 
 pub(super) fn is_bad_face_for_clustering(
@@ -538,11 +586,11 @@ pub(in crate::ml_db) mod tests {
     use std::collections::HashMap;
     use std::ops::RangeInclusive;
 
-    use super::{FaceRow, FaceWithoutEmbedding, MlDb};
-    use crate::ml_db::Error;
+    use super::{CLIP_ML_VERSION, FaceRow, FaceWithoutEmbedding, MlDb};
     use crate::ml_db::queries::{clip, clusters, persons};
     use crate::ml_db::tests::{cases, check, ids, open, strings};
     use crate::ml_db::vector_encoding::encode_evector;
+    use crate::ml_db::{ClipEmbedding, Error};
     use tempfile::TempDir;
 
     fn face(file_id: i64, index: i64, score: f64, blur: f64, is_sideways: bool) -> FaceRow {
@@ -645,6 +693,29 @@ pub(in crate::ml_db) mod tests {
     }
 
     #[test]
+    fn counts_requested_files_with_current_face_and_clip_versions() {
+        let (_directory, db) = seeded();
+        db.insert_clip_rows(&[
+            ClipEmbedding {
+                version: CLIP_ML_VERSION - 1,
+                ..clip::tests::full_clip(6)
+            },
+            clip::tests::full_clip(10),
+            clip::tests::full_clip(11),
+            clip::tests::full_clip(i64::MAX),
+        ])
+        .unwrap();
+        db.bulk_insert_faces(&[good_face(i64::MAX, 0)]).unwrap();
+
+        assert_eq!(db.count_fully_indexed_files(&[]).unwrap(), 0);
+        assert_eq!(
+            db.count_fully_indexed_files(&[i64::MAX, 11, 10, 7, 6, 2, 1])
+                .unwrap(),
+            3
+        );
+    }
+
+    #[test]
     fn seeded_versions() {
         let (_directory, db) = seeded();
         check(
@@ -680,6 +751,30 @@ pub(in crate::ml_db) mod tests {
             .unwrap();
         assert_eq!((blurry.file_id, blurry.score, blurry.blur), (6, 0.9, 5.0));
         assert_eq!(blurry.detection_json, "{\"index\":0}");
+    }
+
+    #[test]
+    fn visits_all_face_metadata_for_matching_files() {
+        let (_directory, db) = seeded();
+        let mut faces = Vec::new();
+
+        db.for_each_face_without_embedding(
+            |file_id| matches!(file_id, 1 | 10),
+            |face| faces.push(face),
+        )
+        .unwrap();
+
+        faces.sort_by(|left, right| {
+            (left.file_id, &left.face_id).cmp(&(right.file_id, &right.face_id))
+        });
+        assert_eq!(
+            faces,
+            vec![
+                without_embedding(good_face(1, 0)),
+                without_embedding(face(1, 1, 0.95, 300.0, false)),
+                without_embedding(good_face(10, 0)),
+            ],
+        );
     }
 
     #[test]
@@ -810,6 +905,14 @@ pub(in crate::ml_db) mod tests {
         assert_eq!(by_score, without_embedding(face(2, 0, 0.85, 300.0, false)));
         assert_eq!(
             cover(2, Some("p1"), Some("1_1"), None),
+            Some("1_1".to_string())
+        );
+        assert_eq!(
+            cover(1, Some("p1"), Some("1_0"), None),
+            Some("1_0".to_string())
+        );
+        assert_eq!(
+            cover(2, Some("p1"), Some("1_9"), None),
             Some("1_1".to_string())
         );
         assert_eq!(

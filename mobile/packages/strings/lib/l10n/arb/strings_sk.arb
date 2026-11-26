@@ -74,7 +74,7 @@
   "@autoLock": {
     "description": "Auto lock setting title"
   },
-  "autoLockFeatureDescription": "Čas, po ktorom sa aplikácia uzamkne po nečinnosti",
+  "autoLockFeatureDescription": "Čas, po ktorom sa aplikácia uzamkne po presunutí do pozadia",
   "@autoLockFeatureDescription": {
     "description": "Description of auto lock feature"
   },

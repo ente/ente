@@ -90,6 +90,27 @@ def enable(expect, send, expire=False):
         expect(b"401")
 
 
+def change_email(expect, send):
+    changed = b"changed-" + email.encode()
+    expect(b"Email:")
+    send(b" " + changed.upper() + b" ")
+    expect(b"Verification code sent to " + changed + b".")
+    print("code", flush=True)
+    code = sys.stdin.readline().strip()
+    expect(b"Email verification code:")
+    send(f"{(int(code) + 1) % 1000000:06d}".encode(), True)
+    expect(b"Incorrect verification code. Try again.")
+    expect(b"Email verification code:")
+    send(code.encode(), True)
+    expect(b"Email changed to " + changed + b".")
+
+
+def confirm_disable(expect, send, prompt, answer, expected_output):
+    expect(prompt)
+    send(answer)
+    expect(expected_output)
+
+
 def login(expect, send, email_mfa):
     expect(b"Password:")
     send(b"wrong-password", True)
@@ -135,3 +156,29 @@ for email_mfa in [True, False]:
 run([binary, "account", "totp", "enable"],
     lambda expect, send: enable(expect, send, expire=True), expected_exit=1)
 run([binary, "account", "totp", "enable"], enable)
+run([binary, "account", "change-email"], change_email)
+
+changed = f"changed-{email}"
+subprocess.run([binary, "account", "email-mfa", "enable"], check=True, capture_output=True)
+email_mfa_prompt = f"Disable email verification for {changed} on {origin}?".encode()
+run([binary, "account", "email-mfa", "disable"],
+    lambda expect, send: confirm_disable(expect, send, email_mfa_prompt, b"", b"cancelled"),
+    expected_exit=1)
+assert json.loads(
+    subprocess.check_output([binary, "account", "email-mfa", "status", "--json"])
+)["emailMfaEnabled"] is True
+run([binary, "account", "email-mfa", "disable"],
+    lambda expect, send: confirm_disable(
+        expect, send, email_mfa_prompt, b"y", b"Email verification is disabled."
+    ))
+totp_prompt = f"Disable authenticator protection for {changed} on {origin}?".encode()
+run([binary, "account", "totp", "disable"],
+    lambda expect, send: confirm_disable(expect, send, totp_prompt, b"n", b"cancelled"),
+    expected_exit=1)
+assert json.loads(
+    subprocess.check_output([binary, "account", "totp", "status", "--json"])
+)["totpEnabled"] is True
+run([binary, "account", "totp", "disable"],
+    lambda expect, send: confirm_disable(
+        expect, send, totp_prompt, b"y", b"Authenticator protection is disabled."
+    ))

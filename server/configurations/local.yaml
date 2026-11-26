@@ -273,6 +273,8 @@ smtp:
     # be used for all emails sent by the instance (default is email specific).
     sender-name:
     # Optional encryption method. If tls or ssl is chosen, encryption is enabled.
+    # If left empty, STARTTLS is used when the server offers it. Set to none for
+    # plaintext SMTP to a trusted relay without authentication.
     encryption:
 
 # Apple config (optional)
@@ -372,6 +374,9 @@ internal:
     # During sign up, the client will get an unauthorized error and
     # thus cannot create new accounts.
     disable-registration: false
+    # When running in a local environment, disable API rate limiting
+    # (used by local E2E runs against with-museum).
+    disable-rate-limit: false
 
 # Replication config
 #

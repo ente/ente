@@ -318,16 +318,22 @@ class SlideshowMusic {
     required this.path,
     required this.fadeIn,
     required this.fadeOut,
+    required this.duckedVolume,
+    required this.duckFade,
   });
 
   final String path;
   final Duration fadeIn;
   final Duration fadeOut;
+  final double duckedVolume;
+  final Duration duckFade;
 
   Map<String, dynamic> toMap() => {
     'path': path,
     'fadeInMs': fadeIn.inMilliseconds,
     'fadeOutMs': fadeOut.inMilliseconds,
+    'duckedVolume': duckedVolume,
+    'duckFadeMs': duckFade.inMilliseconds,
   };
 }
 
@@ -832,8 +838,13 @@ class NativeVideoEditor {
         inputPath: music.path,
         outputPath: request.outputPath,
       );
-      if (music.fadeIn.isNegative || music.fadeOut.isNegative) {
+      if (music.fadeIn.isNegative ||
+          music.fadeOut.isNegative ||
+          music.duckFade.isNegative) {
         throw ArgumentError('Music fades must not be negative');
+      }
+      if (!(music.duckedVolume >= 0 && music.duckedVolume <= 1)) {
+        throw ArgumentError('Ducked music volume must be between 0 and 1');
       }
     }
   }

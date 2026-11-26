@@ -55,6 +55,12 @@ pub enum Error {
     #[error("unsupported operation: {0}")]
     UnsupportedOperation(String),
 
+    #[error(transparent)]
+    Refused(#[from] Refusal),
+
+    #[error("conversation changed while generating the reply")]
+    ConversationChanged,
+
     #[error("migration error: {0}")]
     Migration(String),
 }
@@ -85,4 +91,24 @@ impl From<rusqlite::Error> for Error {
             _ => Error::Sqlite(err),
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+pub enum Refusal {
+    #[error("todo changed since it was read")]
+    TodoChanged,
+    #[error("todo title is missing")]
+    TitleMissing,
+    #[error("todo title exceeds {max} characters")]
+    TitleTooLong { max: usize },
+    #[error("todo changes can no longer be undone")]
+    UndoStale,
+    #[error("todo offer is stale")]
+    OfferStale,
+    #[error("an earlier reply to this message has active todo changes")]
+    EarlierReplyStands,
+    #[error("reply has no offered todo changes")]
+    NothingOffered,
+    #[error("reply has no applied todo changes")]
+    NothingChanged,
 }

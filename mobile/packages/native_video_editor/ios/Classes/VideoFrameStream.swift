@@ -25,6 +25,14 @@ public struct VideoFrameStreamRequest: Sendable {
 
 public final class VideoFrameStream: VideoWriterFrameSource, @unchecked Sendable {
     private static let queueLimit = 2
+    private static let extendedRangeBlack = 384
+    private static let extendedRangeSpan = 510.0
+    private static let extendedRangePadding: UInt16 = 6
+    private static let extendedRangeLevels: [UInt8] = (0..<1024).map { level in
+        let scale = Float(1.0 / extendedRangeSpan)
+        let value = min(max(Float(level - extendedRangeBlack) * scale, 0), 1)
+        return UInt8((value * 255).rounded(.toNearestOrEven))
+    }
 
     public let request: VideoFrameStreamRequest
     private let pool: CVPixelBufferPool
@@ -173,7 +181,8 @@ public final class VideoFrameStream: VideoWriterFrameSource, @unchecked Sendable
     private func makeBuffer(_ rgba: Data) throws -> CVPixelBuffer {
         let width = request.width
         let height = request.height
-        guard rgba.count == width * height * 4 else {
+        let extendedRange = rgba.count == width * height * 8
+        guard rgba.count == width * height * 4 || extendedRange else {
             throw VideoEditorError.invalidRequest("Video frame has the wrong size")
         }
         var buffer: CVPixelBuffer?
@@ -183,6 +192,10 @@ public final class VideoFrameStream: VideoWriterFrameSource, @unchecked Sendable
         }
         CVPixelBufferLockBaseAddress(buffer, [])
         defer { CVPixelBufferUnlockBaseAddress(buffer, []) }
+        if extendedRange {
+            copyExtendedRange(rgba, into: buffer)
+            return buffer
+        }
         let error = rgba.withUnsafeBytes { bytes -> vImage_Error in
             var source = vImage_Buffer(
                 data: UnsafeMutableRawPointer(mutating: bytes.baseAddress),
@@ -203,5 +216,25 @@ public final class VideoFrameStream: VideoWriterFrameSource, @unchecked Sendable
             throw VideoEditorError.export("Failed to convert a video frame")
         }
         return buffer
+    }
+
+    private func copyExtendedRange(_ bgra: Data, into buffer: CVPixelBuffer) {
+        guard let destination = CVPixelBufferGetBaseAddress(buffer) else { return }
+        let components = request.width * 4
+        let destinationStride = CVPixelBufferGetBytesPerRow(buffer)
+        Self.extendedRangeLevels.withUnsafeBufferPointer { levels in
+            bgra.withUnsafeBytes { bytes in
+                guard let source = bytes.baseAddress else { return }
+                for row in 0..<request.height {
+                    let from = source + row * components * 2
+                    let to = (destination + row * destinationStride)
+                        .assumingMemoryBound(to: UInt8.self)
+                    for index in 0..<components {
+                        let word = (from + index * 2).loadUnaligned(as: UInt16.self)
+                        to[index] = levels[Int(word >> Self.extendedRangePadding)]
+                    }
+                }
+            }
+        }
     }
 }

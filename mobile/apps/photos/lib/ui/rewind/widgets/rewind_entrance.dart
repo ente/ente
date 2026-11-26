@@ -5,9 +5,9 @@ import "package:flutter/material.dart";
 import "package:photos/ui/rewind/theme/rewind_motion.dart";
 
 enum RewindPreset {
-  rise(1050, RewindMotion.expo),
+  rise(950, RewindMotion.textRise),
   line(900, RewindMotion.expo, fadeMs: 420, blur: 5),
-  pop(879, RewindMotion.pop, fadeMs: 420, blur: 8),
+  pop(800, RewindMotion.softPop, fadeMs: 260, blur: 3),
   slap(642, RewindMotion.slap, fadeMs: 240, blur: 12),
   duck(1050, RewindMotion.squash, fadeMs: 200),
   hop(1150, RewindMotion.hop, fadeMs: 70),
@@ -48,8 +48,8 @@ enum RewindPreset {
         matrix.translateByDouble(0, 18 * rest, 0, 1);
       case pop:
         matrix
-          ..rotateZ(_radians(-14 * rest))
-          ..scaleByDouble(0.25 + 0.75 * e, 0.25 + 0.75 * e, 1, 1);
+          ..rotateZ(_radians(-7 * rest))
+          ..scaleByDouble(0.55 + 0.45 * e, 0.55 + 0.45 * e, 1, 1);
       case slap:
         matrix
           ..rotateZ(_radians(3 * rest))
@@ -253,13 +253,7 @@ const _rest = (sx: 1.0, sy: 1.0, turn: 0.0, skew: 0.0);
 
 enum RewindIdle {
   pulse(1400, [_rest, (sx: 1.07, sy: 1.07, turn: 0.0, skew: 0.0), _rest]),
-  twinkle(1500, [_rest, (sx: 0.55, sy: 0.55, turn: 25.0, skew: 0.0), _rest]),
-  flicker(700, [
-    _rest,
-    (sx: 1.04, sy: 1.1, turn: 0.0, skew: -3.0),
-    (sx: 0.98, sy: 0.94, turn: 0.0, skew: 3.0),
-    _rest,
-  ]);
+  twinkle(1500, [_rest, (sx: 0.55, sy: 0.55, turn: 25.0, skew: 0.0), _rest]);
 
   const RewindIdle(this.periodMs, this._poses);
 
@@ -343,9 +337,7 @@ class _RewindIdleLoopState extends State<RewindIdleLoop>
       child: widget.child,
       builder: (context, child) => Transform(
         transform: widget.idle.transformAt(_loop.value),
-        alignment: widget.idle == RewindIdle.flicker
-            ? Alignment.bottomCenter
-            : Alignment.center,
+        alignment: Alignment.center,
         child: child,
       ),
     );

@@ -4,6 +4,7 @@ import {
     headerIconSize,
 } from "@/components/gallery/header-styles";
 import { usePhotosNavigation } from "@/components/gallery/navigation/PhotosNavigationContext";
+import { SectionBackButton } from "@/components/gallery/SectionBackButton";
 import { downloadAndSaveCollectionFiles } from "@/services/save";
 import {
     CleanIcon,
@@ -27,7 +28,6 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import ArchiveOutlinedIcon from "@mui/icons-material/ArchiveOutlined";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CheckIcon from "@mui/icons-material/Check";
 import LinkIcon from "@mui/icons-material/Link";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
@@ -103,15 +103,16 @@ export interface CollectionHeaderProps {
     hasActiveFileSelection: boolean;
     onAddSaveGroup: AddSaveGroup;
     showBackToAlbums: boolean;
+    showSectionBack?: boolean;
     onDescriptionHeightChange?: (height: number) => void;
 }
 
 export const CollectionHeader: React.FC<CollectionHeaderProps> = (props) => {
-    const { backToAlbums } = usePhotosNavigation();
     const {
         activeCollection,
         collectionSummary,
         showBackToAlbums,
+        showSectionBack,
         onDescriptionHeightChange,
     } = props;
     const showCover = useMediaQuery(useTheme().breakpoints.up("sm"));
@@ -167,16 +168,8 @@ export const CollectionHeader: React.FC<CollectionHeaderProps> = (props) => {
                         ...(isAlbum && { gridArea: "summary" }),
                     }}
                 >
-                    {isAlbum && showBackToAlbums && (
-                        <Tooltip title={t("go_back")}>
-                            <IconButton
-                                aria-label={t("go_back")}
-                                onClick={backToAlbums}
-                                sx={headerIconButtonSx}
-                            >
-                                <ArrowBackIcon />
-                            </IconButton>
-                        </Tooltip>
+                    {((isAlbum && showBackToAlbums) || showSectionBack) && (
+                        <SectionBackButton compact={showSectionBack ?? false} />
                     )}
                     {isAlbum && showCover && (
                         <Box
@@ -192,11 +185,15 @@ export const CollectionHeader: React.FC<CollectionHeaderProps> = (props) => {
                     )}
                     <GalleryItemsSummary
                         nameProps={
-                            isAlbum
-                                ? { sx: { overflowWrap: "anywhere" } }
-                                : undefined
+                            isAlbum ? { noWrap: true, title: name } : undefined
                         }
-                        name={name}
+                        name={
+                            type == "hiddenItems"
+                                ? t("hidden_items")
+                                : type == "archiveItems"
+                                  ? t("archived_items")
+                                  : name
+                        }
                         description={isAlbum ? undefined : description}
                         descriptionMaxWidth={480}
                         onDescriptionHeightChange={

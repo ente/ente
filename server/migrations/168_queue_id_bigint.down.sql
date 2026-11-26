@@ -1,0 +1,1 @@
+-- no-op: narrowing BIGINT queue_id back to INTEGER is unsafe once IDs exceed int4 range

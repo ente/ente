@@ -1,6 +1,7 @@
 use crate::accounts::Error as AccountsError;
 use ente_accounts::{auth, signup};
 use ente_core::b64;
+use ente_core::crypto::Key;
 use serde::Serialize;
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
@@ -37,6 +38,7 @@ pub fn auth_generate_interactive_key_attributes(
 ) -> Result<JsValue, AccountsError> {
     let master_key =
         b64::decode(master_key).map_err(|error| ente_accounts::Error::Decode(error.to_string()))?;
+    let master_key = Key::try_from_slice(&master_key).map_err(ente_accounts::Error::from)?;
     let (attributes, _) = auth::generate_key_attributes_for_new_password_with_strength(
         &master_key,
         &serde_wasm_bindgen::from_value(attributes)?,

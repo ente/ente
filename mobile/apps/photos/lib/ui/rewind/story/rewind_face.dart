@@ -1,8 +1,14 @@
-import "dart:typed_data";
+import "package:flutter/foundation.dart";
 
 class RewindFace {
-  const RewindFace({this.name, this.crop});
+  RewindFace({this.name, Uint8List? crop}) : _crop = ValueNotifier(crop);
 
   final String? name;
-  final Uint8List? crop;
+  final ValueNotifier<Uint8List?> _crop;
+
+  Uint8List? get crop => _crop.value;
+
+  ValueListenable<Uint8List?> get liveCrop => _crop;
+
+  void sharpen(Uint8List crop) => _crop.value = crop;
 }

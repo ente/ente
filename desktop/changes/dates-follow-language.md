@@ -1,1 +1,0 @@
-- Fixed dates and times not following the selected app language. - @y9ndra
