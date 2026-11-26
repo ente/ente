@@ -123,7 +123,7 @@ class FlagService {
 
   bool get enableMLInBackground => true;
 
-  bool get useRustForHeicDecoder => internalUser;
+  bool get useRustForHeicDecoder => true;
 
   bool get petEnabled => false;
 
