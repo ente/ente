@@ -41,9 +41,13 @@ Secrets let you securely store login information for websites and services. Keep
 
 Passwords are hidden by default. Tap the eye icon to reveal the password when needed.
 
+![Eye icon highlighted next to a hidden password in a secret on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-secret-reveal-callout-v1013.png){width=560px}
+
 ### Copy to clipboard
 
 Tap the copy button next to any field to copy it to your clipboard for easy pasting into login forms.
+
+![Copy button highlighted next to the password in a secret on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-secret-copy-callout-v1013.png){width=560px}
 
 ## Best practices
 

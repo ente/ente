@@ -51,6 +51,8 @@ Document scanning is available in the Locker mobile app on Android and iOS.
 5. Leave collections unselected to use **Uncategorized**, or select one or more collections
 6. Tap **Save** to upload
 
+![Menu button beside a file highlighted on Upload items, then Rename highlighted on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-file-rename-callout-v1013.png){width=560px}
+
 ## Example: Adding a secret
 
 1. Tap the **+** button
@@ -63,6 +65,8 @@ Document scanning is available in the Locker mobile app on Android and iOS.
 4. Leave collections unselected to use **Uncategorized**. Or select one or more collections to organize this item
 5. Tap **Save**
 
+![Secret form with Account, Username, Password and Additional notes on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-secret-form-v1013.png){width=560px}
+
 ## Organizing with collections
 
 Collections help you group related items together and control who can access them. Items can belong to multiple collections, so you can organize the same item in different ways.
@@ -72,6 +76,8 @@ When creating an item:
 1. Tap the collection field
 2. Leave all collections unselected to use **Uncategorized**. Or select an existing collection or create a new one
 3. Tap **Save**
+
+![Collections chips on a new item form on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-collection-picker-v1013.png){width=560px}
 
 Use Uncategorized for items you want to organize later.
 

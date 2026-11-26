@@ -36,6 +36,8 @@ When you create a public link:
 2. Tap the share button
 3. Tap **Share link**
 
+![Share button highlighted on a collection, then Link highlighted on the Share collection sheet on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-collection-share-link-callout-v1013.png){width=560px}
+
 ## Deleting a link
 
 ### For an item
@@ -45,12 +47,16 @@ When you create a public link:
 3. Tap **Delete link**
 4. Confirm deletion
 
+![Delete link highlighted on the share sheet for an item on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-delete-link-callout-v1013.png){width=560px}
+
 ### For a collection
 
 1. Open the collection
 2. Tap the share button
 3. Tap **Delete link**
 4. Confirm deletion
+
+![Remove link highlighted in collection link settings on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-collection-delete-link-callout-v1013.png){width=560px}
 
 The link will immediately stop working.
 

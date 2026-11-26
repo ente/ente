@@ -78,8 +78,6 @@ Securely share codes temporarily with others.
 
 ### Custom sorting
 
-![Edit order sheet with Issuer, Account, Frequently used, Recently used, Custom on Ente Auth mobile](https://docs-assets.ente.com/screenshots/auth-sort-callout.png){width=320px}
-
 Customize the order in which your codes are displayed. Ente Auth provides several sorting options:
 
 - Issuer name
@@ -90,6 +88,8 @@ Customize the order in which your codes are displayed. Ente Auth provides severa
 - Manual (custom drag-and-drop order)
 
 Access the sort menu in the top-right corner (next to the search icon) to change your sorting preference.
+
+![Newest first highlighted on the Edit order sheet on Ente Auth mobile](https://docs-assets.ente.com/screenshots/auth-sort-callout-v4427.png){width=560px}
 
 ### Offline mode
 
@@ -149,12 +149,12 @@ On Android, **Hide content** under `Settings > Security > App lock` blocks scree
 
 ### Import / Export
 
-![Import codes provider list on Ente Auth mobile](https://docs-assets.ente.com/screenshots/auth-import-hub.png){width=320px}
-
 Ente Auth offers various import and export options for your codes.
 
 - **Export:** Export your codes in plain text, as an encrypted file, or automatically via the CLI.
 - **Import:** Import codes from various other authentication apps.
+
+![Import codes provider list including Open Authenticator on Ente Auth mobile](https://docs-assets.ente.com/screenshots/auth-import-hub-v4427.png){width=560px}
 
 For detailed instructions, refer to the [migration guides](../migration/).
 

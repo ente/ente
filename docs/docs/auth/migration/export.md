@@ -13,6 +13,8 @@ description: Guide for exporting your 2FA codes out from Ente Auth
 4. Complete any device-authentication prompt and save the exported file in a private location outside the app. Keep a copy somewhere you can access after a device reset or change.
 5. Keep the export password safe. Ente cannot recover it for you. Before relying on the backup or removing the original codes, verify that you can import the file on another trusted installation and that the entries you need are present and work.
 
+![Menu button, Data, then Export codes highlighted, then Encrypted highlighted on the export format sheet on Ente Auth mobile](https://docs-assets.ente.com/screenshots/auth-settings-export-path-v4427.png){width=560px}
+
 Keep a working copy of your codes while testing an export. Do not send the export, its password, or the underlying setup keys to support.
 
 ## Auth Encrypted Export format
@@ -99,6 +101,8 @@ If you use Ente Auth in offline mode, encrypted exports and local backups are th
 2. Enable **Automatic backups**.
 3. Set a backup password (minimum 8 characters).
 4. Select a folder where backups will be stored.
+
+![Local backup screen with the Automatic backups toggle on Ente Auth mobile](https://docs-assets.ente.com/screenshots/auth-local-backup-settings-v4427.png){width=560px}
 
 **Manual backups:**
 

@@ -29,6 +29,8 @@ Ente Locker uses the same account system as Ente Photos and Ente Auth. If you al
 3. Enter your email and password
 4. If you have two-factor authentication enabled, enter your 2FA code
 
+![Login to existing account highlighted on the Ente Locker mobile welcome screen](https://docs-assets.ente.com/screenshots/locker-sign-in-v1013.png){width=560px}
+
 ## Using an existing Ente account
 
 If you already use Ente Photos or Ente Auth:
@@ -37,6 +39,8 @@ If you already use Ente Photos or Ente Auth:
 2. Tap **Sign in**
 3. Enter your existing Ente email and password
 4. Your Locker data is securely stored
+
+![Login to existing account highlighted on the welcome screen, then the email step on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-sign-in-existing-v1013.png){width=560px}
 
 ## Recovery key
 
@@ -72,6 +76,8 @@ Each of these counts as one item toward your limit:
 ### Checking your usage
 
 View your current usage in `Settings > Storage` to see how many items you have and how much storage you're using.
+
+![Locker menu button highlighted, then the Items stored card in the Locker menu on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-settings-storage-v1013.png){width=560px}
 
 ### Upgrading your plan
 
