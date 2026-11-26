@@ -13,7 +13,7 @@
         "ente-gallery": "*",
         "ente-photos-wasm": "*",
         "ente-utils": "*",
-        "i18next": "26.4.2",
+        "i18next": "27.2.2",
         "react": "19.3.1"
     },
     "devDependencies": {
