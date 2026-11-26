@@ -1,0 +1,1 @@
+- Rewind refreshes after photo analysis runs so newly available cards can appear sooner.
