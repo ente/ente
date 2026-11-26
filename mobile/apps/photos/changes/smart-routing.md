@@ -1,1 +1,0 @@
-- Renamed the Faster uploads setting to Smart routing.

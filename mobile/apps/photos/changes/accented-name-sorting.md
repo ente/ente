@@ -1,1 +1,0 @@
-- Fixed sorting of names with accented letters, which were listed after Z.

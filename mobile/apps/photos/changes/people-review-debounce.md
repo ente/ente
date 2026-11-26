@@ -1,1 +1,0 @@
-- Refresh reviewed face suggestions correctly when syncing finishes during the People page refresh delay.

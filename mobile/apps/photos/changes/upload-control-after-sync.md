@@ -1,1 +1,0 @@
-- Fixed the upload action staying hidden after a sync finishes.

@@ -1,1 +1,0 @@
-- Corrected translations that misdescribed passkeys, recovery keys, legacy contacts, sharing, backups, and deletion warnings in several languages.

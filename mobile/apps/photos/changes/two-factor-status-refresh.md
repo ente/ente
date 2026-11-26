@@ -1,1 +1,0 @@
-- Removed unnecessary two-factor status requests during startup and background sync. Security checks the current status before allowing changes.

@@ -1,1 +1,0 @@
-- Fixed iOS sign-in to self-hosted servers that use a private certificate authority trusted by the device.

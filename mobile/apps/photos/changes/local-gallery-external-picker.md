@@ -1,1 +1,0 @@
-- Added search and album browsing when attaching photos and videos from the Android local gallery.
