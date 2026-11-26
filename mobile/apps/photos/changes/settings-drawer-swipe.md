@@ -1,1 +1,0 @@
-- Shortened the swipe needed to open Settings from the home gallery.

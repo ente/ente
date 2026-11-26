@@ -1,1 +1,0 @@
-- Improved thumbnail loading in old photo review and added the full photo viewer when opening a photo.

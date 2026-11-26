@@ -1,1 +1,0 @@
-- Hid app content earlier during iOS app-lock transitions.
