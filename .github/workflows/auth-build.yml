@@ -221,7 +221,7 @@ jobs:
                   serviceAccountJsonPlainText: ${{ secrets.SERVICE_ACCOUNT_JSON }}
                   packageName: io.ente.auth
                   releaseFiles: mobile/apps/auth/wear/app/build/outputs/bundle/release/app-release.aab
-                  tracks: wear:qa
+                  tracks: wear:internal
                   whatsNewDirectory: mobile/apps/auth/whatsnew
 
     build-linux:
