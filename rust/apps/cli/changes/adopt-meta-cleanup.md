@@ -1,0 +1,1 @@
+- Fixed `photos export --adopt` leaving some old `.meta` sidecars behind in large albums on network drives.
