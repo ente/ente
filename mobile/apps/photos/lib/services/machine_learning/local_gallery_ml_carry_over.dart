@@ -165,6 +165,9 @@ Future<Set<FileMLInstruction>> _carryOver(
   if (carriedFileCount > 0) {
     await MLDataDB.instance.bulkInsertFaces(carriedFaces);
     await MLDataDB.instance.putClip(carriedClips);
+    if (carriedClips.isNotEmpty) {
+      magicCacheService.queueUpdate("ML carried over");
+    }
     _logger.info(
       "Carried over local gallery ML results for $carriedFileCount files",
     );
