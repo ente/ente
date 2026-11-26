@@ -305,8 +305,14 @@ pub async fn enable_two_factor(
     recovery_key: &str,
     code: &str,
 ) -> Result<(), Error> {
-    lifecycle::enable_two_factor(&client.0.with_auth_token(token), secret, recovery_key, code)
-        .await?;
+    let recovery_key = ente_accounts::auth::recovery_key_from_mnemonic_or_hex(recovery_key)?;
+    lifecycle::enable_two_factor(
+        &client.0.with_auth_token(token),
+        secret,
+        &recovery_key,
+        code,
+    )
+    .await?;
     Ok(())
 }
 
@@ -316,7 +322,8 @@ pub async fn passkey_management_url(
     token: String,
     recovery_key: &str,
 ) -> Result<String, Error> {
-    lifecycle::passkey_management_url(&client.0.with_auth_token(token), recovery_key)
+    let recovery_key = ente_accounts::auth::recovery_key_from_mnemonic_or_hex(recovery_key)?;
+    lifecycle::passkey_management_url(&client.0.with_auth_token(token), &recovery_key)
         .await
         .map_err(Into::into)
 }
