@@ -9,31 +9,16 @@ import "package:photos/models/ml/vector.dart";
 import "package:photos/services/machine_learning/face_ml/face_clustering/face_clustering_service.dart";
 import "package:photos/services/machine_learning/ml_constants.dart";
 import "package:photos/services/machine_learning/ml_exceptions.dart";
-import "package:photos/services/machine_learning/ml_result.dart";
 import "package:photos/services/machine_learning/semantic_search/query_result.dart";
 import "package:photos/src/rust/api/image_processing_api.dart"
     as rust_image_processing;
 import "package:photos/src/rust/api/ml_indexing_api.dart" as rust_ml;
 import "package:photos/src/rust/frb_generated.dart" show EntePhotosRust;
-import "package:photos/utils/ml_util.dart";
 
 final Map<String, dynamic> _isolateCache = {};
 const _rustLibLoadedCacheKey = "rustLibLoaded";
-const _rustMlRuntimeConfigCacheKey = "rustMlRuntimeConfig";
-
-class RustCorruptModelException implements Exception {
-  const RustCorruptModelException(this.modelPath);
-
-  final String modelPath;
-
-  @override
-  String toString() => "RustCorruptModelException: $modelPath";
-}
 
 enum IsolateOperation {
-  analyzeImage,
-  prepareRustMlRuntime,
-  releaseRustMlRuntime,
   generateFaceThumbnails,
   runClipText,
   computeBulkSimilarities,
@@ -81,31 +66,6 @@ Future<dynamic> isolateFunction(
         BigInt.from(100),
         exact: exact,
       );
-
-    case IsolateOperation.analyzeImage:
-      await _ensureRustLoaded();
-      final MLResult result;
-      try {
-        result = await analyzeImageRust(args);
-      } on rust_ml.RustMlError_CorruptModel catch (e) {
-        return RustCorruptModelException(e.message);
-      } on ModelDownloadNetworkException catch (e) {
-        return e;
-      }
-      return result.toJsonString();
-
-    case IsolateOperation.prepareRustMlRuntime:
-      await _ensureRustLoaded();
-      try {
-        await _ensureRustRuntimePrepared(args);
-      } on rust_ml.RustMlError_ModelDownloadNetwork catch (e) {
-        return ModelDownloadNetworkException(e.message);
-      }
-      return true;
-
-    case IsolateOperation.releaseRustMlRuntime:
-      await _releaseRustRuntime();
-      return true;
 
     case IsolateOperation.generateFaceThumbnails:
       final imagePath = args['imagePath'] as String;
@@ -220,42 +180,10 @@ Future<void> _ensureRustLoaded() async {
 Future<void> _ensureRustDisposed() async {
   // Intentionally a no-op.
   //
-  // Rust ML residency is owned by the feature isolate that prepared it.
+  // Rust ML residency is owned by MLIndexingRuntime on the main isolate.
   // The generic cache-clear path runs in multiple rust-using isolates, so
   // letting it call process-global ML teardown would allow unrelated isolates
-  // to release indexing sessions they do not own. MLIndexingIsolate tracks
+  // to release indexing sessions they do not own. MLIndexingRuntime tracks
   // whether it prepared the runtime and releases it explicitly during its own
   // cleanup, even if the app mode or flags have changed since preparation.
-}
-
-Future<void> _ensureRustRuntimePrepared(Map<String, dynamic> args) async {
-  // Configure execution behavior before any ONNX session is created.
-  await rust_ml.setMlExecutionConfig(
-    enableWebgpu: (args["enableWebGpu"] as bool?) ?? false,
-  );
-  final assetsDir = args["assetsDir"] as String;
-  final preparePets = (args["preparePets"] as bool?) ?? false;
-  final runtimeConfigKey = "$assetsDir|$preparePets";
-  if (_isolateCache[_rustMlRuntimeConfigCacheKey] == runtimeConfigKey) return;
-
-  await rust_ml.initMlRuntime(
-    assetsDir: assetsDir,
-    runFaces: true,
-    runClip: true,
-    runPets: preparePets,
-  );
-  _isolateCache[_rustMlRuntimeConfigCacheKey] = runtimeConfigKey;
-}
-
-Future<void> _releaseRustRuntime() async {
-  final bool loaded = _isolateCache[_rustLibLoadedCacheKey] as bool? ?? false;
-  if (!loaded) {
-    return;
-  }
-  try {
-    await rust_ml.releaseMlRuntime();
-  } catch (_) {
-    // no-op: indexing-model release is best-effort.
-  }
-  _isolateCache.remove(_rustMlRuntimeConfigCacheKey);
 }

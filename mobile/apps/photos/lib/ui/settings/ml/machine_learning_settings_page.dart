@@ -13,7 +13,7 @@ import "package:photos/events/notification_event.dart";
 import "package:photos/events/tab_changed_event.dart";
 import "package:photos/models/home_tab.dart";
 import "package:photos/service_locator.dart";
-import "package:photos/services/machine_learning/ml_indexing_isolate.dart";
+import "package:photos/services/machine_learning/ml_indexing_runtime.dart";
 import "package:photos/services/machine_learning/ml_model_download_service.dart";
 import "package:photos/services/machine_learning/ml_run_control.dart";
 import "package:photos/services/machine_learning/ml_service.dart";
@@ -247,7 +247,7 @@ class _MachineLearningSettingsPageState
     memoriesCacheService.queueUpdateCache();
     Bus.instance.fire(NotificationEvent());
     MLService.instance.stopActiveRun(MlStopReason.manual);
-    unawaited(MLIndexingIsolate.instance.cleanupLocalIndexingModels());
+    unawaited(MLIndexingRuntime.instance.releaseRustRuntime());
     if (wasMlEnabled) {
       await memoriesCacheService.purgeMlOnlyMemoriesFromCache();
     }
@@ -294,9 +294,7 @@ class _MachineLearningSettingsPageState
                 unawaited(MLService.instance.runAllML(force: true));
               } else {
                 MLService.instance.stopActiveRun(MlStopReason.manual);
-                unawaited(
-                  MLIndexingIsolate.instance.cleanupLocalIndexingModels(),
-                );
+                unawaited(MLIndexingRuntime.instance.releaseRustRuntime());
                 if (oldMlEnabled && !newMlEnabled) {
                   await memoriesCacheService.purgeMlOnlyMemoriesFromCache();
                 }
