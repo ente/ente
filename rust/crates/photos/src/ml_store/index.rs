@@ -2,8 +2,9 @@ use std::ffi::OsStr;
 use std::fs;
 use std::io::{self, ErrorKind};
 use std::path::{Path, PathBuf};
-use std::sync::{PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::sync::{Arc, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
+use ente_core::crypto::Key;
 use ente_vecdb::{VecDb, VecDbError, validate_key};
 
 use super::{Error, IndexResult, Result, state};
@@ -80,15 +81,17 @@ pub(super) struct Slot {
     index: Index,
     path: PathBuf,
     legacy_prefix: PathBuf,
+    key: Option<Arc<Key>>,
     handle: RwLock<Option<VecDb>>,
 }
 
 impl Slot {
-    pub(super) fn new(index: Index, db_path: &Path, db_stem: &str) -> Self {
+    pub(super) fn new(index: Index, db_path: &Path, db_stem: &str, key: Option<Arc<Key>>) -> Self {
         Self {
             index,
             path: db_path.with_file_name(format!("{db_stem}.vecdb.{}", index.name())),
             legacy_prefix: db_path.with_file_name(format!("{db_stem}.vectordb.{}.", index.name())),
+            key,
             handle: RwLock::new(None),
         }
     }
@@ -151,15 +154,26 @@ impl Slot {
         if self.files_are_missing() {
             state::invalidate_lost_index(db, self.index, &self.path)?;
         }
-        match VecDb::open(&self.path, self.index.dims(), None) {
-            Err(error) if is_unusable(&error) => {
+        match self.open_vecdb() {
+            Err(error) if self.must_rebuild(&error) => {
                 log::warn!("{}: {error}; purging the index", self.path.display());
                 state::mark_stale(db, self.index)?;
                 VecDb::purge(&self.path)?;
-                VecDb::open(&self.path, self.index.dims(), None).map_err(Into::into)
+                self.open_vecdb().map_err(Into::into)
             }
             opened => opened.map_err(Into::into),
         }
+    }
+
+    fn open_vecdb(&self) -> IndexResult<VecDb> {
+        match &self.key {
+            Some(key) => VecDb::open_encrypted(&self.path, self.index.dims(), None, key),
+            None => VecDb::open(&self.path, self.index.dims(), None),
+        }
+    }
+
+    fn must_rebuild(&self, error: &VecDbError) -> bool {
+        is_unusable(error) || (self.key.is_some() && matches!(error, VecDbError::Encryption { .. }))
     }
 
     fn files_are_missing(&self) -> bool {
@@ -251,18 +265,21 @@ fn warn_unless_not_found(path: &Path, error: &io::Error) {
 
 #[cfg(test)]
 mod tests {
+    use std::cell::Cell;
     use std::collections::HashMap;
     use std::fs;
     use std::path::Path;
 
-    use ente_vecdb::{StorageKind, VecDb};
+    use ente_core::crypto::Key;
+    use ente_vecdb::{EncryptionMismatch, StorageKind, VecDb, VecDbError};
+    use tempfile::TempDir;
 
     use super::{Index, scan_directory};
     use crate::db::Connection;
     use crate::ml_db::CLIP_EMBEDDING_DIMENSIONS;
     use crate::ml_store::tests::{
         DB_FILE, all_exist, centroid, clips, create_usearch_files, index_path, live_count,
-        lose_index_files, meta, one_hot, open, open_with_unusable_clip_index,
+        lose_index_files, meta, one_hot, open, open_in, open_with_unusable_clip_index,
     };
     use crate::ml_store::{Error, FillOutcome, FillReport, FillState, MlStore};
 
@@ -282,6 +299,121 @@ mod tests {
         assert!(matches!(
             MlStore::open(directory.path().join("..")),
             Err(Error::InvalidArgument(_))
+        ));
+    }
+
+    fn open_encrypted(directory: &TempDir, key: u8) -> MlStore {
+        MlStore::open_encrypted(
+            directory.path().join(DB_FILE),
+            |_| Ok(()),
+            Key::from_bytes([key; Key::BYTES]),
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn encrypted_store_writes_indexes_that_only_its_key_opens() {
+        let directory = tempfile::tempdir().unwrap();
+        let store = open_encrypted(&directory, 7);
+        store.db().insert_clip_rows(&clips(1..=50)).unwrap();
+        assert_eq!(store.fill_clip_index(false).unwrap().indexed, 50);
+        store.release().unwrap();
+        drop(store);
+
+        let path = index_path(&directory, Index::Clip);
+        assert!(matches!(
+            VecDb::open(&path, CLIP_EMBEDDING_DIMENSIONS, None),
+            Err(VecDbError::Encryption {
+                mismatch: EncryptionMismatch::MissingKey,
+                ..
+            })
+        ));
+        let reopened = open_encrypted(&directory, 7);
+        assert_eq!(reopened.fill_state(Index::Clip).unwrap(), FillState::Filled);
+        assert!(reopened.contains(Index::Clip, "1").unwrap());
+        assert_eq!(live_count(&reopened, Index::Clip), 50);
+    }
+
+    #[test]
+    fn encrypted_store_rebuilds_an_index_it_cannot_decrypt() {
+        let writers: [fn(&TempDir) -> MlStore; 2] =
+            [|directory| open_encrypted(directory, 9), open_in];
+        for write in writers {
+            let directory = tempfile::tempdir().unwrap();
+            let store = write(&directory);
+            store.db().insert_clip_rows(&clips(1..=50)).unwrap();
+            store.fill_clip_index(false).unwrap();
+            store.release().unwrap();
+            drop(store);
+
+            let store = open_encrypted(&directory, 7);
+            assert!(!store.contains(Index::Clip, "1").unwrap());
+            assert_eq!(store.fill_state(Index::Clip).unwrap(), FillState::Stale);
+            assert_eq!(store.fill_clip_index(false).unwrap().indexed, 50);
+            assert!(store.contains(Index::Clip, "1").unwrap());
+            store.release().unwrap();
+            drop(store);
+            assert!(
+                VecDb::open_encrypted(
+                    &index_path(&directory, Index::Clip),
+                    CLIP_EMBEDDING_DIMENSIONS,
+                    None,
+                    &Key::from_bytes([7; Key::BYTES]),
+                )
+                .is_ok()
+            );
+        }
+    }
+
+    #[test]
+    fn plaintext_store_reports_an_encrypted_index_without_purging_it() {
+        let directory = tempfile::tempdir().unwrap();
+        let store = open_encrypted(&directory, 7);
+        store.db().insert_clip_rows(&clips(1..=5)).unwrap();
+        store.fill_clip_index(false).unwrap();
+        store.release().unwrap();
+        drop(store);
+
+        let plaintext = open_in(&directory);
+        assert!(matches!(
+            plaintext.contains(Index::Clip, "1"),
+            Err(Error::Index(VecDbError::Encryption {
+                mismatch: EncryptionMismatch::MissingKey,
+                ..
+            }))
+        ));
+        assert_eq!(meta(&plaintext, "clip.fill").as_deref(), Some("filled"));
+        drop(plaintext);
+        assert!(
+            open_encrypted(&directory, 7)
+                .contains(Index::Clip, "1")
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn encrypted_store_sets_up_every_database_connection() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join(DB_FILE);
+        let setups = Cell::new(0);
+        let store = MlStore::open_encrypted(
+            &path,
+            |_| {
+                setups.set(setups.get() + 1);
+                Ok(())
+            },
+            Key::generate(),
+        )
+        .unwrap();
+        assert_eq!(setups.get(), 3);
+        drop(store);
+        assert!(matches!(
+            MlStore::open_encrypted(
+                &path,
+                |connection| connection.execute_batch("SELECT * FROM missing"),
+                Key::generate(),
+            ),
+            Err(Error::Database(_))
         ));
     }
 

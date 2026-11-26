@@ -6,7 +6,7 @@ pub(crate) mod vector_encoding;
 use std::num::NonZeroUsize;
 use std::path::Path;
 
-use crate::db::{self, Database, OpenOptions};
+use crate::db::{self, Connection, Database, OpenOptions};
 
 pub use queries::clip::{
     CLIP_EMBEDDING_BYTES_LENGTH, CLIP_EMBEDDING_DIMENSIONS, CLIP_ML_VERSION, ClipEmbedding,
@@ -55,12 +55,20 @@ const CLEAR_PET_TABLES: [&str; 4] = [
 
 impl MlDb {
     pub fn open(path: impl AsRef<Path>) -> Result<Self> {
+        Self::open_with_setup(path, |_| Ok(()))
+    }
+
+    pub fn open_with_setup(
+        path: impl AsRef<Path>,
+        setup: impl Fn(&Connection) -> db::Result<()>,
+    ) -> Result<Self> {
         Ok(Self {
-            db: Database::open(
+            db: Database::open_with_setup(
                 path,
                 OpenOptions {
                     reader_count: const { NonZeroUsize::new(2).unwrap() },
                 },
+                setup,
                 |connection| {
                     connection.execute_batch(
                         "PRAGMA synchronous = NORMAL; PRAGMA journal_size_limit = 6291456;",

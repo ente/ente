@@ -160,13 +160,23 @@ impl Database {
         options: OpenOptions,
         initialize: impl FnOnce(&mut Connection) -> std::result::Result<(), E>,
     ) -> std::result::Result<Self, E> {
+        Self::open_with_setup(path, options, |_| Ok(()), initialize)
+    }
+
+    pub fn open_with_setup<E: From<Error>>(
+        path: impl AsRef<Path>,
+        options: OpenOptions,
+        setup: impl Fn(&Connection) -> Result<()>,
+        initialize: impl FnOnce(&mut Connection) -> std::result::Result<(), E>,
+    ) -> std::result::Result<Self, E> {
         let path = path.as_ref();
         let mut writer = Connection::open(path)?;
+        setup(&writer)?;
         writer.0.busy_timeout(BUSY_TIMEOUT).map_err(Error::from)?;
         writer.pragma_update("journal_mode", "WAL")?;
         initialize(&mut writer)?;
         let readers = (0..options.reader_count.get())
-            .map(|_| open_reader(path))
+            .map(|_| open_reader(path, &setup))
             .collect::<Result<Vec<_>>>()?;
         Ok(Self {
             pool: Pool::new(writer, readers),
@@ -194,13 +204,14 @@ impl Database {
     }
 }
 
-fn open_reader(path: &Path) -> Result<Connection> {
+fn open_reader(path: &Path, setup: impl Fn(&Connection) -> Result<()>) -> Result<Connection> {
     let flags = OpenFlags::SQLITE_OPEN_READ_ONLY
         | OpenFlags::SQLITE_OPEN_URI
         | OpenFlags::SQLITE_OPEN_NO_MUTEX;
-    let connection = rusqlite::Connection::open_with_flags(path, flags)?;
-    connection.busy_timeout(BUSY_TIMEOUT)?;
-    Ok(Connection(connection))
+    let connection = Connection(rusqlite::Connection::open_with_flags(path, flags)?);
+    setup(&connection)?;
+    connection.0.busy_timeout(BUSY_TIMEOUT)?;
+    Ok(connection)
 }
 
 struct Pool {
@@ -273,6 +284,7 @@ fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
 
 #[cfg(test)]
 mod tests {
+    use std::cell::{Cell, RefCell};
     use std::num::NonZeroUsize;
     use std::panic::{AssertUnwindSafe, catch_unwind};
     use std::sync::mpsc::{self, RecvTimeoutError};
@@ -426,8 +438,63 @@ mod tests {
     fn read_only_connection_does_not_create_database() {
         let directory = tempfile::tempdir().unwrap();
         let path = directory.path().join("missing.db");
-        assert!(open_reader(&path).is_err());
+        assert!(open_reader(&path, |_| Ok(())).is_err());
         assert!(!path.exists());
+    }
+
+    #[test]
+    fn open_with_setup_configures_every_connection_before_anything_else() {
+        let directory = tempfile::tempdir().unwrap();
+        let journals = RefCell::new(Vec::<String>::new());
+        let db = Database::open_with_setup(
+            directory.path().join("items.db"),
+            OpenOptions {
+                reader_count: NonZeroUsize::new(2).unwrap(),
+            },
+            |connection| {
+                journals
+                    .borrow_mut()
+                    .push(connection.pragma_query_value("journal_mode", |row| Ok(row.get(0)?))?);
+                connection.execute_batch("PRAGMA cache_size = -1234")
+            },
+            |connection| connection.execute_batch("CREATE TABLE items (id INTEGER PRIMARY KEY)"),
+        )
+        .unwrap();
+        assert_eq!(journals.into_inner(), ["delete", "wal", "wal"]);
+        let cache_size = |connection: &Connection| -> i64 {
+            connection
+                .pragma_query_value("cache_size", |row| Ok(row.get(0)?))
+                .unwrap()
+        };
+        let readers = lock(&db.pool.readers);
+        assert_eq!(
+            readers.iter().map(cache_size).collect::<Vec<_>>(),
+            [-1234, -1234]
+        );
+        assert_eq!(cache_size(&lock(&db.pool.writer)), -1234);
+    }
+
+    #[test]
+    fn open_with_setup_stops_before_the_journal_mode_when_setup_fails() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("items.db");
+        let initialized = Cell::new(false);
+        let result = Database::open_with_setup(
+            &path,
+            OpenOptions::default(),
+            |connection| connection.execute_batch("SELECT * FROM missing"),
+            |_| {
+                initialized.set(true);
+                Ok::<_, Error>(())
+            },
+        );
+        assert!(result.is_err());
+        assert!(!initialized.get());
+        let journal: String = Connection::open(&path)
+            .unwrap()
+            .pragma_query_value("journal_mode", |row| Ok(row.get(0)?))
+            .unwrap();
+        assert_eq!(journal, "delete");
     }
 
     #[test]
