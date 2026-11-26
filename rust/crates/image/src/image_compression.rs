@@ -6,7 +6,6 @@ use image::{
     ColorType, ImageEncoder,
     codecs::{jpeg::JpegEncoder, png::PngEncoder},
 };
-use jpeg_encoder::{ChromaSubsamplingMethod, SamplingFactor};
 
 use crate::{
     decode::decode_image_from_bytes,
@@ -20,7 +19,6 @@ pub const FACE_THUMBNAIL_MIN_DIMENSION: u32 = 512;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum EncodedImageFormat {
     Jpeg { quality: u8 },
-    Jpeg420 { quality: u8 },
     Png,
 }
 
@@ -103,15 +101,6 @@ pub fn encode_rgb(
                 .write_image(rgb_bytes, width, height, ColorType::Rgb8.into())
                 .map_err(|e| ImageError::Postprocess(format!("failed to encode JPEG: {e}")))?;
         }
-        EncodedImageFormat::Jpeg420 { quality } => {
-            let (width, height) = jpeg_dimensions(width, height)?;
-            let mut encoder = jpeg_encoder::Encoder::new(&mut encoded, quality);
-            encoder.set_sampling_factor(SamplingFactor::R_4_2_0);
-            encoder.set_chroma_subsampling_method(ChromaSubsamplingMethod::Average);
-            encoder
-                .encode(rgb_bytes, width, height, jpeg_encoder::ColorType::Rgb)
-                .map_err(|e| ImageError::Postprocess(format!("failed to encode JPEG: {e}")))?;
-        }
         EncodedImageFormat::Png => {
             PngEncoder::new(&mut encoded)
                 .write_image(rgb_bytes, width, height, ColorType::Rgb8.into())
@@ -119,15 +108,6 @@ pub fn encode_rgb(
         }
     }
     Ok(encoded)
-}
-
-fn jpeg_dimensions(width: u32, height: u32) -> ImageResult<(u16, u16)> {
-    match (u16::try_from(width), u16::try_from(height)) {
-        (Ok(width), Ok(height)) => Ok((width, height)),
-        _ => Err(ImageError::Postprocess(format!(
-            "{width}x{height} exceeds the JPEG dimension limit"
-        ))),
-    }
 }
 
 fn target_dimensions(width: u32, height: u32, max_long_edge: u32) -> ImageResult<(u32, u32)> {
@@ -215,38 +195,6 @@ mod tests {
         assert!(!encoded.is_empty());
         image::load_from_memory_with_format(&encoded, ImageFormat::Jpeg)
             .expect("encoded bytes should be valid JPEG");
-    }
-
-    #[test]
-    fn encode_rgb_jpeg_420_subsamples_chroma() {
-        let rgb = RgbImage::from_fn(64, 32, |x, y| {
-            image::Rgb([(x * 4) as u8, (y * 8) as u8, 128])
-        });
-        let encoded = encode_rgb(&rgb, 64, 32, EncodedImageFormat::Jpeg420 { quality: 95 })
-            .expect("jpeg encoding should succeed");
-        let decoded = image::load_from_memory_with_format(&encoded, ImageFormat::Jpeg)
-            .expect("encoded bytes should be valid JPEG");
-
-        assert_eq!((decoded.width(), decoded.height()), (64, 32));
-        assert_eq!(component_sampling_factors(&encoded), [0x22, 0x11, 0x11]);
-    }
-
-    #[test]
-    fn encode_rgb_jpeg_420_rejects_dimensions_beyond_jpeg_limit() {
-        let width = u32::from(u16::MAX) + 1;
-        let rgb = vec![0; width as usize * 3];
-        let result = encode_rgb(&rgb, width, 1, EncodedImageFormat::Jpeg420 { quality: 95 });
-
-        assert!(result.is_err());
-    }
-
-    fn component_sampling_factors(jpeg: &[u8]) -> [u8; 3] {
-        let start_of_frame = jpeg
-            .windows(2)
-            .position(|marker| marker == [0xFF, 0xC0])
-            .expect("baseline JPEG should have a start-of-frame marker");
-        let components = &jpeg[start_of_frame + 10..];
-        [components[1], components[4], components[7]]
     }
 
     #[test]
