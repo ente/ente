@@ -300,7 +300,7 @@ pub async fn conversation_prepare(
             context: context.context_size() as usize,
             output: Some(input.max_tokens),
             candidates,
-        }, &chrono::Local).map_err(ApiError::from)?;
+        }, &conversation::LocalTimeZone).map_err(ApiError::from)?;
         let mut effects = NativeEffects {
             app,
             window: work_window,

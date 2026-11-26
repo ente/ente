@@ -3,7 +3,7 @@ name = "ente-ensu"
 edition.workspace = true
 
 [dependencies]
-chrono = { workspace = true, features = ["std"] }
+chrono = { workspace = true, features = ["clock"] }
 ente-assets.workspace = true
 ente-core.workspace = true
 ente-ensu-crypto.workspace = true

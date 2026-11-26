@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex, PoisonError};
 use std::time::{Duration, Instant};
 
 use ente_assets::{Asset, AssetStore, download};
-use ente_ensu::llm;
+use ente_ensu::{conversation::LocalTimeZone, llm};
 use serde::Serialize;
 use tauri::async_runtime;
 use tauri::{AppHandle, Emitter, Manager, State as TauriState, WebviewWindow};
@@ -660,7 +660,7 @@ pub async fn llm_generate_chat_stream(
             let mut sink = EventSink::new(window.clone());
             if let Some(turn) = turn {
                 let mut runner = ente_ensu::conversation::ContextRunner::begin(&context, &mut sink);
-                turn.generate(&mut runner, request, &mut sink, &chrono::Local)
+                turn.generate(&mut runner, request, &mut sink, &LocalTimeZone)
             } else {
                 request.tools = None;
                 context.generate_chat_stream(request, &mut sink)

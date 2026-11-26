@@ -1,4 +1,7 @@
-use ente_ensu::{conversation::GroundingCache, llm};
+use ente_ensu::{
+    conversation::{GroundingCache, LocalTimeZone},
+    llm,
+};
 
 use std::sync::Arc;
 use thiserror::Error;
@@ -326,7 +329,7 @@ impl LlmContext {
                     ente_ensu::conversation::ContextRunner::begin(&self.handle, &mut sink);
                 tools
                     .0
-                    .generate(&mut runner, request.into(), &mut sink, &chrono::Local)
+                    .generate(&mut runner, request.into(), &mut sink, &LocalTimeZone)
             }
             None => self.handle.generate_chat_stream(request.into(), &mut sink),
         }

@@ -3,7 +3,10 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use ente_core::b64;
-use ente_ensu::db::{self, ChatDb, SqliteBackend};
+use ente_ensu::{
+    conversation::LocalTimeZone,
+    db::{self, ChatDb, SqliteBackend},
+};
 use serde::{Deserialize, Serialize};
 use tauri::async_runtime;
 use tauri::{AppHandle, Manager, State};
@@ -422,7 +425,7 @@ pub async fn chat_db_finish_reply(
     let super::conversation::Answer { snapshot, turn } =
         conversation_state.take_answer(app, window.label(), &input.preparation_token)?;
     let finished = with_chat_db_async(&state, move |db| {
-        turn.finish(db, &snapshot, &input.text, Vec::new(), &chrono::Local)
+        turn.finish(db, &snapshot, &input.text, Vec::new(), &LocalTimeZone)
     })
     .await?;
     for warning in &finished.warnings {

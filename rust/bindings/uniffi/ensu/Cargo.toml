@@ -7,7 +7,6 @@ name = "ensu"
 crate-type = ["staticlib", "cdylib"]
 
 [dependencies]
-chrono = { workspace = true, features = ["clock"] }
 ente-assets.workspace = true
 ente-core.workspace = true
 ente-ensu = { workspace = true, features = ["transcription"] }
