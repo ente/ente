@@ -32,11 +32,14 @@ export const createApplicationMenu = (mainWindow: BrowserWindow) => {
             submenu: [
                 ...macOSOnly([{ label: "About Ente", role: "about" }]),
                 { type: "separator" },
-                {
-                    label: "Check for Updates...",
-                    click: handleCheckForUpdates,
-                    visible: !isFlatpak,
-                },
+                ...(isFlatpak
+                    ? []
+                    : [
+                          {
+                              label: "Check for Updates...",
+                              click: handleCheckForUpdates,
+                          },
+                      ]),
                 { type: "separator" },
 
                 ...macOSOnly([
