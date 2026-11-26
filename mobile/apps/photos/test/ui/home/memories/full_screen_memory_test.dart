@@ -103,12 +103,7 @@ void main() {
     FileLruCache.clearAll();
   });
 
-  Future<void> openMemory(
-    WidgetTester tester, {
-    bool isActive = true,
-    VoidCallback? onNextMemory,
-    ValueChanged<bool>? onMediaInteractionLockChanged,
-  }) async {
+  Future<void> openMemory(WidgetTester tester, {bool isActive = true}) async {
     await tester.pumpWidget(
       MaterialApp(
         theme: lightThemeData,
@@ -131,8 +126,6 @@ void main() {
               0,
               memoryID: "memory",
               isActive: isActive,
-              onNextMemory: onNextMemory,
-              onMediaInteractionLockChanged: onMediaInteractionLockChanged,
             ),
           ),
         ),
@@ -161,7 +154,7 @@ void main() {
   FileWidget media(WidgetTester tester) =>
       tester.widget<FileWidget>(find.byType(FileWidget));
 
-  testWidgets("a memory JPEG keeps its preview until a manual pinch settles", (
+  testWidgets("a memory JPEG keeps its preview and returns to fit on release", (
     tester,
   ) async {
     tester.view.devicePixelRatio = 2;
@@ -194,13 +187,7 @@ void main() {
     await waitFor(MemoryImage(imageBytes));
     expect(imageCache.statusForKey(fit).untracked, isTrue);
     expect(imageCache.statusForKey(detail).untracked, isTrue);
-    final interactionLocks = <bool>[];
-    var advanced = false;
-    await openMemory(
-      tester,
-      onNextMemory: () => advanced = true,
-      onMediaInteractionLockChanged: interactionLocks.add,
-    );
+    await openMemory(tester);
     await waitFor(fit);
     final preview = viewer().imageProvider;
     final startZoom = zoom(tester);
@@ -217,22 +204,19 @@ void main() {
     await right.moveTo(center + radius * 2);
     await tester.pump();
     expect(viewer().controller!.isZoomed, isTrue);
-    await left.up();
-    await tester.pump();
-    expect(imageCache.statusForKey(detail).untracked, isTrue);
-    await right.up();
-    await waitFor(detail);
     final pausedProgress = progress(tester);
-    await tester.pump(const Duration(seconds: 5));
-    expect(progress(tester), pausedProgress);
-    expect(viewer().controller!.isZoomed, isTrue);
-    await tester.tapAt(Offset(20, center.dy));
+    await left.up();
     await tester.pump(const Duration(seconds: 1));
     expect(progress(tester), pausedProgress);
-    await tester.tapAt(center);
+    expect(viewer().controller!.isZoomed, isTrue);
+    expect(imageCache.statusForKey(detail).untracked, isTrue);
+    await right.up();
     await tester.pump();
-    expect(advanced, isTrue);
-    expect(interactionLocks, [true, false]);
+    await tester.pump(viewer().animationDuration);
+    expect(viewer().controller!.isZoomed, isFalse);
+    expect(progress(tester), greaterThan(pausedProgress));
+    expect(viewer().imageProvider, same(preview));
+    expect(imageCache.statusForKey(detail).untracked, isTrue);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 50));
   });

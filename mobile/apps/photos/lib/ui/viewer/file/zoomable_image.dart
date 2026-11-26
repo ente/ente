@@ -499,6 +499,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
     }
     final source = _jpegSourceSize;
     final wantsDetail =
+        !widget.isFromMemories &&
         widget.isSelectedViewerPage == true &&
         _imageZoomController.transform.scale > 1.001 &&
         (!_imageZoomController.isZoomInProgress ||
