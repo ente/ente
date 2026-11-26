@@ -1,3 +1,5 @@
+import "dart:ui" show PlatformDispatcher;
+
 import "package:flutter/widgets.dart";
 import "package:shared_preferences/shared_preferences.dart";
 
@@ -36,21 +38,25 @@ Locale localResolutionCallBack(
   Iterable<Locale> supportedLocales,
 ) {
   _onDeviceLocales = deviceLocales ?? [];
+  final locale = _supportedDeviceLocale(_onDeviceLocales);
+  if (locale != null) {
+    autoDetectedLocale = locale;
+  }
+  return autoDetectedLocale ?? const Locale('en');
+}
+
+Locale? _supportedDeviceLocale(Iterable<Locale> deviceLocales) {
   final Set<String> languageSupport = {
     for (final locale in appSupportedLocales) locale.languageCode,
   };
-  for (final deviceLocale in _onDeviceLocales) {
+  for (final deviceLocale in deviceLocales) {
     final locale = _normalizedLocale(deviceLocale);
-    if (appSupportedLocales.contains(locale)) {
-      autoDetectedLocale = locale;
-      return locale;
-    }
-    if (languageSupport.contains(locale.languageCode)) {
-      autoDetectedLocale = locale;
+    if (appSupportedLocales.contains(locale) ||
+        languageSupport.contains(locale.languageCode)) {
       return locale;
     }
   }
-  return autoDetectedLocale ?? const Locale('en');
+  return null;
 }
 
 // Preserve the device region for dates, times, and numbers.
@@ -89,7 +95,8 @@ Future<Locale?> getLocale({bool noFallback = false}) async {
   if (noFallback) {
     return null;
   }
-  return const Locale('en');
+  return _supportedDeviceLocale(PlatformDispatcher.instance.locales) ??
+      const Locale('en');
 }
 
 Future<void> setLocale(Locale locale) async {
