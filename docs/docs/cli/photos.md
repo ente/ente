@@ -55,7 +55,9 @@ Characters that are not portable across filesystems are replaced with `_` in nam
 
 ## Keep an export updated
 
-Run the same command again. Unchanged files are reused, new files are exported, renamed albums are renamed on disk, removed items move to `Trash/`, and every metadata file is regenerated. Edits you make to an exported original are protected: the CLI leaves the file alone, reports `conflict: at /home/alice/Pictures/Ente/Holidays/IMG_0001.jpg: locally changed media`, and counts it under `failures (conflicts)`. A file of your own that occupies a path the export needs is reported the same way and left alone. To take the library version again, move the edited file elsewhere and rerun; a missing original is downloaded again.
+Run the same command again. Unchanged files are reused, new files are exported, renamed albums are renamed on disk, and removed items move to `Trash/`. The CLI leaves matching album and photo metadata files in place. When the CLI detects edits to a generated metadata file, it restores the library version.
+
+Edits you make to an exported original are protected: the CLI leaves the file alone, reports `conflict: at /home/alice/Pictures/Ente/Holidays/IMG_0001.jpg: locally changed media`, and counts it under `failures (conflicts)`. A file of your own that occupies a path the export needs is reported the same way and left alone. To take the library version again, move the edited file elsewhere and rerun; a missing original is downloaded again.
 
 ## Save space with hard links
 
