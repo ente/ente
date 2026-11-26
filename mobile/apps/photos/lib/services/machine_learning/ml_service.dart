@@ -34,7 +34,6 @@ import "package:photos/services/machine_learning/ml_model_download_service.dart"
 import "package:photos/services/machine_learning/ml_process_lock.dart";
 import "package:photos/services/machine_learning/ml_result.dart";
 import "package:photos/services/machine_learning/ml_run_control.dart";
-import "package:photos/services/machine_learning/semantic_search/semantic_search_service.dart";
 import "package:photos/services/search_service.dart";
 import "package:photos/services/video_preview_service.dart";
 import "package:photos/utils/isolate/isolate_operations.dart";
@@ -499,10 +498,6 @@ class MLService {
         _logRunStopped(control, "after initial clustering");
         return MlRunDisposition.stopped;
       }
-      if (control.stopRequested) {
-        _logRunStopped(control, "before indexing");
-        return MlRunDisposition.stopped;
-      }
       if (canFetch()) {
         await _fetchAndIndexAllImages(
           mode: mode,
@@ -702,11 +697,8 @@ class MLService {
           break;
         }
         if (!allowImageIndexing || !localSettings.isMLLocalIndexingEnabled) {
-          if (rustRuntimePrepared) {
-            await MLIndexingIsolate.instance.releaseRustRuntime();
-            rustRuntimePrepared = false;
-          }
-          await MLIndexingIsolate.instance.cleanupLocalIndexingModels();
+          await MLIndexingIsolate.instance.releaseRustRuntime();
+          rustRuntimePrepared = false;
           continue;
         } else if (!(isLocalGalleryMode || await canUseHighBandwidth())) {
           _logger.info(
@@ -762,8 +754,12 @@ class MLService {
       if (fileAnalyzedCount > 0) {
         magicCacheService.queueUpdate('fileIndexed');
       }
+      final elapsedSeconds = stopwatch.elapsed.inSeconds;
+      final average = fileAnalyzedCount == 0
+          ? ""
+          : " (avg of ${elapsedSeconds / fileAnalyzedCount} seconds per image)";
       _logger.info(
-        "`indexAllImages()` finished. Analyzed $fileAnalyzedCount images, in ${stopwatch.elapsed.inSeconds} seconds (avg of ${stopwatch.elapsed.inSeconds / fileAnalyzedCount} seconds per image)",
+        "`indexAllImages()` finished. Analyzed $fileAnalyzedCount images, in $elapsedSeconds seconds$average",
       );
       _logStatus();
     } on RustCorruptModelException catch (e) {
@@ -956,19 +952,13 @@ class MLService {
       }
       if (result.facesRan) await mlDataDB.bulkInsertFaces(faces);
       if (result.clipRan) {
-        if (isLocalGallery) {
-          await mlDataDB.putClip([
-            ClipEmbedding(
-              fileID: result.fileId,
-              embedding: result.clip!.embedding,
-              version: clipMlVersion,
-            ),
-          ]);
-        } else {
-          await SemanticSearchService.instance.storeClipImageResult(
-            result.clip!,
-          );
-        }
+        await mlDataDB.putClip([
+          ClipEmbedding(
+            fileID: result.fileId,
+            embedding: result.clip!.embedding,
+            version: clipMlVersion,
+          ),
+        ]);
       }
 
       _logger.info("ML result for fileID ${result.fileId} stored remote+local");
@@ -1004,13 +994,7 @@ class MLService {
           storedMarkers.add("faces");
         }
         if (instruction.shouldRunClip) {
-          if (instruction.isLocalGallery) {
-            await mlDataDB.putClip([ClipEmbedding.empty(instruction.fileKey)]);
-          } else {
-            await SemanticSearchService.instance.storeEmptyClipImageResult(
-              instruction.file,
-            );
-          }
+          await mlDataDB.putClip([ClipEmbedding.empty(instruction.fileKey)]);
           storedMarkers.add("clip");
         }
         _logger.info(
