@@ -129,10 +129,9 @@ export const collectUploadCandidatesFromDrop = async (
             continue;
         }
 
+        const getAsEntry = item.webkitGetAsEntry;
         const entry =
-            typeof item.webkitGetAsEntry === "function"
-                ? item.webkitGetAsEntry()
-                : null;
+            typeof getAsEntry === "function" ? getAsEntry.call(item) : null;
         if (entry) {
             pendingNodes.push({ type: "entry", entry, parentPath: "" });
             continue;

@@ -363,7 +363,8 @@ export function LaneMemoryViewer({
         setFileLoaded(true);
     }, []);
 
-    const handleVideoDuration = useCallback(() => {
+    const handleVideoDuration = useCallback((durationSeconds: number) => {
+        void durationSeconds;
         setVideoDurationKnown(true);
     }, []);
 

@@ -19,7 +19,7 @@
         "ente-ensu-wasm": "*",
         "ente-utils": "*",
         "idb": "8.0.4",
-        "katex": "0.18.8",
+        "katex": "0.18.2",
         "react-markdown": "10.1.0",
         "rehype-katex": "7.0.1",
         "remark-gfm": "4.0.1",

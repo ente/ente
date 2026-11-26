@@ -19,17 +19,17 @@ export const copyTextToClipboard = async (value: string) => {
 };
 
 export const shareUrlOrCopy = async (url: string) => {
-    const nav = navigator as Navigator & {
-        share?: (data?: ShareData) => Promise<void>;
-    };
+    const share = (
+        navigator as Navigator & { share?: (data?: ShareData) => Promise<void> }
+    ).share;
 
-    if (typeof nav.share !== "function") {
+    if (typeof share !== "function") {
         await copyTextToClipboard(url);
         return;
     }
 
     try {
-        await nav.share({ url });
+        await share.call(navigator, { url });
     } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") {
             return;
