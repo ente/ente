@@ -1,6 +1,6 @@
 {
     "extends": "ente-build-config/tsconfig-next.json",
-    "compilerOptions": { "baseUrl": "./src", "ignoreDeprecations": "6.0" },
+    "compilerOptions": { "paths": { "*": ["./src/*"] } },
     "include": [
         "src",
         "tests",
