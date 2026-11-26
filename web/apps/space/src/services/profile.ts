@@ -176,8 +176,9 @@ export const ensureCurrentSpaceContext = async () => {
     return await promise;
 };
 
-export const releaseCurrentSpaceContext = (_ctx: SpaceAccountCtxHandle) => {
-    void _ctx;
+export const releaseCurrentSpaceContext: (
+    ctx: SpaceAccountCtxHandle,
+) => void = () => {
     // Shared context is freed by clearCurrentSpaceContext on logout/session change.
 };
 

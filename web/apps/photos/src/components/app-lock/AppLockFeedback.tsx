@@ -170,13 +170,9 @@ interface CooldownScreenProps {
 }
 
 export const CooldownScreen = ({
-    remainingMs,
     cooldownText,
-    attemptCount,
     onLogout,
 }: CooldownScreenProps) => {
-    void remainingMs;
-    void attemptCount;
     const retryDescriptionText = t("app_lock_please_try_again_in", {
         time: cooldownText,
     });

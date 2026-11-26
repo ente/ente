@@ -571,10 +571,9 @@ class TauriInference implements InferenceBackend {
     }
 
     async createContext(
-        model: { modelPath: string },
+        _model: { modelPath: string },
         params: ContextParams = {},
     ) {
-        void model;
         log.info("LLM tauri create context", {
             contextSize: params.contextSize ?? null,
             nThreads: params.nThreads ?? null,
