@@ -754,6 +754,13 @@
       "slug": "deutschepost",
       "hex": "ffcc00"
     },
+	{
+      "title": "Dex",
+      "slug": "dex",
+      "altNames": [
+        "dexidp.io"
+      ]
+    },
     {
       "title": "DigiFinex",
       "altNames": [
