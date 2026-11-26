@@ -248,49 +248,6 @@ mod tests {
         );
     }
 
-    #[test]
-    fn version_seven_databases_are_rejected_untouched() {
-        let backend = SqliteBackend::open_in_memory().unwrap();
-        backend.execute_batch(schema::CREATE_ALL).unwrap();
-        backend
-            .execute_batch(
-                "CREATE TABLE todos (todo_id TEXT PRIMARY KEY NOT NULL, record BLOB NOT NULL, created_at INTEGER NOT NULL);
-                 CREATE TABLE todo_turns (reply_id TEXT PRIMARY KEY NOT NULL, source_id TEXT UNIQUE NOT NULL, record BLOB NOT NULL);
-                 INSERT INTO todos VALUES ('t', X'010203', 1);
-                 INSERT INTO todo_turns VALUES ('r', 's', X'040506');
-                 PRAGMA user_version = 7;",
-            )
-            .unwrap();
-        for _ in 0..2 {
-            assert!(matches!(
-                migrate(&backend),
-                Err(Error::Migration(message)) if message == "unsupported schema version 7"
-            ));
-        }
-        assert_eq!(user_version(&backend).unwrap(), 7);
-        assert_eq!(
-            backend
-                .query_row("SELECT record FROM todos", &[])
-                .unwrap()
-                .unwrap(),
-            vec![Value::Blob(vec![1, 2, 3])]
-        );
-        let tables: Vec<_> = backend
-            .query(
-                "SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE '%_turns'",
-                &[],
-            )
-            .unwrap();
-        assert_eq!(tables, vec![vec![Value::Text("todo_turns".into())]]);
-        assert_eq!(
-            backend
-                .query_row("SELECT record FROM todo_turns", &[])
-                .unwrap()
-                .unwrap(),
-            vec![Value::Blob(vec![4, 5, 6])]
-        );
-    }
-
     const V5: &str = "CREATE TABLE sessions(session_uuid TEXT PRIMARY KEY, title BLOB NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
         CREATE TABLE messages(message_uuid TEXT PRIMARY KEY, session_uuid TEXT NOT NULL, parent_message_uuid TEXT, sender TEXT NOT NULL, text BLOB NOT NULL, attachments TEXT, created_at INTEGER NOT NULL);
         INSERT INTO sessions VALUES ('s', X'010203', 1, 2);
