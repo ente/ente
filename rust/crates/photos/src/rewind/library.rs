@@ -9,6 +9,7 @@ use super::input::{
 };
 use super::{Error, Result};
 use crate::memories::LocalDate;
+use crate::metadata::wall_clock_micros;
 use crate::ml_store::MlStore;
 
 const MICROS_PER_SECOND: i64 = 1_000_000;
@@ -277,12 +278,4 @@ fn start_of_year(year: i32) -> Result<i64> {
             .unix_micros()
         })
         .ok_or(Error::UnsupportedYear(year))
-}
-
-fn wall_clock_micros(date_time: &str) -> Option<i64> {
-    DateTime {
-        offset_minutes: Some(0),
-        ..DateTime::parse(date_time)?
-    }
-    .unix_micros()
 }
