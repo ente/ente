@@ -4,9 +4,14 @@ use anyhow::{Context, Result};
 use rusqlite::{Connection, OpenFlags};
 use zeroize::Zeroizing;
 
-use crate::{auth, core_db::Db, photos::replica, vault::DbKey};
+use crate::{
+    auth,
+    core_db::Db,
+    photos::{people, replica},
+    vault::DbKey,
+};
 
-const MIGRATIONS: &[&str] = &[replica::SCHEMA, auth::replica::SCHEMA];
+const MIGRATIONS: &[&str] = &[replica::SCHEMA, auth::replica::SCHEMA, people::SCHEMA];
 
 pub fn open(account_dir: &Path, key: &DbKey, create: bool) -> Result<Db> {
     let connection = connect(&account_dir.join("data.db"), key, create)?;
@@ -82,7 +87,11 @@ mod tests {
             .collect();
         assert_eq!(
             hashes,
-            [8_546_364_548_145_080_129, 12_408_635_783_593_254_159],
+            [
+                8_546_364_548_145_080_129,
+                12_408_635_783_593_254_159,
+                2_392_331_827_855_181_865
+            ],
             "released migrations are append-only; add a new entry and record its hash"
         );
     }

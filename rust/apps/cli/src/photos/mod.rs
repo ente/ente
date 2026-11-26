@@ -1,5 +1,6 @@
 mod duplicates;
 mod export;
+pub mod people;
 mod places;
 pub mod replica;
 
@@ -14,8 +15,8 @@ use serde_json::json;
 use crate::{
     api,
     args::{
-        AlbumCommand, App, FileCommand, FileQuery, FileSort, FileType, Options, PhotosCommand,
-        PlaceCommand,
+        AlbumCommand, App, FileCommand, FileQuery, FileSort, FileType, Options, PersonCommand,
+        PhotosCommand, PlaceCommand,
     },
     core_db::SqliteResult,
     db, home,
@@ -46,6 +47,9 @@ pub async fn run(command: PhotosCommand, selected: Option<&str>, options: &Optio
     let (account, home) = home::open_account(selected, !options.offline)?;
     let session = api::session(&account, App::Photos)?;
     let mut db = db::open(&home.path, &account.db_key, !options.offline)?;
+    if needs_people(&command) {
+        people::sync(&mut db, &session, options).await?;
+    }
     let mut replica = Replica::new(&mut db, session.user_id);
     if !options.offline {
         replica.sync_collections(&session).await?;
@@ -65,9 +69,23 @@ pub async fn run(command: PhotosCommand, selected: Option<&str>, options: &Optio
         PhotosCommand::File { album, command } => {
             file(command, album.as_deref(), &session, &mut replica, options).await
         }
+        PhotosCommand::Person { album, command } => {
+            person(command, album.as_deref(), &session, &mut replica, options).await
+        }
         PhotosCommand::Place { album, command } => {
             place(command, album.as_deref(), &session, &mut replica, options).await
         }
+    }
+}
+
+fn needs_people(command: &PhotosCommand) -> bool {
+    match command {
+        PhotosCommand::Person { .. } => true,
+        PhotosCommand::File {
+            command: FileCommand::List { query, .. },
+            ..
+        } => query.person.is_some(),
+        _ => false,
     }
 }
 
@@ -174,6 +192,14 @@ async fn file(
     options: &Options,
 ) -> Result<()> {
     let (album_id, mut incomplete) = sync_files(album, session, replica, options).await?;
+    let person_files = match &command {
+        FileCommand::List { query, .. } => query
+            .person
+            .as_deref()
+            .map(|selector| people::file_ids(replica.db, selector))
+            .transpose()?,
+        _ => None,
+    };
     let placed = match &command {
         FileCommand::List { query, .. } if query.place.is_some() || query.country.is_some() => {
             let index = places::open(options.offline).await?;
@@ -207,6 +233,12 @@ async fn file(
                     Ok(entry) => entry,
                     Err(error) => return Some(Err(error.into())),
                 };
+                if person_files
+                    .as_ref()
+                    .is_some_and(|ids| !ids.contains(&entry.id))
+                {
+                    return None;
+                }
                 let listed = entry.file.and_then(|file| {
                     if !matches(&query, &file)
                         || placed.as_ref().is_some_and(|ids| !ids.contains(&file.id))
@@ -287,6 +319,18 @@ async fn file(
     }?;
     ensure!(!incomplete, "file results are incomplete");
     Ok(())
+}
+
+async fn person(
+    command: PersonCommand,
+    album: Option<&str>,
+    session: &Session,
+    replica: &mut Replica<'_>,
+    options: &Options,
+) -> Result<()> {
+    let (album_id, incomplete) = sync_files(album, session, replica, options).await?;
+    let PersonCommand::List(list) = command;
+    people::list(replica, album_id, incomplete, &list, options.json)
 }
 
 async fn place(

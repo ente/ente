@@ -13,6 +13,7 @@ use ente_location::{CityMatch, CountryGroup};
 use ente_photos::{
     collections::{Collection, Visibility},
     files::File,
+    people::Person,
 };
 use serde::Serialize;
 use serde_json::json as json_value;
@@ -154,6 +155,26 @@ impl FileView {
             size_bytes: file.size,
             visibility: file.visibility.map(Visibility::name),
         })
+    }
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PersonView {
+    pub id: String,
+    pub name: String,
+    hidden: bool,
+    pub file_count: usize,
+}
+
+impl PersonView {
+    pub fn new(id: String, person: Person, file_count: usize) -> Self {
+        Self {
+            id,
+            name: person.name,
+            hidden: person.hidden,
+            file_count,
+        }
     }
 }
 
@@ -489,6 +510,28 @@ pub fn duplicate_groups(out: &mut impl Write, groups: &[&DuplicateGroupView]) ->
         write_table(out, ["ACTION", "ID", "NAME", "ALBUMS"], &rows)?;
     }
     Ok(())
+}
+
+pub fn people(
+    people: impl Iterator<Item = PersonView>,
+    args: &ListArgs,
+    as_json: bool,
+) -> Result<()> {
+    list(
+        people.map(Ok),
+        args,
+        as_json,
+        ["ID", "NAME", "FILES", "HIDDEN"],
+        "No people.",
+        |person| {
+            [
+                escape_controls(&person.id),
+                escape_controls(&person.name),
+                person.file_count.to_string(),
+                if person.hidden { "yes" } else { "no" }.to_owned(),
+            ]
+        },
+    )
 }
 
 pub fn cities(
