@@ -1,4 +1,5 @@
 import "package:collection/collection.dart";
+import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:logging/logging.dart";
 import "package:photos/db/ml/clip_vector_db.dart";
 import "package:photos/db/ml/db.dart";
@@ -14,21 +15,45 @@ import "package:photos/utils/ml_util.dart";
 
 final _logger = Logger("LocalGalleryMLCarryOver");
 
+typedef _LocalGalleryResults = ({
+  Map<int, List<Face>> faces,
+  Map<int, ClipEmbedding> clips,
+});
+
 Future<List<FileMLInstruction>> getLocalGalleryCarryOverCandidates(
   List<FileMLInstruction> instructions,
 ) async {
   try {
     final localIntIDs = await _localIntIDsForCarryOver(instructions);
     if (localIntIDs.isEmpty) return [];
-    final indexedKeys = await MLDataDB.localGalleryInstance
-        .getFullyIndexedFileIds(includePets: false);
-    return instructions
+    final carriable = instructions
         .where(
           (instruction) =>
               _canCarryOver(instruction) &&
-              indexedKeys.contains(localIntIDs[instruction.file.localID]),
+              localIntIDs.containsKey(instruction.file.localID),
         )
         .toList();
+    final candidates = <FileMLInstruction>[];
+    for (final chunk in carriable.chunks(embeddingFetchLimit)) {
+      final results = await _loadLocalGalleryResults(
+        chunk
+            .map((instruction) => localIntIDs[instruction.file.localID]!)
+            .toSet()
+            .toList(),
+      );
+      candidates.addAll(
+        chunk.where((instruction) {
+          final key = localIntIDs[instruction.file.localID]!;
+          final clip = results.clips[key];
+          return _completesFileData(
+            instruction,
+            hasFaces: results.faces[key]?.any(_isUsableFace) ?? false,
+            hasClip: clip != null && _isUsableClip(clip),
+          );
+        }),
+      );
+    }
+    return candidates;
   } catch (e, s) {
     _logger.warning("Could not find local gallery ML carry-over files", e, s);
     return [];
@@ -68,16 +93,9 @@ Future<Set<FileMLInstruction>> _carryOver(
       .toList();
   final localIntIDs = await _localIntIDsForCarryOver(carriable);
   if (localIntIDs.isEmpty) return {};
-  final keys = localIntIDs.values.toSet().toList();
-  final localGalleryDB = MLDataDB.localGalleryInstance;
-  final facesByKey = groupBy(
-    await localGalleryDB.getFacesForFileIDs(keys),
-    (Face face) => face.fileID,
+  final results = await _loadLocalGalleryResults(
+    localIntIDs.values.toSet().toList(),
   );
-  final clipByKey = {
-    for (final clip in await localGalleryDB.getClipEmbeddingsForFileIDs(keys))
-      clip.fileID: clip,
-  };
 
   final carriedFaces = <Face>[];
   final carriedClips = <ClipEmbedding>[];
@@ -89,13 +107,16 @@ Future<Set<FileMLInstruction>> _carryOver(
     if (key == null || !_canCarryOver(instruction)) continue;
     final fileID = instruction.file.uploadedFileID!;
     final faces = instruction.shouldRunFaces
-        ? _facesForFile(facesByKey[key], fileID)
+        ? _facesForFile(results.faces[key], fileID)
         : null;
     final clip = instruction.shouldRunClip
-        ? _clipForFile(clipByKey[key], fileID)
+        ? _clipForFile(results.clips[key], fileID)
         : null;
-    if ((instruction.shouldRunFaces && faces == null) ||
-        (instruction.shouldRunClip && clip == null)) {
+    if (!_completesFileData(
+      instruction,
+      hasFaces: faces != null,
+      hasClip: clip != null,
+    )) {
       continue;
     }
 
@@ -169,8 +190,42 @@ Future<Map<String, int>> _localIntIDsForCarryOver(
   return OfflineFilesDB.instance.getLocalIntIdsForLocalIds(localIDs);
 }
 
+Future<_LocalGalleryResults> _loadLocalGalleryResults(List<int> keys) async {
+  final localGalleryDB = MLDataDB.localGalleryInstance;
+  return (
+    faces: groupBy(
+      await localGalleryDB.getFacesForFileIDs(keys),
+      (Face face) => face.fileID,
+    ),
+    clips: {
+      for (final clip in await localGalleryDB.getClipEmbeddingsForFileIDs(keys))
+        clip.fileID: clip,
+    },
+  );
+}
+
+bool _completesFileData(
+  FileMLInstruction instruction, {
+  required bool hasFaces,
+  required bool hasClip,
+}) {
+  final remote = instruction.existingRemoteFileML;
+  final facesCovered = instruction.shouldRunFaces
+      ? hasFaces
+      : remote?.hasFace ?? false;
+  final clipCovered = instruction.shouldRunClip
+      ? hasClip
+      : remote?.hasClip ?? false;
+  return facesCovered && clipCovered;
+}
+
+bool _isUsableFace(Face face) => face.score >= 0;
+
+bool _isUsableClip(ClipEmbedding clip) =>
+    clip.embedding.length == ClipVectorDB.embeddingDimensions;
+
 List<Face>? _facesForFile(List<Face>? localGalleryFaces, int fileID) {
-  final faces = localGalleryFaces?.where((face) => face.score >= 0).toList();
+  final faces = localGalleryFaces?.where(_isUsableFace).toList();
   if (faces == null || faces.isEmpty) return null;
   return faces
       .map(
@@ -188,8 +243,7 @@ List<Face>? _facesForFile(List<Face>? localGalleryFaces, int fileID) {
 }
 
 ClipEmbedding? _clipForFile(ClipEmbedding? localGalleryClip, int fileID) {
-  if (localGalleryClip == null ||
-      localGalleryClip.embedding.length != ClipVectorDB.embeddingDimensions) {
+  if (localGalleryClip == null || !_isUsableClip(localGalleryClip)) {
     return null;
   }
   return ClipEmbedding(

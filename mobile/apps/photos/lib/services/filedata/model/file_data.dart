@@ -66,6 +66,10 @@ class FileDataEntity {
     remoteRawData[_clipKey] = clipEmbedding.toJson();
   }
 
+  bool get hasFace => remoteRawData[_faceKey] != null;
+
+  bool get hasClip => remoteRawData[_clipKey] != null;
+
   RemoteFaceEmbedding? get faceEmbedding => remoteRawData[_faceKey] != null
       ? RemoteFaceEmbedding.fromJson(
           remoteRawData[_faceKey] as Map<String, dynamic>,
