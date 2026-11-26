@@ -80,24 +80,76 @@ fn save(probability: Option<f32>) -> Pass {
 }
 
 #[test]
-fn a_plain_turn_ignores_client_tools_and_saves_client_text() {
+fn a_text_reply_saves_client_text_with_or_without_tools() {
+    for no_tools in [false, true] {
+        let db = db();
+        let mut chat = Chat::new(&db);
+        chat.user("Hi");
+        let snapshot = chat.snapshot();
+        let turn = prepare(&db, &snapshot, "Hi", no_tools);
+        let mut runner = ScriptedRunner::new([Pass {
+            text: "Hi",
+            ..Default::default()
+        }]);
+        let outcome = execute(&turn, &mut runner, 128).0.unwrap().tools;
+        assert_eq!(outcome.is_none(), no_tools);
+        assert_eq!(runner.seen[0].tools.as_ref(), turn.tools());
+        let finished = turn
+            .finish(&db, &snapshot, "Client reply", vec![], &zone())
+            .unwrap();
+        assert_eq!(finished.reply.message.text, "Client reply");
+        assert!(finished.reply.tool_turn.is_none());
+        assert!(db.list_todos().unwrap().is_empty());
+    }
+}
+
+#[test]
+fn save_is_applied_or_offered_at_the_recorded_probability() {
+    for probability in [SURE, UNSURE] {
+        let db = db();
+        let mut chat = Chat::new(&db);
+        chat.user("Add buy milk.");
+        let snapshot = chat.snapshot();
+        let turn = prepare(&db, &snapshot, "Add buy milk.", false);
+        execute(&turn, &mut ScriptedRunner::new([save(probability)]), 128)
+            .0
+            .unwrap();
+        let finished = turn
+            .finish(&db, &snapshot, "Client reply", vec![], &zone())
+            .unwrap();
+        let state = finished.reply.tool_turn.unwrap();
+        if probability == SURE {
+            assert_eq!(finished.reply.message.text, "Saved “Buy milk”.");
+            assert_eq!(state.undo, Undo::Available);
+        } else {
+            assert_eq!(state.confirm, Confirm::Offered);
+            assert!(db.list_todos().unwrap().is_empty());
+            tool_turn::confirm(&db, finished.reply.message.uuid).unwrap();
+        }
+        assert_eq!(db.list_todos().unwrap().len(), 1);
+    }
+}
+
+#[test]
+fn a_list_only_turn_runs_one_pass() {
     let db = db();
+    db.create_todo("Call Ana", None).unwrap();
     let mut chat = Chat::new(&db);
-    chat.user("Hi");
+    let user = "What's on my list?";
+    chat.user(user);
     let snapshot = chat.snapshot();
-    let turn = prepare(&db, &snapshot, "Hi", true);
-    let mut runner = ScriptedRunner::new([Pass {
-        text: "Hi",
-        ..Default::default()
-    }]);
-    assert!(execute(&turn, &mut runner, 128).0.unwrap().tools.is_none());
-    assert!(runner.seen[0].tools.is_none());
-    let finished = turn
-        .finish(&db, &snapshot, "Client reply", vec![], &zone())
+    let turn = prepare(&db, &snapshot, user, false);
+    execute(&turn, &mut ScriptedRunner::new([list()]), 128)
+        .0
         .unwrap();
-    assert_eq!(finished.reply.message.text, "Client reply");
-    assert!(finished.reply.tool_turn.is_none());
-    assert!(db.list_todos().unwrap().is_empty());
+    assert!(
+        turn.finish(&db, &snapshot, "Ignored", vec![], &zone())
+            .unwrap()
+            .reply
+            .message
+            .text
+            .contains("1. Call Ana")
+    );
 }
 
 #[test]
@@ -256,26 +308,36 @@ fn interrupted_follow_up_keeps_no_outcome_and_emits_no_done() {
 }
 
 #[test]
-fn an_abstained_follow_up_changes_nothing() {
-    let db = db();
-    db.create_todo("Call Ana", None).unwrap();
-    let before = db.list_todos().unwrap();
-    let mut chat = Chat::new(&db);
-    chat.user(MIXED);
-    let snapshot = chat.snapshot();
-    let turn = prepare(&db, &snapshot, MIXED, false);
-    let mut runner = ScriptedRunner::new([
-        list(),
-        Pass {
+fn an_abstained_follow_up_keeps_only_completed_calls() {
+    for completed in [false, true] {
+        let db = db();
+        db.create_todo("Call Ana", None).unwrap();
+        let before = db.list_todos().unwrap();
+        let mut chat = Chat::new(&db);
+        chat.user(MIXED);
+        let snapshot = chat.snapshot();
+        let turn = prepare(&db, &snapshot, MIXED, false);
+        let mut follow_up = Pass {
             abstained: true,
             ..Default::default()
-        },
-    ]);
-    let outcome = execute(&turn, &mut runner, 128).0.unwrap().tools.unwrap();
-    assert!(outcome.abstained);
-    assert_eq!(outcome.calls, list().calls);
-    turn.finish(&db, &snapshot, "", vec![], &zone()).unwrap();
-    assert_eq!(db.list_todos().unwrap(), before);
+        };
+        if completed {
+            follow_up.calls = save(SURE).calls;
+            follow_up.probability = SURE;
+        }
+        let expected = [list().calls, follow_up.calls.clone()].concat();
+        let mut runner = ScriptedRunner::new([list(), follow_up]);
+        let outcome = execute(&turn, &mut runner, 128).0.unwrap().tools.unwrap();
+        assert!(outcome.abstained);
+        assert_eq!(outcome.calls, expected);
+        let finished = turn.finish(&db, &snapshot, "", vec![], &zone()).unwrap();
+        if completed {
+            assert!(finished.reply.message.text.ends_with("Saved “Buy milk”."));
+            assert_eq!(db.list_todos().unwrap().len(), before.len() + 1);
+        } else {
+            assert_eq!(db.list_todos().unwrap(), before);
+        }
+    }
 }
 
 #[test]
@@ -301,8 +363,13 @@ fn a_refused_finish_keeps_the_outcome() {
 }
 
 #[test]
-fn a_list_changed_before_commit_is_refused() {
-    for midnight in [false, true] {
+fn list_then_complete_checks_commit_against_the_prepared_list() {
+    enum Change {
+        None,
+        Rename,
+        Midnight,
+    }
+    for change in [Change::None, Change::Rename, Change::Midnight] {
         let (db, clock) = db_with_clock();
         let bank = db
             .create_todo("Call bank", Some(local_ms("2026-11-11 18:00")))
@@ -325,22 +392,34 @@ fn a_list_changed_before_commit_is_refused() {
         execute(&turn, &mut ScriptedRunner::new([first, complete]), 128)
             .0
             .unwrap();
-        if midnight {
-            clock.set(local_ms("2026-11-12 00:00"));
-        } else {
-            db.update_todo(bank.id, bank.version, "Call insurer", bank.due_at_ms)
-                .unwrap();
+        match change {
+            Change::None => {}
+            Change::Rename => {
+                db.update_todo(bank.id, bank.version, "Call insurer", bank.due_at_ms)
+                    .unwrap();
+            }
+            Change::Midnight => clock.set(local_ms("2026-11-12 00:00")),
         }
-        assert!(matches!(
-            turn.finish(&db, &snapshot, "", vec![], &zone()),
-            Err(db::Error::ConversationChanged)
-        ));
-        assert!(
-            db.list_todos()
-                .unwrap()
-                .iter()
-                .all(crate::todo::Todo::is_open)
-        );
+        let result = turn.finish(&db, &snapshot, "", vec![], &zone());
+        if matches!(change, Change::None) {
+            assert!(
+                result
+                    .unwrap()
+                    .reply
+                    .message
+                    .text
+                    .ends_with("Marked “Call bank” as done.")
+            );
+            assert!(!db.get_todo(bank.id).unwrap().unwrap().is_open());
+        } else {
+            assert!(matches!(result, Err(db::Error::ConversationChanged)));
+            assert!(
+                db.list_todos()
+                    .unwrap()
+                    .iter()
+                    .all(crate::todo::Todo::is_open)
+            );
+        }
     }
 }
 

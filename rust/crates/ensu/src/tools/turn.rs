@@ -151,12 +151,8 @@ pub(crate) fn turn_tools<B: Backend>(
 ) -> Result<TurnTools> {
     let messages = snapshot.messages();
     let (request, applied) = request_text(db, db.reader(), messages, user_text)?;
-    let mut tools = tool::request(db, snapshot.todos(), request, zone);
-    if applied {
-        tools.allowed = Some(Vec::new());
-    }
     Ok(TurnTools {
-        tools: Some(tools),
+        tools: (!applied).then(|| tool::request(db, snapshot.todos(), request, zone)),
         history: history(db, messages)?,
         current_override: (!applied && request != user_text).then(|| request.to_owned()),
     })

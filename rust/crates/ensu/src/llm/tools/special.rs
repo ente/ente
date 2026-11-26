@@ -1,5 +1,5 @@
 use std::borrow::Cow;
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{HashMap, HashSet};
 
 const MARKERS: &[&str] = &[
     "<|im_start|>",
@@ -34,8 +34,9 @@ const MARKERS: &[&str] = &[
 
 #[derive(Default)]
 pub(crate) struct Specials {
-    tokens: BTreeMap<usize, HashSet<String>>,
+    tokens: HashMap<char, Vec<String>>,
     separator: Option<char>,
+    use_angle_quote: bool,
 }
 
 impl Specials {
@@ -46,11 +47,17 @@ impl Specials {
             .into_iter()
             .chain(MARKERS.iter().map(|s| (*s).into()))
         {
-            if !text.is_empty() && text != "<__media__>" {
+            if let Some(first) = text.chars().next()
+                && text != "<__media__>"
+            {
                 chars.extend(text.chars());
-                specials.tokens.entry(text.len()).or_default().insert(text);
+                specials.tokens.entry(first).or_default().push(text);
             }
         }
+        for tokens in specials.tokens.values_mut() {
+            tokens.sort_unstable_by_key(String::len);
+        }
+        specials.use_angle_quote = !chars.contains(&'‹');
         specials.separator = std::iter::once('\u{200b}')
             .chain(('\u{e000}'..='\u{f8ff}').chain('\u{f0000}'..='\u{ffffd}'))
             .find(|c| !chars.contains(c));
@@ -58,35 +65,40 @@ impl Specials {
     }
 
     pub(crate) fn plain<'a>(&self, text: &'a str) -> Cow<'a, str> {
-        let mut plain = Cow::Borrowed(text);
         if self.tokens.is_empty() {
-            return plain;
+            return Cow::Borrowed(text);
         }
-        while let Some((at, first, len)) = self.first_match(&plain) {
-            if first == '<' {
-                plain.to_mut().replace_range(at..at + 1, "‹");
-            } else if first.len_utf8() < len
-                && let Some(separator) = self.separator
-            {
-                plain.to_mut().insert(at + first.len_utf8(), separator);
-            } else {
-                plain.to_mut().remove(at);
-            }
-        }
-        plain
-    }
-
-    fn first_match(&self, text: &str) -> Option<(usize, char, usize)> {
+        let mut plain = None;
+        let mut copied = 0;
         for (at, first) in text.char_indices() {
-            for (&len, tokens) in self.tokens.iter().rev() {
-                if text
-                    .get(at..at + len)
-                    .is_some_and(|part| tokens.contains(part))
-                {
-                    return Some((at, first, len));
+            let Some(token) = self.tokens.get(&first).and_then(|tokens| {
+                tokens
+                    .iter()
+                    .find(|token| text[at..].starts_with(token.as_str()))
+            }) else {
+                continue;
+            };
+            let Some(separator) = self.separator else {
+                return Cow::Borrowed("");
+            };
+            let output = plain.get_or_insert_with(|| String::with_capacity(text.len()));
+            output.push_str(&text[copied..at]);
+            copied = at + first.len_utf8();
+            if first == '<' && self.use_angle_quote {
+                output.push('‹');
+            } else {
+                if first != '<' && first.len_utf8() < token.len() {
+                    output.push(first);
                 }
+                output.push(separator);
             }
         }
-        None
+        match plain {
+            Some(mut output) => {
+                output.push_str(&text[copied..]);
+                Cow::Owned(output)
+            }
+            None => Cow::Borrowed(text),
+        }
     }
 }

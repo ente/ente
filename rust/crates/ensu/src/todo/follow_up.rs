@@ -54,11 +54,14 @@ impl FollowUp {
         zone: &impl chrono::TimeZone,
     ) -> Option<ChatRequest> {
         let tools = request.tools.as_mut()?;
-        let actions = remaining_actions(&tools.quote_source, &self.todos);
-        if outcome.calls.is_empty()
+        if outcome.abstained
+            || outcome.calls.is_empty()
             || outcome.calls.iter().any(|call| call.name != LIST_TOOL)
-            || actions == (false, false)
         {
+            return None;
+        }
+        let actions = remaining_actions(&tools.quote_source, &self.todos);
+        if actions == (false, false) {
             return None;
         }
         let remaining = usize::from(tools.max_calls.min(crate::llm::MAX_TOOL_CALLS))

@@ -171,7 +171,7 @@ fn render_for(format: Format, messages: &[ChatMessage], add: bool) -> String {
 
 struct Rendered {
     messages: Vec<ChatMessage>,
-    tools: ToolRequest,
+    tools: Option<ToolRequest>,
     system: String,
     stable: String,
     full: String,
@@ -179,7 +179,7 @@ struct Rendered {
 
 impl Rendered {
     fn without_choices(&self, format: Format, add: bool) -> String {
-        let mut tools = self.tools.clone();
+        let mut tools = self.tools.clone().unwrap();
         tools
             .tools
             .iter_mut()
@@ -225,11 +225,11 @@ fn turn(
     )
     .unwrap();
     let messages = prepared.preparation.run(&mut effects).unwrap().messages;
-    let tools = prepared.tools.unwrap();
+    let tools = prepared.tools;
     let adapted = crate::llm::tools::adapt_messages(
         Some(format),
         messages.clone(),
-        Some(&tools),
+        tools.as_ref(),
         &|_| true,
         &Specials::new([]),
     );
@@ -355,12 +355,9 @@ fn try_again_extends_the_previous_prompt() {
         let (prev, next) = prompt_pair(format, "Add buy milk", "Try again", &[], None, Some(true));
         assert_eq!(prev.system, next.system, "{format:?}");
         assert!(next.full.starts_with(&prev.stable), "{format:?}");
-        let (prev, next) = prompt_pair(format, "Add buy milk", "Try again", &[], None, Some(false));
-        assert_eq!(next.tools.allowed, Some(vec![]));
-        assert!(
-            next.without_choices(format, true)
-                .starts_with(&prev.without_choices(format, false))
-        );
+        let (_, next) = prompt_pair(format, "Add buy milk", "Try again", &[], None, Some(false));
+        assert!(next.tools.is_none());
+        assert_eq!(next.system, "Be brief.");
     }
 }
 

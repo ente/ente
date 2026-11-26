@@ -187,6 +187,18 @@ pub(crate) fn finished_calls(
         })
 }
 
+pub(super) fn calls_before_abstention(
+    format: Format,
+    raw: &[u8],
+    request: &ToolRequest,
+) -> Vec<ToolCall> {
+    let text = match std::str::from_utf8(raw) {
+        Ok(text) => text,
+        Err(error) => std::str::from_utf8(&raw[..error.valid_up_to()]).unwrap_or_default(),
+    };
+    format.completed_calls(text, request)
+}
+
 fn clean_text(text: &mut String, specials: &Specials) {
     if let std::borrow::Cow::Owned(clean) = specials.plain(text) {
         *text = clean;

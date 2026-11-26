@@ -1394,3 +1394,30 @@ fn a_completion_commits_unless_its_target_changed() {
         }
     }
 }
+
+#[test]
+fn an_ambiguous_completion_checks_that_its_choices_are_current() {
+    for removed in [false, true] {
+        let db = db();
+        let first = db.create_todo("Call Lee", None).unwrap();
+        let second = db.create_todo("Call Lee about the trip", None).unwrap();
+        let mut chat = Chat::new(&db);
+        chat.user("I called Lee");
+        let snapshot = chat.snapshot();
+        if removed {
+            db.delete_todo(second.id, second.version).unwrap();
+        }
+        let result = finish(
+            &db,
+            &snapshot,
+            &[call(COMPLETE_TOOL, &[("task", text("Lee"))])],
+            SURE,
+        );
+        if removed {
+            assert!(matches!(result, Err(Error::ConversationChanged)));
+        } else {
+            assert!(result.unwrap().reply.text.starts_with("Which one"));
+        }
+        assert_eq!(db.get_todo(first.id).unwrap(), Some(first));
+    }
+}

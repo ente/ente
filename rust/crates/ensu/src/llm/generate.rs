@@ -432,7 +432,9 @@ impl ToolDecode {
     }
 
     fn finish(&self, reason: FinishReason) -> Result<ToolOutcome, Error> {
-        let calls = if self.state == ToolState::Call && !self.abstained {
+        let calls = if self.abstained {
+            tools::calls_before_abstention(self.format, &self.raw, &self.request)
+        } else if self.state == ToolState::Call {
             tools::finished_calls(
                 self.format,
                 &self.raw,
@@ -1115,7 +1117,8 @@ pub(super) fn generate_pass(
     let tools = match job.tool.take() {
         Some(tool) => {
             let outcome = tool.finish(job.finish_reason)?;
-            if !outcome.calls.is_empty()
+            if !outcome.abstained
+                && !outcome.calls.is_empty()
                 && let Some((mut text, mut tokens)) = prompt
                 && let Ok(raw) = std::str::from_utf8(&tool.raw)
             {

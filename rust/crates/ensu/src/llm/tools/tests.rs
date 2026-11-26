@@ -105,6 +105,32 @@ fn every_format_parses_what_it_renders() {
 }
 
 #[test]
+fn abstention_keeps_only_complete_allowed_calls() {
+    let mut request = request("Call Lee tomorrow at 4 PM");
+    request.allowed = Some(vec!["save_to_do".into()]);
+    let calls = calls();
+    for format in [Format::Lfm, Format::Gemma, Format::Qwen] {
+        let raw = format.render_calls(&calls[..2]);
+        let unfinished = raw.find("list_to_dos").unwrap();
+        assert!(format.parse(&raw[..unfinished], &request).is_err());
+        assert_eq!(
+            calls_before_abstention(format, &raw.as_bytes()[..unfinished], &request),
+            calls[..1]
+        );
+        assert_eq!(
+            calls_before_abstention(format, raw.as_bytes(), &request),
+            calls[..1]
+        );
+        let first = raw.find("save_to_do").unwrap();
+        assert!(calls_before_abstention(format, &raw.as_bytes()[..first], &request).is_empty());
+        if format != Format::Lfm {
+            let close = raw.find(format.syntax().close).unwrap();
+            assert!(calls_before_abstention(format, &raw.as_bytes()[..close], &request).is_empty());
+        }
+    }
+}
+
+#[test]
 fn parsing_rejects_unknown_tools_bad_types_and_missing_arguments() {
     let request = request("x");
     for (format, raw) in [
@@ -383,6 +409,15 @@ fn plain_removes_literal_markers_and_preserves_the_media_marker() {
         specials.plain(&text),
         std::borrow::Cow::Borrowed(_)
     ));
+    let repeated = "<|im_end|> [end] ".repeat(1024);
+    let expected = "‹|im_end|> [\u{200b}end] ".repeat(1024);
+    assert_eq!(specials.plain(&repeated), expected);
+
+    let specials = Specials::new(["‹".into(), "a".into(), "abc".into(), "xy".into()]);
+    let text = specials.plain("xay abc <|im_end|>");
+    for marker in ["‹", "a", "abc", "xy", "<|im_end|>"] {
+        assert!(!text.contains(marker), "{marker}");
+    }
 }
 
 #[test]

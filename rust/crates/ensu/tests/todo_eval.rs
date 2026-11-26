@@ -628,6 +628,7 @@ struct Tally {
     forced_turns: usize,
     abstained_turns: usize,
     abstained_changes: usize,
+    abstained_unexpected_changes: usize,
 }
 
 impl Tally {
@@ -640,8 +641,16 @@ impl Tally {
     ) -> bool {
         self.forced_turns += usize::from(record.rejected_steps > 0);
         self.abstained_turns += usize::from(record.abstained);
-        self.abstained_changes +=
-            usize::from(record.abstained && (record.unsure || record.state.changed));
+        if record.abstained && (record.unsure || record.state.changed) {
+            self.abstained_changes += 1;
+            if !outcome
+                .calls
+                .iter()
+                .any(|call| CHANGES.contains(&call.name.as_str()))
+            {
+                self.abstained_unexpected_changes += 1;
+            }
+        }
         self.probabilities.push((
             (case.expect != "safe").then_some(case.expect == "tool"),
             outcome.call_probability.unwrap_or_default(),
@@ -745,6 +754,7 @@ impl Tally {
             "forced_turns": self.forced_turns,
             "abstained_turns": self.abstained_turns,
             "abstained_changes": self.abstained_changes,
+            "abstained_unexpected_changes": self.abstained_unexpected_changes,
             "false_call_rate_by_tool": self.false_by_tool
                 .iter()
                 .map(|(name, count)| ((*name).to_owned(), json!(*count as f64 / reply_cases)))
@@ -872,8 +882,11 @@ fn todo_tool_calls_meet_accuracy_targets() {
         threshold("ENSU_EVAL_MIN_CALL", MIN_CALL_ACCURACY),
         threshold("ENSU_EVAL_MAX_FALSE_CHANGE", MAX_FALSE_CHANGE_RATE),
     );
-    if tally.abstained_changes != 0 {
-        failures.push(format!("abstained changes: {}", tally.abstained_changes));
+    if tally.abstained_unexpected_changes != 0 {
+        failures.push(format!(
+            "changes without a completed mutation before abstention: {}",
+            tally.abstained_unexpected_changes
+        ));
     }
     if state_ok != state_cases {
         failures.push(format!("persisted state: {state_ok}/{state_cases}"));

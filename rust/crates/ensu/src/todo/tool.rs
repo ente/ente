@@ -62,9 +62,21 @@ pub(crate) fn apply<B: Backend, T: BackendTx>(
         .map_err(|name| Error::UnsupportedOperation(format!("Unknown To Do call {name}")))
     };
     let prepared = plan_for(captured.to_vec())?;
-    let plan = if calls.iter().any(|call| call.name == todo::LIST_TOOL) {
+    let lists = calls.iter().any(|call| call.name == todo::LIST_TOOL);
+    let unresolved_completion =
+        prepared
+            .calls
+            .iter()
+            .zip(&prepared.outcomes)
+            .any(|(call, outcome)| {
+                call.name == todo::COMPLETE_TOOL
+                    && !matches!(outcome, todo::Outcome::Completed { .. })
+            });
+    let plan = if lists || unresolved_completion {
         let live = plan_for(db.todos(tx)?)?;
-        if live.changes != prepared.changes {
+        if live.changes != prepared.changes
+            || unresolved_completion && live.outcomes != prepared.outcomes
+        {
             return Err(Error::ConversationChanged);
         }
         live
