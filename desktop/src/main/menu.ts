@@ -16,9 +16,6 @@ export const createApplicationMenu = (mainWindow: BrowserWindow) => {
     const macOSOnly = (options: MenuItemConstructorOptions[]) =>
         process.platform == "darwin" ? options : [];
 
-    const nonFlatpakOnly = (options: MenuItemConstructorOptions[]) =>
-        isFlatpak ? [] : options;
-
     const handleCheckForUpdates = () => forceCheckForAppUpdates(mainWindow);
 
     const toggleHideDockIcon = () => {
@@ -35,13 +32,12 @@ export const createApplicationMenu = (mainWindow: BrowserWindow) => {
             submenu: [
                 ...macOSOnly([{ label: "About Ente", role: "about" }]),
                 { type: "separator" },
-                ...nonFlatpakOnly([
-                    {
-                        label: "Check for Updates...",
-                        click: handleCheckForUpdates,
-                    },
-                    { type: "separator" },
-                ]),
+                {
+                    label: "Check for Updates...",
+                    click: handleCheckForUpdates,
+                    visible: !isFlatpak,
+                },
+                { type: "separator" },
 
                 ...macOSOnly([
                     {

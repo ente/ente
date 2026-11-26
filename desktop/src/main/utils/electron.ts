@@ -8,7 +8,6 @@ import log from "../log";
 
 export const isDev = !app.isPackaged;
 
-// Flatpak builds are updated by Flatpak, not by our auto updater.
 export const isFlatpak =
     process.platform == "linux" &&
     existsSync("/.flatpak-info") &&
