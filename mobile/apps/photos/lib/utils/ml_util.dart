@@ -739,9 +739,7 @@ Future<String> getImagePathForML(EnteFile enteFile) async {
     }
   } else {
     if (enteFile.fileSize != null && enteFile.fileSize! > maxFileDownloadSize) {
-      throw Exception(
-        "FileSizeTooLargeForMobileIndexing: size is ${enteFile.fileSize}",
-      );
+      throw FileTooLargeForMLException(enteFile.fileSize!);
     }
     try {
       if (Platform.isIOS) {
@@ -796,59 +794,50 @@ bool _shouldRunIndexingWithFileId(
       indexedFileIds[fileId]! < newestVersion;
 }
 
-Future<MLResult> analyzeImageRust(Map args) async {
+Future<MLResult> analyzeImageRust({
+  required int enteFileID,
+  required String imagePath,
+  required bool runFaces,
+  required bool runClip,
+  required bool runPets,
+  required String assetsDir,
+  required bool enableWebGpu,
+}) async {
   try {
-    final int enteFileID = args["enteFileID"] as int;
-    final String imagePath = args["filePath"] as String;
-    final bool runFaces = args["runFaces"] as bool;
-    final bool runClip = args["runClip"] as bool;
-    final bool runPets = args["runPets"] as bool? ?? false;
-    await rust_ml.setMlExecutionConfig(
-      enableWebgpu: (args["enableWebGpu"] as bool?) ?? false,
-    );
-
-    Future<rust_ml.AnalyzeImageResult> runRustAnalyzeForPath(
-      String analyzePath,
-    ) {
-      return rust_ml.analyzeImageRust(
-        req: rust_ml.AnalyzeImageRequest(
-          fileId: enteFileID,
-          imagePath: analyzePath,
-          runFaces: runFaces,
-          runClip: runClip,
-          runPets: runPets,
-          assetsDir: args["assetsDir"] as String,
-        ),
-      );
-    }
+    await rust_ml.setMlExecutionConfig(enableWebgpu: enableWebGpu);
 
     final fileFormat = getExtension(imagePath);
     rust_ml.AnalyzeImageResult rustResult;
     try {
-      rustResult = await runRustAnalyzeForPath(imagePath);
+      rustResult = await rust_ml.analyzeImageRust(
+        req: rust_ml.AnalyzeImageRequest(
+          fileId: enteFileID,
+          imagePath: imagePath,
+          runFaces: runFaces,
+          runClip: runClip,
+          runPets: runPets,
+          assetsDir: assetsDir,
+        ),
+      );
     } on rust_ml.RustMlError_ModelDownloadNetwork catch (e) {
       throw ModelDownloadNetworkException(e.message);
-    } catch (e, s) {
-      if (!_isRustImageIssue(e)) {
-        if (_isRustCorruptModelIssue(e)) {
-          rethrow;
-        }
-        _logger.severe(
-          "Rust pipeline failed (non-image) for fileID $enteFileID (format: $fileFormat)",
-          e,
-          s,
-        );
-        rethrow;
-      }
-
+    } on rust_ml.RustMlError_CorruptModel catch (e) {
+      throw RustCorruptModelException(e.message);
+    } on rust_ml.RustMlError_InvalidImage catch (e) {
       // A Rust image error is deterministic for this file. In particular, a
       // decode error may be a resource-limit rejection, so retrying it through
       // an unbounded Dart decoder can exhaust the mobile process.
-      throw _asInvalidImageFormatExceptionForRustImageFailure(
-        enteFileID: enteFileID,
-        fileFormat: fileFormat,
-        primaryError: e,
+      throw InvalidImageFormatException(
+        "Rust image processing failed for fileID $enteFileID "
+        "(format: $fileFormat); primary_error: $e",
       );
+    } catch (e, s) {
+      _logger.severe(
+        "Rust pipeline failed (non-image) for fileID $enteFileID (format: $fileFormat)",
+        e,
+        s,
+      );
+      rethrow;
     }
 
     final result = MLResult.fromEnteFileID(
@@ -956,7 +945,9 @@ Future<MLResult> analyzeImageRust(Map args) async {
 
     return result;
   } catch (e, s) {
-    if (e is ModelDownloadNetworkException || isExpectedMlSkipError(e)) {
+    if (e is ModelDownloadNetworkException ||
+        e is RustCorruptModelException ||
+        isExpectedMlSkipError(e)) {
       rethrow;
     }
     _logger.severe("Could not analyze image with Rust pipeline", e, s);
@@ -965,68 +956,19 @@ Future<MLResult> analyzeImageRust(Map args) async {
 }
 
 bool isExpectedMlSkipError(Object error) {
-  if (error is RepeatedFileDecryptionError) {
-    return true;
-  }
-  final message = _normalizedErrorMessage(error);
-  const acceptedIssueMarkers = <String>[
-    "thumbnailretrievalexception",
-    "invalidimageformatexception",
-    "unhandledexiforientation",
-    "filesizetoolargeformobileindexing",
-  ];
-  return acceptedIssueMarkers.any(message.contains);
+  return error is RepeatedFileDecryptionError ||
+      error is ThumbnailRetrievalException ||
+      error is InvalidImageFormatException ||
+      error is FileTooLargeForMLException;
 }
 
 String formatExpectedMlSkipReasonForLogs(Object error) {
-  if (error is RepeatedFileDecryptionError) {
-    return "origin decryption failed after three retries with identical ciphertext";
-  }
-  final normalized = _normalizedErrorMessage(error);
-  if (normalized.contains("invalidimageformatexception")) {
-    return "image decode failed";
-  }
-  if (normalized.contains("thumbnailretrievalexception")) {
-    return "thumbnail retrieval failed";
-  }
-  if (normalized.contains("unhandledexiforientation")) {
-    return "unsupported EXIF orientation";
-  }
-  if (normalized.contains("filesizetoolargeformobileindexing")) {
-    return "file is too large for mobile indexing";
-  }
-  final firstLine = error.toString().split('\n').first.trim();
-  return firstLine.isEmpty ? "unknown ML skip reason" : firstLine;
-}
-
-bool _isRustImageIssue(Object error) {
-  return error is rust_ml.RustMlError_InvalidImage;
-}
-
-bool _isRustCorruptModelIssue(Object error) {
-  return error is rust_ml.RustMlError_CorruptModel;
-}
-
-String _normalizedErrorMessage(Object error) {
-  if (error is PlatformException) {
-    return <String>[
-      error.code,
-      error.message ?? "",
-      "${error.details ?? ""}",
-      error.toString(),
-    ].join(" ").toLowerCase();
-  }
-  return error.toString().toLowerCase();
-}
-
-Exception _asInvalidImageFormatExceptionForRustImageFailure({
-  required int enteFileID,
-  required String fileFormat,
-  required Object primaryError,
-}) {
-  final details = <String>[
-    "InvalidImageFormatException: Rust image processing failed for fileID $enteFileID (format: $fileFormat)",
-    "primary_error: $primaryError",
-  ];
-  return Exception(details.join("; "));
+  return switch (error) {
+    RepeatedFileDecryptionError() =>
+      "origin decryption failed after three retries with identical ciphertext",
+    InvalidImageFormatException() => "image decode failed",
+    ThumbnailRetrievalException() => "thumbnail retrieval failed",
+    FileTooLargeForMLException() => "file is too large for mobile indexing",
+    _ => error.toString().split('\n').first.trim(),
+  };
 }

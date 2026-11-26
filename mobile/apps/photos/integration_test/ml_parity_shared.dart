@@ -9,11 +9,10 @@ import "package:path_provider/path_provider.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/core/network/network.dart";
 import "package:photos/service_locator.dart";
-import "package:photos/services/machine_learning/ml_indexing_isolate.dart";
 import "package:photos/services/machine_learning/ml_result.dart";
 import "package:photos/src/rust/api/ml_indexing_api.dart" as rust_ml;
 import "package:photos/src/rust/frb_generated.dart" show EntePhotosRust;
-import "package:photos/utils/isolate/isolate_operations.dart";
+import "package:photos/utils/ml_util.dart";
 import "package:shared_preferences/shared_preferences.dart";
 
 const _manifestB64 = String.fromEnvironment("ML_PARITY_MANIFEST_B64");
@@ -423,22 +422,15 @@ Future<MLResult> _analyzeImage({
   required String filePath,
   required _LoadedModels loadedModels,
 }) async {
-  final args = <String, dynamic>{
-    "enteFileID": fileID,
-    "filePath": filePath,
-    "runFaces": true,
-    "runClip": true,
-  };
-
-  args["assetsDir"] = loadedModels.assetsDir;
-
-  final resultJSONString =
-      await MLIndexingIsolate.instance.runInIsolate(
-            IsolateOperation.analyzeImage,
-            args,
-          )
-          as String;
-  return MLResult.fromJsonString(resultJSONString);
+  return analyzeImageRust(
+    enteFileID: fileID,
+    imagePath: filePath,
+    runFaces: true,
+    runClip: true,
+    runPets: false,
+    assetsDir: loadedModels.assetsDir,
+    enableWebGpu: false,
+  );
 }
 
 Map<String, dynamic> _toParityResult({

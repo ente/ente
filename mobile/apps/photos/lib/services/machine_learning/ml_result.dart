@@ -1,5 +1,3 @@
-import "dart:convert" show jsonEncode, jsonDecode;
-
 import "package:logging/logging.dart";
 import "package:photos/models/ml/face/dimension.dart";
 import 'package:photos/models/ml/ml_typedefs.dart';
@@ -42,71 +40,6 @@ class MLResult {
     this.remoteFlags = mlIndexFlagRuntimeRust,
     this.decodedImageSize = const Dimensions(width: -1, height: -1),
   }) : fileId = fileID;
-
-  Map<String, dynamic> _toJson() => {
-    'fileId': fileId,
-    'faces': faces?.map((face) => face.toJson()).toList(),
-    'clip': clip?.toJson(),
-    'petFaces': petFaces?.map((pf) => pf.toJson()).toList(),
-    'petBodies': petBodies?.map((obj) => obj.toJson()).toList(),
-    'remoteFlags': remoteFlags,
-    'decodedImageSize': {
-      'width': decodedImageSize.width,
-      'height': decodedImageSize.height,
-    },
-  };
-
-  String toJsonString() => jsonEncode(_toJson());
-
-  static MLResult _fromJson(Map<String, dynamic> json) {
-    return MLResult(
-      fileId: json['fileId'],
-      faces: json['faces'] != null
-          ? (json['faces'] as List)
-                .map(
-                  (item) => FaceResult.fromJson(item as Map<String, dynamic>),
-                )
-                .toList()
-          : null,
-      clip: json['clip'] != null
-          ? ClipResult.fromJson(json['clip'] as Map<String, dynamic>)
-          : null,
-      petFaces: json['petFaces'] != null
-          ? (json['petFaces'] as List)
-                .map(
-                  (item) =>
-                      PetFaceResult.fromJson(item as Map<String, dynamic>),
-                )
-                .toList()
-          : null,
-      petBodies: json['petBodies'] != null
-          ? (json['petBodies'] as List)
-                .map(
-                  (item) =>
-                      PetBodyResult.fromJson(item as Map<String, dynamic>),
-                )
-                .toList()
-          : null,
-      remoteFlags: json['remoteFlags'] as int? ?? mlIndexFlagRuntimeRust,
-      decodedImageSize: json['decodedImageSize'] != null
-          ? Dimensions(
-              width: json['decodedImageSize']['width'],
-              height: json['decodedImageSize']['height'],
-            )
-          : json['faceDetectionImageSize'] == null
-          ? const Dimensions(width: -1, height: -1)
-          : Dimensions(
-              width: (json['faceDetectionImageSize']['width'] as double)
-                  .truncate(),
-              height: (json['faceDetectionImageSize']['height'] as double)
-                  .truncate(),
-            ),
-    );
-  }
-
-  static MLResult fromJsonString(String jsonString) {
-    return _fromJson(jsonDecode(jsonString));
-  }
 }
 
 class ClipResult {
