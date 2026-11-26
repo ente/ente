@@ -91,6 +91,41 @@ export const watchTodos = <T>(
     };
 };
 
+export const todoChanges = () => {
+    const applied = new Map<string, { fromVersion: number; todo: Todo }>();
+    let queue: Promise<void> = Promise.resolve();
+    return {
+        change(
+            todo: Todo,
+            action: (latest: Todo) => Promise<Todo> | Promise<void>,
+        ): Promise<void> {
+            const next = queue.then(async () => {
+                const previous = applied.get(todo.id);
+                const latest =
+                    previous &&
+                    todo.version >= previous.fromVersion &&
+                    todo.version <= previous.todo.version
+                        ? previous.todo
+                        : todo;
+                const updated = await action(latest);
+                if (updated) {
+                    applied.set(todo.id, {
+                        fromVersion:
+                            previous?.todo.version === latest.version
+                                ? previous.fromVersion
+                                : latest.version,
+                        todo: updated,
+                    });
+                } else {
+                    applied.delete(todo.id);
+                }
+            });
+            queue = next.catch(() => undefined);
+            return next;
+        },
+    };
+};
+
 export const isOpen = (todo: Todo) => todo.completedAtMs === null;
 
 export const formatDue = (dueAtMs: number) => {

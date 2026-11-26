@@ -1,10 +1,11 @@
-pub(crate) mod continuation;
+pub(crate) mod follow_up;
 mod intent;
 mod matching;
 mod phrase;
 mod plan;
 mod refine;
 pub mod timing;
+pub(crate) mod tool;
 mod wording;
 
 use chrono::TimeZone;
@@ -153,11 +154,17 @@ fn parameter(name: &str, description: &str, kind: ParameterKind, required: bool)
 }
 
 fn task_choices(user_text: &str, open_titles: &[&str]) -> Vec<String> {
-    let mut labels: Vec<String> = open_titles
+    let mut seen = std::collections::HashSet::new();
+    let labels: Vec<_> = open_titles
         .iter()
         .filter_map(|title| choice_label(title))
+        .filter(|label| seen.insert(label.clone()))
         .collect();
-    labels.sort_by_cached_key(|label| {
+    if labels.len() <= LIST_LIMIT {
+        return labels;
+    }
+    let mut ranked: Vec<_> = labels.into_iter().enumerate().collect();
+    ranked.sort_by_cached_key(|(_, label)| {
         if matching::spells_out(label, user_text) {
             0
         } else if refine::names_task(label, user_text) {
@@ -166,34 +173,20 @@ fn task_choices(user_text: &str, open_titles: &[&str]) -> Vec<String> {
             2
         }
     });
-    let mut choices: Vec<String> = Vec::new();
-    for label in labels {
-        if choices.len() == LIST_LIMIT {
-            break;
-        }
-        if !choices.contains(&label) {
-            choices.push(label);
-        }
-    }
-    choices
+    ranked.truncate(LIST_LIMIT);
+    ranked.sort_unstable_by_key(|(index, _)| *index);
+    ranked.into_iter().map(|(_, label)| label).collect()
 }
 
 pub fn chat_tools(user_text: &str, open_titles: &[&str]) -> ToolRequest {
     let choices = task_choices(user_text, open_titles);
-    let (task_kind, task_text, open_text) = if choices.is_empty() {
-        (
-            ParameterKind::Quote,
-            "Words naming the task, copied from the user's message.",
-            " The list has no open tasks.",
-        )
+    let task_kind = if choices.is_empty() {
+        ParameterKind::Quote
     } else {
-        (
-            ParameterKind::Choice { values: choices },
-            "The open task the user means.",
-            "",
-        )
+        ParameterKind::Choice { values: choices }
     };
     ToolRequest {
+        allowed: None,
         tools: vec![
             ToolSpec {
                 name: SAVE_TOOL.into(),
@@ -235,11 +228,9 @@ pub fn chat_tools(user_text: &str, open_titles: &[&str]) -> ToolRequest {
             },
             ToolSpec {
                 name: COMPLETE_TOOL.into(),
-                description: format!(
-                    "Mark a task in the user's To Do list as done: when the user asks to mark, tick or check it off, or says they have just done it (\"finished the…\", \"called…\", \"picked up…\"). Name the task, or give its number from the list just shown. Call once per requested completion.{open_text}",
-                ),
+                description:                     "Mark a task in the user's To Do list as done: when the user asks to mark, tick or check it off, or says they have just done it (\"finished the…\", \"called…\", \"picked up…\"). Name the task, or give its number from the list just shown. Call once per requested completion.".into(),
                 parameters: vec![
-                    parameter("task", task_text, task_kind, false),
+                    parameter("task", "The open task the user means.", task_kind, false),
                     parameter(
                         "number",
                         "The task's position in the list just shown, when the user refers to it by position (\"the third one\" is 3).",
@@ -414,13 +405,15 @@ mod tests {
         let ParameterKind::Choice { values } = task_kind("Renew passport is done", &many) else {
             panic!("expected choices");
         };
-        assert_eq!(values[0], "Renew passport");
+        assert_eq!(values.last().unwrap(), "Renew passport");
+        assert_eq!(values[..LIST_LIMIT - 1], many[..LIST_LIMIT - 1]);
         let clients: Vec<String> = (1..=21).map(|i| format!("Call client {i}")).collect();
         let clients: Vec<&str> = clients.iter().map(String::as_str).collect();
         let ParameterKind::Choice { values } = task_kind("I called client 21", &clients) else {
             panic!("expected choices");
         };
-        assert_eq!(values[0], "Call client 21");
+        assert_eq!(values.last().unwrap(), "Call client 21");
+        assert_eq!(values[..LIST_LIMIT - 1], clients[..LIST_LIMIT - 1]);
     }
 
     #[test]
@@ -516,4 +509,35 @@ mod tests {
             );
         }
     }
+}
+
+pub(crate) fn typed_title(title: &str) -> crate::db::Result<String> {
+    let title = clean_title(title).ok_or(Refusal::TitleMissing)?;
+    if title.chars().count() > MAX_TITLE_CHARS {
+        return Err(Refusal::TitleTooLong {
+            max: MAX_TITLE_CHARS,
+        }
+        .into());
+    }
+    Ok(title)
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+pub enum Refusal {
+    #[error("todo changed since it was read")]
+    TodoChanged,
+    #[error("todo title is missing")]
+    TitleMissing,
+    #[error("todo title exceeds {max} characters")]
+    TitleTooLong { max: usize },
+    #[error("todo changes can no longer be undone")]
+    UndoStale,
+    #[error("todo offer is stale")]
+    OfferStale,
+    #[error("an earlier reply to this message has active todo changes")]
+    EarlierReplyStands,
+    #[error("reply has no offered todo changes")]
+    NothingOffered,
+    #[error("reply has no applied todo changes")]
+    NothingChanged,
 }

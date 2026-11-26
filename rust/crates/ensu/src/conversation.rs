@@ -2,6 +2,7 @@ mod budget;
 mod followup;
 mod grounding;
 mod lookup;
+mod pass;
 mod prepare;
 mod prompt;
 mod state;
@@ -9,16 +10,21 @@ mod turn;
 mod uuid_text;
 
 pub use budget::{GenerationBudget, resolve_generation_budget};
+pub use chrono::Local as LocalTimeZone;
 pub use followup::direct_followup_references;
 pub use grounding::{FittedGrounding, GroundingCandidates, MAX_GROUNDING_BYTES};
 use grounding::{GroundingPlacement, fit_grounding_with_history};
 use lookup::{HistoryLookup, lookup_history, requested_history};
+pub use pass::{ContextRunner, PassRunner};
 pub use prepare::{Effects, Preparation, PreparationResult, PrepareError};
-pub use prompt::{FinishWarning, FinishedTurn, GroundingCache, Reply, finish_turn};
+pub use prompt::{FinishWarning, FinishedTurn, GroundingCache};
 use prompt::{GroundingAnchor, PromptGrounding};
 pub use state::AnswerEvidence;
 pub(crate) use state::{ConversationEnvelope, valid_answer_passages};
-pub use turn::{PreparedTurn, TurnInput, TurnTools, prepare_turn};
+#[cfg(test)]
+pub(crate) use turn::prepare_turn;
+pub(crate) use turn::{PreparedTurn, TurnInput, TurnTools};
+pub use turn::{Turn, TurnDraft, TurnRequest};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ToolTurnHistory {
@@ -87,6 +93,10 @@ fn expand_tool_turns(
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+#[cfg(feature = "sqlite")]
+mod turn_tests;
 
 use std::collections::HashSet;
 use std::ops::Range;

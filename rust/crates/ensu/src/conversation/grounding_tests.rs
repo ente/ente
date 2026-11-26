@@ -773,6 +773,25 @@ fn grounding_cache_publishes_only_saved_answers_and_preserves_evidence_positions
         let mut prepared = cache.prepare_turn(input, &mut effects).unwrap();
         prepared.preparation.run(&mut effects).unwrap()
     };
+    let finish = |snapshot: &crate::db::chat::ConversationSnapshot,
+                  prepared: &mut PreparationResult,
+                  text: &str| {
+        super::prompt::save_prepared_reply(
+            Some(&cache),
+            &db,
+            snapshot,
+            prepared,
+            super::prompt::Answer {
+                text,
+                sources: &[],
+                passages: vec![],
+                attachments: vec![],
+                outcome: None,
+            },
+            &|_, _| true,
+            &crate::tools::test_support::zone(),
+        )
+    };
     let snapshot = |history: &[Message]| {
         db.conversation_snapshot(
             history[0].session_uuid,
@@ -812,17 +831,12 @@ fn grounding_cache_publishes_only_saved_answers_and_preserves_evidence_positions
     let abandoned = prepare(&future, vec![source.clone()]);
     assert_ne!(abandoned.grounding_anchor, first_anchor);
     let captured = snapshot(&history);
-    let answer = cache
-        .finish(&db, &captured, &mut first, reply("An answer."))
+    let answer = finish(&captured, &mut first, "An answer.")
         .unwrap()
         .reply
         .message;
     assert!(first.is_saved());
-    assert!(
-        cache
-            .finish(&db, &captured, &mut first, reply("Duplicate answer."))
-            .is_err()
-    );
+    assert!(finish(&captured, &mut first, "Duplicate answer.").is_err());
     append(&mut history, answer, "What happens with less sunlight?");
     let mut second = prepare(&history, vec![source.clone()]);
     for (before, after) in first.messages.iter().zip(&second.messages) {
@@ -834,8 +848,7 @@ fn grounding_cache_publishes_only_saved_answers_and_preserves_evidence_positions
         second.messages.last().unwrap().content,
         history.last().unwrap().text
     );
-    let answer = cache
-        .finish(&db, &snapshot(&history), &mut second, reply("An answer."))
+    let answer = finish(&snapshot(&history), &mut second, "An answer.")
         .unwrap()
         .reply
         .message;
@@ -857,19 +870,14 @@ fn grounding_cache_publishes_only_saved_answers_and_preserves_evidence_positions
     let current = history.last().unwrap();
     db.update_message_text(current.uuid, "Edited while generating")
         .unwrap();
-    assert!(
-        cache
-            .finish(&db, &captured, &mut third, reply("Stale answer."))
-            .is_err()
-    );
+    assert!(finish(&captured, &mut third, "Stale answer.").is_err());
     assert!(!third.is_saved());
     assert_eq!(third.grounding_anchor, third_anchor);
     db.update_message_text(current.uuid, &current.text).unwrap();
     let retained = prepare(&history, vec![source]);
     assert_eq!(retained.grounding_anchor, first_anchor);
     let mut third = prepare(&history, vec![changed.clone()]);
-    let answer = cache
-        .finish(&db, &snapshot(&history), &mut third, reply("An answer."))
+    let answer = finish(&snapshot(&history), &mut third, "An answer.")
         .unwrap()
         .reply
         .message;
@@ -975,15 +983,5 @@ fn compaction_and_fallback_relocate_grounding_without_summarizing_excerpts() {
         );
         assert_ne!(result.grounding_anchor, first.grounding_anchor);
         assert!(!effects.summary_contains_grounding);
-    }
-}
-
-fn reply(text: &str) -> Reply<'_> {
-    Reply {
-        text,
-        sources: &[],
-        passages: Vec::new(),
-        attachments: Vec::new(),
-        tools: None,
     }
 }

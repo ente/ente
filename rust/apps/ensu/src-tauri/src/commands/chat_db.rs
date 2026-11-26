@@ -3,7 +3,10 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use ente_core::b64;
-use ente_ensu::db::{self, ChatDb, SqliteBackend};
+use ente_ensu::{
+    conversation::LocalTimeZone,
+    db::{self, ChatDb, SqliteBackend},
+};
 use serde::{Deserialize, Serialize};
 use tauri::async_runtime;
 use tauri::{AppHandle, Manager, State};
@@ -48,16 +51,16 @@ fn image_thread_error() -> ApiError {
     ApiError::new("image_thread", "Image task failed")
 }
 
-fn refusal_name(refusal: db::Refusal) -> &'static str {
+fn refusal_name(refusal: ente_ensu::todo::Refusal) -> &'static str {
     match refusal {
-        db::Refusal::TodoChanged => "refused.todo_changed",
-        db::Refusal::TitleMissing => "refused.title_missing",
-        db::Refusal::TitleTooLong { .. } => "refused.title_too_long",
-        db::Refusal::UndoStale => "refused.undo_stale",
-        db::Refusal::OfferStale => "refused.offer_stale",
-        db::Refusal::EarlierReplyStands => "refused.earlier_reply_stands",
-        db::Refusal::NothingOffered => "refused.nothing_offered",
-        db::Refusal::NothingChanged => "refused.nothing_changed",
+        ente_ensu::todo::Refusal::TodoChanged => "refused.todo_changed",
+        ente_ensu::todo::Refusal::TitleMissing => "refused.title_missing",
+        ente_ensu::todo::Refusal::TitleTooLong { .. } => "refused.title_too_long",
+        ente_ensu::todo::Refusal::UndoStale => "refused.undo_stale",
+        ente_ensu::todo::Refusal::OfferStale => "refused.offer_stale",
+        ente_ensu::todo::Refusal::EarlierReplyStands => "refused.earlier_reply_stands",
+        ente_ensu::todo::Refusal::NothingOffered => "refused.nothing_offered",
+        ente_ensu::todo::Refusal::NothingChanged => "refused.nothing_changed",
     }
 }
 
@@ -419,24 +422,10 @@ pub async fn chat_db_finish_reply(
     input: FinishReplyInput,
 ) -> Result<FinishedReplyDto, ApiError> {
     let app = window.app_handle();
-    let super::conversation::Answer {
-        snapshot,
-        sources,
-        passages,
-        tools,
-    } = conversation_state.take_answer(app, window.label(), &input.preparation_token)?;
+    let super::conversation::Answer { snapshot, turn } =
+        conversation_state.take_answer(app, window.label(), &input.preparation_token)?;
     let finished = with_chat_db_async(&state, move |db| {
-        ente_ensu::conversation::finish_turn(
-            db,
-            &snapshot,
-            ente_ensu::conversation::Reply {
-                text: &input.text,
-                sources: &sources,
-                passages,
-                attachments: Vec::new(),
-                tools: tools.as_deref(),
-            },
-        )
+        turn.finish(db, &snapshot, &input.text, Vec::new(), &LocalTimeZone)
     })
     .await?;
     for warning in &finished.warnings {

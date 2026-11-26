@@ -19,7 +19,7 @@ pub struct GroundingCache {
 }
 
 impl GroundingCache {
-    pub fn prepare_turn(
+    pub(crate) fn prepare_turn(
         &self,
         input: TurnInput,
         effects: &mut impl Effects,
@@ -27,36 +27,6 @@ impl GroundingCache {
         let anchor = self.anchor.lock().ok().and_then(|anchor| anchor.clone());
         super::turn::prepare_turn_with_anchor(input, anchor, effects)
     }
-
-    pub fn finish<B: Backend>(
-        &self,
-        db: &ChatDb<B>,
-        snapshot: &ConversationSnapshot,
-        prepared: &mut PreparationResult,
-        reply: Reply<'_>,
-    ) -> db::Result<FinishedTurn> {
-        if prepared.is_saved() {
-            return Err(db::Error::UnsupportedOperation(
-                "Answer already saved".into(),
-            ));
-        }
-        let finished = finish_turn(db, snapshot, reply)?;
-        prepared.saved = true;
-        if finished.reply.tool_turn.is_none()
-            && let Ok(mut anchor) = self.anchor.lock()
-        {
-            *anchor = prepared.grounding_anchor.take();
-        }
-        Ok(finished)
-    }
-}
-
-pub struct Reply<'a> {
-    pub text: &'a str,
-    pub sources: &'a [GroundedSource],
-    pub passages: Vec<IncludedPassage>,
-    pub attachments: Vec<AttachmentMeta>,
-    pub tools: Option<&'a crate::llm::ToolExchange>,
 }
 
 #[derive(Debug)]
@@ -83,21 +53,52 @@ impl std::fmt::Display for FinishWarning {
 
 #[derive(Debug)]
 pub struct FinishedTurn {
-    pub reply: db::chat::FinishedReply,
+    pub reply: crate::tools::turn::FinishedReply,
     pub warnings: Vec<FinishWarning>,
 }
 
-pub fn finish_turn<B: Backend>(
+pub(super) struct Answer<'a> {
+    pub text: &'a str,
+    pub sources: &'a [GroundedSource],
+    pub passages: Vec<IncludedPassage>,
+    pub attachments: Vec<AttachmentMeta>,
+    pub outcome: Option<&'a crate::llm::ToolOutcome>,
+}
+
+pub(super) fn save_prepared_reply<B: Backend>(
+    cache: Option<&GroundingCache>,
     db: &ChatDb<B>,
     snapshot: &ConversationSnapshot,
-    reply: Reply<'_>,
+    prepared: &mut PreparationResult,
+    reply: Answer<'_>,
+    can_finish: &dyn Fn(&crate::llm::ToolOutcome, i64) -> bool,
+    zone: &impl chrono::TimeZone,
+) -> db::Result<FinishedTurn> {
+    if prepared.is_saved() {
+        return Err(db::Error::UnsupportedOperation(
+            "Answer already saved".into(),
+        ));
+    }
+    let finished = save_reply(db, snapshot, reply, can_finish, zone)?;
+    prepared.saved = true;
+    if finished.reply.tool_turn.is_none()
+        && let Some(cache) = cache
+        && let Ok(mut anchor) = cache.anchor.lock()
+    {
+        *anchor = prepared.grounding_anchor.take();
+    }
+    Ok(finished)
+}
+
+fn save_reply<B: Backend>(
+    db: &ChatDb<B>,
+    snapshot: &ConversationSnapshot,
+    reply: Answer<'_>,
+    can_finish: &dyn Fn(&crate::llm::ToolOutcome, i64) -> bool,
+    zone: &impl chrono::TimeZone,
 ) -> db::Result<FinishedTurn> {
     let mut warnings = Vec::new();
-    let outcome = reply
-        .tools
-        .and_then(crate::llm::ToolExchange::outcome)
-        .filter(|outcome| !outcome.calls.is_empty());
-    let text = if outcome.as_ref().is_some_and(|outcome| {
+    let text = if reply.outcome.is_some_and(|outcome| {
         outcome
             .calls
             .iter()
@@ -115,10 +116,15 @@ pub fn finish_turn<B: Backend>(
             }
         }
     };
-    let finished = db.finish_exchange(snapshot, &text, reply.attachments, reply.tools)?;
-    if let Some(tools) = reply.tools {
-        tools.record(None);
-    }
+    let finished = crate::tools::turn::finish_reply_inner(
+        db,
+        snapshot,
+        &text,
+        reply.attachments,
+        reply.outcome,
+        can_finish,
+        zone,
+    )?;
     if finished.tool_turn.is_none() && !reply.passages.is_empty() {
         match db.save_answer_evidence(snapshot, finished.message.uuid, reply.passages) {
             Ok(true) => {}

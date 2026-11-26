@@ -23,7 +23,6 @@ pub fn migrate<B: Backend>(backend: &B) -> Result<()> {
             migrate_tools(backend)
         }
         6 => migrate_tools(backend),
-        7 => migrate_todo_turns(backend),
         LATEST_VERSION => Ok(()),
         other => Err(Error::Migration(format!(
             "unsupported schema version {other}"
@@ -33,14 +32,6 @@ pub fn migrate<B: Backend>(backend: &B) -> Result<()> {
 
 fn migrate_tools<B: Backend>(backend: &B) -> Result<()> {
     backend.transaction(|tx| {
-        tx.execute_batch(schema::CREATE_TOOL_TABLES)?;
-        tx.execute_batch("PRAGMA user_version = 8;")
-    })
-}
-
-fn migrate_todo_turns<B: Backend>(backend: &B) -> Result<()> {
-    backend.transaction(|tx| {
-        tx.execute_batch("DROP TABLE IF EXISTS todo_turns;")?;
         tx.execute_batch(schema::CREATE_TOOL_TABLES)?;
         tx.execute_batch("PRAGMA user_version = 8;")
     })
@@ -255,37 +246,6 @@ mod tests {
                 .unwrap()
                 .is_empty()
         );
-    }
-
-    #[test]
-    fn v7_keeps_to_dos_and_replaces_the_turn_table() {
-        let backend = SqliteBackend::open_in_memory().unwrap();
-        backend.execute_batch(schema::CREATE_ALL).unwrap();
-        backend
-            .execute_batch(
-                "CREATE TABLE todos (todo_id TEXT PRIMARY KEY NOT NULL, record BLOB NOT NULL, created_at INTEGER NOT NULL);
-                 CREATE TABLE todo_turns (reply_id TEXT PRIMARY KEY NOT NULL, source_id TEXT UNIQUE NOT NULL, record BLOB NOT NULL);
-                 INSERT INTO todos VALUES ('t', X'010203', 1);
-                 PRAGMA user_version = 7;",
-            )
-            .unwrap();
-        migrate(&backend).unwrap();
-        migrate(&backend).unwrap();
-        assert_eq!(user_version(&backend).unwrap(), LATEST_VERSION);
-        assert_eq!(
-            backend
-                .query_row("SELECT record FROM todos", &[])
-                .unwrap()
-                .unwrap(),
-            vec![Value::Blob(vec![1, 2, 3])]
-        );
-        let tables: Vec<_> = backend
-            .query(
-                "SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE '%_turns'",
-                &[],
-            )
-            .unwrap();
-        assert_eq!(tables, vec![vec![Value::Text("tool_turns".into())]]);
     }
 
     const V5: &str = "CREATE TABLE sessions(session_uuid TEXT PRIMARY KEY, title BLOB NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);

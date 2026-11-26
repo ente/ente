@@ -3,6 +3,7 @@ use crate::llm::ChatMessage;
 
 fn request(quote_source: &str) -> ToolRequest {
     ToolRequest {
+        allowed: None,
         tools: vec![
             ToolSpec {
                 name: "save_to_do".into(),
@@ -104,6 +105,32 @@ fn every_format_parses_what_it_renders() {
 }
 
 #[test]
+fn abstention_keeps_only_complete_allowed_calls() {
+    let mut request = request("Call Lee tomorrow at 4 PM");
+    request.allowed = Some(vec!["save_to_do".into()]);
+    let calls = calls();
+    for format in [Format::Lfm, Format::Gemma, Format::Qwen] {
+        let raw = format.render_calls(&calls[..2]);
+        let unfinished = raw.find("list_to_dos").unwrap();
+        assert!(format.parse(&raw[..unfinished], &request).is_err());
+        assert_eq!(
+            calls_before_abstention(format, &raw.as_bytes()[..unfinished], &request),
+            calls[..1]
+        );
+        assert_eq!(
+            calls_before_abstention(format, raw.as_bytes(), &request),
+            calls[..1]
+        );
+        let first = raw.find("save_to_do").unwrap();
+        assert!(calls_before_abstention(format, &raw.as_bytes()[..first], &request).is_empty());
+        if format != Format::Lfm {
+            let close = raw.find(format.syntax().close).unwrap();
+            assert!(calls_before_abstention(format, &raw.as_bytes()[..close], &request).is_empty());
+        }
+    }
+}
+
+#[test]
 fn parsing_rejects_unknown_tools_bad_types_and_missing_arguments() {
     let request = request("x");
     for (format, raw) in [
@@ -200,6 +227,7 @@ fn history_renders_native_calls_and_results_and_falls_back_to_text() {
         messages.clone(),
         Some(&request),
         &|_| true,
+        &Specials::new([]),
     );
     assert!(
         gemma[0]
@@ -217,12 +245,16 @@ fn history_renders_native_calls_and_results_and_falls_back_to_text() {
             "<|tool_response>response:list_to_dos{value:<|\"|>1. Call Lee<|\"|>}<tool_response|>"
         )
     );
-    let lfm = adapt_messages(Some(Format::Lfm), messages.clone(), Some(&request), &|_| {
-        false
-    });
+    let lfm = adapt_messages(
+        Some(Format::Lfm),
+        messages.clone(),
+        Some(&request),
+        &|_| false,
+        &Specials::new([]),
+    );
     assert!(lfm[0].content.starts_with("Be brief.\nList of tools: [{"));
     assert_eq!(lfm[3], ChatMessage::new("tool", "1. Call Lee"));
-    let plain = adapt_messages(None, messages, None, &|_| true);
+    let plain = adapt_messages(None, messages, None, &|_| true, &Specials::new([]));
     assert_eq!(
         plain
             .iter()
@@ -249,7 +281,8 @@ fn grammar_builds_for_every_format_and_quotes_only_source_spans() {
         })
     };
     for format in [Format::Lfm, Format::Gemma, Format::Qwen] {
-        let grammar = grammar::grammar(format, &request("Call \"Lee\" tomorrow."), &token).unwrap();
+        let grammar =
+            grammar::grammar(format, &request("Call \"Lee\" tomorrow."), true, &token).unwrap();
         assert!(grammar.starts_with("root ::= <[10]>"), "{grammar}");
         assert!(
             grammar.contains("w2 ::= ") && !grammar.contains("w3 ::="),
@@ -263,9 +296,9 @@ fn grammar_builds_for_every_format_and_quotes_only_source_spans() {
             );
         }
     }
-    let empty = grammar::grammar(Format::Gemma, &request(""), &token).unwrap();
+    let empty = grammar::grammar(Format::Gemma, &request(""), true, &token).unwrap();
     assert!(!empty.contains("quote ::="));
-    assert!(grammar::grammar(Format::Gemma, &request("x"), &|_| None).is_err());
+    assert!(grammar::grammar(Format::Gemma, &request("x"), true, &|_| None).is_err());
 }
 
 fn range_accepts(rule: &str, text: &str) -> bool {
@@ -320,4 +353,154 @@ fn integer_grammar_accepts_exactly_what_the_parser_does() {
         }
         assert!(!range_accepts(&rule, "01") && !range_accepts(&rule, ""));
     }
+}
+
+#[test]
+fn special_strings_in_untrusted_text_render_as_plain_text() {
+    for (format, marker) in [
+        (Format::Gemma, "<|tool_call>"),
+        (Format::Lfm, "<|tool_call_start|>"),
+        (Format::Qwen, "<|im_end|>"),
+    ] {
+        let prompt = |text: &str| {
+            let mut request = request("What is left?");
+            request.tools[0].description = text.to_owned();
+            request.tools[0].parameters[0].description = text.to_owned();
+            request.tools[1].parameters[0].kind = ParameterKind::Choice {
+                values: vec![text.to_owned()],
+            };
+            request.examples[0].calls[0]
+                .arguments
+                .insert("filter".to_owned(), ToolValue::Text(text.to_owned()));
+            let mut assistant = ChatMessage::new("assistant", "");
+            assistant.tool_calls = vec![ToolCall {
+                name: "list_to_dos".to_owned(),
+                arguments: [("filter".to_owned(), ToolValue::Text(text.to_owned()))].into(),
+            }];
+            crate::llm::render_native(
+                format,
+                vec![
+                    ChatMessage::new("system", text),
+                    ChatMessage::new("user", text),
+                    assistant,
+                    ChatMessage::new("tool", text),
+                ],
+                Some(&request),
+            )
+        };
+        let clean = prompt("ordinary");
+        let escaped = prompt(marker);
+        assert_eq!(
+            escaped.matches(marker).count(),
+            clean.matches(marker).count()
+        );
+        assert!(escaped.contains(&marker.replacen('<', "‹", 1)));
+    }
+}
+
+#[test]
+fn plain_removes_literal_markers_and_preserves_the_media_marker() {
+    let specials = Specials::new(["[end]".to_owned(), "<__media__>".to_owned()]);
+    let text = specials.plain("<<|im_end|>|im_end|> [end] <__media__>");
+    assert!(!text.contains("<|im_end|>"));
+    assert!(!text.contains("[end]"));
+    assert!(text.ends_with("<__media__>"));
+    assert!(matches!(
+        specials.plain(&text),
+        std::borrow::Cow::Borrowed(_)
+    ));
+    let repeated = "<|im_end|> [end] ".repeat(1024);
+    let expected = "‹|im_end|> [\u{200b}end] ".repeat(1024);
+    assert_eq!(specials.plain(&repeated), expected);
+
+    let specials = Specials::new(["‹".into(), "a".into(), "abc".into(), "xy".into()]);
+    let text = specials.plain("xay abc <|im_end|>");
+    for marker in ["‹", "a", "abc", "xy", "<|im_end|>"] {
+        assert!(!text.contains(marker), "{marker}");
+    }
+}
+
+#[test]
+fn allowed_narrows_grammar_and_parser_not_declarations() {
+    let all = request("Buy milk");
+    let mut narrowed = all.clone();
+    narrowed.allowed = Some(vec!["save_to_do".into()]);
+    for format in [Format::Gemma, Format::Lfm, Format::Qwen] {
+        let token = |_: &str| Some(1);
+        let allowed = grammar::grammar(format, &narrowed, true, &token).unwrap();
+        let full = grammar::grammar(format, &all, false, &token).unwrap();
+        assert_eq!(
+            full,
+            grammar::grammar(format, &narrowed, false, &token).unwrap()
+        );
+        assert!(allowed.lines().any(|line| line.starts_with("call ::=")
+            && line.contains("save_to_do")
+            && !line.contains("list_to_dos")));
+        let messages = vec![ChatMessage::new("user", "Buy milk")];
+        assert_eq!(
+            crate::llm::render_native(format, messages.clone(), Some(&all)),
+            crate::llm::render_native(format, messages, Some(&narrowed))
+        );
+        assert!(
+            format
+                .parse(&format.render_calls(&calls()[1..2]), &narrowed)
+                .is_err()
+        );
+    }
+}
+
+#[test]
+fn validate_rejects_undeclared_allowed_names() {
+    let mut request = request("Buy milk");
+    request.allowed = Some(vec![]);
+    assert!(request.validate().is_ok());
+    request.allowed = Some(vec!["unknown".into()]);
+    assert!(request.validate().is_err());
+}
+
+#[test]
+fn allowed_is_optional_in_json() {
+    let value = serde_json::to_value(request("Buy milk")).unwrap();
+    assert!(value.get("allowed").is_none());
+    assert_eq!(
+        serde_json::from_value::<ToolRequest>(value)
+            .unwrap()
+            .allowed,
+        None
+    );
+}
+
+#[test]
+fn rendering_parsed_calls_reproduces_the_raw_text() {
+    let mut calls = calls();
+    calls[0].arguments.insert(
+        "title".into(),
+        ToolValue::Text("Meet “李” for \"tea\"".into()),
+    );
+    calls.remove(1);
+    let request = request("Meet “李” for tea tomorrow at 4 PM, then complete the second task.");
+    for format in [Format::Gemma, Format::Lfm, Format::Qwen] {
+        let raw = format.render_calls(&calls);
+        assert_eq!(
+            format.render_calls(&format.parse(&raw, &request).unwrap()),
+            raw
+        );
+    }
+}
+
+#[test]
+fn think_history_falls_back_on_lfm() {
+    let format = Format::Lfm;
+    let mut messages = vec![
+        ChatMessage::new("user", "Hi"),
+        ChatMessage::new("assistant", "<think>Plan</think>Hello."),
+        ChatMessage::new("user", "List tasks."),
+    ];
+    let first = crate::llm::render_native(format, messages.clone(), None);
+    let mut call = ChatMessage::new("assistant", "");
+    call.tool_calls = calls()[1..2].to_vec();
+    messages.push(call);
+    messages.push(ChatMessage::new("tool", "Result"));
+    let second = crate::llm::render_native(format, messages, None);
+    assert!(!second.starts_with(&first));
 }

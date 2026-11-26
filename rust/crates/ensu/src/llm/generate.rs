@@ -20,7 +20,7 @@ use super::event::{EventSink, FinishReason, GenerationEvent, GenerationSummary, 
 use super::execution::{ExecutionContext, ExecutionState, MIN_GPU_PROMPT_TOKENS, MultimodalPrompt};
 use super::template::build_prompt;
 use super::tools::{self, Format, ToolCall, ToolOutcome, ToolRequest};
-use super::{Error, format_error, lock};
+use super::{Error, format_error, lock, vocab};
 
 static JOB_COUNTER: AtomicI64 = AtomicI64::new(1);
 static CANCEL_FLAGS: OnceLock<Mutex<HashMap<JobId, Arc<AtomicBool>>>> = OnceLock::new();
@@ -304,13 +304,29 @@ enum ToolState {
     Call,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Pick {
+    Token(LlamaToken),
+    Abstain,
+}
+
+fn accepts(grammar: &mut LlamaSampler, token: LlamaToken, logit: f32) -> bool {
+    let mut single = LlamaTokenDataArray::new(vec![LlamaTokenData::new(token, logit, 0.0)], false);
+    grammar.apply(&mut single);
+    single.data[0].logit().is_finite()
+}
+
 struct ToolDecode {
     format: Format,
     request: ToolRequest,
     open: LlamaToken,
     grammar: LlamaSampler,
+    veto: Option<LlamaSampler>,
+    abstained: bool,
+    rejected_steps: u32,
     state: ToolState,
     raw: Vec<u8>,
+    tokens: Vec<LlamaToken>,
     probability: Option<f32>,
 }
 
@@ -332,7 +348,7 @@ impl ToolDecode {
         ctx: &LlamaContext,
         index: i32,
         reply: &mut LlamaSampler,
-    ) -> Result<LlamaToken, Error> {
+    ) -> Result<Pick, Error> {
         match self.state {
             ToolState::Undecided => {
                 let probability = token_probability(ctx.get_logits_ith(index), self.open);
@@ -340,18 +356,21 @@ impl ToolDecode {
                 if probability >= self.request.min_call_probability {
                     self.state = ToolState::Call;
                     self.grammar.accept(self.open);
-                    Ok(self.open)
+                    if let Some(veto) = &mut self.veto {
+                        veto.accept(self.open);
+                    }
+                    Ok(Pick::Token(self.open))
                 } else {
                     self.state = ToolState::Reply;
-                    Ok(reply.sample(ctx, index))
+                    Ok(Pick::Token(reply.sample(ctx, index)))
                 }
             }
-            ToolState::Reply => Ok(reply.sample(ctx, index)),
+            ToolState::Reply => Ok(Pick::Token(reply.sample(ctx, index))),
             ToolState::Call => self.constrained(ctx, index),
         }
     }
 
-    fn constrained(&mut self, ctx: &LlamaContext, index: i32) -> Result<LlamaToken, Error> {
+    fn constrained(&mut self, ctx: &LlamaContext, index: i32) -> Result<Pick, Error> {
         let logits = ctx.get_logits_ith(index);
         let best = logits
             .iter()
@@ -359,13 +378,9 @@ impl ToolDecode {
             .max_by(|a, b| a.1.total_cmp(b.1))
             .map(|(i, logit)| (i as i32, *logit))
             .ok_or(super::ToolCallFailure::Invalid)?;
-        let mut single = LlamaTokenDataArray::new(
-            vec![LlamaTokenData::new(LlamaToken(best.0), best.1, 0.0)],
-            false,
-        );
-        self.grammar.apply(&mut single);
-        let token = if single.data[0].logit().is_finite() {
-            LlamaToken(best.0)
+        let preferred = LlamaToken(best.0);
+        let token = if accepts(&mut self.grammar, preferred, best.1) {
+            preferred
         } else {
             let mut all = ctx.token_data_array_ith(index);
             self.grammar.apply(&mut all);
@@ -376,14 +391,28 @@ impl ToolDecode {
                 .map(LlamaTokenData::id)
                 .ok_or(super::ToolCallFailure::Invalid)?
         };
+        self.rejected_steps += u32::from(token != preferred);
+        if self
+            .veto
+            .as_mut()
+            .is_some_and(|veto| !accepts(veto, token, logits[token.0 as usize]))
+        {
+            self.abstained = true;
+            return Ok(Pick::Abstain);
+        }
         if !ctx.model.vocab().is_eog(token) {
             self.grammar.accept(token);
+            if let Some(veto) = &mut self.veto {
+                veto.accept(token);
+            }
         }
-        Ok(token)
+        Ok(Pick::Token(token))
     }
 
-    fn finish(self, reason: FinishReason) -> Result<ToolOutcome, Error> {
-        let calls = if self.state == ToolState::Call {
+    fn finish(&self, reason: FinishReason) -> Result<ToolOutcome, Error> {
+        let calls = if self.abstained {
+            tools::calls_before_abstention(self.format, &self.raw, &self.request)
+        } else if self.state == ToolState::Call {
             tools::finished_calls(
                 self.format,
                 &self.raw,
@@ -396,6 +425,8 @@ impl ToolDecode {
         Ok(ToolOutcome {
             calls,
             call_probability: self.probability,
+            abstained: self.abstained,
+            rejected_steps: self.rejected_steps,
         })
     }
 }
@@ -418,7 +449,13 @@ impl GenerationJob<'_> {
             check_cancelled(self.cancel_flag)?;
 
             let token = match self.tool.as_mut() {
-                Some(tool) => tool.pick(ctx.get()?, logits_index, sampler)?,
+                Some(tool) => match tool.pick(ctx.get()?, logits_index, sampler)? {
+                    Pick::Token(token) => token,
+                    Pick::Abstain => {
+                        self.finish_reason = FinishReason::StopSequence;
+                        break;
+                    }
+                },
                 None => sampler.sample(ctx.get()?, logits_index),
             };
             check_cancelled(self.cancel_flag)?;
@@ -438,6 +475,7 @@ impl GenerationJob<'_> {
             let step = match self.tool.as_mut() {
                 Some(tool) if tool.state == ToolState::Call => {
                     tool.raw.extend_from_slice(&bytes);
+                    tool.tokens.push(token);
                     DecodeStep {
                         text: None,
                         stop: false,
@@ -601,20 +639,10 @@ impl LocalContext {
                 request.template_override.clone(),
                 request.add_assistant.unwrap_or(true),
                 request.tools.as_ref(),
+                self.specials.get_or_init(|| vocab::specials(model)),
             )?;
             Ok(tokenize_text_prompt(model, &prompt.text)?.len())
         })
-    }
-
-    pub fn generate_chat_stream(
-        &self,
-        request: ChatRequest,
-        sink: &mut dyn EventSink,
-        job_id: JobId,
-        cancel_flag: Arc<AtomicBool>,
-        start: Instant,
-    ) -> Result<GenerationSummary, Error> {
-        generate_chat_stream(self, request, sink, job_id, cancel_flag, start)
     }
 
     pub fn truncate_text_chat_messages(
@@ -671,14 +699,20 @@ impl LocalContext {
     }
 }
 
-fn generate_chat_stream(
+pub(super) struct Tail {
+    text: String,
+    tokens: Vec<LlamaToken>,
+}
+
+pub(super) fn generate_pass(
     context: &LocalContext,
     request: ChatRequest,
+    tail: Option<Tail>,
     sink: &mut dyn EventSink,
     job_id: JobId,
     cancel_flag: Arc<AtomicBool>,
     start: Instant,
-) -> Result<GenerationSummary, Error> {
+) -> Result<(GenerationSummary, Option<Tail>), Error> {
     let ChatRequest {
         messages,
         template_override,
@@ -728,7 +762,7 @@ fn generate_chat_stream(
     };
 
     let result = match catch_unwind(AssertUnwindSafe(|| {
-        context.with_context_and_cache_mut(|ctx, cached_tokens| -> Result<(), Error> {
+        context.with_context_and_cache_mut(|ctx, cached_tokens| {
             let add_assistant = add_assistant.unwrap_or(true);
             let mut messages = messages;
             let image_paths = image_paths.unwrap_or_default();
@@ -772,26 +806,45 @@ fn generate_chat_stream(
                 template_override,
                 add_assistant,
                 tool_request.as_ref(),
+                context.specials.get_or_init(|| vocab::specials(ctx.model)),
             )?;
             let prompt = built.text;
             let mut banned = Vec::new();
             if let Some(format) = built.native_format
-                && let Some(open) = tools::single_token(ctx.model, format.open())
+                && let Some(open) = vocab::single_token(ctx.model, format.open())
             {
                 banned.push(open);
-                if let Some(request) = tool_request {
-                    let grammar = tools::grammar(format, &request, ctx.model)?;
-                    let grammar =
+                if let Some(request) = tool_request
+                    && request
+                        .allowed
+                        .as_ref()
+                        .is_none_or(|allowed| !allowed.is_empty())
+                {
+                    let sampler = |narrowed| {
+                        let grammar = tools::grammar(format, &request, narrowed, &|text| {
+                            vocab::single_token(ctx.model, text).map(|token| token.0)
+                        })?;
                         LlamaSampler::grammar(ctx.model, &grammar, "root").map_err(|err| {
                             Error::InvalidInput(format_error("Invalid tool grammar", err))
-                        })?;
+                        })
+                    };
+                    let grammar = sampler(false)?;
+                    let veto = request
+                        .allowed
+                        .as_ref()
+                        .map(|_| sampler(true))
+                        .transpose()?;
                     job.tool = Some(ToolDecode {
                         format,
                         request,
                         open,
                         grammar,
+                        veto,
+                        abstained: false,
+                        rejected_steps: 0,
                         state: ToolState::Undecided,
                         raw: Vec::new(),
+                        tokens: Vec::new(),
                         probability: None,
                     });
                 }
@@ -809,7 +862,15 @@ fn generate_chat_stream(
             };
 
             if image_paths.is_empty() {
-                let prompt_tokens = tokenize_text_prompt(ctx.model, &prompt)?;
+                let prompt_tokens = if let Some(Tail { text, mut tokens }) = tail
+                    && let Some(suffix) = prompt.strip_prefix(&text)
+                    && !suffix.is_empty()
+                {
+                    tokens.extend(ctx.model.vocab().tokenize(suffix.as_bytes(), false, true));
+                    tokens
+                } else {
+                    tokenize_text_prompt(ctx.model, &prompt)?
+                };
 
                 let n_ctx = ctx.n_ctx();
                 if prompt_tokens.len() as u32 > n_ctx {
@@ -903,7 +964,7 @@ fn generate_chat_stream(
                     logits_index,
                 )?;
 
-                return Ok(());
+                return Ok(Some((prompt, prompt_tokens)));
             }
 
             let mmproj_path = mmproj_path.ok_or_else(|| {
@@ -1019,7 +1080,7 @@ fn generate_chat_stream(
                 -1,
             )?;
 
-            Ok(())
+            Ok(None)
         })
     })) {
         Ok(inner) => inner,
@@ -1028,10 +1089,23 @@ fn generate_chat_stream(
             Err(Error::Panicked)
         }
     };
-    result?;
+    let prompt = result?;
+    let mut next_tail = None;
 
     let tools = match job.tool.take() {
-        Some(tool) => Some(tool.finish(job.finish_reason)?),
+        Some(tool) => {
+            let outcome = tool.finish(job.finish_reason)?;
+            if !outcome.abstained
+                && !outcome.calls.is_empty()
+                && let Some((mut text, mut tokens)) = prompt
+                && let Ok(raw) = std::str::from_utf8(&tool.raw)
+            {
+                text.push_str(raw);
+                tokens.extend(tool.tokens);
+                next_tail = Some(Tail { text, tokens });
+            }
+            Some(outcome)
+        }
         None if tools_requested => Some(ToolOutcome::default()),
         None => None,
     };
@@ -1044,7 +1118,7 @@ fn generate_chat_stream(
         tools,
     };
 
-    Ok(summary)
+    Ok((summary, next_tail))
 }
 
 fn prepare_prompt_cache(

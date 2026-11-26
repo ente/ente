@@ -7,7 +7,7 @@ pub mod traits;
 
 pub use crate::db::backend::{Backend, BackendTx, Row, Value};
 pub use crate::db::chat::ChatDb;
-pub use crate::db::error::{Error, Refusal, Result};
+pub use crate::db::error::{Error, Result};
 pub use crate::db::models::{
     AttachmentKind, AttachmentMeta, EntityType, Message, Sender, Session, SessionWithPreview,
 };

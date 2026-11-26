@@ -1,6 +1,14 @@
+use std::sync::{Arc, Mutex};
+
+use crate::db::{self, AttachmentMeta, Backend, ChatDb, chat::ConversationSnapshot};
+use crate::llm::{self, EventSink, GenerationEvent, GenerationSummary, ToolOutcome};
+use crate::todo::{Todo, follow_up::FollowUp};
+use crate::tools::turn as tool_turn;
+
+use super::prompt::{Answer, save_prepared_reply};
 use super::*;
 
-pub struct TurnInput {
+pub(crate) struct TurnInput {
     pub session: Uuid,
     pub messages: Vec<Message>,
     pub expected_user_text: String,
@@ -15,20 +23,20 @@ pub struct TurnInput {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct TurnTools {
+pub(crate) struct TurnTools {
     pub tools: Option<ToolRequest>,
     pub history: std::collections::HashMap<Uuid, ToolTurnHistory>,
     pub current_override: Option<String>,
 }
 
-pub struct PreparedTurn {
+pub(crate) struct PreparedTurn {
     pub preparation: Preparation,
     pub budget: GenerationBudget,
     pub grounding: FittedGrounding,
     pub tools: Option<ToolRequest>,
 }
 
-pub fn prepare_turn(
+pub(crate) fn prepare_turn(
     input: TurnInput,
     effects: &mut impl Effects,
 ) -> Result<PreparedTurn, PrepareError> {
@@ -140,4 +148,274 @@ pub(super) fn prepare_turn_with_anchor(
         grounding,
         tools,
     })
+}
+
+pub struct TurnRequest {
+    pub session: Uuid,
+    pub system: String,
+    pub current: String,
+    pub expected_user_text: String,
+    pub history_query: Option<String>,
+    pub context: usize,
+    pub output: Option<usize>,
+    pub candidates: GroundingCandidates,
+}
+
+pub struct TurnDraft<'a, B: Backend> {
+    db: &'a ChatDb<B>,
+    input: TurnInput,
+    todos: Vec<Todo>,
+}
+
+struct ToolSession {
+    request: ToolRequest,
+    follow_up: FollowUp,
+}
+
+struct TurnState {
+    prepared: PreparationResult,
+    outcome: Option<ToolOutcome>,
+    text: String,
+}
+
+pub struct Turn {
+    budget: GenerationBudget,
+    grounding: FittedGrounding,
+    cache: Option<Arc<GroundingCache>>,
+    tools: Option<ToolSession>,
+    state: Mutex<TurnState>,
+}
+
+impl<B: Backend> TurnDraft<'_, B> {
+    pub fn prepare(
+        self,
+        cache: Option<Arc<GroundingCache>>,
+        effects: &mut impl Effects,
+    ) -> Result<Turn, PrepareError> {
+        let mut prepared = match &cache {
+            Some(cache) => cache.prepare_turn(self.input, effects)?,
+            None => prepare_turn(self.input, effects)?,
+        };
+        let result = prepared.preparation.run(effects)?;
+        effects.check_current()?;
+        let tools = prepared.tools.map(|request| ToolSession {
+            follow_up: FollowUp::new(self.todos, self.db.now_ms(), request.quote_source.clone()),
+            request,
+        });
+        Ok(Turn {
+            budget: prepared.budget,
+            grounding: prepared.grounding,
+            cache,
+            tools,
+            state: Mutex::new(TurnState {
+                prepared: result,
+                outcome: None,
+                text: String::new(),
+            }),
+        })
+    }
+}
+
+impl Turn {
+    pub fn begin<'a, B: Backend>(
+        db: &'a ChatDb<B>,
+        snapshot: &ConversationSnapshot,
+        request: TurnRequest,
+        zone: &impl chrono::TimeZone,
+    ) -> db::Result<TurnDraft<'a, B>> {
+        let tools = tool_turn::turn_tools(db, snapshot, &request.expected_user_text, zone)?;
+        Ok(TurnDraft {
+            db,
+            input: TurnInput {
+                session: request.session,
+                messages: snapshot.messages().to_vec(),
+                expected_user_text: request.expected_user_text,
+                system: request.system,
+                current: request.current,
+                history_query: request.history_query,
+                context: request.context,
+                output: request.output,
+                state: snapshot.state().cloned(),
+                candidates: request.candidates,
+                tools,
+            },
+            todos: snapshot.todos().to_vec(),
+        })
+    }
+
+    fn state(&self) -> std::sync::MutexGuard<'_, TurnState> {
+        self.state
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    pub fn messages(&self) -> Vec<ChatMessage> {
+        self.state().prepared.messages.clone()
+    }
+
+    pub fn max_tokens(&self) -> usize {
+        self.budget.output
+    }
+
+    pub fn budget(&self) -> &GenerationBudget {
+        &self.budget
+    }
+
+    pub fn grounding(&self) -> &FittedGrounding {
+        &self.grounding
+    }
+
+    pub fn tools(&self) -> Option<&ToolRequest> {
+        self.tools.as_ref().map(|session| &session.request)
+    }
+
+    pub fn tools_mut(&mut self) -> Option<&mut ToolRequest> {
+        self.tools.as_mut().map(|session| &mut session.request)
+    }
+
+    #[cfg(all(test, feature = "sqlite"))]
+    pub(super) fn has_outcome(&self) -> bool {
+        self.state().outcome.is_some()
+    }
+
+    pub fn is_saved(&self) -> bool {
+        self.state().prepared.is_saved()
+    }
+
+    pub fn generate(
+        &self,
+        runner: &mut dyn PassRunner,
+        mut request: ChatRequest,
+        sink: &mut dyn EventSink,
+        zone: &impl chrono::TimeZone,
+    ) -> Result<GenerationSummary, llm::Error> {
+        {
+            let mut state = self.state();
+            state.outcome = None;
+            state.text.clear();
+        }
+        request.tools = self.tools().cloned();
+        let mut text = String::new();
+        let mut tee = |event| {
+            if let GenerationEvent::Text { text: piece, .. } = &event {
+                text.extend(piece.chars().filter(|&c| c != '\0'));
+            }
+            sink.add(event);
+        };
+        let max_tokens = request.max_tokens.unwrap_or(8192);
+        let follow_up = self
+            .tools
+            .as_ref()
+            .map(|session| (&session.follow_up, request.clone()));
+        let first = runner.pass(request, &mut tee)?;
+        if runner.cancelled() {
+            return Err(llm::Error::Cancelled);
+        }
+        let remaining = max_tokens
+            .saturating_sub(first.generated_tokens.unwrap_or(i32::MAX))
+            .max(0);
+        let next = follow_up
+            .zip(first.tools.as_ref())
+            .filter(|_| remaining > 0)
+            .and_then(|((follow_up, request), outcome)| follow_up.next(request, outcome, zone));
+        let summary = if let Some(mut next) = next
+            && runner.measure(&next)?.saturating_add(remaining as usize) <= runner.context_size()
+        {
+            if runner.cancelled() {
+                return Err(llm::Error::Cancelled);
+            }
+            next.max_tokens = Some(remaining);
+            merge(first, runner.pass(next, &mut tee)?)
+        } else {
+            first
+        };
+        if runner.cancelled() {
+            return Err(llm::Error::Cancelled);
+        }
+        {
+            let mut state = self.state();
+            state.outcome = summary.tools.clone();
+            state.text = text;
+        }
+        sink.add(GenerationEvent::Done {
+            summary: summary.clone(),
+        });
+        Ok(summary)
+    }
+
+    pub fn finish<B: Backend>(
+        &self,
+        db: &ChatDb<B>,
+        snapshot: &ConversationSnapshot,
+        text: &str,
+        attachments: Vec<AttachmentMeta>,
+        zone: &impl chrono::TimeZone,
+    ) -> db::Result<FinishedTurn> {
+        let mut state = self.state();
+        let TurnState {
+            prepared,
+            outcome,
+            text: streamed,
+        } = &mut *state;
+        let calls = outcome.as_ref().filter(|outcome| !outcome.calls.is_empty());
+        let text = if calls.is_some() { streamed } else { text };
+        let (sources, passages) = self
+            .grounding
+            .context
+            .as_ref()
+            .map(|grounded| {
+                (
+                    grounded.sources.as_slice(),
+                    grounded.included_passages.clone(),
+                )
+            })
+            .unwrap_or_default();
+        let finished = save_prepared_reply(
+            self.cache.as_deref(),
+            db,
+            snapshot,
+            prepared,
+            Answer {
+                text,
+                sources,
+                passages,
+                attachments,
+                outcome: calls,
+            },
+            &|outcome, now| {
+                self.tools
+                    .as_ref()
+                    .is_none_or(|tools| tools.follow_up.can_finish(outcome, now, zone))
+            },
+            zone,
+        )?;
+        *outcome = None;
+        Ok(finished)
+    }
+}
+
+fn merge(mut first: GenerationSummary, mut second: GenerationSummary) -> GenerationSummary {
+    if let Some(mut outcome) = first.tools.take() {
+        if let Some(later) = second.tools.take() {
+            if !later.calls.is_empty() {
+                outcome.calls.extend(later.calls);
+                outcome.call_probability = outcome
+                    .call_probability
+                    .zip(later.call_probability)
+                    .map(|(first, second)| first.min(second));
+            }
+            outcome.abstained |= later.abstained;
+            outcome.rejected_steps += later.rejected_steps;
+        }
+        second.tools = Some(outcome);
+    }
+    second.prompt_tokens = first
+        .prompt_tokens
+        .zip(second.prompt_tokens)
+        .map(|(first, second)| first + second);
+    second.generated_tokens = first
+        .generated_tokens
+        .zip(second.generated_tokens)
+        .map(|(first, second)| first + second);
+    second
 }
