@@ -10,7 +10,7 @@ Ente Locker uses the same account system as Ente Photos and Ente Auth. If you al
 ## Creating a new account
 
 1. Open Ente Locker
-2. Tap **Create account**
+2. Tap **Create an Ente account**
 3. Enter your email address
 4. Create a strong password
 5. Verify your email with the code sent to you
@@ -25,7 +25,7 @@ Ente Locker uses the same account system as Ente Photos and Ente Auth. If you al
 ## Logging in
 
 1. Open Ente Locker
-2. Tap **Sign in**
+2. Tap **Login to existing account**
 3. Enter your email and password
 4. If you have two-factor authentication enabled, enter your 2FA code
 
@@ -36,7 +36,7 @@ Ente Locker uses the same account system as Ente Photos and Ente Auth. If you al
 If you already use Ente Photos or Ente Auth:
 
 1. Open Ente Locker
-2. Tap **Sign in**
+2. Tap **Login to existing account**
 3. Enter your existing Ente email and password
 4. Your Locker data is securely stored
 
@@ -75,7 +75,7 @@ Each of these counts as one item toward your limit:
 
 ### Checking your usage
 
-View your current usage in `Settings > Storage` to see how many items you have and how much storage you're using.
+Open the Locker menu and check the **Items stored** card to see how many items you have and how much storage you're using.
 
 ![Locker menu button highlighted, then the Items stored card in the Locker menu on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-settings-storage-v1013.png){width=560px}
 

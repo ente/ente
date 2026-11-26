@@ -7,7 +7,7 @@ description: Guide for exporting your 2FA codes out from Ente Auth
 
 ## How do I create an encrypted export? {#create-encrypted-export}
 
-1. Open `Settings > Data > Export` in Ente Auth.
+1. Open `Settings > Data > Export codes` in Ente Auth.
 2. Select **Encrypted**.
 3. Choose a strong password for this export. This is the export-encryption password you will need when importing the file; it is not automatically your Ente account password.
 4. Complete any device-authentication prompt and save the exported file in a private location outside the app. Keep a copy somewhere you can access after a device reset or change.

@@ -53,7 +53,7 @@ When you create a public link:
 
 1. Open the collection
 2. Tap the share button
-3. Tap **Delete link**
+3. Tap **Remove link**
 4. Confirm deletion
 
 ![Remove link highlighted in collection link settings on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-collection-delete-link-callout-v1013.png){width=560px}
