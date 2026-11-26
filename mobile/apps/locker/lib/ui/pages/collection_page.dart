@@ -221,7 +221,9 @@ class _CollectionPageState extends UploaderPageState<CollectionPage>
           alignment: Alignment.bottomCenter,
           children: [
             AppBarComponent(
-              title: _collection.displayName ?? context.strings.untitled,
+              title: _collection.type == CollectionType.uncategorized
+                  ? context.strings.uncategorized
+                  : _collection.displayName ?? context.strings.untitled,
               subtitle: context.strings.itemCount(
                 count: _displayedFiles.length,
               ),

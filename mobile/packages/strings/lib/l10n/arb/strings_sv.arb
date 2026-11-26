@@ -3811,8 +3811,8 @@
   "searchAndDiscoveryDesc": "Ansikten, platser, beskrivningar och mer",
   "searchByAlbumNameHint": "Albumnamn",
   "searchDiscoverEmptySection": "Bilder visas här när bearbetningen och synkroniseringen är klar",
-  "searchEmptyDescription": "Foersoek att soeka efter naagot annat.",
-  "searchEmptyTitle": "Inga traeffar hittades",
+  "searchEmptyDescription": "Försök att söka efter något annat.",
+  "searchEmptyTitle": "Inga träffar hittades",
   "searchEverywhereSubtitle": "Soek i alla samlingar och filer.",
   "searchEverywhereTitle": "Soek oeoerallt efter \"{query}\"",
   "@searchEverywhereTitle": {
