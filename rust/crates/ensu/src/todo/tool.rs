@@ -81,6 +81,11 @@ pub(crate) fn apply<B: Backend, T: BackendTx>(
         }
         live
     } else {
+        if !prepared.changes.is_empty()
+            && todo::matching::unsupported_task_change(user_text, &db.todos(tx)?)
+        {
+            return Err(Error::ConversationChanged);
+        }
         for before in prepared
             .changes
             .iter()

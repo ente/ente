@@ -1344,6 +1344,52 @@ fn an_offer_to_add_goes_stale_once_the_task_is_added_another_way() {
 }
 
 #[test]
+fn task_changes_recheck_the_live_unsupported_edit_guard() {
+    for (user, call) in [
+        (
+            "Delete Buy bread and save milk",
+            call(SAVE_TOOL, &[("title", text("milk"))]),
+        ),
+        (
+            "Delete Buy bread and mark Call Alex done",
+            call(COMPLETE_TOOL, &[("task", text("Call Alex"))]),
+        ),
+    ] {
+        for confidence in [SURE, UNSURE] {
+            for added in ["Buy bread", "Water plants"] {
+                let db = db();
+                db.create_todo("Call Alex", None).unwrap();
+                let mut chat = Chat::new(&db);
+                chat.user(user);
+                let snapshot = chat.snapshot();
+                db.create_todo(added, None).unwrap();
+                let before = db.list_todos().unwrap();
+                let messages = db.get_messages(chat.session).unwrap();
+                let result = finish(&db, &snapshot, std::slice::from_ref(&call), confidence);
+                if added == "Buy bread" {
+                    assert!(
+                        matches!(result, Err(Error::ConversationChanged)),
+                        "{user}, {confidence:?}"
+                    );
+                    assert_eq!(db.list_todos().unwrap(), before);
+                    assert_eq!(db.get_messages(chat.session).unwrap(), messages);
+                    assert!(tool_turn::states(&db, chat.session).unwrap().is_empty());
+                } else {
+                    let turn = result.unwrap();
+                    if confidence == UNSURE {
+                        assert_eq!(turn.state.confirm, Confirm::Offered);
+                        assert_eq!(db.list_todos().unwrap(), before);
+                    } else {
+                        assert_eq!(turn.state.undo, Undo::Available);
+                        assert_ne!(db.list_todos().unwrap(), before);
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[test]
 fn a_completion_commits_unless_its_target_changed() {
     for change in ["added duplicate", "edited", "completed", "deleted"] {
         let db = db();
