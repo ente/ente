@@ -4,13 +4,7 @@ import "dart:io";
 import "package:flutter/foundation.dart";
 import "package:flutter/services.dart";
 
-enum PipStartResult {
-  started,
-  // A newer `EntePip.start` call took its place.
-  replaced,
-  // The user closed PiP, or `EntePip.stop` was called, before it started.
-  closed,
-}
+enum PipStartResult { started, replaced, closed }
 
 class PipRestore {
   final String path;
@@ -19,16 +13,9 @@ class PipRestore {
   const PipRestore(this.path, this.position);
 }
 
-// Returns true to take over playback after "back to video". The handler must
-// then call `EntePip.finishRestore` once its player shows the video.
+// A handler that returns true must call `EntePip.finishRestore` after taking over.
 typedef PipRestoreHandler = FutureOr<bool> Function(PipRestore restore);
 
-// Picture-in-Picture for local video files and HLS streams on iOS.
-//
-// The PiP player lives outside the widget tree and outlasts the screen that
-// started it, so temporary video files are reference counted: screens call
-// `useFile` and `deleteWhenUnused`, and a file is deleted once neither a
-// screen nor PiP plays it.
 class EntePip {
   EntePip._();
 
@@ -42,7 +29,6 @@ class EntePip {
   static final _waitingToDelete = <String>{};
   static final _restoreHandlers = <PipRestoreHandler>[];
 
-  // Asked when no handler from `addRestoreHandler` takes over.
   static PipRestoreHandler? fallbackRestoreHandler;
 
   static Future<bool> isSupported() {
@@ -59,7 +45,6 @@ class EntePip {
     }
   }
 
-  // The most recently added handler is asked first.
   static void addRestoreHandler(PipRestoreHandler handler) {
     _listen();
     _restoreHandlers.add(handler);
@@ -74,12 +59,8 @@ class EntePip {
 
   static Future<void> stop() => _channel.invokeMethod<void>("stop");
 
-  // Plays `path` in PiP from `position`, replacing any video already in PiP.
-  //
-  // With `hlsPlaylist`, plays that stream and uses `path` only as its name.
-  // The playlist's key must be an inline `data:` URI and its segments HTTPS
-  // URLs. `path` counts as in use from this call, before any await. Throws a
-  // `PlatformException` when PiP can't start.
+  // For HLS, `path` identifies the stream. Use `data:` keys and HTTPS segments.
+  // Pin the path synchronously in case the viewer closes during startup.
   static Future<PipStartResult> start({
     required String path,
     required Duration position,
@@ -116,7 +97,6 @@ class EntePip {
 
   static void useFile(String path) {
     _users[path] = (_users[path] ?? 0) + 1;
-    // The same video can be handed out at the same path again.
     _waitingToDelete.remove(path);
   }
 

@@ -79,51 +79,50 @@ void main() {
 
   test("closing the viewer keeps the file PiP is playing", () async {
     final video = tempVideo("playing.mp4");
-    EntePip.useFile(video.path); // viewer opens
+    EntePip.useFile(video.path);
     await startPip(video.path);
     await nativeHolds([video.path]);
 
-    EntePip.deleteWhenUnused(video.path); // viewer dispose()
+    EntePip.deleteWhenUnused(video.path);
     await settle();
     expect(video.existsSync(), isTrue);
 
-    await nativeHolds([]); // PiP closed
+    await nativeHolds([]);
     await settle();
     expect(video.existsSync(), isFalse);
   });
 
   test("a viewer reopened at the same path keeps its file", () async {
-    // iOS hands out the same temporary copy for the same video, so the
-    // viewer opened by "back to video" plays the path PiP is releasing.
+    // iOS can give the reopened viewer the same temporary path.
     final video = tempVideo("same_path.mp4");
     EntePip.useFile(video.path);
     await startPip(video.path);
     await nativeHolds([video.path]);
-    EntePip.deleteWhenUnused(video.path); // first viewer closed
+    EntePip.deleteWhenUnused(video.path);
 
-    EntePip.useFile(video.path); // "back to video" opens a new viewer
-    await nativeHolds([]); // PiP hands back and closes
+    EntePip.useFile(video.path);
+    await nativeHolds([]);
     await settle();
     expect(video.existsSync(), isTrue);
 
-    EntePip.deleteWhenUnused(video.path); // new viewer closed
+    EntePip.deleteWhenUnused(video.path);
     await settle();
     expect(video.existsSync(), isFalse);
   });
 
   test("closing PiP keeps a file another viewer still uses", () async {
     final video = tempVideo("shared.mp4");
-    EntePip.useFile(video.path); // viewer A
-    EntePip.useFile(video.path); // viewer B of the same video
+    EntePip.useFile(video.path);
+    EntePip.useFile(video.path);
     await startPip(video.path);
     await nativeHolds([video.path]);
 
-    EntePip.deleteWhenUnused(video.path); // viewer A closed
-    await nativeHolds([]); // PiP closed, viewer B still open
+    EntePip.deleteWhenUnused(video.path);
+    await nativeHolds([]);
     await settle();
     expect(video.existsSync(), isTrue);
 
-    EntePip.deleteWhenUnused(video.path); // viewer B closed
+    EntePip.deleteWhenUnused(video.path);
     await settle();
     expect(video.existsSync(), isFalse);
   });
@@ -134,7 +133,7 @@ void main() {
     messenger.setMockMethodCallHandler(channel, (_) => reply.future);
 
     final start = startPip(video.path);
-    EntePip.deleteWhenUnused(video.path); // viewer closed during the tap
+    EntePip.deleteWhenUnused(video.path);
     await settle();
     expect(video.existsSync(), isTrue);
 
@@ -185,7 +184,7 @@ void main() {
     });
 
     test("without such a viewer, the fallback opens one", () async {
-      addHandler((_) => false); // e.g. the viewer of another video
+      addHandler((_) => false);
       EntePip.fallbackRestoreHandler = (_) => true;
 
       expect(await EntePip.handleNativeCall(restoreCall), isTrue);

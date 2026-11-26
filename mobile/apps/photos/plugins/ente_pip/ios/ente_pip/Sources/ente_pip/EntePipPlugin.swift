@@ -3,11 +3,6 @@ import AVKit
 import Flutter
 import UIKit
 
-// Plays a local video file or an HLS stream in a Picture-in-Picture window.
-//
-// The player lives outside the Flutter widget tree, so PiP keeps playing
-// after the viewer closes. The plugin never deletes files; it reports the
-// paths it holds so Dart can delay deleting them.
 public final class EntePipPlugin: NSObject, FlutterPlugin {
     public static func register(with registrar: FlutterPluginRegistrar) {
         let channel = FlutterMethodChannel(
@@ -235,8 +230,6 @@ public final class EntePipPlugin: NSObject, FlutterPlugin {
         pending.result(FlutterError(code: code, message: message, details: nil))
     }
 
-    // Ends a start that is still loading without an error: it was replaced
-    // by a newer one, or the user closed PiP.
     private func endPendingStart(code: String) {
         guard let pending = pendingStart else { return }
         pendingStart = nil
@@ -246,8 +239,6 @@ public final class EntePipPlugin: NSObject, FlutterPlugin {
         pending.result(FlutterError(code: code, message: nil, details: nil))
     }
 
-    // After a failed start, a window still showing the previous video goes
-    // back to it as it was. Without one, everything is torn down.
     private func abandonStart() {
         statusObservation = nil
         possibleObservation = nil
@@ -265,8 +256,7 @@ public final class EntePipPlugin: NSObject, FlutterPlugin {
     private func load(_ playback: Playback) {
         player.replaceCurrentItem(with: playback.item)
         player.isMuted = playback.muted
-        // Pausing at the end would stop a loop on a locked phone, where a
-        // background app can't start playback again.
+        // A background app can't restart a paused loop while the phone is locked.
         player.actionAtItemEnd = playback.loop ? .none : .pause
         if #available(iOS 16.0, *) {
             // Used by the PiP window's play button.
@@ -312,8 +302,7 @@ public final class EntePipPlugin: NSObject, FlutterPlugin {
 
     // MARK: - Player view
 
-    // PiP needs an AVPlayerLayer in a window. It sits behind the Flutter
-    // view, so it is never visible except during a hand-back.
+    // PiP requires a window-attached layer, kept behind Flutter until restore.
     private func preparePipController() -> AVPictureInPictureController? {
         if let pipController, playerView?.window != nil {
             return pipController
@@ -347,8 +336,6 @@ public final class EntePipPlugin: NSObject, FlutterPlugin {
 
     // MARK: - Hand-back
 
-    // Shows the PiP video above the app where the viewer draws its video, so
-    // iOS animates the window into it while the viewer catches up underneath.
     private func beginHandBack() {
         guard let playerView, let superview = playerView.superview else { return }
         isHandingBack = true
@@ -362,9 +349,7 @@ public final class EntePipPlugin: NSObject, FlutterPlugin {
         }
     }
 
-    // iOS animates the window toward the player layer even when no viewer
-    // takes over, so a full-screen layer would show the video above the lock
-    // screen.
+    // iOS can animate toward a rejected restore. Shrink the layer to protect the lock screen.
     private func collapsePlayerView() {
         guard let playerView, let window = playerView.window else { return }
         playerView.frame = CGRect(x: window.bounds.midX, y: window.bounds.midY, width: 1, height: 1)
@@ -406,10 +391,7 @@ public final class EntePipPlugin: NSObject, FlutterPlugin {
         restoreAudioSession()
     }
 
-    // Puts back the category the app had before PiP, unless another player
-    // changed it since. The session stays active, because deactivating it
-    // would also stop the app's own players; audio that PiP interrupted in
-    // other apps resumes from those apps.
+    // Deactivating the shared session would also stop the app's other players.
     private func restoreAudioSession() {
         guard let previous = audioSessionBeforePip else { return }
         audioSessionBeforePip = nil
@@ -440,9 +422,8 @@ extension EntePipPlugin: AVPictureInPictureControllerDelegate {
     ) {
         let wasRestoring = isRestoring
         isRestoring = false
-        // A hand-back tears down once the viewer has taken over.
         guard !isHandingBack else { return }
-        // A start made after "back to video" opens its own window.
+        // A stop from the previous restore must preserve a new start.
         if wasRestoring && pendingStart != nil { return }
         endPendingStart(code: "CLOSED")
         tearDown()
@@ -462,8 +443,6 @@ extension EntePipPlugin: AVPictureInPictureControllerDelegate {
         let seconds = player.currentTime().seconds
         let positionMs = seconds.isFinite ? max(Int(seconds * 1000), 0) : 0
 
-        // Answering false makes iOS close the window instead of animating it
-        // into the app, which is right when no viewer takes over.
         var answered = false
         let answer: (Bool) -> Void = { [weak self] handled in
             guard !answered else { return }
@@ -493,11 +472,7 @@ private final class PlayerView: UIView {
     var playerLayer: AVPlayerLayer { layer as! AVPlayerLayer }
 }
 
-// Serves an HLS playlist and its keys from memory.
-//
-// AVPlayer can't open a playlist from a file, and doesn't accept `data:` key
-// URIs, so both are served under custom schemes. Segments still load over
-// HTTPS from their URLs in the playlist.
+// AVPlayer needs custom URLs for the local playlist and its inline keys.
 private final class HLSStreamLoader: NSObject, AVAssetResourceLoaderDelegate {
     private static let playlistScheme = "ente-pip-playlist"
     private static let keyScheme = "ente-pip-key"
@@ -514,7 +489,7 @@ private final class HLSStreamLoader: NSObject, AVAssetResourceLoaderDelegate {
         var rewritten = text
         var keys: [String: Data] = [:]
         let matches = Self.dataKeyURI.matches(in: text, range: NSRange(text.startIndex..., in: text))
-        // In reverse, so replacing a match keeps the earlier ranges valid.
+        // Replace from the end to keep earlier match ranges valid.
         for (index, match) in matches.enumerated().reversed() {
             guard let whole = Range(match.range, in: text),
                   let base64 = Range(match.range(at: 1), in: text),

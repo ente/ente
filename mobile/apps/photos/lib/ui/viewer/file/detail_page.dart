@@ -810,8 +810,7 @@ class _BodyState extends State<_Body> {
       );
       final removedPipController = _videoPipControllers.remove(removedFile);
       if (removedController != null || removedPipController != null) {
-        // The outgoing page and app bar detach from this controller while the
-        // removal frame is built. Dispose it only after those widgets unmount.
+        // The outgoing widgets detach their listeners during the removal frame.
         WidgetsBinding.instance.addPostFrameCallback((_) {
           removedController?.dispose();
           removedPipController?.dispose();

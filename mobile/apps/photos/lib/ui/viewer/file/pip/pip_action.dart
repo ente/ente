@@ -13,10 +13,6 @@ class VideoPipState {
   });
 }
 
-// Publishes the player's Picture-in-Picture action to the viewer menu.
-//
-// Uses the same owner token as `VideoStreamChangeController`, so a retiring
-// player can't clear a newer player's action.
 class VideoPipController extends ValueNotifier<VideoPipState?> {
   VideoPipController() : super(null);
 
@@ -28,6 +24,7 @@ class VideoPipController extends ValueNotifier<VideoPipState?> {
   }
 
   void clear(Object owner) {
+    // Teardown may arrive after the replacement publishes its action.
     if (!identical(_owner, owner)) return;
     _owner = null;
     value = null;

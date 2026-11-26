@@ -490,7 +490,6 @@ class _VideoWidgetMediaKitState extends State<VideoWidgetMediaKit>
     return _loadedSource == preview.path ? preview.path : null;
   }
 
-  // Originals play in the native player, which offers PiP itself.
   void _publishPipState() {
     final pipController = widget.pipController;
     if (pipController == null || !_isPipSupported) return;

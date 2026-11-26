@@ -4,22 +4,16 @@ import "package:photos/models/file/file.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/utils/hls_playlist.dart";
 
-// Builds the playlist Picture-in-Picture streams a video preview from.
-//
-// Apple's player only loads HLS segments over the network, so the segment
-// always points to Ente's servers, even when the preview is cached.
 class PipStream {
   PipStream._();
 
   static const _maxPreparedAge = Duration(minutes: 5);
   static ({String tag, DateTime createdAt, Future<String> playlist})? _prepared;
 
-  // Fetches the playlist ahead of `playlistFor`, so starting PiP is faster.
   static void prepare(EnteFile file, File localPlaylist) {
     if (_preparedFor(file) != null) return;
     final playlist = _build(file, localPlaylist);
     _prepared = (tag: file.tag, createdAt: DateTime.now(), playlist: playlist);
-    // A failed fetch is not kept, so the next attempt fetches again.
     playlist
         .then<void>(
           (_) {},
@@ -48,6 +42,7 @@ class PipStream {
 
   static Future<String> _build(EnteFile file, File localPlaylist) async {
     final playlist = await localPlaylist.readAsString();
+    // AVPlayer needs HTTPS segments even when the preview is cached.
     final segmentUrl = await _previewUrl(file);
     return reconstructHlsPlaylist(playlist, segmentUrl);
   }

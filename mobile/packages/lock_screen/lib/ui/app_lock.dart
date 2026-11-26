@@ -193,7 +193,7 @@ class _AppLockState extends State<AppLock> with WidgetsBindingObserver {
     }
   }
 
-  // Also true while the app is in the background and will ask to unlock.
+  // Includes the time before the lock screen appears.
   bool get isLocked => this._isLocked;
 
   void setEnabled(bool enabled) {

@@ -12,10 +12,6 @@ import "package:photos/services/app_navigation_service.dart";
 import "package:photos/services/collections_service.dart";
 import "package:photos/ui/viewer/file/detail_page.dart";
 
-// Tracks the video playing in Picture-in-Picture for "back to video".
-//
-// A viewer showing the video continues it. Otherwise a viewer is opened for
-// it, except in Guest view, for hidden videos, and while Ente is locked.
 class PipSession {
   PipSession._();
 
@@ -26,7 +22,7 @@ class PipSession {
   static ({String tag, Duration position})? _resume;
   static bool _isListening = false;
 
-  // Called before each start, so a logout while PiP loads also stops it.
+  // Register before starting so logout can cancel an in-flight start.
   static void willStart() {
     if (_isListening) return;
     _isListening = true;
@@ -47,8 +43,6 @@ class PipSession {
   static bool _isLocked(BuildContext context) =>
       AppLock.of(context)?.isLocked ?? false;
 
-  // Taken once, when the viewer opened by "back to video" is created, so a
-  // later viewer of the same video starts normally.
   static Duration? takeResumePosition(EnteFile file) {
     final resume = _resume;
     if (resume == null || resume.tag != file.tag) return null;
@@ -56,8 +50,6 @@ class PipSession {
     return resume.position;
   }
 
-  // Continues "back to video" in a viewer that shows the PiP video. While Ente
-  // may be locked, the viewer only moves to PiP's position and stays paused.
   static bool handOver(
     BuildContext context, {
     required bool isShowingVideo,

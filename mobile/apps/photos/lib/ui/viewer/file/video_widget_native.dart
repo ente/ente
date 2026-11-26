@@ -94,7 +94,6 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
   double? aspectRatio;
   final _isPlaybackReady = ValueNotifier(false);
 
-  // iOS copy of the device video, deleted on dispose.
   String? _temporaryCopy;
   bool _isPipSupported = false;
   Duration? _pipResumePosition;
@@ -355,7 +354,6 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
     final temporaryCopy = _temporaryCopy;
     if (temporaryCopy != null) {
       _logger.info("Clearing cache");
-      // PiP or another viewer of the same video may still play this copy.
       EntePip.deleteWhenUnused(temporaryCopy);
     }
     EntePip.removeRestoreHandler(_handlePipRestore);
@@ -578,8 +576,7 @@ class _VideoWidgetNativeState extends State<VideoWidgetNative>
     );
   }
 
-  // A progressive stream is served by this viewer and stops with it, so PiP
-  // can't keep playing it.
+  // The viewer's progressive stream server stops when the viewer closes.
   void _publishPipState() {
     final pipController = widget.pipController;
     if (pipController == null || !_isPipSupported) return;
