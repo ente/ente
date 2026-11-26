@@ -21,8 +21,8 @@
         "photoswipe": "5.4.4",
         "react": "19.3.1",
         "react-dom": "19.3.1",
-        "react-dropzone": "14.2.10",
-        "react-i18next": "16.6.6",
+        "react-dropzone": "20.1.1",
+        "react-i18next": "18.0.3",
         "react-window": "1.8.11"
     },
     "devDependencies": {
