@@ -8,6 +8,7 @@ ente_heic = { package = "heic_decoder", git = "https://github.com/ente/heic-deco
 ] }
 fast_image_resize.workspace = true
 image.workspace = true
+jpeg-encoder.workspace = true
 jxl = "0.8.0"
 kamadak-exif = "0.6.1"
 log.workspace = true
@@ -19,7 +20,6 @@ tiff = "0.11.3"
 zune-jpeg = { git = "https://github.com/etemesi254/zune-image.git", rev = "2f9086b07cdf5a36621ce18f79d310f99b751de9" }
 
 [dev-dependencies]
-jpeg-encoder.workspace = true
 tempfile.workspace = true
 
 [lints]

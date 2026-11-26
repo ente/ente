@@ -431,7 +431,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
 
   void _onFileLoaded(File file) {
     // Android's HEIC decoder can produce a glitched image without throwing.
-    if (_isAndroidHeic()) {
+    if (_isAndroidHeic(file)) {
       unawaited(_loadAndroidHeic(file));
       return;
     }
@@ -440,7 +440,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
   }
 
   Future<void> _loadAndroidHeic(File file) async {
-    if (_shouldUseRustHeicDecoder()) {
+    if (_shouldUseRustHeicDecoder(file)) {
       await _loadHeicWithRust(file);
       return;
     }
@@ -563,16 +563,16 @@ class _ZoomableImageState extends State<ZoomableImage> {
 
   bool _isGIF() => _photo.displayName.toLowerCase().endsWith(".gif");
 
-  bool _isAndroidHeic() => Platform.isAndroid && _isHeic();
+  bool _isAndroidHeic(File file) => Platform.isAndroid && _isHeic(file);
 
-  bool _shouldUseRustHeicDecoder() =>
-      _isAndroidHeic() && flagService.useRustForHeicDecoder;
+  bool _shouldUseRustHeicDecoder(File file) =>
+      _isAndroidHeic(file) && flagService.useRustForHeicDecoder;
 
   Future<ImageProvider<Object>?> _tryDecodeHeicWithRust(
     File file, {
     int? quality,
   }) async {
-    if (!_shouldUseRustHeicDecoder()) {
+    if (!_shouldUseRustHeicDecoder(file)) {
       return null;
     }
 
@@ -684,8 +684,8 @@ class _ZoomableImageState extends State<ZoomableImage> {
     _notifyReadyOnce();
   }
 
-  bool _isHeic() {
-    final ext = _photo.displayName.toLowerCase().split('.').last;
+  bool _isHeic(File file) {
+    final ext = file.path.toLowerCase().split('.').last;
     return ext == 'heic' || ext == 'heif';
   }
 
