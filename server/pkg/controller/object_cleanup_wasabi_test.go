@@ -98,9 +98,37 @@ func TestWasabiTempCleanupLifecycle(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, 1, c.removeUnreportedObjects())
 			require.EqualValues(t, 1, deletes.Load())
+			if multipart {
+				require.EqualValues(t, 1, aborts.Load())
+				require.EqualValues(t, 1, lists.Load())
+			}
 			assertCleanupRowCount(t, db, `SELECT count(*) FROM temp_objects WHERE object_key = '1/expired'`, 0)
 		})
 	}
+}
+
+func TestWasabiTempCleanupDeletesLegacyMultipartObject(t *testing.T) {
+	var deletes atomic.Int32
+	c, _, db := setupWasabiTempCleanupTest(t, func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/wasabi-bucket/1/expired", r.URL.Path)
+		switch {
+		case r.Method == http.MethodDelete && !r.URL.Query().Has("uploadId"):
+			deletes.Add(1)
+			w.WriteHeader(http.StatusNoContent)
+		case r.Method == http.MethodHead:
+			w.WriteHeader(http.StatusNotFound)
+		default:
+			t.Errorf("unexpected request after hold release: %s %s", r.Method, r.URL)
+			w.WriteHeader(http.StatusForbidden)
+		}
+	})
+	_, err := db.Exec(`INSERT INTO temp_objects(object_key, bucket_id, expiration_time, cleanup_state, is_multipart, upload_id)
+		VALUES ('1/expired', $1, 0, 'delete', TRUE, 'upload-id')`, cleanupWasabiDC)
+	require.NoError(t, err)
+
+	require.Equal(t, 1, c.removeUnreportedObjects())
+	require.EqualValues(t, 1, deletes.Load())
+	assertCleanupRowCount(t, db, `SELECT count(*) FROM temp_objects WHERE object_key = '1/expired'`, 0)
 }
 
 func TestWasabiTempCleanupMultipart(t *testing.T) {
@@ -262,15 +290,28 @@ func TestWasabiTempCleanupRollback(t *testing.T) {
 			require.NoError(t, err)
 			require.Len(t, objects, 1)
 			require.Zero(t, c.removeUnreportedObjects())
-			require.NoError(t, c.removeUnreportedObject(tx, objects[0]))
+			_, _, err = c.claimExpiredObjectsTx(tx, objects)
+			require.NoError(t, err)
+			require.Zero(t, holds.Load())
+			var stagedState string
+			var stagedDelayed bool
+			require.NoError(t, tx.QueryRow(`SELECT COALESCE(cleanup_state, ''), expiration_time > now_utc_micro_seconds()
+				FROM temp_objects WHERE object_key = '1/expired'`).Scan(&stagedState, &stagedDelayed))
+			require.Equal(t, string(ente.TempObjectReleaseHold), stagedState)
+			if state == ente.TempObjectReleaseHold {
+				require.True(t, stagedDelayed)
+			}
 			require.NoError(t, tx.Rollback())
 			assertTempCleanupState(t, db, "1/expired", state)
+			if state == ente.TempObjectReleaseHold {
+				assertCleanupRowCount(t, db, `SELECT count(*) FROM temp_objects WHERE object_key = '1/expired' AND expiration_time = 0`, 1)
+			}
 			require.Equal(t, 1, c.removeUnreportedObjects())
 			if state == ente.TempObjectUploading {
 				require.Zero(t, holds.Load())
 				assertTempCleanupState(t, db, "1/expired", ente.TempObjectReleaseHold)
 			} else {
-				require.EqualValues(t, 2, holds.Load())
+				require.EqualValues(t, 1, holds.Load())
 				assertTempCleanupState(t, db, "1/expired", ente.TempObjectDelete)
 				require.Zero(t, c.removeUnreportedObjects())
 			}
@@ -319,9 +360,8 @@ func TestWasabiTempCleanupWinsRegistrationRace(t *testing.T) {
 	tx, objects, err := c.Repo.GetAndLockExpiredObjects()
 	require.NoError(t, err)
 	defer tx.Rollback()
-	for _, object := range objects {
-		require.NoError(t, c.removeUnreportedObject(tx, object))
-	}
+	_, _, err = c.claimExpiredObjectsTx(tx, objects)
+	require.NoError(t, err)
 	require.Zero(t, c.removeUnreportedObjects())
 	registrationDone := make(chan error, 1)
 	go func() {
@@ -356,7 +396,7 @@ func TestWasabiTempCleanupPreservesRegisteredObjects(t *testing.T) {
 	_, _, err = fileRepo.Create(objectCleanupTestFile(ownerID, collectionID, "1/file", "1/thumbnail"),
 		100, 10, 110, ownerID, ente.Photos, repo.FileObjectBuckets{File: cleanupWasabiDC, Thumbnail: cleanupWasabiDC})
 	require.NoError(t, err)
-	for _, state := range []ente.TempObjectCleanupState{ente.TempObjectUploading, ente.TempObjectReleaseHold, ente.TempObjectDelete} {
+	for _, state := range []ente.TempObjectCleanupState{ente.TempObjectUploading, ente.TempObjectDirectDelete, ente.TempObjectReleaseHold, ente.TempObjectDelete} {
 		_, err = db.Exec(`INSERT INTO temp_objects(object_key, bucket_id, expiration_time, cleanup_state)
 			VALUES ('1/file', $1, 0, NULLIF($2, '')) ON CONFLICT (object_key)
 			DO UPDATE SET expiration_time = 0, cleanup_state = NULLIF($2, '')`, cleanupWasabiDC, state)
@@ -366,6 +406,85 @@ func TestWasabiTempCleanupPreservesRegisteredObjects(t *testing.T) {
 		assertCleanupRowCount(t, db, `SELECT count(*) FROM temp_objects WHERE expiration_time > now_utc_micro_seconds()`, 1)
 	}
 	assertCleanupRowCount(t, db, `SELECT count(*) FROM object_keys`, 2)
+}
+
+func TestWasabiTempCleanupRetryAfterEnablingCompliance(t *testing.T) {
+	for _, tc := range []struct {
+		name         string
+		uploadID     string
+		firstDeletes int32
+		totalAborts  int32
+	}{
+		{name: "failed object delete", firstDeletes: 1},
+		{name: "failed multipart abort", uploadID: "upload-id", totalAborts: 2},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var holds, deletes, aborts atomic.Int32
+			c, _, db := setupWasabiTempCleanupTest(t, func(w http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, "/wasabi-bucket/1/expired", r.URL.Path)
+				w.Header().Set("Content-Type", "application/xml")
+				const accessDenied = `<Error><Code>AccessDenied</Code></Error>`
+				switch {
+				case r.Method == http.MethodDelete && r.URL.Query().Has("uploadId"):
+					if aborts.Add(1) == 1 {
+						http.Error(w, accessDenied, http.StatusForbidden)
+						return
+					}
+					w.WriteHeader(http.StatusNoContent)
+				case r.Method == http.MethodGet && r.URL.Query().Has("uploadId"):
+					http.Error(w, `<Error><Code>NoSuchUpload</Code></Error>`, http.StatusNotFound)
+				case r.Method == http.MethodPut && r.URL.Query().Has("compliance"):
+					holds.Add(1)
+				case r.Method == http.MethodDelete:
+					deletes.Add(1)
+					if holds.Load() == 0 {
+						http.Error(w, accessDenied, http.StatusForbidden)
+						return
+					}
+					w.WriteHeader(http.StatusNoContent)
+				case r.Method == http.MethodHead:
+					w.WriteHeader(http.StatusNotFound)
+				default:
+					t.Errorf("unexpected request: %s %s", r.Method, r.URL)
+					w.WriteHeader(http.StatusBadRequest)
+				}
+			})
+			viper.Set("s3."+cleanupWasabiDC+".compliance", false)
+			c.S3Config = s3config.NewS3Config()
+			require.NoError(t, c.Repo.AddTempObject(ente.TempObject{
+				ObjectKey: "1/expired", BucketId: cleanupWasabiDC, IsMultipart: tc.uploadID != "", UploadID: tc.uploadID,
+			}, 0))
+
+			require.Zero(t, c.removeUnreportedObjects())
+			require.Equal(t, tc.firstDeletes, deletes.Load())
+			require.Zero(t, holds.Load())
+			_, err := c.Repo.GetFileUploadBucket(t.Context(), "1/expired", 1, ente.Photos)
+			require.ErrorIs(t, err, sql.ErrNoRows)
+
+			viper.Set("s3."+cleanupWasabiDC+".compliance", true)
+			c.S3Config = s3config.NewS3Config()
+			_, err = db.Exec(`UPDATE temp_objects SET expiration_time = 0 WHERE object_key = '1/expired'`)
+			require.NoError(t, err)
+			require.Equal(t, 1, c.removeUnreportedObjects())
+			assertTempCleanupState(t, db, "1/expired", ente.TempObjectReleaseHold)
+			require.Equal(t, 1, c.removeUnreportedObjects())
+			require.EqualValues(t, 1, holds.Load())
+			require.Equal(t, tc.totalAborts, aborts.Load())
+			require.Equal(t, tc.firstDeletes, deletes.Load())
+			assertTempCleanupState(t, db, "1/expired", ente.TempObjectDelete)
+
+			_, err = db.Exec(`UPDATE temp_objects SET expiration_time = expiration_time - (23::bigint * 86400000000) WHERE object_key = '1/expired'`)
+			require.NoError(t, err)
+			require.Zero(t, c.removeUnreportedObjects())
+
+			_, err = db.Exec(`UPDATE temp_objects SET expiration_time = expiration_time - 86400000000 WHERE object_key = '1/expired'`)
+			require.NoError(t, err)
+			require.Equal(t, 1, c.removeUnreportedObjects())
+			require.Equal(t, tc.firstDeletes+1, deletes.Load())
+			require.Equal(t, tc.totalAborts, aborts.Load())
+			assertCleanupRowCount(t, db, `SELECT count(*) FROM temp_objects`, 0)
+		})
+	}
 }
 
 func setupWasabiTempCleanupTest(t *testing.T, handler http.HandlerFunc) (*ObjectCleanupController, *repo.FileRepository, *sql.DB) {
