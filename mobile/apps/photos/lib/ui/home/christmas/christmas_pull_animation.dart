@@ -51,6 +51,7 @@ class _ChristmasPullOverlayState extends State<ChristmasPullOverlay> {
 
   void _onRiveLoaded(rive.RiveLoaded loaded) {
     final controller = loaded.controller;
+    // ignore: deprecated_member_use
     _triggerInput = controller.stateMachine.boolean("Trigger");
   }
 

@@ -176,7 +176,7 @@ dependencies:
     git:
       url: https://github.com/KasemJaffer/receive_sharing_intent.git
       ref: 2cea396843cd3ab1b5ec4334be4233864637874e
-  rive: 0.14.0-dev.13
+  rive: 0.14.11
   scrollable_positioned_list: 0.3.8
   sentry: 9.6.0
   sentry_flutter: 9.6.0
