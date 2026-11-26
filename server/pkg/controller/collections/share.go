@@ -670,7 +670,7 @@ func (c *CollectionController) GetPublicDiff(ctx *gin.Context, sinceTime int64) 
 		"since_time":    sinceTime,
 		"req_id":        requestid.Get(ctx),
 	})
-	diff, hasMore, err := c.getDiff(accessContext.CollectionID, sinceTime, CollectionDiffLimit, reqContextLogger)
+	diff, hasMore, err := c.getDiff(accessContext.CollectionID, sinceTime, CollectionDiffLimit, false, reqContextLogger)
 	if err != nil {
 		return nil, false, stacktrace.Propagate(err, "")
 	}

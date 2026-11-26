@@ -144,7 +144,7 @@ func TestFileDiffScrubsDeletedAndPendingFiles(t *testing.T) {
 		})
 	}
 	t.Run("equal timestamp across page boundary", func(t *testing.T) {
-		files, hasMore, err := controller.getDiff(collectionID, 1, 1, log.NewEntry(log.StandardLogger()))
+		files, hasMore, err := controller.getDiff(collectionID, 1, 1, false, log.NewEntry(log.StandardLogger()))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -178,6 +178,7 @@ func TestFileDiffReturnsPendingUploadsToModerators(t *testing.T) {
 	collectionID := createShareTestCollection(t, collectionRepo, ownerID)
 	addShareTestShare(t, collectionRepo, collectionID, ownerID, viewerID, ente.VIEWER)
 	addShareTestShare(t, collectionRepo, collectionID, ownerID, adminID, ente.ADMIN)
+	publishedFileID := addShareTestOwnerFile(t, db, collectionID, ownerID)
 	pendingFileID := addShareTestOwnerFile(t, db, collectionID, ownerID)
 	if _, err := db.Exec(
 		`UPDATE collection_files SET moderation_status = $1, anon_user_id = 'guest' WHERE collection_id = $2 AND file_id = $3`,
@@ -237,6 +238,16 @@ func TestFileDiffReturnsPendingUploadsToModerators(t *testing.T) {
 			}
 		})
 	}
+	t.Run("flag returns only pending rows to moderators", func(t *testing.T) {
+		files, hasMore, err := controller.GetDiffV2(newBatchShareTestContext(adminID), collectionID, adminID, 0, true)
+		if err != nil || hasMore || len(files) != 1 || files[0].ID != pendingFileID || files[0].IsDeleted {
+			t.Fatalf("moderator diff = (%+v, %t, %v), want only file %d, not %d", files, hasMore, err, pendingFileID, publishedFileID)
+		}
+		files, _, err = controller.GetDiffV2(newBatchShareTestContext(viewerID), collectionID, viewerID, 0, true)
+		if err != nil || findFileDiffTestFile(t, files, publishedFileID).IsDeleted {
+			t.Fatalf("viewer diff with flag = (%+v, %v), want the normal diff", files, err)
+		}
+	})
 }
 
 func TestPublicDiffReturnsGuestOwnPendingUploads(t *testing.T) {

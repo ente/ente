@@ -1068,7 +1068,7 @@ func (repo *CollectionRepository) MoveFiles(ctx context.Context,
 	return stacktrace.Propagate(tx.Commit(), "")
 }
 
-func (repo *CollectionRepository) GetDiff(collectionID int64, sinceTime int64, limit int) ([]ente.File, error) {
+func (repo *CollectionRepository) GetDiff(collectionID int64, sinceTime int64, limit int, includePending bool) ([]ente.File, error) {
 	startTime := t.Now()
 	defer func() {
 		repo.LatencyLogger.WithLabelValues("CollectionRepo.GetDiff").
@@ -1086,15 +1086,16 @@ func (repo *CollectionRepository) GetDiff(collectionID int64, sinceTime int64, l
         ON collection_files.file_id = files.file_id
             AND collection_files.collection_id = $1
             AND collection_files.updation_time > $2
+            AND (NOT $4 OR (collection_files.moderation_status = $5 AND NOT collection_files.is_deleted))
         ORDER BY collection_files.updation_time LIMIT $3`,
-		collectionID, sinceTime, limit)
+		collectionID, sinceTime, limit, includePending, ente.ModerationPending)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
 	return convertRowsToFiles(rows)
 }
 
-func (repo *CollectionRepository) GetFilesWithVersion(collectionID int64, updateAtTime int64) ([]ente.File, error) {
+func (repo *CollectionRepository) GetFilesWithVersion(collectionID int64, updateAtTime int64, includePending bool) ([]ente.File, error) {
 	startTime := t.Now()
 	defer func() {
 		repo.LatencyLogger.WithLabelValues("CollectionRepo.GetFilesWithVersion").
@@ -1111,8 +1112,9 @@ func (repo *CollectionRepository) GetFilesWithVersion(collectionID int64, update
         INNER JOIN collection_files
         ON collection_files.file_id = files.file_id
             AND collection_files.collection_id = $1
-            AND collection_files.updation_time = $2`,
-		collectionID, updateAtTime)
+            AND collection_files.updation_time = $2
+            AND (NOT $3 OR (collection_files.moderation_status = $4 AND NOT collection_files.is_deleted))`,
+		collectionID, updateAtTime, includePending, ente.ModerationPending)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
