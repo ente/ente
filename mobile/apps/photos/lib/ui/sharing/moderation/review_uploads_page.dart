@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:dio/dio.dart';
 import 'package:ente_components/ente_components.dart';
 import 'package:ente_components/hugeicons.dart';
 import 'package:ente_strings/ente_strings.dart';
@@ -47,7 +46,6 @@ class _ReviewUploadsPageState extends State<ReviewUploadsPage> {
   _View _view = _View.grid;
   (int, int) _result = (0, 0);
   bool _loading = true;
-  bool _sending = false;
   bool _allowExit = false;
   String? _error;
   int? _cardStartID;
@@ -69,23 +67,11 @@ class _ReviewUploadsPageState extends State<ReviewUploadsPage> {
       _queue.retain(files.map((upload) => upload.file.uploadedFileID!));
       setState(() {
         _files = files;
-        _selected.removeWhere(
-          (id) => !files.any((upload) => upload.file.uploadedFileID == id),
-        );
+        _selected.clear();
         _loading = false;
       });
-    } on DioException catch (error) {
-      if (!mounted) return;
-      if (error.response?.statusCode == 403) {
-        _allowExit = true;
-        Navigator.of(context).pop();
-        return;
-      }
-      setState(() {
-        _error = context.strings.reviewUploadsOffline;
-        _loading = false;
-      });
-    } catch (_) {
+    } catch (error, stack) {
+      _logger.warning('Failed to load pending uploads', error, stack);
       if (!mounted) return;
       setState(() {
         _error = context.strings.somethingWentWrong;
@@ -166,58 +152,30 @@ class _ReviewUploadsPageState extends State<ReviewUploadsPage> {
   }
 
   Future<void> _send(Map<ReviewChoice, List<int>> choices) async {
-    if (_sending) return;
-    setState(() => _sending = true);
-    final sentIDs = <int>{};
-    var sent = false;
+    final dialog = createProgressDialog(context, context.strings.pleaseWait);
+    await dialog.show();
     try {
       for (final MapEntry(key: choice, value: ids) in choices.entries) {
-        for (
-          var start = 0;
-          start < ids.length;
-          start += PendingUploadsService.submitBatchSize
-        ) {
-          final batch = ids
-              .skip(start)
-              .take(PendingUploadsService.submitBatchSize)
-              .toList();
-          await _service.submit(widget.collection.id, choice.name, batch);
-          _queue.remove(batch);
-          sentIDs.addAll(batch);
-        }
+        await _service.submit(widget.collection.id, choice.name, ids);
       }
-      sent = true;
-    } on DioException catch (error) {
-      if (!mounted) return;
-      if (error.response?.statusCode == 403) {
-        _allowExit = true;
-        Navigator.of(context).pop();
-        return;
-      }
-      await showGenericErrorDialog(context: context, error: error);
+      await RemoteSyncService.instance.syncCollection(widget.collection.id);
+      await dialog.hide();
     } catch (error, stack) {
       _logger.warning('Failed to submit review', error, stack);
+      await dialog.hide();
       if (mounted) await showGenericErrorDialog(context: context, error: error);
-    } finally {
-      if (mounted) setState(() => _sending = false);
-    }
-    try {
-      await RemoteSyncService.instance.syncCollection(widget.collection.id);
-    } catch (error, stack) {
-      _logger.warning('Failed to sync reviewed files', error, stack);
+      return;
     }
     if (!mounted) return;
+    final sent = choices.values.expand((ids) => ids).toSet();
+    _queue.remove(sent);
     setState(() {
-      _files = _files
-          .where((upload) => !sentIDs.contains(upload.file.uploadedFileID))
-          .toList();
-      if (sent) {
-        _result = (
-          choices[ReviewChoice.approve]?.length ?? 0,
-          choices[ReviewChoice.reject]?.length ?? 0,
-        );
-        _view = _View.done;
-      }
+      _files.removeWhere((upload) => sent.contains(upload.file.uploadedFileID));
+      _result = (
+        choices[ReviewChoice.approve]?.length ?? 0,
+        choices[ReviewChoice.reject]?.length ?? 0,
+      );
+      _view = _View.done;
     });
   }
 
@@ -383,7 +341,7 @@ class _ReviewUploadsPageState extends State<ReviewUploadsPage> {
               shouldSurfaceExecutionStates: false,
               tooltip: l10n.refreshUploads,
               icon: const HugeIcon(icon: HugeIcons.strokeRoundedRefresh),
-              onTap: _sending ? null : _refresh,
+              onTap: _refresh,
             ),
           ],
           slivers: [
@@ -553,7 +511,7 @@ class _ReviewUploadsPageState extends State<ReviewUploadsPage> {
         icon: HugeIcon(
           icon: HugeIcons.strokeRoundedDelete01,
           size: 28,
-          strokeWidth: 2.117,
+          strokeWidth: 2,
           color: colors.specialWhite,
         ),
         onTap: () => unawaited(_stack.swipe(ReviewSwipeDirection.left)),
@@ -565,8 +523,7 @@ class _ReviewUploadsPageState extends State<ReviewUploadsPage> {
         enabled: _queue.choices.isNotEmpty,
         icon: HugeIcon(
           icon: HugeIcons.strokeRoundedUndo03,
-          size: 21.135,
-          strokeWidth: 1.554,
+          size: 20,
           color: colors.textBase,
         ),
         onTap: _undo,
@@ -579,7 +536,7 @@ class _ReviewUploadsPageState extends State<ReviewUploadsPage> {
         icon: HugeIcon(
           icon: HugeIcons.strokeRoundedTick02,
           size: 28,
-          strokeWidth: 2.117,
+          strokeWidth: 2,
           color: colors.specialWhite,
         ),
         onTap: () => unawaited(_stack.swipe(ReviewSwipeDirection.right)),
@@ -722,7 +679,7 @@ class _ReviewUploadsPageState extends State<ReviewUploadsPage> {
               child: ButtonComponent(
                 label: l10n.confirm,
                 shouldSurfaceExecutionStates: false,
-                isDisabled: _sending || chosen.isEmpty,
+                isDisabled: chosen.isEmpty,
                 onTap: _confirmChoices,
               ),
             ),
@@ -1061,10 +1018,7 @@ class _QueuedTile extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: approved ? colors.primary : colors.warning,
                       shape: BoxShape.circle,
-                      border: Border.all(
-                        color: colors.specialWhite,
-                        width: 1.5,
-                      ),
+                      border: Border.all(color: colors.specialWhite, width: 2),
                     ),
                     child: HugeIcon(
                       icon: HugeIcons.strokeRoundedCancel01,

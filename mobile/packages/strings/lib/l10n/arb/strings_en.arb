@@ -1007,7 +1007,6 @@
   "reviewAdminTrashRecovery": "The owner can restore them from Trash in the app.",
   "reviewApprovalVisibility": "{count, plural, one{1 photo} other{{count} photos}} will be visible to everyone with access to {albumName}.",
   "@reviewApprovalVisibility": {"placeholders": {"count": {"type": "int"}, "albumName": {"type": "String"}}},
-  "reviewUploadsOffline": "Could not load uploads. Check your connection and try again.",
   "deleteAlbumsDialogBody": "This will delete all empty albums. This is useful when you want to reduce the clutter in your album list.",
   "deleteAll": "Delete all",
   "deleteCodeAuthMessage": "Authenticate to delete code",

@@ -15,7 +15,7 @@ class PendingUpload {
   final int createdAt;
 }
 
-bool isPendingRow(Map<String, dynamic> row) =>
+bool _isPendingRow(Map<String, dynamic> row) =>
     row['isDeleted'] != true && row['moderationStatus'] == 'PENDING';
 
 int _addedAt(Map<String, dynamic> row) => row['collectionAddedAt'] as int? ?? 0;
@@ -23,7 +23,7 @@ int _addedAt(Map<String, dynamic> row) => row['collectionAddedAt'] as int? ?? 0;
 class PendingUploadsService {
   PendingUploadsService(this._dio);
 
-  static const submitBatchSize = 1000;
+  static const _submitBatchSize = 1000;
 
   static PendingUploadsService get instance =>
       _instance ??= PendingUploadsService(ServiceLocator.instance.enteDio);
@@ -49,7 +49,7 @@ class PendingUploadsService {
       hasMore = response.data['hasMore'] as bool;
       for (final value in diff) {
         final row = Map<String, dynamic>.from(value as Map);
-        if (isPendingRow(row)) {
+        if (_isPendingRow(row)) {
           rows[row['id'] as int] = row;
         } else {
           rows.remove(row['id'] as int);
@@ -115,11 +115,17 @@ class PendingUploadsService {
     return result;
   }
 
-  Future<void> submit(int collectionID, String action, List<int> ids) =>
-      _dio.post(
+  Future<void> submit(int collectionID, String action, List<int> ids) async {
+    for (var start = 0; start < ids.length; start += _submitBatchSize) {
+      await _dio.post(
         '/collections/pending-files/$action',
-        data: {'collectionID': collectionID, 'fileIDs': ids},
+        data: {
+          'collectionID': collectionID,
+          'fileIDs': ids.skip(start).take(_submitBatchSize).toList(),
+        },
       );
+    }
+  }
 }
 
 enum ReviewChoice { approve, reject }
