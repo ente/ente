@@ -154,7 +154,7 @@ void main() {
   FileWidget media(WidgetTester tester) =>
       tester.widget<FileWidget>(find.byType(FileWidget));
 
-  testWidgets("a memory JPEG keeps its preview and returns to fit on release", (
+  testWidgets("a held memory pinch sharpens until the last finger lifts", (
     tester,
   ) async {
     tester.view.devicePixelRatio = 2;
@@ -198,6 +198,17 @@ void main() {
 
     final center = tester.getCenter(viewerFinder);
     const radius = Offset(35, 0);
+    final quickLeft = await tester.startGesture(center - radius);
+    final quickRight = await tester.startGesture(center + radius);
+    await quickRight.moveBy(radius);
+    await tester.pump(const Duration(milliseconds: 50));
+    await quickLeft.up();
+    await quickRight.up();
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    expect(viewer().controller!.isZoomed, isFalse);
+    expect(imageCache.statusForKey(detail).untracked, isTrue);
+
     final left = await tester.startGesture(center - radius);
     final right = await tester.startGesture(center + radius);
     await left.moveTo(center - radius * 2);
@@ -205,18 +216,31 @@ void main() {
     await tester.pump();
     expect(viewer().controller!.isZoomed, isTrue);
     final pausedProgress = progress(tester);
+    for (var i = 0; i < 12; i++) {
+      await right.moveBy(const Offset(3, 0));
+      await tester.pump(const Duration(milliseconds: 30));
+    }
+    expect(imageCache.statusForKey(detail).untracked, isTrue);
+    for (var i = 0; i < 3; i++) {
+      await right.moveBy(const Offset(0.3, 1));
+      await tester.pump(const Duration(milliseconds: 50));
+    }
     await left.up();
-    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(milliseconds: 110));
+    expect(imageCache.statusForKey(detail).untracked, isFalse);
+    final extraFinger = await tester.startGesture(center - radius);
+    await right.moveBy(radius);
+    await tester.pump();
+    await waitFor(detail);
+    await extraFinger.up();
     expect(progress(tester), pausedProgress);
     expect(viewer().controller!.isZoomed, isTrue);
-    expect(imageCache.statusForKey(detail).untracked, isTrue);
     await right.up();
     await tester.pump();
     await tester.pump(viewer().animationDuration);
     expect(viewer().controller!.isZoomed, isFalse);
     expect(progress(tester), greaterThan(pausedProgress));
-    expect(viewer().imageProvider, same(preview));
-    expect(imageCache.statusForKey(detail).untracked, isTrue);
+    await waitFor(fit);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 50));
   });

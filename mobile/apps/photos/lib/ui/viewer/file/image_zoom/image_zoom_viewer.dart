@@ -39,6 +39,7 @@ class ImageZoomTransform {
 }
 
 abstract interface class _ImageZoomControllerDelegate {
+  bool get hasActivePointers;
   Future<void> reset({required bool animated});
 }
 
@@ -51,6 +52,7 @@ class ImageZoomController extends ChangeNotifier {
   ImageZoomTransform get transform => _transform;
   ImageZoomStage get stage => _stage;
   bool get isZoomInProgress => _isZoomInProgress;
+  bool get hasActivePointers => _delegate?.hasActivePointers ?? false;
 
   bool get isZoomed =>
       (_transform.scale - 1.0).abs() > _kZoomEpsilon ||
@@ -169,6 +171,8 @@ class _ImageZoomViewerState extends State<ImageZoomViewer>
   // This raw pointer state lets a second finger lock parent navigation before
   // either Flutter scale recognizer has accepted the gesture.
   final Map<int, Offset> _pointerPositions = <int, Offset>{};
+  @override
+  bool get hasActivePointers => _pointerPositions.isNotEmpty;
   List<int> _manualPinchPointers = const <int>[];
   Matrix4? _manualPinchStartMatrix;
   Offset? _manualPinchScenePoint;

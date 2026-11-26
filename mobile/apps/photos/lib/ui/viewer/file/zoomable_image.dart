@@ -82,6 +82,8 @@ class _ZoomableImageState extends State<ZoomableImage> {
   ViewerJpegImage? _jpegFit;
   ImageProvider? _jpegDetail;
   ImageProvider? _requestedJpegImage;
+  Timer? _memoryPinchTimer;
+  double _memoryPinchAnchorScale = 1;
   bool _loadedSmallThumbnail = false;
   bool _loadingLargeThumbnail = false;
   bool _loadedLargeThumbnail = false;
@@ -246,6 +248,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
       isAttached: false,
     );
     _imageFrameReady.dispose();
+    _memoryPinchTimer?.cancel();
     _imageZoomController
       ..removeListener(_onZoomChanged)
       ..dispose();
@@ -508,7 +511,12 @@ class _ZoomableImageState extends State<ZoomableImage> {
   }
 
   void _updateJpegRequest() {
-    if (widget.isFromMemories && widget.isSelectedViewerPage == false) return;
+    if (widget.isFromMemories && widget.isSelectedViewerPage == false) {
+      _memoryPinchTimer?.cancel();
+      _memoryPinchTimer = null;
+      _requestedJpegImage = null;
+      return;
+    }
     final file = _jpegFile;
     final viewport = _physicalViewport;
     if (file == null ||
@@ -524,20 +532,43 @@ class _ZoomableImageState extends State<ZoomableImage> {
       _jpegFit = ViewerJpegImage.fit(file, viewport);
     }
     final source = _jpegSourceSize;
-    final wantsDetail =
-        !widget.isFromMemories &&
+    final canUseDetail =
         widget.isSelectedViewerPage == true &&
         _imageZoomController.transform.scale > 1.001 &&
-        (!_imageZoomController.isZoomInProgress ||
-            _requestedJpegImage == _jpegDetail) &&
         source != null &&
         (source.width > _jpegFit!.width || source.height > _jpegFit!.height);
+    final detailRequested = _requestedJpegImage == _jpegDetail;
+    final zoomSettled = widget.isFromMemories
+        ? _isMemoryPinchSteady(needsDetail: canUseDetail && !detailRequested)
+        : !_imageZoomController.isZoomInProgress;
+    final wantsDetail = canUseDetail && (detailRequested || zoomSettled);
     final desired = wantsDetail ? _jpegDetail! : _jpegFit!;
     if (desired == _requestedJpegImage) return;
     _requestedJpegImage = desired;
     if (desired != _imageProvider) {
       unawaited(_displayJpeg(desired, file));
     }
+  }
+
+  bool _isMemoryPinchSteady({required bool needsDetail}) {
+    if (!needsDetail ||
+        !_imageZoomController.hasActivePointers ||
+        _imageZoomController.stage != ImageZoomStage.gesture) {
+      _memoryPinchTimer?.cancel();
+      _memoryPinchTimer = null;
+      return false;
+    }
+    final scale = _imageZoomController.transform.scale;
+    if (_memoryPinchTimer == null ||
+        (scale / _memoryPinchAnchorScale - 1).abs() > 0.05) {
+      _memoryPinchAnchorScale = scale;
+      _memoryPinchTimer?.cancel();
+      _memoryPinchTimer = Timer(
+        const Duration(milliseconds: 250),
+        _updateJpegRequest,
+      );
+    }
+    return !_memoryPinchTimer!.isActive;
   }
 
   Future<void> _displayJpeg(ImageProvider provider, File file) async {
