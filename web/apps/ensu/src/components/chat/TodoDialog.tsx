@@ -64,7 +64,6 @@ export const TodoDialog: React.FC<TodoDialogProps> = ({
         const watcher = watchTodos(
             listTodos,
             (latest) => {
-                changes.show(latest);
                 setTodos(latest);
                 setLoaded(true);
             },
@@ -75,7 +74,7 @@ export const TodoDialog: React.FC<TodoDialogProps> = ({
             watcher.dispose();
             reload.current = undefined;
         };
-    }, [changes, open, onError]);
+    }, [open, onError]);
 
     const run = (action: Promise<unknown>) => {
         void action.then(

@@ -155,7 +155,7 @@ fn parameter(name: &str, description: &str, kind: ParameterKind, required: bool)
 
 fn task_choices(user_text: &str, open_titles: &[&str]) -> Vec<String> {
     let mut seen = std::collections::HashSet::new();
-    let mut labels: Vec<_> = open_titles
+    let labels: Vec<_> = open_titles
         .iter()
         .filter_map(|title| choice_label(title))
         .filter(|label| seen.insert(label.clone()))
@@ -163,23 +163,19 @@ fn task_choices(user_text: &str, open_titles: &[&str]) -> Vec<String> {
     if labels.len() <= LIST_LIMIT {
         return labels;
     }
-    let mentioned = |label: &String| {
-        matching::spells_out(label, user_text) || refine::names_task(label, user_text)
-    };
-    let mut promoted: Vec<_> = labels
-        .drain(LIST_LIMIT..)
-        .filter(mentioned)
-        .take(LIST_LIMIT)
-        .collect();
-    for _ in 0..promoted.len() {
-        if let Some(index) = labels.iter().rposition(|label| !mentioned(label)) {
-            labels.remove(index);
+    let mut ranked: Vec<_> = labels.into_iter().enumerate().collect();
+    ranked.sort_by_cached_key(|(_, label)| {
+        if matching::spells_out(label, user_text) {
+            0
+        } else if refine::names_task(label, user_text) {
+            1
         } else {
-            promoted.pop();
+            2
         }
-    }
-    labels.extend(promoted);
-    labels
+    });
+    ranked.truncate(LIST_LIMIT);
+    ranked.sort_unstable_by_key(|(index, _)| *index);
+    ranked.into_iter().map(|(_, label)| label).collect()
 }
 
 pub fn chat_tools(user_text: &str, open_titles: &[&str]) -> ToolRequest {

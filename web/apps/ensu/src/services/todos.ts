@@ -92,24 +92,32 @@ export const watchTodos = <T>(
 };
 
 export const todoChanges = () => {
-    let shown: Todo[] = [];
+    const applied = new Map<string, { fromVersion: number; todo: Todo }>();
     let queue: Promise<void> = Promise.resolve();
     return {
-        show(list: Todo[]) {
-            shown = list;
-        },
         change(
             todo: Todo,
             action: (latest: Todo) => Promise<Todo> | Promise<void>,
         ): Promise<void> {
             const next = queue.then(async () => {
+                const previous = applied.get(todo.id);
                 const latest =
-                    shown.find((item) => item.id === todo.id) ?? todo;
+                    previous &&
+                    todo.version >= previous.fromVersion &&
+                    todo.version <= previous.todo.version
+                        ? previous.todo
+                        : todo;
                 const updated = await action(latest);
                 if (updated) {
-                    shown = shown.map((item) =>
-                        item.id === updated.id ? updated : item,
-                    );
+                    applied.set(todo.id, {
+                        fromVersion:
+                            previous?.todo.version === latest.version
+                                ? previous.fromVersion
+                                : latest.version,
+                        todo: updated,
+                    });
+                } else {
+                    applied.delete(todo.id);
                 }
             });
             queue = next.catch(() => undefined);
