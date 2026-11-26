@@ -8,6 +8,7 @@ const root = resolve(
     process.argv[2] ?? resolve(import.meta.dirname, "../../.."),
 );
 const listPath = "web/checks/lint-exceptions/suppressions.json";
+const inlineDirective = /\b(?:eslint|globals?|exported)\b/;
 const allowed = JSON.parse(readFileSync(resolve(root, listPath), "utf8"));
 const unused = new Map(
     Object.entries(allowed).map(([path, rules]) => [path, new Set(rules)]),
@@ -30,6 +31,7 @@ for (const path of new Set(files)) {
     if (!/\.[cm]?[jt]sx?$/.test(path) || !existsSync(resolve(root, path)))
         continue;
     const text = readFileSync(resolve(root, path), "utf8");
+    if (!inlineDirective.test(text)) continue;
     const parsed = parser.parseForESLint(text, {
         filePath: path,
         sourceType: "module",
