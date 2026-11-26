@@ -102,18 +102,16 @@ pub fn verification_id(public_key_b64: &str) -> Result<String> {
 pub async fn add_contact(
     session: &Session,
     email: &str,
+    public_key_b64: &str,
     recovery_notice_in_days: Option<i32>,
 ) -> Result<()> {
-    let public_key = public_key(session, email)
-        .await?
-        .ok_or(Error::ContactNotOnEnte)?;
-    let recipient_public_key = b64::decode(&public_key)?;
+    let recipient_public_key = b64::decode(public_key_b64)?;
     let encrypted_key = sealed::seal(
         session.recovery_key.as_bytes(),
         &crypto::PublicKey::try_from_slice(&recipient_public_key)?,
     )?;
 
-    session
+    let response = session
         .api
         .post("/emergency-contacts/add")
         .json(&LegacyAddContactRequest {
@@ -122,8 +120,11 @@ pub async fn add_contact(
             recovery_notice_in_days,
         })
         .send()
-        .await?
-        .error_for_status()?;
+        .await?;
+    if response.status() == 404 {
+        return Err(Error::ContactNotOnEnte);
+    }
+    response.error_for_status()?;
     Ok(())
 }
 

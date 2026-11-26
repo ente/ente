@@ -1,5 +1,10 @@
 import type { RemotePullOpts } from "@/components/gallery";
+import {
+    headerIconButtonSx,
+    headerIconSize,
+} from "@/components/gallery/header-styles";
 import { usePhotosNavigation } from "@/components/gallery/navigation/PhotosNavigationContext";
+import { SectionBackButton } from "@/components/gallery/SectionBackButton";
 import { downloadAndSaveCollectionFiles } from "@/services/save";
 import {
     CleanIcon,
@@ -14,6 +19,7 @@ import {
     PinOffIcon,
     PlaySquareIcon,
     RemoveCircleIcon,
+    Share08Icon,
     Sorting05Icon,
     StarIcon,
     Unarchive03Icon,
@@ -22,7 +28,6 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import ArchiveOutlinedIcon from "@mui/icons-material/ArchiveOutlined";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CheckIcon from "@mui/icons-material/Check";
 import LinkIcon from "@mui/icons-material/Link";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
@@ -98,15 +103,16 @@ export interface CollectionHeaderProps {
     hasActiveFileSelection: boolean;
     onAddSaveGroup: AddSaveGroup;
     showBackToAlbums: boolean;
+    showSectionBack?: boolean;
     onDescriptionHeightChange?: (height: number) => void;
 }
 
 export const CollectionHeader: React.FC<CollectionHeaderProps> = (props) => {
-    const { backToAlbums } = usePhotosNavigation();
     const {
         activeCollection,
         collectionSummary,
         showBackToAlbums,
+        showSectionBack,
         onDescriptionHeightChange,
     } = props;
     const showCover = useMediaQuery(useTheme().breakpoints.up("sm"));
@@ -162,16 +168,8 @@ export const CollectionHeader: React.FC<CollectionHeaderProps> = (props) => {
                         ...(isAlbum && { gridArea: "summary" }),
                     }}
                 >
-                    {isAlbum && showBackToAlbums && (
-                        <Tooltip title={t("go_back")}>
-                            <IconButton
-                                aria-label={t("go_back")}
-                                onClick={backToAlbums}
-                                sx={{ width: 32, height: 32, flexShrink: 0 }}
-                            >
-                                <ArrowBackIcon sx={{ fontSize: 20 }} />
-                            </IconButton>
-                        </Tooltip>
+                    {((isAlbum && showBackToAlbums) || showSectionBack) && (
+                        <SectionBackButton compact={showSectionBack ?? false} />
                     )}
                     {isAlbum && showCover && (
                         <Box
@@ -187,11 +185,15 @@ export const CollectionHeader: React.FC<CollectionHeaderProps> = (props) => {
                     )}
                     <GalleryItemsSummary
                         nameProps={
-                            isAlbum
-                                ? { sx: { overflowWrap: "anywhere" } }
-                                : undefined
+                            isAlbum ? { noWrap: true, title: name } : undefined
                         }
-                        name={name}
+                        name={
+                            type == "hiddenItems"
+                                ? t("hidden_items")
+                                : type == "archiveItems"
+                                  ? t("archived_items")
+                                  : name
+                        }
                         description={isAlbum ? undefined : description}
                         descriptionMaxWidth={480}
                         onDescriptionHeightChange={
@@ -578,7 +580,11 @@ const CollectionHeaderOptions: React.FC<CollectionHeaderProps> = ({
                         </ContextMenuItem>
                     )
                 ) : undefined,
-                <ContextMenuItem key="leave" onClick={confirmLeaveSharedAlbum}>
+                <ContextMenuItem
+                    key="leave"
+                    destructive
+                    onClick={confirmLeaveSharedAlbum}
+                >
                     <HugeiconsIcon icon={Logout01Icon} size={20} />
                     {t("leave_album")}
                 </ContextMenuItem>,
@@ -760,7 +766,9 @@ const CollectionHeaderOptions: React.FC<CollectionHeaderProps> = ({
         <Box
             sx={{
                 display: "inline-flex",
+                alignItems: "center",
                 gap: "16px",
+                "& .MuiIconButton-root": headerIconButtonSx,
                 flexShrink: 0,
                 mt: isAlbumSummary(collectionSummary)
                     ? { xs: 0, sm: "3px" }
@@ -788,6 +796,7 @@ const CollectionHeaderOptions: React.FC<CollectionHeaderProps> = ({
                     <IconButton
                         aria-label={t("more_options")}
                         id="collection-options-trigger"
+                        disabled={hasActiveFileSelection}
                         aria-controls={
                             menuAnchorEl ? "collection-options" : undefined
                         }
@@ -890,7 +899,10 @@ const QuickOptions: React.FC<QuickOptionsProps> = ({
                 showDownloadQuickOption(collectionSummary) &&
                 collectionSummary.fileCount > 0 &&
                 (isDownloadInProgress() ? (
-                    <ActivityIndicator size="20px" sx={{ m: "12px" }} />
+                    <ActivityIndicator
+                        size={headerIconSize}
+                        sx={{ m: "11px" }}
+                    />
                 ) : (
                     <DownloadQuickOption
                         collectionSummary={collectionSummary}
@@ -1112,7 +1124,15 @@ const ShareQuickOption: React.FC<ShareQuickOptionProps> = ({
                     justifyContent: "center",
                 }}
             >
-                {isQuickLinkAlbum ? <LinkIcon /> : <ShareIcon />}
+                {isQuickLinkAlbum ? (
+                    <LinkIcon />
+                ) : (
+                    <HugeiconsIcon
+                        icon={Share08Icon}
+                        size={headerIconSize}
+                        aria-hidden
+                    />
+                )}
             </Box>
         </IconButton>
     </Tooltip>

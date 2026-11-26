@@ -9,6 +9,8 @@ import (
 	"github.com/ente/museum/pkg/repo/two_factor_recovery"
 	util "github.com/ente/museum/pkg/utils"
 	"github.com/ulule/limiter/v3"
+	"strings"
+	"unicode/utf8"
 
 	cache2 "github.com/ente/museum/ente/cache"
 	"github.com/ente/museum/pkg/controller/discord"
@@ -97,6 +99,8 @@ const (
 	CryptoPwhashOpsLimitInteractive = 2
 
 	TOTPIssuerORG = "ente"
+
+	MaxSourceLength = 255
 
 	AccountDeletedEmailTemplate                       = "account_deleted.html"
 	AccountDeletedWithActiveSubscriptionEmailTemplate = "account_deleted_active_sub.html"
@@ -190,6 +194,14 @@ func (c *UserController) SetAttributes(userID int64, request ente.SetUserAttribu
 		return stacktrace.Propagate(err, "")
 	}
 	return nil
+}
+
+func (c *UserController) SetSource(ctx context.Context, userID int64, source string) error {
+	source = strings.TrimSpace(source)
+	if source == "" || utf8.RuneCountInString(source) > MaxSourceLength {
+		return stacktrace.Propagate(ente.NewBadRequestWithMessage("invalid source"), "")
+	}
+	return stacktrace.Propagate(c.UserRepo.SetSourceIfEmpty(ctx, userID, source), "")
 }
 
 func (c *UserController) UpdateEmailMFA(context *gin.Context, userID int64, isEnabled bool) error {

@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/ente/museum/ente"
 	"github.com/ente/stacktrace"
@@ -104,6 +105,29 @@ func TestErrorLogsWarnForExpectedClientErrors(t *testing.T) {
 			require.NotNil(t, entry)
 			require.Equal(t, log.WarnLevel, entry.Level)
 			require.Equal(t, "Request failed", entry.Message)
+		})
+	}
+}
+
+func TestErrorReportsCodesForIncorrectVerificationCodes(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	for _, tt := range []struct {
+		err  error
+		code ente.ErrorCode
+	}{
+		{err: ente.ErrIncorrectOTT, code: ente.IncorrectOTT},
+		{err: ente.ErrIncorrectTOTP, code: ente.IncorrectTOTP},
+	} {
+		t.Run(string(tt.code), func(t *testing.T) {
+			recorder, ctx := testContext()
+
+			Error(ctx, stacktrace.Propagate(stacktrace.Propagate(tt.err, ""), ""))
+
+			require.Equal(t, http.StatusUnauthorized, recorder.Code)
+			var body ente.ApiError
+			require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &body))
+			require.Equal(t, tt.code, body.Code)
 		})
 	}
 }
@@ -223,4 +247,19 @@ func testLogHook(t *testing.T) *logtest.Hook {
 	hook := logtest.NewGlobal()
 	t.Cleanup(hook.Reset)
 	return hook
+}
+
+func TestUploadRateLimitRetryAfter(t *testing.T) {
+	for _, reason := range []*ente.ApiError{ente.ErrSmallUploadLimitReached, ente.ErrTinyUploadLimitReached, ente.ErrPendingUploadLimitReached} {
+		t.Run(string(reason.Code), func(t *testing.T) {
+			recorder, ctx := testContext()
+			hook := testLogHook(t)
+			err := &ente.UploadRateLimitError{Reason: reason, RetryAfter: 1500 * time.Millisecond}
+			Error(ctx, stacktrace.Propagate(err, "upload admission"))
+			require.Equal(t, http.StatusTooManyRequests, recorder.Code)
+			require.Equal(t, "2", recorder.Header().Get("Retry-After"))
+			require.Contains(t, recorder.Body.String(), string(reason.Code))
+			require.Empty(t, hook.AllEntries())
+		})
+	}
 }

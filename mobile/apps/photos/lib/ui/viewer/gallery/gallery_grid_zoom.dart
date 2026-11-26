@@ -322,14 +322,19 @@ class _GalleryGridZoomState extends State<GalleryGridZoom>
       for (final tile in start.tilesInViewport(startViewport)) tile.index,
       for (final tile in end.tilesInViewport(endViewport)) tile.index,
     }.toList()..sort();
+    final selectedFiles = widget.groups.selectedFiles;
+    bool isFileSelected(EnteFile file) =>
+        selectedFiles != null &&
+        (selectedFiles.dedupeByUploadID
+            ? selectedFiles.isFileSelected(file)
+            : selectedFiles.files.contains(file));
     final items = <_ZoomItem>[];
     for (final index in indices) {
       final first = start.tileForIndex(index)!;
       final last = end.tileForIndex(index)!;
       final from = first.rect.shift(Offset(0, startOrigin));
       final to = last.rect.shift(Offset(0, endOrigin));
-      final isSelected =
-          widget.groups.selectedFiles?.files.contains(first.file) ?? false;
+      final isSelected = isFileSelected(first.file);
       final item = _ZoomItem(
         key: ValueKey(("gallery-grid-zoom-tile", index)),
         from: from,
@@ -404,13 +409,13 @@ class _GalleryGridZoomState extends State<GalleryGridZoom>
       final last = endHeaders[id];
       final header = (first ?? last)!.header;
       final allSelected = session.headerSelections.putIfAbsent(id, () {
-        final selected = widget.groups.selectedFiles?.files;
-        return selected != null &&
-            selected.isNotEmpty &&
+        return widget.showSelectAll &&
+            selectedFiles != null &&
+            selectedFiles.files.isNotEmpty &&
             widget.groups.allFiles
                 .getRange(header.firstFileIndex, header.endFileIndex)
                 .where((file) => file is! DummyFile)
-                .every(selected.contains);
+                .every(isFileSelected);
       });
       items.add(
         _ZoomItem(

@@ -19,6 +19,10 @@ This means that the same file appears to take up less "storage" on Ente compared
 
 Storage usage in the mobile app is rounded for display, so a small upload may not visibly change the total. To check pending uploads, see [Backup status](/photos/faq/backup-and-sync#check-backup-status).
 
+### Why does Ente show more storage used than my original files? {#storage-includes-thumbnails}
+
+Along with each original, Ente stores a small encrypted thumbnail so your library loads quickly. Each photo thumbnail is typically about 100 KB. A detailed photo or a video thumbnail can be a little larger, and thumbnails count toward your storage. With thousands of photos, this can add a few hundred MB to your usage. Your originals are stored as they are, without compression.
+
 ### How does Ente deduplicate photos? {#deduplication}
 
 Ente automatically detects and handles duplicate files during backup to save storage space:
@@ -71,6 +75,16 @@ Freeing up a very large number of files at once can take longer than expected.
 When you have a large library, free up space album by album instead. Open **On device**, open an album, tap the three-dot menu, and select **Free up device space**.
 
 Smaller batches usually work more reliably.
+
+### Can I free up space for one device folder only? {#free-up-one-folder}
+
+Yes. Free up space album by album instead of clearing everything at once.
+
+1. Open **On device** (device albums).
+2. Open the folder or album you want to clear from the device.
+3. Tap the three-dot menu and select **Free up device space**.
+
+That removes local copies for photos already backed up in that device album, without requiring a separate multi-folder picker. See also [Why is "Free up device space" taking so long?](#free-up-space-slow).
 
 ### Do items in trash count against my storage? {#trash-storage-count}
 
@@ -205,6 +219,15 @@ If you manage the family plan, you can see shared storage and members. From ther
 If you are a member, you cannot manage invitations, members, or storage limits. On mobile, `Settings > Family` shows family storage and active members. Use the top-right menu there to **Leave family plan**. On web and desktop, open **Manage subscription** or the storage card to see the managing account and **Leave family plan**.
 
 Each member's photos stay private unless they choose to share them.
+
+### Where do I manage Family in the apps? {#where-is-family}
+
+The Family entry is not in the same place on every platform.
+
+- **Mobile (Android and iOS):** Open `Settings > Family`. This item appears when you are signed in. It is not shown in gallery mode.
+- **Web and desktop:** There is no separate **Family** row in Settings. Open `Settings > Account > Manage subscription`, then **Manage family**. You can also open your subscription from the storage card at the top of Settings.
+
+For invites, limits, and leaving a family, see [Where do I manage my family plan?](#manage-family-plan).
 
 ### How many family members can I add to my plan? {#family-members-limit}
 
@@ -343,6 +366,17 @@ Open `Settings > Legacy > Add trusted contact`.
 
 Learn more in the [Legacy contact guide](https://ente.com/help/photos/features/account/legacy/#legacy).
 
+### Can a family admin delete photos from a family member's account? {#family-admin-delete-photos}
+
+No. A family plan only shares storage. Each member's photos stay in their own account, and only the person who uploaded a photo can delete it.
+
+If you share an album with family members and make yourself an admin, you can:
+
+- Remove photos from that album. This doesn't delete them from the owner's account.
+- Use [Suggest deletion](/photos/faq/sharing-and-collaboration#suggest-deletion) on mobile to ask the owner to delete them.
+
+To free up family storage, ask each member to delete the photos they no longer need from their own account.
+
 ### Are duplicate photos deduplicated across family members? {#family-plan-deduplication}
 
 No. Family plans are a way to share storage, but each family member has their own separate account. Ente cannot deduplicate files across different accounts.
@@ -361,13 +395,28 @@ To apply for this discount, please verify your enrollment status in a school / c
 
 In case you do not have access to such an email address, please send us proof (such as your institute's identity card) that verifies your identity as a student.
 
+Once we've verified your enrollment, we'll reply with a personal coupon code for 30% off. The code can be used by one person only, so please keep it to yourself. Enter it in the **Apply discount code** field before you complete your purchase. See [how to apply a discount code](#apply-discount-code) for the steps.
+
 Please note that these discounts are valid for a year, after which you may reapply to reclaim the discount.
+
+The discount works on monthly and yearly plans. On a monthly plan, enter the code once at checkout and it applies to each monthly payment for 12 months.
 
 **Already subscribed?**
 
 Contact [students@ente.com](mailto:students@ente.com) before your next renewal invoice is generated so we can review your eligibility and help renew the discount on your existing subscription. Include the email address registered with Ente if it differs from your institute email.
 
 You do not need to cancel, resubscribe, or change your billing interval just to look for a coupon field. If an invoice has already been issued, contact us about the options for your account. An adjustment or refund is not automatic.
+
+### Do existing subscribers get a renewal discount? {#renewal-discount}
+
+No. We don't offer a separate renewal or loyalty discount, so your plan renews at the regular price.
+
+Ways to pay less:
+
+- **Switch to a yearly plan.** A year on a yearly plan costs about two months less than paying monthly. See [Can I switch between monthly and yearly plans?](#switch-billing-cycle)
+- **Students** can get 30% off, including on an existing subscription. See [Does Ente offer discounts to students?](#student-discount)
+
+You can also [refer friends](#earn-storage-referrals) to earn extra storage at the same subscription price.
 
 ## Discount Codes and Referrals
 
@@ -381,7 +430,7 @@ If you have a discount code (e.g., from partnerships like Kagi Friends 25% off),
 
 **Step-by-step process:**
 
-1. **Do NOT purchase through the Apple App Store or Google Play**, as store purchases do not support Ente discount codes
+1. Do not purchase through a mobile app store. Discount codes are only available when you buy on [photos.ente.com](https://photos.ente.com) or the desktop app
 2. Go to [photos.ente.com](https://photos.ente.com) on a desktop or laptop computer
 3. Log in to your Ente account
 4. Open `Settings > Account > Manage subscription`
@@ -407,6 +456,20 @@ Unfortunately, we cannot apply discount codes retroactively. However, you can:
 3. Resubscribe using the discount code
 
 Contact [support@ente.com](mailto:support@ente.com) if you have questions about your specific situation.
+
+### Do Ente subscribers get discounts on other privacy apps? {#friends-perks}
+
+Yes. Through [Ente Friends](https://ente.com/friends), paid Ente subscribers can get discounts or free trials from partner services, such as a three-month trial of Kagi's Professional plan or a discount on Tuta. The page lists the current partners and offers.
+
+To claim an offer:
+
+1. Open [ente.com/friends](https://ente.com/friends)
+2. Under the offer you want, enter the email address of your Ente account
+3. Click **Get coupon**
+
+The code is sent to that email address if the account is on an active paid plan. If you're part of a family plan, the plan admin can claim offers. If you don't receive an email, check your spam folder and make sure you used the email address of your Ente account. Requesting the same offer again resends the same code.
+
+Redeem the code on the partner's website. For help with a partner's service, contact that partner.
 
 ## Referral Program
 
@@ -465,7 +528,7 @@ We support **annual** subscriptions over PayPal.
 **How to purchase with PayPal:**
 
 1. Email **paypal@ente.com** from your registered Ente email address
-2. In your email, mention the [storage plan](https://ente.com#pricing) of your choice (e.g., "100 GB annual plan")
+2. In your email, mention the [storage plan](https://ente.com#pricing) of your choice (for example, "200 GB annual plan")
 3. We will send you an invoice with a PayPal payment link
 4. Complete the payment through PayPal
 5. Your account will be upgraded once payment is confirmed
@@ -530,6 +593,8 @@ The date in the email is several months after your plan expires.
 - ❌ Signing in to Ente Photos and Ente Locker is restricted
 - ❌ Recovery is not possible once the data is deleted
 
+This applies to Ente Photos and Ente Locker data. Ente Auth codes stored in the same account are not deleted when a Photos subscription expires.
+
 If you need more time or are having trouble paying, reply to a warning email if you received one, or contact [support@ente.com](mailto:support@ente.com) as soon as possible.
 
 If you are on a family plan, the family members' data and access are affected too.
@@ -555,7 +620,7 @@ If your usage is above the free allowance, contact support about your options. K
 
 **What about subscriptions purchased through app stores?**
 
-If you have a subscription through the Apple App Store or Google Play:
+If you have a subscription billed through an app store:
 
 - Manage your subscription through the respective app store
 - Cancellation policies follow the app store's terms
@@ -668,6 +733,14 @@ Yes! Switching between monthly and yearly billing works the same as upgrading or
 
 The same prorating calculation applies as described above.
 
+### Can I choose the day my subscription renews? {#choose-renewal-date}
+
+Your subscription renews on its current billing date, each month for a monthly plan or each year for a yearly plan. That date starts when you subscribe and can change after a plan change. You can't set a different renewal day for an active subscription.
+
+If you want to subscribe on a particular day, cancel your current subscription and contact [support@ente.com](mailto:support@ente.com). For plans billed directly by Ente, we can help you move to the free plan so you can subscribe again on the day you choose. If you are subscribing for the first time, subscribe on that day.
+
+For plans billed directly by Ente, upgrading or switching from monthly to yearly starts a new renewal date when the change takes effect. Changes to a subscription billed through the Apple App Store follow Apple's rules and may start at the next renewal instead. See [What happens when I upgrade my plan?](#upgrade-plan).
+
 ### If I subscribed to a plan with a reference code and a discount, and then need to upgrade/downgrade, what happens to my discount and bonus? {#upgrade-discount-referral}
 
 The referral bonus remains, and the discount stays valid for 12 months even on an upgraded/downgraded plan. The amount is prorated.
@@ -700,15 +773,19 @@ We send this email when we try to renew your subscription but the payment doesn'
 
 Your photos and files are safe, but new uploads stop until the renewal is paid.
 
-If your subscription is through the Apple App Store or Google Play, update your payment details in that store's subscription settings. Store payments cannot be retried from an Ente invoice.
+If your subscription is billed through an app store, update your payment details in that store's subscription settings. Store payments cannot be retried from an Ente invoice.
 
 If you pay Ente directly:
 
+We retry a failed renewal automatically over the next few days. If the problem was temporary, for example your bank blocked the payment and has now unblocked it, you don't need to do anything. You'll see the renewal under `Settings > Account > Manage subscription` once it goes through.
+
+If your card has expired or been replaced:
+
 1. Open `Settings > Account > Manage subscription > Manage payment method` in the app, or on [photos.ente.com](https://photos.ente.com).
 2. Add your new card or update the expired one.
-3. In the invoices list on the same page, open the unpaid invoice and retry the payment.
+3. To pay straight away instead of waiting for the next retry, open the unpaid invoice in the invoices list on the same page and retry the payment.
 
-Updating your card does not retry the failed payment on its own, so make sure to complete step 3.
+Want to switch to a smaller plan? Pay the current renewal first, then change plans. Any difference is credited to your account. See [What happens when I downgrade my plan?](#downgrade-plan)
 
 If you don't see an unpaid invoice, or want to change your plan at the same time, reply to the email or contact [support@ente.com](mailto:support@ente.com) and we'll help you renew.
 
@@ -718,7 +795,7 @@ If the renewal isn't paid, your plan expires. See [What happens when my subscrip
 
 For a subscription purchased directly from Ente, open `Settings > Storage/Subscription > Cancel subscription`, or `Settings > Account > Manage subscription > Cancel subscription`.
 
-For a subscription purchased through the Apple App Store or Google Play, cancel renewal in that store's subscription settings. Check the end date shown by the store; cancelling renewal does not necessarily end the current paid period immediately.
+For a subscription billed through an app store, cancel renewal in that store's subscription settings. Check the end date shown by the store; cancelling renewal does not necessarily end the current paid period immediately.
 
 If you want to switch from Apple to direct billing, follow the [payment-provider transition steps](#update-payment).
 

@@ -1,9 +1,10 @@
 import "dart:math" as math;
 
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
+import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:logging/logging.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/core/event_bus.dart";
@@ -187,6 +188,7 @@ class _SaveOrEditPersonState extends State<SaveOrEditPerson> {
                               hintText: context.strings.enterName,
                               initialValue: widget.person?.data.name,
                               focusNode: _nameFocsNode,
+                              groupId: _nameFocsNode,
                               textCapitalization: TextCapitalization.words,
                               autocorrect: false,
                               isRequired: true,
@@ -202,9 +204,12 @@ class _SaveOrEditPersonState extends State<SaveOrEditPerson> {
                                       padding: const EdgeInsets.only(
                                         top: Spacing.sm,
                                       ),
-                                      child: _PersonSuggestionsDropdown(
-                                        persons: suggestions,
-                                        onPersonTap: _onSuggestionSelected,
+                                      child: TextFieldTapRegion(
+                                        groupId: _nameFocsNode,
+                                        child: _PersonSuggestionsDropdown(
+                                          persons: suggestions,
+                                          onPersonTap: _onSuggestionSelected,
+                                        ),
                                       ),
                                     ),
                             ),
@@ -466,20 +471,16 @@ class _SaveOrEditPersonState extends State<SaveOrEditPerson> {
     if (query.isEmpty || _allPersons.isEmpty) {
       return [];
     }
-    final suggestions =
-        _allPersons.where((personEntity) {
-          final name = personEntity.data.name.trim();
-          if (name.isEmpty) {
-            return false;
-          }
-          if (widget.isEditing && personEntity.remoteID == person?.remoteID) {
-            return false;
-          }
-          return name.toLowerCase().contains(query);
-        }).toList()..sort(
-          (a, b) =>
-              a.data.name.toLowerCase().compareTo(b.data.name.toLowerCase()),
-        );
+    final suggestions = _allPersons.where((personEntity) {
+      final name = personEntity.data.name.trim();
+      if (name.isEmpty) {
+        return false;
+      }
+      if (widget.isEditing && personEntity.remoteID == person?.remoteID) {
+        return false;
+      }
+      return name.toLowerCase().contains(query);
+    }).toList()..sort((a, b) => compareNames(a.data.name, b.data.name));
 
     if (suggestions.length > _maxSuggestedPersons) {
       return suggestions.sublist(0, _maxSuggestedPersons);

@@ -2,6 +2,7 @@ import "dart:async";
 import "dart:convert";
 
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:ente_events/event_bus.dart";
 import "package:ente_legacy/components/legacy_kit_recovery_wait_time_sheet.dart";
 import "package:ente_legacy/events/legacy_kit_created_event.dart";
@@ -13,7 +14,6 @@ import "package:ente_ui/components/buttons/dynamic_fab.dart";
 import "package:ente_ui/utils/toast_util.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
-import "package:hugeicons/hugeicons.dart";
 
 const _legacyKitPartNameMaxBytes = 50;
 

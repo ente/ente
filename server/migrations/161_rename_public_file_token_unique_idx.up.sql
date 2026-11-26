@@ -1,0 +1,1 @@
+ALTER INDEX public_file_token_unconditional_unique_idx RENAME TO public_file_token_unique_idx;

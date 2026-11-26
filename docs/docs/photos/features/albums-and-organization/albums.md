@@ -83,8 +83,6 @@ Renaming an Ente album does not rename the corresponding folder on your phone. I
 
 Add a description to provide context that appears with the album in the gallery and on shared links.
 
-![Edit album details dialog on Ente Photos mobile and web for name description and cover](https://docs-assets.ente.com/screenshots/duo-album-edit-details.png){width=900px}
-
 **On mobile and web/desktop:**
 
 1. Open the album
@@ -92,6 +90,8 @@ Add a description to provide context that appears with the album in the gallery 
 3. Select **Edit details**
 4. Enter or update the description
 5. Select **Save**
+
+![Mobile: typing an album description, then the description under the album title](https://docs-assets.ente.com/screenshots/phone-album-description-duo.png){width=520px}
 
 ## Set album cover
 
@@ -228,6 +228,8 @@ If you have multiple empty albums cluttering your album list, you can bulk delet
 This will delete all empty albums from your library. The feature only appears after your initial sync is complete and when you have more than 2 empty albums.
 
 Bulk-deleting empty Ente albums does not turn off backup for their device folders. If a selected folder contains media eligible for backup, Ente can create its album again. Open `Settings > Backup > Backed up folders` and turn off a folder only if you also want to stop its automatic backup.
+
+![Delete empty albums button highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-albums-delete-empty-callout.png){width=320px}
 
 **On web / desktop:**
 

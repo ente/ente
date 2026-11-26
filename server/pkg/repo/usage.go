@@ -32,6 +32,12 @@ type StorageWarningCandidate struct {
 	IsFamilyPlan bool
 }
 
+type UploadUsage struct {
+	TotalStorage    int64
+	UserStorage     int64
+	PhotosFileCount *int64
+}
+
 func (repo *UsageRepository) GetUsage(userID int64) (int64, error) {
 	row := repo.DB.QueryRow(`SELECT storage_consumed FROM usage WHERE user_id = $1`,
 		userID)
@@ -66,15 +72,15 @@ func (repo *UsageRepository) CreateTx(ctx context.Context, tx *sql.Tx, userID in
 	return stacktrace.Propagate(err, "failed to insert usage")
 }
 
-func (repo *UsageRepository) GetCombinedUsage(ctx context.Context, userIDs []int64) (int64, error) {
-	row := repo.DB.QueryRowContext(ctx, `SELECT coalesce(sum(storage_consumed),0) FROM usage WHERE user_id = ANY($1)`,
-		pq.Array(userIDs))
-	var totalUsage int64
-	err := row.Scan(&totalUsage)
-	if errors.Is(err, sql.ErrNoRows) {
-		return 0, nil
-	}
-	return totalUsage, stacktrace.Propagate(err, "")
+func (repo *UsageRepository) GetUploadUsage(ctx context.Context, userID int64, subscriptionUserIDs []int64) (UploadUsage, error) {
+	row := repo.DB.QueryRowContext(ctx, `SELECT
+		COALESCE(SUM(storage_consumed) FILTER (WHERE user_id = ANY($2)), 0),
+		COALESCE(MAX(storage_consumed) FILTER (WHERE user_id = $1), 0),
+		MAX(photos_file_count) FILTER (WHERE user_id = $1)
+		FROM usage WHERE user_id = $1 OR user_id = ANY($2)`, userID, pq.Array(subscriptionUserIDs))
+	var usage UploadUsage
+	err := row.Scan(&usage.TotalStorage, &usage.UserStorage, &usage.PhotosFileCount)
+	return usage, stacktrace.Propagate(err, "")
 }
 
 func (repo *UsageRepository) GetStorageWarningCandidates(ctx context.Context, usageThreshold int64) ([]StorageWarningCandidate, error) {

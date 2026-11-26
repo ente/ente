@@ -13,6 +13,12 @@ Open the album and select the three-dot menu, then **Edit details**. To change t
 
 See the [Albums guide](/photos/features/albums-and-organization/albums) for steps on mobile, web, and desktop.
 
+### Why does an album show a blank cover? {#album-cover-missing}
+
+On mobile, an album in Ente shows its cover once at least one photo or video in it has been backed up. While its photos are still waiting to upload, the album can show a blank cover. The cover appears after the first item finishes uploading.
+
+Albums under **On device** use the photos on your phone, so they show a cover without backup.
+
 ### Can I manually arrange photos and videos within an album? {#manual-album-order}
 
 Ente does not currently support dragging photos and videos into a custom order within an album. To change the order using the options available in your app:
@@ -20,6 +26,19 @@ Ente does not currently support dragging photos and videos into a custom order w
 1. Open the album.
 2. Open the three-dot menu.
 3. Select **Sort by** and choose an option.
+
+### Can I sort my home timeline oldest first? {#timeline-sort}
+
+No. The home timeline always shows your newest photos first, by the date each photo was taken. To see photos oldest first, open an album, open the three-dot menu, select **Sort by** and choose **Oldest first**.
+
+### Can I sort my albums by the date of the photos in them? {#sort-albums-list}
+
+Not currently. You can change the order of the albums list, but not by the dates of the photos inside each album.
+
+- **On mobile:** open the **Albums** tab, tap the menu button at the top and choose **Name** (A to Z or Z to A) or **Last updated**.
+- **On web and desktop:** open the sort menu above your albums and choose **Name**, **Created** or **Updated**, then oldest or newest first.
+
+Choose newest first under **Last updated** or **Updated** to put the albums you changed most recently at the top. To change the order of photos inside an album, see [Sort albums](/photos/features/albums-and-organization/albums#sort-albums).
 
 ### Can Ente albums be nested? {#nested-albums}
 
@@ -164,6 +183,12 @@ Yes, for photos that are already on your device. Ente needs an internet connecti
 ### Can I start a slideshow from On device albums or Gallery mode? {#album-slideshow-gallery-mode}
 
 Yes. Open an **On device** album and tap the play button on the album cover. If you have scrolled down, tap the three dots in the top-right corner and select **Slideshow** instead. Because this works with device albums, you can also use it while browsing without an account in [Gallery mode](/photos/faq/gallery-mode).
+
+### How do I view only my starred or Favorite photos? {#view-favorites}
+
+Use the **Favorites** album. On mobile or desktop, open a photo and tap or click the **star** to add it to Favorites. Open **Albums** and open **Favorites** to see only those photos.
+
+**Likes** (the heart on photos in shared albums and public links) are collaboration reactions. They are not a library filter. There is no way to filter your library to only photos you liked with the heart. See [Comments and Likes](/photos/features/sharing-and-collaboration/comments-and-likes).
 
 ## Uncategorized
 
@@ -343,7 +368,19 @@ A photo may appear in both Hidden and a hidden album if you first add it to Hidd
 
 ### How do I archive photos in Ente? {#how-to-archive}
 
-Long press to select the photo(s) you want to archive, then select "Archive" from the bottom menu. To archive an entire album, open the album, tap the three dots menu, and select "Archive album". You can view archived content anytime by going to the "Archive" section (no authentication required).
+Long press to select the photo(s) you want to archive, pull up the selection menu, then tap "Archive". To archive an entire album, open the album, tap the three dots menu, and select "Archive album". You can view archived content anytime by going to the "Archive" section (no authentication required).
+
+### How do I unarchive photos or albums? {#how-to-unarchive}
+
+Open the **Archive** section, select the photos and choose **Unarchive**. They return to your home timeline.
+
+On mobile, **Unarchive** appears only when you select photos from the Archive section. If you select archived photos while viewing an album, the menu shows **Archive** instead.
+
+To unarchive a whole album, open the album, tap the three dots menu and select **Unarchive** (**Unarchive album** on web).
+
+### Can I hide an album's photos from my timeline? {#album-off-timeline}
+
+Yes. Use **Archive album**, not Hide. Open the album, tap the three dots and select **Archive album**. The photos stay in the album and leave your home timeline. You can view them later in the **Archive** section. See [How do I archive photos in Ente?](#how-to-archive).
 
 ## Storage Management
 
@@ -409,7 +446,7 @@ No! Freeing up device space only removes local copies from your device. All phot
 
 ### Can I choose which photos to delete from my device? {#selective-device-deletion}
 
-Currently, the "Free up space" feature removes all backed-up photos at once. If you want selective deletion, manually delete specific photos from your device's gallery app.
+Currently, the "Free up space" feature removes all backed-up photos at once. To delete only some photos from your device, first [check that each one is backed up](/photos/faq/backup-and-sync#check-backup-status). Then select them in Ente, tap the trash icon and choose **Delete from device**. They stay in Ente. If a photo has not backed up yet, deleting it from the device removes its only copy. If you use iCloud Photos, deleting from the device also removes the photo from your synced Apple library and other devices. See [How do I delete a photo from Ente but keep it on my phone?](#delete-from-ente-only).
 
 ### How much space will I free up? {#how-much-space-freed}
 
@@ -443,7 +480,7 @@ When you delete a photo or video from your Ente account, it's moved to Trash rat
 
 - Long press to select the photo(s) you want to delete
 - Tap the trash icon in the action bar
-- Confirm the deletion
+- Choose where to delete it from (see [below](#delete-from-ente-only))
 
 On Android 11 and newer, photos deleted from your device's gallery through Ente move to Android's system trash. You can restore them from the **Device** tab in Trash, even if they were never backed up.
 
@@ -456,6 +493,22 @@ On Android 11 and newer, photos deleted from your device's gallery through Ente 
 Photos deleted from your Ente account remain in Trash for 30 days before being permanently deleted automatically.
 
 Learn more in the [deletion feature guide](/photos/features/albums-and-organization/deleting).
+
+### How do I delete a photo from Ente but keep it on my phone? {#delete-from-ente-only}
+
+On mobile, select the photo and tap the trash icon. For a photo that is on your phone and backed up, Ente asks where to delete it from:
+
+- **Delete from Ente**: moves it to Ente's Trash and keeps the copy on your phone (and in iCloud Photos or Google Photos, if you use them)
+- **Delete from device**: removes the copy on your phone and keeps it in Ente
+- **Delete from both**: removes it from your phone and moves it to Ente's Trash
+
+On iPhone with iCloud Photos, both choices that delete from the device also remove the photo from your synced Apple library and other devices.
+
+If you ticked **Set as my default choice**, Ente shows only that option next time. Tap **More options** to pick a different one.
+
+If the photo is only in Ente and is no longer on your phone, **Delete from Ente** is the only option.
+
+If Ente only offers **Delete from device** and warns that the item isn't backed up, the photo hasn't uploaded to Ente yet, so it exists only on your phone. On iPhone, your phone may then warn that it will be deleted from iCloud and all your devices. Cancel if you want to keep it, and let the photo back up first.
 
 ### How do I restore deleted photos? {#restore-photos}
 

@@ -10,12 +10,14 @@ mod city_resolver;
 pub mod cluster;
 mod country;
 mod dispute;
+mod distance;
 mod error;
 mod geometry;
 mod urban;
 
 pub use city::{City, CityIndex, CityMatch, normalize_search_text};
 pub use dispute::{CountryView, DisputeMatch, TerritoryId};
+pub use distance::{EARTH_RADIUS_KM, KILOMETERS_PER_DEGREE, indices_within_radius_km};
 pub use error::{Error, Result};
 pub use urban::UrbanCenterIndex;
 

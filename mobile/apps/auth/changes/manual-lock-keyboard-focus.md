@@ -1,1 +1,0 @@
-- Fixed PIN and password entry after manually locking the desktop app.

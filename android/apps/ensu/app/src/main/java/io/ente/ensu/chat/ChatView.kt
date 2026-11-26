@@ -70,7 +70,12 @@ internal fun ChatView(
     hasSeenSourceIntroduction: Boolean,
     onCompleteSourceIntroduction: () -> Unit,
     onRetrySources: () -> Unit,
+    onLoadTodoTurns: () -> Unit,
+    onConfirmTodoTurn: (String) -> Unit,
+    onUndoTodoTurn: (String) -> Unit,
+    onDismissTodoTurnError: () -> Unit,
 ) {
+    LaunchedEffect(chatState.currentSessionId) { onLoadTodoTurns() }
     val density = LocalDensity.current
     var inputBarHeightDp by remember { mutableStateOf(0.dp) }
     val sessionKey = chatState.currentSessionId ?: "new-session"
@@ -215,8 +220,15 @@ internal fun ChatView(
                         onBranchChange = onBranchChange,
                         onOpenAttachment = onOpenAttachment,
                         onStartDownload = onStartDownload,
+                        todoTurns = chatState.todoTurns,
+                        onConfirmTodoTurn = { onConfirmTodoTurn(it.id) },
+                        onUndoTodoTurn = { onUndoTodoTurn(it.id) },
                     )
                 }
+            }
+
+            chatState.todoTurnError?.let { error ->
+                TodoTurnErrorDialog(error = error, onDismiss = onDismissTodoTurnError)
             }
 
             if (chatState.overflowDialog != null) {

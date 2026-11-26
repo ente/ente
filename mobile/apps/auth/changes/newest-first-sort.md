@@ -1,1 +1,0 @@
-- Added a newest-first sort option (@hehbveh).

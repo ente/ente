@@ -20,11 +20,13 @@ export const GallerySectionLayout = ({
     presentation,
     navigation,
     fullBleed = false,
+    showFirstLoadStatus = true,
     children,
 }: {
     presentation: GallerySectionPresentation;
     navigation?: ReactNode;
     fullBleed?: boolean;
+    showFirstLoadStatus?: boolean;
     children: ReactNode;
 }) => {
     const { collapsed, mobile, reduceMotion, isFirstLoad, isOffline } =
@@ -66,6 +68,9 @@ export const GallerySectionLayout = ({
                         pt: fullBleed
                             ? 0
                             : { xs: `${thumbnailGridPadding}px`, md: "36px" },
+                        ...(!fullBleed && {
+                            '&:has(> [role="toolbar"])': { pt: { md: "20px" } },
+                        }),
                         px: fullBleed ? 0 : { xs: 0, md: "12px" },
                         "--mui-palette-background-default": "#FFFFFF",
                         bgcolor: "background.default",
@@ -78,7 +83,7 @@ export const GallerySectionLayout = ({
                 >
                     {children}
                 </Stack>
-                {isFirstLoad && (
+                {isFirstLoad && showFirstLoadStatus && (
                     <GalleryStatusMessage
                         icon={
                             <CircularProgress

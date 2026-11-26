@@ -27,6 +27,7 @@ import "package:photos/ui/sharing/user_avatar_widget.dart";
 import 'package:photos/ui/viewer/file/file_icons_widget.dart';
 import 'package:photos/ui/viewer/gallery/component/group/type.dart';
 import 'package:photos/ui/viewer/gallery/state/gallery_context_state.dart';
+import 'package:photos/ui/viewer/gallery/state/selection_state.dart';
 import "package:photos/utils/avatar_util.dart";
 
 class ThumbnailWidget extends StatefulWidget {
@@ -51,6 +52,7 @@ class ThumbnailWidget extends StatefulWidget {
 
   final bool shouldShowVideoDuration;
   final bool shouldShowVideoOverlayIcon;
+  final VoidCallback? onLoadFailed;
 
   ThumbnailWidget(
     this.file, {
@@ -73,6 +75,7 @@ class ThumbnailWidget extends StatefulWidget {
     this.placeholderColor,
     this.shouldShowVideoDuration = false,
     this.shouldShowVideoOverlayIcon = true,
+    this.onLoadFailed,
   }) : super(key: key ?? Key(file.tag));
 
   @override
@@ -349,6 +352,7 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
   }
 
   Future _getThumbnailFromDisk() async {
+    final selectedFiles = SelectionState.maybeOf(context)?.selectedFiles;
     return _loadWithRetry()
         .then((thumbData) async {
           if (thumbData == null) {
@@ -362,7 +366,15 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
                   );
                 }
               } else {
-                widget.file.localID = null;
+                if (selectedFiles?.dedupeByUploadID ?? false) {
+                  if (!mounted) return;
+                  selectedFiles!.mutateFile(
+                    widget.file,
+                    () => widget.file.localID = null,
+                  );
+                } else {
+                  widget.file.localID = null;
+                }
                 unawaited(FilesDB.instance.update(widget.file));
               }
               _loadNetworkImage();
@@ -407,6 +419,7 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
               "Could not load thumbnail from disk for localID: ${widget.file.localID}",
               e,
             );
+            if (mounted) widget.onLoadFailed?.call();
           }
         });
   }
@@ -539,6 +552,7 @@ class _ThumbnailWidgetState extends State<ThumbnailWidget> {
       } else {
         _logger.severe("Could not load image " + widget.file.toString(), e);
         _errorLoadingRemoteThumbnail = true;
+        if (mounted) widget.onLoadFailed?.call();
       }
     }
   }

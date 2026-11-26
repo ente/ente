@@ -7,9 +7,20 @@ import "package:photos/core/constants.dart";
 import "package:photos/ui/device_picker/device_media_library.dart";
 
 class DevicePickerController extends ChangeNotifier {
-  DevicePickerController({required this.library});
+  DevicePickerController({
+    required this.library,
+    this.selectionLimit = maxPickAssetLimit,
+    this.allowEmptySelection = false,
+    this.initialAlbumID,
+    Iterable<AssetEntity> initialSelection = const [],
+  }) : assert(selectionLimit == null || selectionLimit > 0) {
+    replaceSelection(initialSelection);
+  }
 
   final DeviceMediaLibrary library;
+  final int? selectionLimit;
+  final bool allowEmptySelection;
+  final String? initialAlbumID;
   final selectionChanges = ChangeNotifier();
   final _mediaIDs = <String>{};
   List<AssetEntity>? _selectionSnapshot;
@@ -21,6 +32,7 @@ class DevicePickerController extends ChangeNotifier {
   List<AssetEntity> media = [];
   AssetPathEntity? album;
   PermissionState permission = PermissionState.notDetermined;
+  bool browsingFilenameMatches = false;
   bool refreshing = false;
   bool loadingMore = false;
   bool hasMore = false;
@@ -34,13 +46,20 @@ class DevicePickerController extends ChangeNotifier {
   List<AssetEntity> get selection =>
       _selectionSnapshot ??= List.unmodifiable(_chosen.values);
   int get selectionCount => _chosen.length;
+  AssetPathEntity? get recentAlbum =>
+      albums.where((album) => album.isAll).firstOrNull;
+  AssetPathEntity? get browsedFolder =>
+      browsingFilenameMatches || album?.isAll == false ? album : null;
+  bool hasLoadedMedia(String id) => _mediaIDs.contains(id);
   bool get hasAccess => permission.hasAccess;
+  bool get canConfirm =>
+      !confirming && !refreshing && (allowEmptySelection || _chosen.isNotEmpty);
 
   void replaceSelection(Iterable<AssetEntity> items) {
     if (confirming) return;
     final next = <String, AssetEntity>{};
     for (final item in items) {
-      if (next.length >= maxPickAssetLimit) break;
+      if (selectionLimit != null && next.length >= selectionLimit!) break;
       next[item.id] = item;
     }
     if (mapEquals(_chosen, next)) return;
@@ -77,6 +96,7 @@ class DevicePickerController extends ChangeNotifier {
         _selectionChanged();
         albums = [];
         album = null;
+        browsingFilenameMatches = false;
         media = [];
         _mediaIDs.clear();
         hasMore = false;
@@ -85,10 +105,14 @@ class DevicePickerController extends ChangeNotifier {
       final folders = await library.albums();
       if (!_isCurrent(revision)) return;
       final previousID = album?.id;
-      final nextAlbum =
-          folders.where((item) => item.id == previousID).firstOrNull ??
+      final folder =
+          folders
+              .where((item) => item.id == (previousID ?? initialAlbumID))
+              .firstOrNull ??
           folders.where((item) => item.isAll).firstOrNull ??
           folders.firstOrNull;
+      final keepFilter = browsingFilenameMatches && folder?.id == previousID;
+      final nextAlbum = keepFilter ? album : folder;
       final length = nextAlbum?.id == previousID
           ? math.max(batchSize, _nextOffset)
           : batchSize;
@@ -96,6 +120,7 @@ class DevicePickerController extends ChangeNotifier {
           ? <AssetEntity>[]
           : await library.read(nextAlbum, start: 0, end: length);
       if (!_isCurrent(revision)) return;
+      browsingFilenameMatches = keepFilter;
       albums = folders;
       album = nextAlbum;
       media = _unique(items);
@@ -121,10 +146,20 @@ class DevicePickerController extends ChangeNotifier {
     }
   }
 
-  Future<void> openAlbum(AssetPathEntity target) async {
-    if (target.id == album?.id) return;
+  Future<void> openAlbum(
+    AssetPathEntity target, {
+    bool filenameMatches = false,
+  }) async {
+    if (!browsingFilenameMatches &&
+        !filenameMatches &&
+        target.id == album?.id) {
+      return;
+    }
     final revision = ++_revision;
-    if (album != null) _loadedCounts[album!.id] = _nextOffset;
+    if (album != null && !browsingFilenameMatches) {
+      _loadedCounts[album!.id] = _nextOffset;
+    }
+    browsingFilenameMatches = filenameMatches;
     album = target;
     media = [];
     _mediaIDs.clear();
@@ -136,7 +171,10 @@ class DevicePickerController extends ChangeNotifier {
     notifyListeners();
     await _readNext(
       revision,
-      count: math.max(batchSize, _loadedCounts[target.id] ?? 0),
+      count: math.max(
+        batchSize,
+        filenameMatches ? 0 : (_loadedCounts[target.id] ?? 0),
+      ),
     );
   }
 
@@ -173,7 +211,7 @@ class DevicePickerController extends ChangeNotifier {
   }
 
   Future<List<AssetEntity>?> confirm() async {
-    if (confirming || refreshing || _chosen.isEmpty) {
+    if (!canConfirm) {
       return null;
     }
     confirming = true;

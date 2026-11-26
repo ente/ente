@@ -6,6 +6,7 @@ edition.workspace = true
 crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
+ente-auth = { workspace = true, features = ["import"] }
 ente-frb-lib.workspace = true
 flutter_rust_bridge.workspace = true
 

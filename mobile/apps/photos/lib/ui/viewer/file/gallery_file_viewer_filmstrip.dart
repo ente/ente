@@ -1,10 +1,10 @@
 import "dart:math";
 
 import "package:ente_components/ente_components.dart" show fillDarkDark;
+import "package:ente_components/hugeicons.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:photos/core/constants.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file/file_type.dart";

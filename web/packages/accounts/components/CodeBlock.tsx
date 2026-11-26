@@ -1,6 +1,12 @@
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DoneIcon from "@mui/icons-material/Done";
-import { Box, IconButton, Tooltip, Typography } from "@mui/material";
+import {
+    Box,
+    IconButton,
+    Tooltip,
+    Typography,
+    type IconButtonProps,
+} from "@mui/material";
 import { CenteredRow } from "ente-base/components/containers";
 import { ActivityIndicator } from "ente-base/components/mui/ActivityIndicator";
 import { useClipboardCopy } from "ente-base/components/utils/hooks";
@@ -47,17 +53,23 @@ export const CodeBlock: React.FC<CodeBlockProps> = ({ code }) => {
 
 interface CopyButtonProps {
     code: string;
+    label?: string;
+    sx?: IconButtonProps["sx"];
 }
 
-export const CopyButton: React.FC<CopyButtonProps> = ({ code }) => {
+export const CopyButton: React.FC<CopyButtonProps> = ({
+    code,
+    label,
+    sx = { color: "accent.contrastText" },
+}) => {
     const [copied, handleClick] = useClipboardCopy(code);
 
     const Icon = copied ? DoneIcon : ContentCopyIcon;
 
     return (
         <Tooltip arrow open={copied} title={t("copied")}>
-            <IconButton onClick={handleClick}>
-                <Icon sx={{ color: "accent.contrastText" }} fontSize="small" />
+            <IconButton onClick={handleClick} aria-label={label} sx={sx}>
+                <Icon fontSize="small" />
             </IconButton>
         </Tooltip>
     );

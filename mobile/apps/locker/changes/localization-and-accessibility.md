@@ -1,0 +1,1 @@
+- Fixed translations and improved screen reader support.

@@ -62,11 +62,6 @@ type RepairDeletedCollectionShareRequest struct {
 	ToUserID     int64 `json:"toUserID" binding:"required,gt=0"`
 }
 
-type ReQueueItemRequest struct {
-	ID        int64  `json:"id" binding:"required"`
-	QueueName string `json:"queueName" binding:"required"`
-}
-
 type RecoverAccountRequest struct {
 	UserID  int64  `json:"userID" binding:"required"`
 	EmailID string `json:"emailID" binding:"required"`

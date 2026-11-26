@@ -703,7 +703,7 @@
   "deleteLink": "刪除連結",
   "deleteLinkQuestion": "刪除連結？",
   "deleteLocation": "刪除位置",
-  "deleteMemoryLinkMessage": "刪除後，與您分享此連結的人將無法再存取。",
+  "deleteMemoryLinkMessage": "刪除後，您分享此連結的對象將無法再存取。",
   "deleteMultipleAlbumDialog": "同時將這 {count} 個相簿中的照片（和影片）從它們所屬的<bold>所有</bold>其他相簿中刪除？",
   "@deleteMultipleAlbumDialog": {
     "placeholders": {

@@ -40,9 +40,9 @@ The item is moved to Trash.
 ![Restore action highlighted on Trash selection toolbar on Ente Locker Android](https://docs-assets.ente.com/screenshots/locker-trash-restore-callout.png){width=320px}
 
 1. Open Trash
-2. Tap on the item you want to restore
+2. Select the item you want to restore
 3. Tap **Restore**
-4. The item returns to its original collection
+4. Choose the collection to restore it to. The item moves out of Trash into that collection.
 
 ## Emptying Trash
 
@@ -71,6 +71,8 @@ The item is moved to Trash.
 2. Tap on the item you want to permanently delete
 3. Tap **Delete permanently**
 4. Confirm permanent deletion
+
+![Delete highlighted on the Trash selection toolbar, then the Permanently delete confirmation on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-trash-delete-permanently-callout-v1013.png){width=560px}
 
 ## Storage and Trash
 

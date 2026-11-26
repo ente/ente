@@ -6,6 +6,9 @@ import "package:photos/models/file/file.dart";
 import "package:photos/models/selected_files.dart";
 
 class DevicePickerSelectedFiles extends SelectedFiles {
+  DevicePickerSelectedFiles({this.selectionLimit = maxPickAssetLimit});
+
+  final int? selectionLimit;
   final _assetIDs = Expando<String>();
   late final _files = LinkedHashSet<EnteFile>(
     equals: (first, second) => assetID(first) == assetID(second),
@@ -36,8 +39,7 @@ class DevicePickerSelectedFiles extends SelectedFiles {
   @override
   void toggleGroupSelection(Set<EnteFile> filesToToggle) {
     if (locked) return;
-    if (files.length == maxPickAssetLimit &&
-        filesToToggle.any(isFileSelected)) {
+    if (files.length == selectionLimit && filesToToggle.any(isFileSelected)) {
       unSelectAll(filesToToggle);
     } else {
       super.toggleGroupSelection(filesToToggle);
@@ -47,12 +49,14 @@ class DevicePickerSelectedFiles extends SelectedFiles {
   @override
   void selectAll(Set<EnteFile> filesToSelect) {
     if (locked) return;
-    final remaining = maxPickAssetLimit - files.length;
-    final additions = filesToSelect
-        .where((file) => file is! DummyFile && !files.contains(file))
-        .take(remaining)
-        .toSet();
-    if (additions.isNotEmpty) super.selectAll(additions);
+    final limit = selectionLimit;
+    final additions = filesToSelect.where(
+      (file) => file is! DummyFile && !files.contains(file),
+    );
+    final filesToAdd =
+        (limit == null ? additions : additions.take(limit - files.length))
+            .toSet();
+    if (filesToAdd.isNotEmpty) super.selectAll(filesToAdd);
   }
 
   @override

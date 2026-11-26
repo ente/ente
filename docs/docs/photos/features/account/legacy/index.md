@@ -13,6 +13,8 @@ Trusted Contacts can initiate a recovery, and if not blocked within the chosen w
 
 You can add a trusted contact for your account using the Ente Photos mobile app. Open `Settings > Legacy` and tap **Add Trusted Contact**.
 
+![Mobile: home with Settings menu (three bars) highlighted, then Legacy, then the Legacy page](https://docs-assets.ente.com/screenshots/phone-settings-legacy-path-nc.png){width=560px}
+
 You would be asked to enter the email address of the trusted contact you want to add or choose from a list of contacts on Ente. Please note that the trusted contact must be an Ente user.
 
 <div align="center">
@@ -28,6 +30,8 @@ The trusted contact must accept your request. They can open `Settings > Legacy` 
 ![Accept Trusted Contact Invite](accept_trusted_contact_invite.png){width=300px}
 
 </div>
+
+Once you accept, there's nothing else to do. You only need to start account recovery if the person who added you can no longer get into their account.
 
 ## Recovering an account as a trusted contact
 

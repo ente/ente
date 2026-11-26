@@ -904,7 +904,7 @@
   "@deletedComment": {
     "description": "Label for deleted comments"
   },
-  "deletedFromEnte": "Elimina da Ente",
+  "deletedFromEnte": "Eliminati da Ente",
   "deletedItemsStayHereForThirtyDays": "Gli articoli eliminati rimangono qui per 30 giorni",
   "deleteDuplicates": "Elimina i duplicati",
   "deleteEmptyAlbums": "Elimina gli album vuoti",

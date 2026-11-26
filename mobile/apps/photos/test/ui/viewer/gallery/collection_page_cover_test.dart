@@ -58,14 +58,17 @@ import "package:photos/ui/collections/album/row_item.dart";
 import "package:photos/ui/collections/collection_list_page.dart";
 import "package:photos/ui/components/bottom_action_bar/action_bar_widget.dart";
 import "package:photos/ui/components/bottom_action_bar/selection_action_sheet.dart";
+import "package:photos/ui/picker/external_media_picker_page.dart";
 import "package:photos/ui/viewer/actions/album_selection_overlay_bar.dart";
 import "package:photos/ui/viewer/actions/file_selection_overlay_bar.dart";
+import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 import "package:photos/ui/viewer/gallery/collection_page.dart";
 import "package:photos/ui/viewer/gallery/component/album_cover_app_bar.dart";
 import "package:photos/ui/viewer/gallery/component/gallery_file_widget.dart";
 import "package:photos/ui/viewer/gallery/component/group/group_header_widget.dart";
 import "package:photos/ui/viewer/gallery/gallery.dart";
 import "package:photos/ui/viewer/gallery/gallery_app_bar_widget.dart";
+import "package:photos/ui/viewer/gallery/hooks/edit_album_details_sheet.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_boundaries_provider.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
 import "package:photos/ui/viewer/gallery/state/inherited_search_filter_data.dart";
@@ -134,6 +137,114 @@ void main() {
   tearDownAll(() async {
     PathProviderPlatform.instance = previousPathProvider;
     await tempDir.delete(recursive: true);
+  });
+
+  Future<void> mountPicker(WidgetTester tester) => tester.pumpWidget(
+    MaterialApp(
+      theme: lightThemeData,
+      localizationsDelegates: StringsLocalizations.localizationsDelegates,
+      supportedLocales: StringsLocalizations.supportedLocales,
+      home: const ExternalMediaPickerPage(allowMultiple: true),
+    ),
+  );
+
+  testWidgets("picker search preserves its query on Back and animates tabs", (
+    tester,
+  ) async {
+    final album = _collection()..setName("Cat photos");
+    final albums = CollectionsService.instance.collectionIDToCollections;
+    albums[album.id] = album;
+    addTearDown(() => albums.remove(album.id));
+    await mountPicker(tester);
+    final field = find.byType(TextField);
+    final row = find.byType(AnimatedCrossFade);
+    final tabs = find.byType(FilterChipComponent).hitTestable();
+    final height = tester.getSize(row).height;
+    addTearDown(tester.view.resetViewInsets);
+    tester.view.systemGestureInsets = const FakeViewPadding(left: 30);
+    addTearDown(tester.view.resetSystemGestureInsets);
+    await tester.tap(field);
+    tester.view.viewInsets = const FakeViewPadding(bottom: 200);
+    await tester.pump();
+    await tester.pump(Motion.quick);
+    expect(tester.getSize(row).height, inExclusiveRange(0, height));
+    await tester.enterText(field, "cat");
+    final input = tester.widget<EditableText>(find.byType(EditableText));
+    final edgeSwipe = await tester.startGesture(const Offset(1, 240));
+    await edgeSwipe.moveBy(const Offset(100, 0));
+    await edgeSwipe.up();
+    await tester.pump();
+    expect(input.focusNode.hasFocus, isTrue);
+    final back = SystemChannels.backGesture;
+    Future<void> gesture(String method, [Object? args]) =>
+        tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+          back.name,
+          back.codec.encodeMethodCall(MethodCall(method, args)),
+          (_) {},
+        );
+    tester.view.resetViewInsets();
+    await tester.pump();
+    await gesture("startBackGesture", {
+      "touchOffset": [1.0, 240.0],
+      "progress": 0.0,
+      "swipeEdge": 0,
+    });
+    await gesture("commitBackGesture");
+    await tester.pump();
+    expect(input.controller.text, "cat");
+    expect(input.focusNode.hasFocus, isFalse);
+    await tester.pump(const Duration(seconds: 1));
+    final result = find.text(album.displayName).hitTestable();
+    for (var i = 0; i < 100 && result.evaluate().isEmpty; i++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 10)),
+      );
+      await tester.pump();
+    }
+    await tester.tap(result);
+    await tester.pump(const Duration(seconds: 3));
+    expect(find.widgetWithText(AppBar, album.displayName), findsOneWidget);
+    await tester.tap(find.byTooltip("Back"));
+    await tester.pump();
+    tester.platformDispatcher.accessibilityFeaturesTestValue =
+        const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+    await tester.enterText(field, "");
+    await tester.pump();
+    expect(tabs, findsNWidgets(2));
+    await _disposeAlbum(tester);
+  });
+
+  testWidgets("picker keeps the photo selected through its surviving album", (
+    tester,
+  ) async {
+    await tester.runAsync(() async {
+      final original = _file(1);
+      final surviving = EnteFile.from(original)
+        ..generatedID = 2
+        ..collectionID = 2;
+      final db = FilesDB.instance;
+      await db.insertMultiple([original, surviving]);
+      await mountPicker(tester);
+      final selection = tester
+          .widget<Gallery>(find.byType(Gallery))
+          .selectedFiles!;
+      selection.selectAll({original});
+      await db.deleteFilesFromCollection(1, [original.uploadedFileID!]);
+      final refreshed = Completer<void>();
+      selection.addListener(() => refreshed.complete());
+      Bus.instance.fire(
+        CollectionUpdatedEvent(
+          1,
+          [original],
+          "syncDeleteFromRemote",
+          type: EventType.deletedFromRemote,
+        ),
+      );
+      await refreshed.future.timeout(const Duration(seconds: 5));
+      expect(selection.files, orderedEquals([surviving]));
+    });
+    await _disposeAlbum(tester);
   });
 
   testWidgets("sorts Discover photos using the shared sheet", (tester) async {
@@ -554,6 +665,94 @@ void main() {
       await _disposeAlbum(tester);
     },
   );
+
+  testWidgets(
+    "filename sorting keeps date defaults and prefers an explicit cover",
+    (tester) async {
+      final oldest = _file(1)..title = "IMG10.jpg";
+      final customCover = _file(2)..title = "IMG2.jpg";
+      final newest = _file(3)..title = "IMG1.jpg";
+      final collection = _collection()
+        ..pubMagicMetadata = CollectionPubMagicMetadata(
+          asc: true,
+          sortBy: "fileName",
+        );
+      await tester.runAsync(() async {
+        await FilesDB.instance.insertMultiple([oldest, customCover, newest]);
+        expect(await CollectionsService.instance.getCover(collection), oldest);
+      });
+      await _pumpAlbum(tester, collection);
+      await _expectCover(tester, oldest, count: 3, firstFile: newest);
+
+      collection.pubMagicMetadata = CollectionPubMagicMetadata(
+        asc: false,
+        sortBy: "fileName",
+      );
+      Bus.instance.fire(
+        CollectionMetaEvent(collection.id, CollectionMetaEventType.sortChanged),
+      );
+      await _expectCover(tester, newest, firstFile: oldest);
+      await tester.runAsync(() async {
+        expect(await CollectionsService.instance.getCover(collection), newest);
+      });
+
+      collection.pubMagicMetadata = CollectionPubMagicMetadata(
+        asc: false,
+        sortBy: "fileName",
+        coverID: customCover.uploadedFileID,
+      );
+      Bus.instance.fire(
+        CollectionUpdatedEvent(collection.id, [], "cover_change"),
+      );
+      await _expectCover(tester, customCover, firstFile: oldest);
+      await tester.runAsync(() async {
+        expect(
+          await CollectionsService.instance.getCover(collection),
+          customCover,
+        );
+      });
+      await _disposeAlbum(tester);
+    },
+  );
+
+  testWidgets("cover editor resets to the date default in a filename album", (
+    tester,
+  ) async {
+    final oldest = _file(1)..title = "IMG10.jpg";
+    final firstByName = _file(2)..title = "IMG1.jpg";
+    final customCover = _file(3)..title = "IMG2.jpg";
+    final collection = _collection()
+      ..pubMagicMetadata = CollectionPubMagicMetadata(
+        asc: true,
+        sortBy: "fileName",
+        coverID: customCover.uploadedFileID,
+      );
+    await tester.runAsync(
+      () => FilesDB.instance.insertMultiple([oldest, firstByName, customCover]),
+    );
+    await _pumpAlbum(tester, collection);
+    await _expectCover(tester, customCover, count: 3);
+
+    int? savedCoverID;
+    unawaited(
+      showEditAlbumDetailsSheet(
+        context: tester.element(find.byType(CollectionPage)),
+        collection: collection,
+        onSave: (update) async => savedCoverID = update.coverID,
+      ),
+    );
+    await _expectEditorCover(tester, customCover);
+    await tester.tap(find.byKey(const ValueKey("edit_album_cover")));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    await tester.tap(find.text("Reset to default"));
+    await _expectEditorCover(tester, oldest);
+    expect(savedCoverID, isNull);
+    await tester.tap(find.byKey(const ValueKey("save_album_details")));
+    await tester.pumpAndSettle();
+    expect(savedCoverID, 0);
+    await _disposeAlbum(tester);
+  });
 
   testWidgets(
     "reuses capture dates across selection and refreshes date edits",
@@ -1188,6 +1387,7 @@ Future<void> _expectCover(
   WidgetTester tester,
   EnteFile? file, {
   int? count,
+  EnteFile? firstFile,
 }) async {
   await tester.runAsync(() async {
     for (var i = 0; i < 100; i++) {
@@ -1198,14 +1398,13 @@ Future<void> _expectCover(
       final hasExpectedCover = file == null
           ? covers.isEmpty
           : covers.singleOrNull?.cover == file;
-      final hasExpectedCount =
-          count == null ||
-          tester
-                  .widget<GalleryFilesState>(find.byType(GalleryFilesState))
-                  .galleryFilesOrNull
-                  ?.length ==
-              count;
-      if (hasExpectedCover && hasExpectedCount) {
+      final galleryFiles = tester
+          .widget<GalleryFilesState>(find.byType(GalleryFilesState))
+          .galleryFilesOrNull;
+      final hasExpectedCount = count == null || galleryFiles?.length == count;
+      final hasExpectedFirstFile =
+          firstFile == null || galleryFiles?.firstOrNull == firstFile;
+      if (hasExpectedCover && hasExpectedCount && hasExpectedFirstFile) {
         await tester.pump(const Duration(seconds: 1));
         return;
       }
@@ -1225,6 +1424,35 @@ Future<void> _expectCover(
       count,
     );
   }
+  if (firstFile != null) {
+    expect(
+      tester
+          .widget<GalleryFilesState>(find.byType(GalleryFilesState))
+          .galleryFiles
+          .firstOrNull,
+      firstFile,
+    );
+  }
+  expect(tester.takeException(), isNull);
+}
+
+Future<void> _expectEditorCover(WidgetTester tester, EnteFile file) async {
+  final thumbnail = find.descendant(
+    of: find.byType(EditAlbumDetailsSheet),
+    matching: find.byType(ThumbnailWidget),
+  );
+  await tester.runAsync(() async {
+    for (var i = 0; i < 100; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+      if (tester.widgetList<ThumbnailWidget>(thumbnail).singleOrNull?.file ==
+          file) {
+        return;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+  });
+  expect(tester.widget<ThumbnailWidget>(thumbnail).file, file);
+  await tester.pumpAndSettle();
   expect(tester.takeException(), isNull);
 }
 

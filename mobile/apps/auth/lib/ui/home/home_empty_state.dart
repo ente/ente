@@ -97,7 +97,6 @@ class HomeEmptyStateWidget extends StatelessWidget {
                         children: [
                           if (PlatformDetector.isMobile()) ...[
                             Semantics(
-                              button: true,
                               identifier: 'auth_empty_scan',
                               child: ButtonComponent(
                                 label: l10n.scanAQrCode,
@@ -106,7 +105,6 @@ class HomeEmptyStateWidget extends StatelessWidget {
                             ),
                           ] else ...[
                             Semantics(
-                              button: true,
                               identifier: 'auth_empty_gallery',
                               child: ButtonComponent(
                                 label: l10n.importFromGallery,
@@ -116,7 +114,6 @@ class HomeEmptyStateWidget extends StatelessWidget {
                           ],
                           const SizedBox(height: Spacing.md),
                           Semantics(
-                            button: true,
                             identifier: 'auth_empty_manual_setup',
                             child: ButtonComponent(
                               label: l10n.importEnterSetupKey,

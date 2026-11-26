@@ -1,17 +1,24 @@
 import "dart:async";
 import "dart:math";
 
+import "package:flutter/foundation.dart";
+import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:logging/logging.dart";
+import "package:photos/service_locator.dart";
+import "package:photos/services/wake_lock_service.dart";
+import "package:photos/ui/rewind/reel/rewind_video_export.dart";
+import "package:photos/ui/rewind/reel/rewind_video_job.dart";
 import "package:photos/ui/rewind/shell/rewind_chrome.dart";
 import "package:photos/ui/rewind/shell/rewind_music.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
+import "package:photos/ui/rewind/shell/rewind_page_stack.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
 import "package:photos/ui/rewind/theme/rewind_motion.dart";
-import "package:photos/ui/rewind/widgets/rewind_stage.dart";
+import "package:photos/utils/dialog_util.dart";
 import "package:photos/utils/share_util.dart";
 
 class RewindViewer extends StatefulWidget {
@@ -20,6 +27,7 @@ class RewindViewer extends StatefulWidget {
     this.initialPage,
     this.initialStop = 0,
     this.onSettled,
+    this.loadVideoMedia,
     super.key,
   });
 
@@ -27,6 +35,7 @@ class RewindViewer extends StatefulWidget {
   final String? initialPage;
   final int initialStop;
   final void Function(RewindPage page, int stop)? onSettled;
+  final Future<bool> Function(List<RewindPage> pages)? loadVideoMedia;
 
   Route<void> route() => PageRouteBuilder<void>(
     transitionDuration: const Duration(milliseconds: 260),
@@ -52,29 +61,31 @@ class _RewindViewerState extends State<RewindViewer>
   static final _logger = Logger("RewindViewer");
   static const _tapZoneTop = 70 / 844;
   static const _tapZoneBottom = 770 / 844;
+  static const _turnPause = Duration(milliseconds: 400);
+  static var _openViewers = 0;
 
-  final _starts = <int>[];
-  late final int _steps;
+  late final _starts = RewindPageStack.startsOf(widget.pages);
+  late final _steps = _starts.last + widget.pages.last.stops;
   late final int _initialStep;
   final _music = RewindMusic();
   final _shareCards = <String, RewindShareCard>{};
   final _shareButton = GlobalKey();
+  final _videoButton = GlobalKey();
   ScrollController? _controller;
   double? _height;
-  int? _settledStep;
+  var _settledStep = -1;
   int? _resizeStep;
   int? _targetStep;
-  var _sharing = false;
+  final _sinceTurn = Stopwatch();
+  var _lastTurn = 0;
+  final _videoSaved = ValueNotifier(false);
+  var _busy = false;
+  var _inFront = true;
+  RewindVideoJob? _videoJob;
 
   @override
   void initState() {
     super.initState();
-    var step = 0;
-    for (final page in widget.pages) {
-      _starts.add(step);
-      step += page.stops;
-    }
-    _steps = step;
     final index = widget.pages.indexWhere(
       (page) => page.key == widget.initialPage,
     );
@@ -85,14 +96,52 @@ class _RewindViewerState extends State<RewindViewer>
     _settle(_initialStep);
     WidgetsBinding.instance.addObserver(this);
     unawaited(_music.start());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => unawaited(_pregenerateVideo()),
+    );
+    if (_openViewers++ == 0) {
+      wakeLockService.updateWakeLock(
+        enable: true,
+        wakeLockFor: WakeLockFor.rewindViewer,
+      );
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _inFront =
+        TickerMode.valuesOf(context).enabled &&
+        ModalRoute.of(context)?.isCurrent != false;
+    _videoJob?.inFront = _inFront;
   }
 
   @override
   void dispose() {
+    final ended = _videoJob?.abort();
+    if (--_openViewers == 0) {
+      wakeLockService.updateWakeLock(
+        enable: false,
+        wakeLockFor: WakeLockFor.rewindViewer,
+      );
+    }
     WidgetsBinding.instance.removeObserver(this);
     _music.dispose();
+    _videoSaved.dispose();
     _controller?.dispose();
+    final pages = widget.pages;
+    if (ended == null) {
+      _release(pages);
+    } else {
+      unawaited(ended.whenComplete(() => _release(pages)));
+    }
     super.dispose();
+  }
+
+  static void _release(List<RewindPage> pages) {
+    for (final page in pages) {
+      page.release();
+    }
   }
 
   @override
@@ -100,11 +149,21 @@ class _RewindViewerState extends State<RewindViewer>
     _music.appActive = state == AppLifecycleState.resumed;
   }
 
+  Future<void> _pregenerateVideo() async {
+    _videoJob = await pregenerateRewindVideo(
+      context,
+      pages: widget.pages,
+      loadMedia: widget.loadVideoMedia,
+      track: _music.track,
+      wanted: () => mounted && _inFront && !_busy,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: LayoutBuilder(builder: _buildPager),
+      body: _MinimumTouchSlop(child: LayoutBuilder(builder: _buildPager)),
     );
   }
 
@@ -139,8 +198,11 @@ class _RewindViewerState extends State<RewindViewer>
                           left: 0,
                           right: 0,
                           height: height,
-                          child: _buildVisiblePages(
-                            _resizeStep?.toDouble() ?? offset / height,
+                          child: RewindPageStack(
+                            pages: widget.pages,
+                            starts: _starts,
+                            scroll: _resizeStep?.toDouble() ?? offset / height,
+                            navigator: this,
                           ),
                         ),
                       ],
@@ -164,7 +226,7 @@ class _RewindViewerState extends State<RewindViewer>
   }
 
   double _offset(ScrollController controller, double height) =>
-      (controller.hasClients ? controller.offset : _initialStep * height).clamp(
+      (controller.hasClients ? controller.offset : _settledStep * height).clamp(
         0.0,
         (_steps - 1) * height,
       );
@@ -187,19 +249,41 @@ class _RewindViewerState extends State<RewindViewer>
         pageCount: widget.pages.length,
         music: _music,
         shareKey: _shareButton,
+        videoKey: _videoButton,
         onClose: () => Navigator.of(context).maybePop(),
-        onShare: card == null ? null : () => _share(page, card, layout),
+        onNext: next,
+        onShare: _shareAction(context, page, card, layout),
+        onShareVideo: index < widget.pages.length - 1 || page.hasOwnVideoButton
+            ? null
+            : () => shareVideo(shareButtonRect(context, _videoButton)),
       ),
     );
+  }
+
+  VoidCallback? _shareAction(
+    BuildContext context,
+    RewindPage page,
+    RewindShareCard? card,
+    RewindChromeLayout layout,
+  ) {
+    if (card == null) return null;
+    if (page.clipHold == null || MediaQuery.disableAnimationsOf(context)) {
+      return () => _share(page, card, layout);
+    }
+    return () =>
+        unawaited(_shareClip(page, shareButtonRect(context, _shareButton)));
   }
 
   ScrollController _controllerFor(double height) {
     final controller = _controller;
     final previousHeight = _height;
     _height = height;
-    if (controller == null || previousHeight == null) {
-      return _controller = ScrollController(
-        initialScrollOffset: _initialStep * height,
+    if (controller == null ||
+        previousHeight == null ||
+        !controller.hasClients) {
+      controller?.dispose();
+      return _controller = _PagerController(
+        initialScrollOffset: _settledStep * height,
       );
     }
     if (height != previousHeight && controller.hasClients) {
@@ -214,50 +298,13 @@ class _RewindViewerState extends State<RewindViewer>
     return controller;
   }
 
-  Widget _buildVisiblePages(double scroll) {
-    final activeStep = scroll.round();
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        for (var i = 0; i < widget.pages.length; i++)
-          if (scroll - _starts[i] > -1 &&
-              scroll - _starts[i] < widget.pages[i].stops)
-            _buildPage(
-              widget.pages[i],
-              scroll - _starts[i],
-              isActive:
-                  activeStep >= _starts[i] &&
-                  activeStep < _starts[i] + widget.pages[i].stops,
-            ),
-      ],
-    );
-  }
-
-  Widget _buildPage(
-    RewindPage page,
-    double position, {
-    required bool isActive,
-  }) {
-    final content = RewindPageScope(
-      page: page,
-      navigator: this,
-      child: Builder(
-        builder: (context) => page.build(context, position, isActive: isActive),
-      ),
-    );
-    final entering = !page.pinned && position < 0;
-    return ClipPath(
-      key: ValueKey(page.key),
-      clipper: _WaveClipper(entering ? 1 + position : 1),
-      clipBehavior: entering ? Clip.antiAlias : Clip.none,
-      child: content,
-    );
-  }
-
   void _settle(int step) {
     if (step == _settledStep) return;
     _settledStep = step;
     final index = _pageIndexAt(step);
+    for (final (ahead, page) in widget.pages.skip(index).indexed) {
+      if (ahead <= page.warmAhead) page.warmUp();
+    }
     widget.onSettled?.call(widget.pages[index], step - _starts[index]);
   }
 
@@ -279,11 +326,7 @@ class _RewindViewerState extends State<RewindViewer>
   @override
   void next() {
     final step = _currentStep;
-    if (step >= _steps - 1) {
-      unawaited(Navigator.of(context).maybePop());
-    } else {
-      _animateTo(step + 1);
-    }
+    if (step < _steps - 1) _animateTo(step + 1);
   }
 
   @override
@@ -296,10 +339,22 @@ class _RewindViewerState extends State<RewindViewer>
     final controller = _controller;
     final height = _height;
     if (controller == null || height == null || !controller.hasClients) return;
+    final turn = (step - _currentStep).sign;
+    if (turn == _lastTurn &&
+        _sinceTurn.isRunning &&
+        _sinceTurn.elapsed < _turnPause) {
+      return;
+    }
+    _lastTurn = turn;
+    _sinceTurn
+      ..reset()
+      ..start();
     if (MediaQuery.disableAnimationsOf(context)) {
       controller.jumpTo(step * height);
       return;
     }
+    final passing = _targetStep;
+    if (passing != null && step > passing) _settle(passing);
     _targetStep = step;
     unawaited(
       controller
@@ -327,6 +382,78 @@ class _RewindViewerState extends State<RewindViewer>
     _refreshChrome();
   }
 
+  @override
+  void shareVideo(Rect? origin) => unawaited(_shareVideo(origin));
+
+  Future<void> _shareVideo(Rect? origin) async {
+    if (_busy) return;
+    _busy = true;
+    try {
+      await shareRewindVideo(
+        context,
+        pages: widget.pages,
+        loadMedia: widget.loadVideoMedia,
+        track: _music.track,
+        job: _videoJob,
+        origin: origin,
+      );
+    } catch (error, stackTrace) {
+      _logger.warning("Failed to share the Rewind video", error, stackTrace);
+    } finally {
+      _busy = false;
+    }
+  }
+
+  @override
+  ValueListenable<bool> get videoSaved => _videoSaved;
+
+  @override
+  void saveVideo() => unawaited(_saveVideo());
+
+  Future<void> _saveVideo() async {
+    if (_busy || _videoSaved.value) return;
+    _busy = true;
+    try {
+      final saved = await saveRewindVideo(
+        context,
+        pages: widget.pages,
+        loadMedia: widget.loadVideoMedia,
+        track: _music.track,
+        job: _videoJob,
+      );
+      if (saved && mounted) _videoSaved.value = true;
+    } catch (error, stackTrace) {
+      _logger.warning("Failed to save the Rewind video", error, stackTrace);
+      if (mounted) {
+        await showGenericErrorBottomSheet(context: context, error: error);
+      }
+    } finally {
+      _busy = false;
+    }
+  }
+
+  Future<void> _shareClip(RewindPage page, Rect? origin) async {
+    if (_busy) return;
+    _busy = true;
+    try {
+      await shareRewindClip(
+        context,
+        page: page,
+        loadMedia: widget.loadVideoMedia,
+        track: _music.track,
+        origin: origin,
+      );
+    } catch (error, stackTrace) {
+      _logger.warning(
+        "Failed to share the ${page.key} clip",
+        error,
+        stackTrace,
+      );
+    } finally {
+      _busy = false;
+    }
+  }
+
   void _refreshChrome() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) setState(() {});
@@ -338,8 +465,8 @@ class _RewindViewerState extends State<RewindViewer>
     RewindShareCard card,
     RewindChromeLayout layout,
   ) async {
-    if (_sharing) return;
-    _sharing = true;
+    if (_busy) return;
+    _busy = true;
     try {
       await shareRewindCard(
         card,
@@ -351,39 +478,73 @@ class _RewindViewerState extends State<RewindViewer>
     } catch (error, stackTrace) {
       _logger.warning("Failed to share ${page.key}", error, stackTrace);
     } finally {
-      _sharing = false;
+      _busy = false;
     }
   }
 }
 
-class _WaveClipper extends CustomClipper<Path> {
-  _WaveClipper(this.progress);
+class _MinimumTouchSlop extends StatelessWidget {
+  const _MinimumTouchSlop({required this.child});
 
-  final double progress;
+  final Widget child;
 
   @override
-  Path getClip(Size size) {
-    final scale = size.width / RewindStage.size.width;
-    final amplitude = 16 * sin(pi * progress) * scale;
-    final height = size.height;
-    final base =
-        height +
-        amplitude +
-        4 * scale -
-        progress * (height + 2 * amplitude + 8 * scale);
-    final path = Path()..moveTo(-10 * scale, height);
-    for (var x = -10.0; x <= RewindStage.size.width + 10; x += 10) {
-      path.lineTo(
-        x * scale,
-        base +
-            amplitude * sin(x / RewindStage.size.width * 3 * pi + 5 * progress),
-      );
-    }
-    return path
-      ..lineTo((RewindStage.size.width + 10) * scale, height)
-      ..close();
+  Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    return MediaQuery(
+      data: media.copyWith(
+        gestureSettings: DeviceGestureSettings(
+          touchSlop: max(kTouchSlop, media.gestureSettings.touchSlop ?? 0),
+        ),
+      ),
+      child: child,
+    );
   }
+}
+
+class _PagerController extends ScrollController {
+  _PagerController({super.initialScrollOffset});
 
   @override
-  bool shouldReclip(_WaveClipper oldClipper) => oldClipper.progress != progress;
+  ScrollPosition createScrollPosition(
+    ScrollPhysics physics,
+    ScrollContext context,
+    ScrollPosition? oldPosition,
+  ) => _PagerPosition(
+    physics: physics,
+    context: context,
+    initialPixels: initialScrollOffset,
+    keepScrollOffset: keepScrollOffset,
+    oldPosition: oldPosition,
+    debugLabel: debugLabel,
+  );
+}
+
+class _PagerPosition extends ScrollPositionWithSingleContext {
+  _PagerPosition({
+    required super.physics,
+    required super.context,
+    super.initialPixels,
+    super.keepScrollOffset,
+    super.oldPosition,
+    super.debugLabel,
+  });
+
+  @override
+  bool get shouldIgnorePointer => false;
+
+  @override
+  ScrollHoldController hold(VoidCallback holdCancelCallback) {
+    if (activity?.isScrolling ?? false) return _KeepTurning(holdCancelCallback);
+    return super.hold(holdCancelCallback);
+  }
+}
+
+class _KeepTurning implements ScrollHoldController {
+  const _KeepTurning(this.onCancel);
+
+  final VoidCallback onCancel;
+
+  @override
+  void cancel() => onCancel();
 }

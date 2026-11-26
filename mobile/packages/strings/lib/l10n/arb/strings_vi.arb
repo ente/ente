@@ -393,7 +393,7 @@
   "authToSetBackupPassword": "Xác thực để đặt mật khẩu sao lưu",
   "authToUpdateBackupPassword": "Xác thực để cập nhật mật khẩu sao lưu",
   "authToViewPasskey": "Vui lòng xác thực để xem khóa truy cập",
-  "authToViewPasskeyGeneric": "Vui lòng xác thực để xem mã truy cập",
+  "authToViewPasskeyGeneric": "Vui lòng xác thực để xem khóa truy cập",
   "authToViewSecrets": "Vui lòng xác thực để xem bí mật của bạn",
   "@authToViewSecrets": {
     "description": "Message prompting authentication to view secrets"
@@ -1939,7 +1939,7 @@
   "hintForDesktop": "Nhấn chuột phải vào mã để chỉnh sửa hoặc xóa.",
   "hintForMobile": "Nhấn giữ mã để chỉnh sửa hoặc xóa.",
   "historicSites": "Di tích lịch sử",
-  "homeEmptyStateLegacyDescription": "Hãy thiết lập Thừa kế của bạn để người thân có thể truy cập thông tin quan trọng khi bạn ngủm",
+  "homeEmptyStateLegacyDescription": "Hãy thiết lập Thừa kế của bạn để người thân có thể truy cập thông tin quan trọng khi bạn vắng mặt",
   "@homeEmptyStateLegacyDescription": {
     "description": "Description shown in the empty Locker home state above the Legacy setup action"
   },
@@ -2211,11 +2211,11 @@
   "legacyAccounts": "Tài khoản thừa kế",
   "legacyCongratulationsMessage": "Bạn đã thiết lập Thừa kế thành công.\nHãy bắt đầu lưu trữ thông tin quan trọng của bạn.",
   "legacyDesc": "Các liên hệ đáng tin cậy, bộ công cụ Thừa kế và kế hoạch khôi phục tài khoản",
-  "legacyEmptyStateDescription": "Khi bạn ngủm, Thừa kế giúp người thân của bạn truy cập thông tin của bạn trên Locker.",
+  "legacyEmptyStateDescription": "Khi bạn vắng mặt, Thừa kế giúp người thân của bạn truy cập thông tin của bạn trên Locker.",
   "legacyIntroCard1": "Chúng tôi cho bạn 3 thẻ",
   "legacyIntroCard2": "Chia sẻ chúng với\n3 người bạn tin cậy",
   "legacyIntroCard3": "Bất kỳ 2 trong số 3 người có thể mở khóa thông tin của bạn trên Locker",
-  "legacyIntroTitle": "Giúp người thân tiếp cận thông tin quan trọng khi bạn ngủm.",
+  "legacyIntroTitle": "Giúp người thân tiếp cận thông tin quan trọng khi bạn vắng mặt.",
   "legacyInvite": "{email} đã mời bạn trở thành một liên hệ tin cậy",
   "@legacyInvite": {
     "placeholders": {
@@ -2242,7 +2242,7 @@
   "legacyKitRecoveryInProgress": "Đang tiến hành khôi phục",
   "legacyKitRecoveryWarning": "Ai đó đang cố gắng khôi phục tài khoản của bạn bằng bộ thừa kế",
   "legacyKits": "Bộ Thừa kế",
-  "legacyPageDesc": "Thừa kế cho phép các liên hệ tin cậy truy cập tài khoản của bạn khi bạn qua đời.",
+  "legacyPageDesc": "Thừa kế cho phép các liên hệ tin cậy truy cập tài khoản của bạn khi bạn vắng mặt.",
   "legacyPageDesc2": "Các liên hệ tin cậy có thể khởi động quá trình khôi phục tài khoản, và nếu không bị chặn trong vòng 30 ngày, có thể đặt lại mật khẩu và truy cập tài khoản của bạn.",
   "letsTryThatAgain": "Hãy thử lại",
   "lightTheme": "Sáng",
@@ -3029,7 +3029,7 @@
       }
     }
   },
-  "passwordToEncryptExport": "Mật khẩu để giải mã dữ liệu xuất",
+  "passwordToEncryptExport": "Mật khẩu để mã hóa dữ liệu xuất",
   "passwordTooShort": "Mật khẩu tối thiểu 8 ký tự.",
   "passwordWarning": "Chúng tôi không lưu trữ mật khẩu này, nên nếu bạn quên, <underline>chúng tôi không thể giải mã dữ liệu của bạn</underline>",
   "@passwordWarning": {
@@ -4205,7 +4205,7 @@
     "description": "Placeholder for optional account deletion feedback"
   },
   "shareYourLegacy": "Chia sẻ Thừa kế của bạn",
-  "shareYourLegacyBannerDescription": "Giúp người thân tiếp cận thông tin quan trọng khi bạn ngủm.",
+  "shareYourLegacyBannerDescription": "Giúp người thân tiếp cận thông tin quan trọng khi bạn vắng mặt.",
   "@shareYourLegacyBannerDescription": {
     "description": "Description of the home banner prompting the user to set up Legacy"
   },
@@ -5037,7 +5037,7 @@
       }
     }
   },
-  "legacyKitSheetIntro": "Nếu tôi ngủm hoặc mất quyền truy cập vào tài khoản, bảng tính này sẽ giúp bạn khôi phục ảnh, tài liệu và nhiều thứ khác của tôi.",
+  "legacyKitSheetIntro": "Nếu tôi vắng mặt hoặc mất quyền truy cập vào tài khoản, bảng tính này sẽ giúp bạn khôi phục ảnh, tài liệu và nhiều thứ khác của tôi.",
   "@legacyKitSheetIntro": {
     "description": "Written in the voice of the account owner, addressed to the sheet holder"
   },

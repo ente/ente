@@ -345,24 +345,3 @@ const MiniDialogContent: React.FC<React.PropsWithChildren<MiniDialogProps>> = ({
         </Dialog>
     );
 };
-
-type TitledMiniDialogProps = Pick<DialogProps, "open" | "onClose" | "sx"> & {
-    title?: React.ReactNode;
-    paperMaxWidth?: string;
-};
-
-export const TitledMiniDialog: React.FC<
-    React.PropsWithChildren<TitledMiniDialogProps>
-> = ({ open, onClose, sx, paperMaxWidth, title, children }) => (
-    <Dialog
-        {...{ open, sx }}
-        onClose={onClose}
-        fullWidth
-        slotProps={{ paper: { sx: { maxWidth: paperMaxWidth ?? "360px" } } }}
-    >
-        <DialogTitle sx={{ "&&&": { paddingBlock: "24px 16px" } }}>
-            {title}
-        </DialogTitle>
-        <DialogContent>{children}</DialogContent>
-    </Dialog>
-);

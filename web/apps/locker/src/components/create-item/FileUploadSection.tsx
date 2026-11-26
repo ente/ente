@@ -5,7 +5,11 @@ import { lockerItemIcon } from "@/components/items/locker-item-icons";
 import { NameInputDialog } from "@/components/ui/NameInputDialog";
 import type { LockerUploadProgress } from "@/services/uploads";
 import { lockerPrimaryButtonSx } from "@/styles/fields";
-import type { LockerCollection, LockerUploadCandidate } from "@/types";
+import {
+    isUncategorizedCollection,
+    type LockerCollection,
+    type LockerUploadCandidate,
+} from "@/types";
 import {
     Cancel01Icon,
     Edit02Icon,
@@ -35,16 +39,17 @@ import React, {
 } from "react";
 
 import {
-    addCollectionName,
     dedupeCollectionNames,
     formatFileSize,
     normalizeCollectionName,
     renamedUploadFileName,
-    toggleCollectionName,
+    uploadDestinationKey,
     uploadFileExtension,
     uploadItemParentPath,
     uploadProgressValue,
     uploadQueueItemKey,
+    type UploadDestination,
+    type UploadDestinationsByFileKey,
 } from "./file-upload-helpers";
 
 interface FileUploadSectionProps {
@@ -52,7 +57,7 @@ interface FileUploadSectionProps {
     selectedUploadItems: LockerUploadCandidate[];
     collections: LockerCollection[];
     availableCollectionNames: string[];
-    selectedCollectionNamesByFileKey: Record<string, string[]>;
+    uploadDestinations: UploadDestinationsByFileKey;
     completedFileKeys: Set<string>;
     failedFileKeys: Set<string>;
     uploadingFileKeys: Set<string>;
@@ -61,10 +66,11 @@ interface FileUploadSectionProps {
     uploading: boolean;
     canUpload: boolean;
     onFileSelect: (event: React.ChangeEvent<HTMLInputElement>) => void;
-    onToggleCollectionName: (fileKey: string, name: string) => void;
-    onAddCollectionName: (fileKey: string, name: string) => void;
-    onAddAvailableCollectionName: (name: string) => void;
-    onSetCollectionNamesForAllItems: (names: string[]) => void;
+    onToggleDestination: (
+        fileKey: string | undefined,
+        destination: UploadDestination,
+    ) => void;
+    onAddCollectionName: (fileKey: string | undefined, name: string) => void;
     onRemoveItem: (fileKey: string) => void;
     onRenameItem: (fileKey: string, name: string) => void;
     onUpload: () => Promise<void>;
@@ -75,7 +81,7 @@ export function FileUploadSection({
     selectedUploadItems,
     collections,
     availableCollectionNames,
-    selectedCollectionNamesByFileKey,
+    uploadDestinations,
     completedFileKeys,
     failedFileKeys,
     uploadingFileKeys,
@@ -84,10 +90,8 @@ export function FileUploadSection({
     uploading,
     canUpload,
     onFileSelect,
-    onToggleCollectionName,
+    onToggleDestination,
     onAddCollectionName,
-    onAddAvailableCollectionName,
-    onSetCollectionNamesForAllItems,
     onRemoveItem,
     onRenameItem,
     onUpload,
@@ -197,18 +201,29 @@ export function FileUploadSection({
 
         return [...pendingItems, ...completedItems];
     }, [selectedUploadItems, settledCompletedFileKeys]);
-    const shouldShowPerItemCollectionSelector = useMemo(() => {
-        const uniqueParentPaths = new Set(
-            selectedUploadItems.map(uploadItemParentPath),
-        );
-        return uniqueParentPaths.size > 1;
-    }, [selectedUploadItems]);
-    const sharedSelectedCollectionNames =
-        selectedUploadItems.length > 0
-            ? (selectedCollectionNamesByFileKey[
-                  uploadQueueItemKey(selectedUploadItems[0]!)
-              ] ?? [])
-            : [];
+    const pendingItems = selectedUploadItems.filter(
+        (item) => !completedFileKeys.has(uploadQueueItemKey(item)),
+    );
+    const firstPendingItem = pendingItems[0];
+    const sharedDestinations = firstPendingItem
+        ? (uploadDestinations[uploadQueueItemKey(firstPendingItem)] ?? [])
+        : [];
+    const shouldShowPerItemCollectionSelector =
+        !!firstPendingItem &&
+        pendingItems.some((item) => {
+            const destinations =
+                uploadDestinations[uploadQueueItemKey(item)] ?? [];
+            return (
+                uploadItemParentPath(item) !==
+                    uploadItemParentPath(firstPendingItem) ||
+                destinations.length !== sharedDestinations.length ||
+                destinations.some(
+                    (destination, index) =>
+                        uploadDestinationKey(destination) !==
+                        uploadDestinationKey(sharedDestinations[index]!),
+                )
+            );
+        });
     const sharedSuggestedCollectionNames = useMemo(
         () =>
             dedupeCollectionNames(
@@ -373,10 +388,8 @@ export function FileUploadSection({
                                         availableCollectionNames={
                                             availableCollectionNames
                                         }
-                                        selectedCollectionNames={
-                                            selectedCollectionNamesByFileKey[
-                                                fileKey
-                                            ] ?? []
+                                        selectedDestinations={
+                                            uploadDestinations[fileKey] ?? []
                                         }
                                         suggestedCollectionNames={
                                             item.suggestedCollectionNames
@@ -402,12 +415,10 @@ export function FileUploadSection({
                                             uploadCapByFileKey[fileKey] ?? 95
                                         }
                                         uploadInFlight={uploading}
-                                        onToggleCollectionName={(
-                                            name: string,
-                                        ) =>
-                                            onToggleCollectionName(
+                                        onToggleDestination={(destination) =>
+                                            onToggleDestination(
                                                 fileKey,
-                                                name,
+                                                destination,
                                             )
                                         }
                                         onAddCollectionName={(name: string) =>
@@ -440,31 +451,19 @@ export function FileUploadSection({
                 )}
                 {!uploading &&
                     !shouldShowPerItemCollectionSelector &&
-                    selectedUploadItems.length > 0 && (
+                    firstPendingItem && (
                         <Box sx={{ pt: "8px" }}>
-                            <CollectionNameSelector
+                            <UploadDestinationSelector
                                 collections={collections}
                                 availableNames={availableCollectionNames}
-                                selectedNames={sharedSelectedCollectionNames}
+                                selectedDestinations={sharedDestinations}
                                 suggestedNames={sharedSuggestedCollectionNames}
-                                onToggleName={(name) =>
-                                    onSetCollectionNamesForAllItems(
-                                        toggleCollectionName(
-                                            sharedSelectedCollectionNames,
-                                            name,
-                                        ),
-                                    )
+                                onToggleDestination={(destination) =>
+                                    onToggleDestination(undefined, destination)
                                 }
-                                onAddCollectionName={(name) => {
-                                    onAddAvailableCollectionName(name);
-                                    onSetCollectionNamesForAllItems(
-                                        addCollectionName(
-                                            sharedSelectedCollectionNames,
-                                            name,
-                                        ),
-                                    );
-                                }}
-                                disabled={uploading}
+                                onAddCollectionName={(name) =>
+                                    onAddCollectionName(undefined, name)
+                                }
                             />
                         </Box>
                     )}
@@ -492,7 +491,7 @@ interface UploadItemCardProps {
     item: LockerUploadCandidate;
     collections: LockerCollection[];
     availableCollectionNames: string[];
-    selectedCollectionNames: string[];
+    selectedDestinations: UploadDestination[];
     suggestedCollectionNames: string[];
     showCollectionSelector: boolean;
     isDone: boolean;
@@ -502,7 +501,7 @@ interface UploadItemCardProps {
     uploadProgress: LockerUploadProgress | null | undefined;
     uploadCap: number;
     uploadInFlight: boolean;
-    onToggleCollectionName: (name: string) => void;
+    onToggleDestination: (destination: UploadDestination) => void;
     onAddCollectionName: (name: string) => void;
     canRemove: boolean;
     onRemove: () => void;
@@ -513,7 +512,7 @@ const UploadItemCard = React.memo(function UploadItemCard({
     item,
     collections,
     availableCollectionNames,
-    selectedCollectionNames,
+    selectedDestinations,
     suggestedCollectionNames,
     showCollectionSelector,
     isDone,
@@ -523,7 +522,7 @@ const UploadItemCard = React.memo(function UploadItemCard({
     uploadProgress,
     uploadCap,
     uploadInFlight,
-    onToggleCollectionName,
+    onToggleDestination,
     onAddCollectionName,
     canRemove,
     onRemove,
@@ -647,14 +646,14 @@ const UploadItemCard = React.memo(function UploadItemCard({
             </Stack>
             {showCollectionSelector && (
                 <Box sx={{ px: "12px", pb: "12px" }}>
-                    <CollectionNameSelector
+                    <UploadDestinationSelector
                         collections={collections}
                         availableNames={availableCollectionNames}
-                        selectedNames={selectedCollectionNames}
+                        selectedDestinations={selectedDestinations}
                         suggestedNames={suggestedCollectionNames}
-                        onToggleName={onToggleCollectionName}
+                        onToggleDestination={onToggleDestination}
                         onAddCollectionName={onAddCollectionName}
-                        disabled={uploadInFlight}
+                        disabled={uploadInFlight || isDone}
                     />
                 </Box>
             )}
@@ -700,7 +699,7 @@ function areUploadItemCardPropsEqual(
         previous.item === next.item &&
         previous.collections === next.collections &&
         previous.availableCollectionNames === next.availableCollectionNames &&
-        previous.selectedCollectionNames === next.selectedCollectionNames &&
+        previous.selectedDestinations === next.selectedDestinations &&
         previous.suggestedCollectionNames === next.suggestedCollectionNames &&
         previous.showCollectionSelector === next.showCollectionSelector &&
         previous.isDone === next.isDone &&
@@ -714,62 +713,129 @@ function areUploadItemCardPropsEqual(
     );
 }
 
-const CollectionNameSelector: React.FC<{
+const UploadDestinationSelector: React.FC<{
     collections: LockerCollection[];
     availableNames: string[];
-    selectedNames: string[];
+    selectedDestinations: UploadDestination[];
     suggestedNames: string[];
-    onToggleName: (name: string) => void;
+    onToggleDestination: (destination: UploadDestination) => void;
     onAddCollectionName: (name: string) => void;
     disabled?: boolean;
 }> = ({
     collections,
     availableNames,
-    selectedNames,
+    selectedDestinations,
     suggestedNames,
-    onToggleName,
+    onToggleDestination,
     onAddCollectionName,
     disabled,
 }) => {
     const [createOpen, setCreateOpen] = useState(false);
     const [createName, setCreateName] = useState("");
-    const selectedNameMap = useMemo(
-        () =>
-            new Map(
-                selectedNames.map((name) => [
-                    normalizeCollectionName(name),
-                    name,
-                ]),
-            ),
-        [selectedNames],
+    const selectedKeys = new Set(
+        selectedDestinations.map(uploadDestinationKey),
     );
-    const displayNames = useMemo(() => {
-        const allNames = dedupeCollectionNames([
-            ...collections.map((collection) => collection.name),
-            ...availableNames,
-            ...selectedNames,
-        ]);
-        const suggestedNameSet = new Set(
-            suggestedNames.map((name) => normalizeCollectionName(name)),
+    const suggestions = new Set(suggestedNames.map(normalizeCollectionName));
+    const visibleCollections = collections.filter((collection) => {
+        if (!isUncategorizedCollection(collection)) return true;
+
+        const name = normalizeCollectionName(collection.name);
+        return (
+            suggestions.has(name) ||
+            selectedDestinations.some((destination) =>
+                destination.kind === "existing"
+                    ? destination.id === collection.id
+                    : normalizeCollectionName(destination.name) === name,
+            )
         );
-        const sortedSuggestedNames = allNames
-            .filter((name) => {
-                const normalizedName = normalizeCollectionName(name);
-                return suggestedNameSet.has(normalizedName);
-            })
-            .sort((a, b) =>
-                a.localeCompare(b, undefined, { sensitivity: "base" }),
-            );
-        const sortedRemainingNames = allNames
-            .filter((name) => {
-                const normalizedName = normalizeCollectionName(name);
-                return !suggestedNameSet.has(normalizedName);
-            })
-            .sort((a, b) =>
-                a.localeCompare(b, undefined, { sensitivity: "base" }),
-            );
-        return [...sortedSuggestedNames, ...sortedRemainingNames];
-    }, [availableNames, collections, selectedNames, suggestedNames]);
+    });
+    const collectionIDs = new Set(collections.map(({ id }) => id));
+    const existingNames = new Set(
+        collections.map(({ name }) => normalizeCollectionName(name)),
+    );
+    const labelForCollection = (collection: LockerCollection) =>
+        collection.isShared
+            ? t("uploadDestinationShared", { name: collection.name })
+            : collection.name;
+    const normalizedLabelCounts = new Map<string, number>();
+    for (const collection of visibleCollections) {
+        const label = normalizeCollectionName(labelForCollection(collection));
+        normalizedLabelCounts.set(
+            label,
+            (normalizedLabelCounts.get(label) ?? 0) + 1,
+        );
+    }
+
+    const choices = new Map<
+        string,
+        { destination: UploadDestination; name: string; label: string }
+    >();
+    const addChoice = (
+        destination: UploadDestination,
+        name: string,
+        label = name,
+    ) =>
+        choices.set(uploadDestinationKey(destination), {
+            destination,
+            name,
+            label,
+        });
+
+    for (const collection of visibleCollections) {
+        const label = labelForCollection(collection);
+        const hasIdenticalLabel =
+            (normalizedLabelCounts.get(normalizeCollectionName(label)) ?? 0) >
+            1;
+        addChoice(
+            { kind: "existing", id: collection.id },
+            collection.name,
+            hasIdenticalLabel ? `${label} (#${collection.id})` : label,
+        );
+    }
+    for (const name of availableNames) {
+        if (!existingNames.has(normalizeCollectionName(name))) {
+            addChoice({ kind: "new", name }, name);
+        }
+    }
+    for (const destination of selectedDestinations) {
+        switch (destination.kind) {
+            case "existing":
+                if (!collectionIDs.has(destination.id)) {
+                    const label = t("uploadDestinationUnavailableLabel", {
+                        id: destination.id,
+                    });
+                    addChoice(destination, label);
+                }
+                break;
+            case "new":
+                addChoice(
+                    destination,
+                    destination.name,
+                    existingNames.has(normalizeCollectionName(destination.name))
+                        ? t("uploadDestinationNeedsChoiceLabel", {
+                              name: destination.name,
+                          })
+                        : destination.name,
+                );
+                break;
+            case "ambiguous":
+                addChoice(
+                    destination,
+                    destination.name,
+                    t("uploadDestinationNeedsChoiceLabel", {
+                        name: destination.name,
+                    }),
+                );
+                break;
+        }
+    }
+
+    const sortedChoices = [...choices.values()].sort(
+        (a, b) =>
+            Number(suggestions.has(normalizeCollectionName(b.name))) -
+                Number(suggestions.has(normalizeCollectionName(a.name))) ||
+            a.label.localeCompare(b.label, undefined, { sensitivity: "base" }),
+    );
 
     const handleAddCollectionName = useCallback(() => {
         const trimmedName = createName.trim();
@@ -785,14 +851,15 @@ const CollectionNameSelector: React.FC<{
     return (
         <Box>
             <CollectionChipRow
-                items={displayNames.map((name) => ({
-                    key: name,
-                    label: name,
-                    selected: selectedNameMap.has(
-                        normalizeCollectionName(name),
-                    ),
-                    onClick: () => onToggleName(name),
-                }))}
+                items={sortedChoices.map(({ destination, label }) => {
+                    const key = uploadDestinationKey(destination);
+                    return {
+                        key,
+                        label,
+                        selected: selectedKeys.has(key),
+                        onClick: () => onToggleDestination(destination),
+                    };
+                })}
                 createOpen={createOpen}
                 disabled={disabled}
                 onCreateClick={() => setCreateOpen((open) => !open)}

@@ -433,7 +433,7 @@
   "backingUpLastSevenDaysPhotos": "Mencadangkan foto 7 hari terakhir",
   "backup": "Pencadangan",
   "backupAndSync": "Cadangan dan sinkronisasi",
-  "backupAndSyncDesc": "Dicadangkan secara otomatis",
+  "backupAndSyncDesc": "Pencadangan otomatis, status sinkronisasi, dan unggahan",
   "backupCreated": "Cadangan dibuat!",
   "backupFailed": "Pencadangan gagal",
   "backupFile": "File cadangan",

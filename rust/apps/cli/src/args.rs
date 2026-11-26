@@ -2,6 +2,7 @@ use std::{io::IsTerminal, num::NonZeroUsize, path::PathBuf};
 
 use clap::{Arg, ArgAction, Args, CommandFactory, Parser, Subcommand, ValueEnum};
 use clap_complete::Shell;
+use ente_location::Coordinate;
 use serde::{Deserialize, Serialize};
 
 #[derive(Parser)]
@@ -451,6 +452,18 @@ Each member has email, status, admin, usedBytes and storageLimitBytes (null with
         #[command(subcommand)]
         command: FileCommand,
     },
+    #[command(about = "See the people in your photos", visible_alias = "people")]
+    Person {
+        #[arg(
+            long,
+            global = true,
+            value_name = "ALBUM",
+            help = "Limit to an album ID or exact name"
+        )]
+        album: Option<String>,
+        #[command(subcommand)]
+        command: PersonCommand,
+    },
     #[command(about = "See where your files were taken")]
     Place {
         #[arg(
@@ -570,6 +583,7 @@ pub struct CreateArgs {
 pub enum VerificationPurpose {
     Create,
     Login,
+    Change,
 }
 
 const API_HELP: &str = "The response body is written unchanged, including when --json is set.";
@@ -748,6 +762,31 @@ pub struct FileQuery {
     pub country: Option<String>,
     #[arg(
         long,
+        value_name = "PERSON",
+        help = "Include files of a person, given by ID or exact name",
+        long_help = "Include files of the person with this ID or exact name, as `person list` shows them; hidden people can be selected too. Requires machine learning to be on for your account; see `person list --help`."
+    )]
+    pub person: Option<String>,
+    #[arg(
+        long,
+        value_name = "LAT,LON",
+        requires = "radius",
+        allow_hyphen_values = true,
+        value_parser = parse_coordinate,
+        help = "Include files taken within --radius of this point",
+        long_help = "Include files whose location lies within --radius of LAT,LON, given in decimal degrees such as 48.8566,2.3522. Uses the same check as location tags in the Ente apps. Files without a location are left out."
+    )]
+    pub near: Option<Coordinate>,
+    #[arg(
+        long,
+        value_name = "KM",
+        requires = "near",
+        value_parser = parse_radius,
+        help = "Distance from --near in kilometres, e.g. 10"
+    )]
+    pub radius: Option<f64>,
+    #[arg(
+        long,
         value_name = "SIZE",
         value_parser = min_file_size,
         help = "Include files of at least this size, e.g. 100MB",
@@ -795,6 +834,25 @@ pub enum PlaceCommand {
     },
 }
 
+const PERSON_HELP: &str = "Refreshes people and file metadata first; --offline reads previously synced data.
+Lists the people saved in Ente Photos with the most files first, including hidden and ignored people.
+Requires machine learning to be on for your account in the Ente Photos app;
+when it is off, the people synced to this device are removed.
+A person's files are the photos and videos you assigned to them in Ente Photos, including files in hidden albums.
+People with none of their files in the selected albums are left out.
+With --json, returns an array. Fields: id, name (strings); hidden (boolean); fileCount (integer).
+
+Examples:
+  ente photos person list
+  ente photos file list --person \"Ada Lovelace\"";
+
+#[derive(Subcommand)]
+pub enum PersonCommand {
+    #[command(about = "List people and how many files each one is in")]
+    #[command(after_long_help = PERSON_HELP)]
+    List(ListArgs),
+}
+
 #[derive(Clone, Copy, ValueEnum)]
 pub enum FileType {
     Image,
@@ -814,6 +872,25 @@ fn nonempty_search(text: &str) -> Result<String, String> {
         Err("supply search text".into())
     } else {
         Ok(text.to_owned())
+    }
+}
+
+fn parse_coordinate(input: &str) -> Result<Coordinate, String> {
+    const HINT: &str = "use LAT,LON in decimal degrees, such as 48.8566,2.3522";
+    let (latitude, longitude) = input.split_once(',').ok_or(HINT)?;
+    let degrees = |part: &str| part.trim().parse::<f64>().map_err(|_| HINT);
+    let coordinate = Coordinate::new(degrees(latitude)?, degrees(longitude)?);
+    if coordinate.is_valid() {
+        Ok(coordinate)
+    } else {
+        Err("latitude must be between -90 and 90 and longitude between -180 and 180".into())
+    }
+}
+
+fn parse_radius(input: &str) -> Result<f64, String> {
+    match input.parse::<f64>() {
+        Ok(radius) if radius.is_finite() && radius > 0.0 => Ok(radius),
+        _ => Err("use a distance in kilometres greater than zero, such as 10".into()),
     }
 }
 
@@ -857,8 +934,9 @@ Examples:
     #[command(
         about = "Request an email verification code",
         after_long_help = "Requests one email and returns; success means the server accepted the request.
-Use the same email, app and server when completing creation or login.
-Defaults to creation; use --purpose login for an existing account."
+Use the same email, app and server when completing creation, login or an email change.
+Defaults to creation; use --purpose login for an existing account,
+or --purpose change with the new address for account change-email."
     )]
     RequestOtp {
         #[arg(long, help = "Email address to verify")]
@@ -970,7 +1048,24 @@ Without --app, logs out of all this account's saved app logins on this device.
         local: bool,
     },
     #[command(
-        about = "Set up authenticator protection for your Ente account",
+        about = "List and revoke active logins",
+        after_long_help = "Sessions are the logins the server accepts for one app; --app selects the app and its saved login."
+    )]
+    Session {
+        #[command(flatten)]
+        selector: AccountSelector,
+        #[arg(
+            long,
+            global = true,
+            value_enum,
+            help = "Saved app login; defaults to the only app, otherwise Photos"
+        )]
+        app: Option<App>,
+        #[command(subcommand)]
+        command: SessionCommand,
+    },
+    #[command(
+        about = "Manage authenticator protection for your Ente account",
         after_long_help = "Protects account login, separate from codes stored in Ente Auth."
     )]
     Totp {
@@ -987,6 +1082,52 @@ Without --app, logs out of all this account's saved app logins on this device.
         command: TotpCommand,
     },
     #[command(
+        about = "Manage your family plan",
+        after_long_help = FAMILY_HELP
+    )]
+    Family {
+        #[command(flatten)]
+        selector: AccountSelector,
+        #[arg(
+            long,
+            global = true,
+            value_enum,
+            help = "Saved app login; defaults to the only app, otherwise Photos"
+        )]
+        app: Option<App>,
+        #[command(subcommand)]
+        command: FamilyCommand,
+    },
+    #[command(
+        about = "Require an email code at login",
+        after_long_help = "Email verification asks for a code sent to your email each time you log in.
+Disabling it requires password login (SRP) to be set up for the account.
+Requires network access."
+    )]
+    EmailMfa {
+        #[command(flatten)]
+        selector: AccountSelector,
+        #[arg(
+            long,
+            global = true,
+            value_enum,
+            help = "Saved app login; defaults to the only app, otherwise Photos"
+        )]
+        app: Option<App>,
+        #[command(subcommand)]
+        command: EmailMfaCommand,
+    },
+    #[command(
+        about = "Change your Ente account's email",
+        after_long_help = "Prompts for the code sent to the new email.
+Unattended changes read JSON from --input containing an otp string.
+Request the code first with account request-otp --email NEW_EMAIL --purpose change --app APP --host URL,
+using the same app and server as the account.
+Updates the email saved on this device; the local account name is unchanged.
+Requires network access. With --json, returns the updated account."
+    )]
+    ChangeEmail(ChangeEmailArgs),
+    #[command(
         about = "Print the saved 24-word recovery key",
         after_long_help = "Prints a secret from the local vault without network access.
 With --json, returns {\"recoveryKey\":\"...\"}."
@@ -998,6 +1139,30 @@ With --json, returns {\"recoveryKey\":\"...\"}."
             help = "Account name; defaults to the selected or only saved account"
         )]
         name: Option<String>,
+    },
+}
+
+const SESSION_HELP: &str = "Requires network access. The session of this CLI's saved login is marked current.
+Device, user agent and IP come from a recent request made with that session.
+List JSON returns an array: id, device, userAgent, ip (strings); current (boolean); createdAt, lastUsedAt (RFC3339).
+Revoke logs that session out on the server and asks for confirmation; --yes approves it and --no-input only disables prompts.
+The current session cannot be revoked; use account logout instead.
+Revoke JSON returns app and session, with the revoked session's list fields.
+
+Examples:
+  ente account session list --app photos
+  ente account session revoke th:UNhY4JhezH9gQYqvDMWrWH9CwlcKiECVqejMrND2VFw --yes --no-input --json";
+
+#[derive(Subcommand)]
+pub enum SessionCommand {
+    #[command(about = "List active sessions, most recently used first", after_long_help = SESSION_HELP)]
+    List,
+    #[command(about = "Log a session out on the server", after_long_help = SESSION_HELP)]
+    Revoke {
+        #[arg(value_name = "ID", help = "Session ID from account session list")]
+        id: String,
+        #[arg(long, help = "Approve revocation without a confirmation prompt")]
+        yes: bool,
     },
 }
 
@@ -1030,6 +1195,143 @@ Verifying an authenticator code requires your computer's date and time to be cor
 JSON field: totpEnabled (boolean)."
     )]
     Status,
+    #[command(
+        about = "Disable authenticator protection",
+        after_long_help = "Login no longer asks for an authenticator code. Requires network access.
+Asks for confirmation; --no-input requires --yes.
+To protect login again, run account totp enable with a new secret."
+    )]
+    Disable {
+        #[arg(long, help = "Disable without prompting")]
+        yes: bool,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum EmailMfaCommand {
+    #[command(
+        about = "Show whether email verification is enabled",
+        after_long_help = "Checks the current setting on the server.
+JSON fields: emailMfaEnabled, canDisableEmailMfa (booleans)."
+    )]
+    Status,
+    #[command(about = "Require an email code at every login")]
+    Enable,
+    #[command(
+        about = "Stop asking for an email code at login",
+        after_long_help = "Asks for confirmation; --no-input requires --yes."
+    )]
+    Disable {
+        #[arg(long, help = "Disable without prompting")]
+        yes: bool,
+    },
+}
+
+#[derive(Args)]
+pub struct ChangeEmailArgs {
+    #[command(flatten)]
+    pub selector: AccountSelector,
+    #[arg(
+        long,
+        value_enum,
+        help = "Saved app login; defaults to the only app, otherwise Photos"
+    )]
+    pub app: Option<App>,
+    #[arg(long, help = "New email address")]
+    pub email: Option<String>,
+    #[arg(
+        long,
+        value_name = "PATH|-",
+        help = "Read the otp string as JSON from a file or stdin"
+    )]
+    pub input: Option<PathBuf>,
+}
+
+const FAMILY_HELP: &str = "A family shares the admin's paid plan with up to five other Ente accounts.
+All family commands require network access. MEMBER is an ID or email from family view.
+Every command except leave prints the family afterwards, like family view.
+Removing a member or leaving asks for confirmation; --yes approves it and --no-input only disables prompts.";
+
+const FAMILY_VIEW_HELP: &str =
+    "JSON: storageBytes, usedBytes, expiresAt (RFC3339) and members, or null outside a family.
+Each member has id, email, status (SELF for the admin, ACCEPTED or INVITED), admin,
+usedBytes and storageLimitBytes (null without a limit). Byte counts are integers.
+
+Examples:
+  ente account family create
+  ente account family member add bob@example.com
+  ente account family member set-storage bob@example.com 100GB
+  ente account family member remove bob@example.com --yes";
+
+#[derive(Subcommand)]
+pub enum FamilyCommand {
+    #[command(about = "Show the family's storage and members", after_long_help = FAMILY_VIEW_HELP)]
+    View,
+    #[command(
+        about = "Start a family on your paid plan",
+        after_long_help = "Makes this account the family admin. Running it again changes nothing."
+    )]
+    Create,
+    #[command(
+        about = "Leave the family you joined",
+        after_long_help = "Your account returns to its own plan. The admin cannot leave their family.
+JSON: {\"left\": true}."
+    )]
+    Leave {
+        #[arg(long, help = "Approve leaving without a confirmation prompt")]
+        yes: bool,
+    },
+    #[command(about = "Invite, remove and limit members")]
+    Member {
+        #[command(subcommand)]
+        command: FamilyMemberCommand,
+    },
+}
+
+#[derive(Subcommand)]
+pub enum FamilyMemberCommand {
+    #[command(
+        about = "Invite an Ente account to the family",
+        after_long_help = "Ente emails the invite; the member joins by accepting it.
+The account must already exist and must not have a paid plan or another family.
+Inviting a pending member again keeps the original invite."
+    )]
+    Add {
+        #[arg(help = "Email address of the account to invite")]
+        email: String,
+    },
+    #[command(
+        about = "Remove a member or cancel a pending invite",
+        after_long_help = "A removed member's account returns to its own plan; their data stays."
+    )]
+    Remove {
+        #[arg(help = "Member ID or email from family view")]
+        member: String,
+        #[arg(long, help = "Approve removal without a confirmation prompt")]
+        yes: bool,
+    },
+    #[command(
+        about = "Limit how much of the family storage a member can use",
+        after_long_help = "Sizes accept MB, GB and TB, case-insensitive, using powers of 1024; fractions are allowed.
+The limit cannot exceed the family storage or be below what the member already uses.
+--no-limit lets the member use any free family storage. Applies to members who have joined.
+
+Example:
+  ente account family member set-storage bob@example.com 1.5TB"
+    )]
+    SetStorage {
+        #[arg(help = "Member ID or email from family view")]
+        member: String,
+        #[arg(
+            value_name = "SIZE",
+            value_parser = crate::admin::parse_storage,
+            required_unless_present = "no_limit",
+            help = "Storage limit, e.g. 500GB or 1.5TB"
+        )]
+        size: Option<i64>,
+        #[arg(long, conflicts_with = "size", help = "Remove the member's limit")]
+        no_limit: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -1241,6 +1543,10 @@ mod tests {
                 "ente auth ",
                 "ente admin ",
                 "ente account totp ",
+                "ente account family ",
+                "ente account session ",
+                "ente account email-mfa ",
+                "ente account change-email",
             ]
             .iter()
             .any(|group| path.starts_with(group));

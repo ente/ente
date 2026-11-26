@@ -42,6 +42,8 @@ Open `Settings > Machine learning`, disable "Face recognition" and "Magic search
 
 Open `Settings > Preferences > Machine learning`, disable ML features, upload the videos, then re-enable ML afterwards.
 
+Turning ML off doesn't delete your existing faces, names or search results. See [Will I lose my faces and search results if I turn machine learning off?](/photos/faq/search-and-discovery#ml-turn-back-on).
+
 **Solution 2: Disable video streaming (iOS)**
 
 Video streaming can cause crashes when combined with ML on some devices:
@@ -229,13 +231,19 @@ Learn more in [Backup and Sync FAQ](/photos/faq/backup-and-sync#background-sync)
 
 **On iOS:**
 
-Open device `Settings > Ente > Photos` and select "Full Access" (not "Selected Photos").
+Open device `Settings > Ente > Photos` and select "Full Access" (not "Selected Photos") if you want Ente to back up your whole library. If you chose "Selected Photos" on purpose, Ente only sees the photos you picked. See [Can I let Ente see only some photos on my iPhone?](/photos/faq/backup-and-sync#ios-limited-access-backup).
 
 **On Android:**
 
 Open device `Settings > Apps > Ente > Permissions > Photos and videos` (or "Files and media") and choose **Allow all** (or "Allow"). Don't choose "Allow limited access", "Selected photos only" or "Ask every time".
 
 With limited access, Ente only sees the photos you picked, so folders such as Camera and Screenshots may be missing from `Settings > Backup > Backed up folders`. After changing the permission, reopen Ente and select those folders.
+
+Limited or denied access can also make backup fail or leave Ente showing only one old folder or the few photos you picked, for example after moving to a new phone. For those problems, allow access to all photos and videos as described above, reopen Ente and try again.
+
+Saving a download uses a separate permission on iPhone. If a downloaded photo does not appear in your gallery, allow Ente to add photos when iOS asks. If you denied this before, open your iPhone's Settings, find Ente, open **Photos**, and allow Ente to add photos. Then save the photo again.
+
+On older Android versions, saving a download may need **Storage** permission under **Settings > Apps > Ente > Permissions**. Newer Android versions do not have a separate storage permission for this. If downloads still do not save, contact [support@ente.com](mailto:support@ente.com) and [share your logs](#sharing-logs).
 
 If you've granted permission but Ente still can't access photos, try:
 
@@ -610,6 +618,16 @@ If videos aren't playing on photos.ente.com, browser content blockers or ad bloc
 Disable your content blocker or add `photos.ente.com` to your allowlist. Wait 15-20 seconds for changes to take effect before trying again.
 
 **Known issue with AdGuard:** AdGuard's basic filter blocks videos in Ente when using AdGuard Mini on Safari. This has been [reported to AdGuard filter developers](https://github.com/AdguardTeam/AdguardFilters/issues/216424).
+
+### Why does a video play with sound but a black screen on desktop? {#video-black-screen}
+
+The desktop app can't play every video format, even if the same video plays on your phone. Turn on streamable videos so Ente creates a version that plays everywhere. Your original file stays unchanged.
+
+1. Open `Settings > Preferences > Streamable videos` and turn it on
+2. Keep Ente open and online while it prepares the videos
+3. Reopen the video. If the player has a gear icon, choose **Auto**
+
+If the screen is still black, email [support@ente.com](mailto:support@ente.com) and [send your desktop logs](#sharing-logs).
 
 ### Why do some of my videos stutter or freeze when I play them on iOS? {#ios-video-stutter-playback}
 

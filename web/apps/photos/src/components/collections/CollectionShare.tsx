@@ -478,12 +478,10 @@ const ResolvedEmailRowLabel: React.FC<ResolvedEmailRowCommonProps> = ({
     user,
     emailByUserID,
 }) => {
-    const resolved = useResolvedContactDisplay({ email });
-
     return (
         <RowLabel
             startIcon={<Avatar email={email} {...{ user, emailByUserID }} />}
-            label={(fallbackLabel ?? resolved.primaryLabel) || email || ""}
+            label={<ResolvedEmailText {...{ email, fallbackLabel }} />}
         />
     );
 };
@@ -503,14 +501,11 @@ const ResolvedEmailRowButton: React.FC<ResolvedEmailRowButtonProps> = ({
     user,
     emailByUserID,
 }) => {
-    const resolved = useResolvedContactDisplay({ email });
-
     return (
         <RowButton
-            fontWeight="regular"
             disabled={disabled}
             onClick={onClick ?? (() => undefined)}
-            label={(fallbackLabel ?? resolved.primaryLabel) || email || ""}
+            label={<ResolvedEmailText {...{ email, fallbackLabel }} />}
             startIcon={<Avatar email={email} {...{ user, emailByUserID }} />}
             endIcon={endIcon}
         />
@@ -522,7 +517,22 @@ const ResolvedEmailText: React.FC<{
     fallbackLabel?: string;
 }> = ({ email, fallbackLabel }) => {
     const resolved = useResolvedContactDisplay({ email });
-    return <>{(fallbackLabel ?? resolved.primaryLabel) || email || ""}</>;
+    return (
+        <Box
+            component="span"
+            sx={{
+                display: "block",
+                fontSize: 14,
+                lineHeight: "20px",
+                fontWeight: 500,
+                color: "text.muted",
+                textAlign: "start",
+                overflowWrap: "anywhere",
+            }}
+        >
+            {(fallbackLabel ?? resolved.primaryLabel) || email || ""}
+        </Box>
+    );
 };
 
 type SharingDetailsProps = Pick<
@@ -715,6 +725,8 @@ const EmailShare: React.FC<EmailShareProps> = ({
     }, [showAddParticipant]);
 
     const participantCount = collection.sharees.length;
+    const singleParticipantEmail =
+        participantCount === 1 ? collection.sharees[0]?.email : undefined;
     const currentSharee = collection.sharees.find(
         (sharee) => sharee.id == user.id,
     );
@@ -732,7 +744,6 @@ const EmailShare: React.FC<EmailShareProps> = ({
                     {participantCount > 0 ? (
                         <>
                             <RowButton
-                                fontWeight="regular"
                                 startIcon={
                                     <AvatarGroup
                                         {...{ user, emailByUserID }}
@@ -740,16 +751,15 @@ const EmailShare: React.FC<EmailShareProps> = ({
                                     />
                                 }
                                 label={
-                                    collection.sharees.length === 1 ? (
-                                        inPanel ? (
-                                            <ResolvedEmailText
-                                                email={
-                                                    collection.sharees[0]?.email
-                                                }
-                                            />
-                                        ) : (
-                                            collection.sharees[0]?.email
-                                        )
+                                    singleParticipantEmail ? (
+                                        <ResolvedEmailText
+                                            email={singleParticipantEmail}
+                                            fallbackLabel={
+                                                inPanel
+                                                    ? undefined
+                                                    : singleParticipantEmail
+                                            }
+                                        />
                                     ) : null
                                 }
                                 endIcon={<ChevronRightIcon />}

@@ -16,6 +16,7 @@ class PinInputComponent extends StatefulWidget {
     this.length = 6,
     this.autofocus = false,
     this.useNativeKeyboard = true,
+    this.allowNonNumeric = false,
     this.closeKeyboardWhenCompleted = true,
     this.obscureText = false,
     this.obscuringCharacter = '•',
@@ -34,6 +35,7 @@ class PinInputComponent extends StatefulWidget {
   final bool autofocus;
   // When false, the caller must update the controller from its own keypad.
   final bool useNativeKeyboard;
+  final bool allowNonNumeric;
   final bool closeKeyboardWhenCompleted;
   final bool obscureText;
   final String obscuringCharacter;
@@ -101,7 +103,12 @@ class _PinInputComponentState extends State<PinInputComponent> {
     if (value.length <= widget.length) {
       return value;
     }
-    return value.substring(0, widget.length);
+    var result = '';
+    for (final character in value.characters) {
+      if (result.length + character.length > widget.length) break;
+      result += character;
+    }
+    return result;
   }
 
   void _synchronizeController() {
@@ -165,8 +172,9 @@ class _PinInputComponentState extends State<PinInputComponent> {
   }
 
   String _sanitizeValue(String value) {
-    final digits = value.replaceAll(RegExp('[^0-9]'), '');
-    return _visibleValue(digits);
+    return _visibleValue(
+      widget.allowNonNumeric ? value : value.replaceAll(RegExp('[^0-9]'), ''),
+    );
   }
 
   void _replaceControllerText(String value) {
@@ -218,15 +226,16 @@ class _PinInputComponentState extends State<PinInputComponent> {
 
   Widget _buildBoxes(BuildContext context) {
     final colors = context.componentColors;
+    final characters = _value.characters.toList();
     return Row(
       children: [
         for (var index = 0; index < widget.length; index++) ...[
           _PinInputBox(
-            character: index < _value.length ? _value[index] : null,
+            character: index < characters.length ? characters[index] : null,
             isFocused:
                 _focusNode.hasFocus &&
                 _value.length < widget.length &&
-                index == _value.length,
+                index == characters.length,
             obscureText: widget.obscureText,
             obscuringCharacter: widget.obscuringCharacter,
             isError: widget.isError,
@@ -247,7 +256,9 @@ class _PinInputComponentState extends State<PinInputComponent> {
       enabled: !widget.isDisabled,
       readOnly: !widget.useNativeKeyboard,
       showCursor: false,
-      keyboardType: TextInputType.number,
+      keyboardType: widget.allowNonNumeric
+          ? TextInputType.text
+          : TextInputType.number,
       textInputAction: TextInputAction.done,
       autofillHints: widget.autofillHints,
       autocorrect: false,
@@ -257,7 +268,7 @@ class _PinInputComponentState extends State<PinInputComponent> {
       obscuringCharacter: widget.obscuringCharacter,
       maxLength: widget.length,
       inputFormatters: [
-        FilteringTextInputFormatter.digitsOnly,
+        if (!widget.allowNonNumeric) FilteringTextInputFormatter.digitsOnly,
         LengthLimitingTextInputFormatter(widget.length),
       ],
       style: const TextStyle(color: Colors.transparent),

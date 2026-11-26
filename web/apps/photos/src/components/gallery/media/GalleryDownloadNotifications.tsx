@@ -5,13 +5,14 @@ import { usePhotosNavigation } from "../navigation/PhotosNavigationContext";
 export const GalleryDownloadNotifications = (
     props: Omit<
         ComponentProps<typeof DownloadStatusNotifications>,
-        "onShowCollectionSummary"
+        "horizontal" | "onShowCollectionSummary"
     >,
 ) => {
     const { showCollectionSummary } = usePhotosNavigation();
     return (
         <DownloadStatusNotifications
             {...props}
+            horizontal="right"
             onShowCollectionSummary={(id, isHidden) => {
                 void showCollectionSummary(id, isHidden);
             }}

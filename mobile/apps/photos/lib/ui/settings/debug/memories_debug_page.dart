@@ -8,11 +8,13 @@ import "package:photos/models/memories/filler_memory.dart";
 import "package:photos/models/memories/memory.dart";
 import "package:photos/models/memories/people_memory.dart";
 import "package:photos/models/memories/smart_memory.dart";
+import "package:photos/models/memories/special_memory.dart";
 import "package:photos/models/memories/time_memory.dart";
 import "package:photos/models/memories/trip_memory.dart";
 import "package:photos/models/selected_files.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/theme/ente_theme.dart";
+import "package:photos/ui/home/memories/all_memories_page.dart";
 import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 import "package:photos/ui/viewer/gallery/gallery.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
@@ -50,6 +52,7 @@ class _MemoriesDebugLoadResult {
 class _MemoriesDebugPageState extends State<MemoriesDebugPage> {
   static const List<MemoryType> _typeOrder = [
     MemoryType.onThisDay,
+    MemoryType.special,
     MemoryType.people,
     MemoryType.trips,
     MemoryType.clip,
@@ -287,6 +290,14 @@ class _MemoriesDebugPageState extends State<MemoriesDebugPage> {
   Future<void> _openMemory(SmartMemory memory) async {
     final files = Memory.filesFromMemories(memory.memories);
     if (files.isEmpty) return;
+    if (memory is SpecialMemory) {
+      await openAllMemoriesPage(
+        context: context,
+        allMemories: [memory],
+        initialPageIndex: 0,
+      );
+      return;
+    }
     await routeToPage(
       context,
       _MemoryGalleryPage(title: memory.title, files: files),
@@ -335,6 +346,8 @@ class _MemoriesDebugPageState extends State<MemoriesDebugPage> {
         return "";
       case FillerMemory():
         return "${memory.yearsAgo} years ago";
+      case SpecialMemory():
+        return _enumLabel(memory.format);
       default:
         return "";
     }
@@ -376,6 +389,8 @@ class _MemoriesDebugPageState extends State<MemoriesDebugPage> {
         return "Time";
       case MemoryType.filler:
         return "Filler";
+      case MemoryType.special:
+        return "Specials";
     }
   }
 
@@ -393,6 +408,8 @@ class _MemoriesDebugPageState extends State<MemoriesDebugPage> {
         return Icons.schedule_outlined;
       case MemoryType.filler:
         return Icons.history_outlined;
+      case MemoryType.special:
+        return Icons.auto_awesome_motion_outlined;
     }
   }
 
@@ -461,7 +478,7 @@ class _SummaryCard extends StatelessWidget {
                         vertical: 6,
                       ),
                       child: Text(
-                        "${typeLabelBuilder(entry.key)} ${entry.key == MemoryType.trips ? entry.value.whereType<TripMemory>().where((m) => m.locationName == null || !m.locationName!.toLowerCase().contains("base")).length : entry.value.length}",
+                        "${typeLabelBuilder(entry.key)} ${entry.key == MemoryType.trips ? entry.value.whereType<TripMemory>().where((m) => !m.isBase).length : entry.value.length}",
                         style: textTheme.mini,
                       ),
                     ),

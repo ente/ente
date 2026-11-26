@@ -166,8 +166,8 @@
   "authToSetBackupPassword": "يرجي المصادقة لتعيين كلمة مرور النسخة الاحتياطية",
   "authToUpdateBackupPassword": "يرجي المصادقة لتحديث كلمة مرور النسخة الاحتياطية",
   "authToViewPasskey": "يرجى المصادقة لعرض مفتاح المرور الخاص بك.",
-  "authToViewPasskeyGeneric": "الرجاء المصادقة لعرض مفتاح الاسترداد الخاص بك",
-  "authToViewSecrets": "الرجاء المصادقة لعرض مفتاح الاسترداد الخاص بك",
+  "authToViewPasskeyGeneric": "الرجاء المصادقة لعرض مفتاح المرور",
+  "authToViewSecrets": "الرجاء المصادقة لعرض أسرارك",
   "@authToViewSecrets": {
     "description": "Message prompting authentication to view secrets"
   },

@@ -125,6 +125,20 @@ func (h *UserHandler) UpdateEmailMFA(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+func (h *UserHandler) SetSource(c *gin.Context) {
+	userID := auth.GetUserID(c.Request.Header)
+	var request ente.SetSourceRequest
+	if err := handler.BindJSON(c, &request); err != nil {
+		handler.Error(c, stacktrace.Propagate(err, ""))
+		return
+	}
+	if err := h.UserController.SetSource(c, userID, request.Source); err != nil {
+		handler.Error(c, stacktrace.Propagate(err, ""))
+		return
+	}
+	c.Status(http.StatusOK)
+}
+
 func (h *UserHandler) SetRecoveryKey(c *gin.Context) {
 	userID := auth.GetUserID(c.Request.Header)
 	var request ente.SetRecoveryKeyRequest

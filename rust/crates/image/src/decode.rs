@@ -66,52 +66,40 @@ impl DecodedDynamicImage {
             self.orientation,
         )
     }
+
+    fn into_oriented_rgb(
+        self,
+        orient: impl FnOnce(DynamicImage, Option<Orientation>) -> DynamicImage,
+    ) -> DecodedImage {
+        let (image, orientation) = self.into_srgb();
+        let image = if image.color().bytes_per_pixel() > 3 {
+            DynamicImage::ImageRgb8(image.into_rgb8())
+        } else {
+            image
+        };
+        let oriented = orient(image, orientation).into_rgb8();
+        DecodedImage {
+            dimensions: Dimensions {
+                width: oriented.width(),
+                height: oriented.height(),
+            },
+            rgb: oriented.into_raw(),
+        }
+    }
 }
 
 pub fn decode_image_from_path(image_path: &str) -> ImageResult<DecodedImage> {
     let decoded_dynamic = decode_with_image_crate(image_path)?;
-    let (decoded_dynamic, orientation) = decoded_dynamic.into_srgb();
-    let oriented = if decoded_dynamic.color().bytes_per_pixel() > 3 {
-        orient_decoded_image(
-            DynamicImage::ImageRgb8(decoded_dynamic.into_rgb8()),
-            image_path,
-            orientation,
-        )
-        .into_rgb8()
-    } else {
-        orient_decoded_image(decoded_dynamic, image_path, orientation).into_rgb8()
-    };
-
-    Ok(DecodedImage {
-        dimensions: Dimensions {
-            width: oriented.width(),
-            height: oriented.height(),
-        },
-        rgb: oriented.into_raw(),
-    })
+    Ok(decoded_dynamic.into_oriented_rgb(|image, orientation| {
+        orient_decoded_image(image, image_path, orientation)
+    }))
 }
 
 pub fn decode_image_from_bytes(image_bytes: &[u8]) -> ImageResult<DecodedImage> {
     let decoded_dynamic = decode_bytes_with_image_crate(image_bytes)?;
-    let (decoded_dynamic, orientation) = decoded_dynamic.into_srgb();
-    let oriented = if decoded_dynamic.color().bytes_per_pixel() > 3 {
-        orient_decoded_image_from_bytes(
-            DynamicImage::ImageRgb8(decoded_dynamic.into_rgb8()),
-            image_bytes,
-            orientation,
-        )
-        .into_rgb8()
-    } else {
-        orient_decoded_image_from_bytes(decoded_dynamic, image_bytes, orientation).into_rgb8()
-    };
-
-    Ok(DecodedImage {
-        dimensions: Dimensions {
-            width: oriented.width(),
-            height: oriented.height(),
-        },
-        rgb: oriented.into_raw(),
-    })
+    Ok(decoded_dynamic.into_oriented_rgb(|image, orientation| {
+        orient_decoded_image_from_bytes(image, image_bytes, orientation)
+    }))
 }
 
 fn decode_with_image_crate(image_path: &str) -> ImageResult<DecodedDynamicImage> {
@@ -991,7 +979,14 @@ mod tests {
 
         let decoded = decode_image_from_bytes(&RGB_DCI_2X1_CODESTREAM).unwrap();
 
-        assert_eq!(decoded.rgb, [113, 113, 113, 183, 46, 14]);
+        let libjxl_rgb = [113, 114, 113, 184, 46, 14];
+        assert_eq!(decoded.rgb.len(), libjxl_rgb.len());
+        for (actual, expected) in decoded.rgb.iter().zip(libjxl_rgb) {
+            assert!(
+                actual.abs_diff(expected) <= 1,
+                "decoded {actual}, expected {expected} ±1"
+            );
+        }
     }
 
     #[test]

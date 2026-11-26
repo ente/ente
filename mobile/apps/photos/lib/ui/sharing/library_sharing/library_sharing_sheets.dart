@@ -195,17 +195,13 @@ class _LibrarySharingRoleList extends StatelessWidget {
                 ),
               ),
               trailing: canEditRole
-                  ? IgnorePointer(
-                      ignoring: controller.isMutating,
-                      child: EntePopupMenuButton<CollectionParticipantRole>(
-                        optionsBuilder: () => librarySharingRoleOptions(
-                          context,
-                          activeRole: role,
-                        ),
-                        onSelected: (role) =>
-                            controller.setRoleForAlbum(album.id, role),
-                        child: roleSelector,
-                      ),
+                  ? EntePopupMenuButton<CollectionParticipantRole>(
+                      enabled: !controller.isMutating,
+                      optionsBuilder: () =>
+                          librarySharingRoleOptions(context, activeRole: role),
+                      onSelected: (role) =>
+                          controller.setRoleForAlbum(album.id, role),
+                      child: roleSelector,
                     )
                   : roleSelector,
             );

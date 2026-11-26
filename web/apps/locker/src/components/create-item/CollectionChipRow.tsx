@@ -79,6 +79,7 @@ export const CollectionChipRow: React.FC<{
                     <ButtonBase
                         key={item.key}
                         title={item.label}
+                        aria-pressed={item.selected}
                         onClick={item.onClick}
                         disabled={disabled}
                         sx={(theme) => ({

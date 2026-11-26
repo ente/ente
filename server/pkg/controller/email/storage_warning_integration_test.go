@@ -2,6 +2,7 @@ package email
 
 import (
 	"database/sql"
+	"fmt"
 	"testing"
 
 	"github.com/ente/museum/ente"
@@ -75,7 +76,98 @@ func TestSendStorageWarningMailsExpiredIntegration(t *testing.T) {
 	assertStorageWarningNotificationCount(t, db, userID, storageWarningExpired0TemplateID, 1)
 }
 
-func TestBuildIndividualStorageWarningSnapshotExpiredBackfillUsesBufferedRecoveryIntegration(t *testing.T) {
+func TestSendStorageWarningMailsHealthyFamilyMemberLoginGraceIntegration(t *testing.T) {
+	for _, graceAgeDays := range []int64{1, repo.StorageWarningLoginGraceDays + 1} {
+		t.Run(fmt.Sprintf("grace_age_%d_days", graceAgeDays), func(t *testing.T) {
+			testutil.WithServerRoot(t)
+			db := testutil.RequireTestDB(t)
+			testutil.ResetTables(t, db)
+			t.Cleanup(func() { testutil.ResetTables(t, db) })
+
+			now := timeutil.Microseconds()
+			adminID := testutil.InsertUser(t, db, testutil.UserFixture{
+				UserID:       storageWarningIntegrationTestUserID,
+				Email:        "family-admin@ente.com",
+				CreationTime: now - storageWarningOneDayInMicroseconds,
+			})
+			memberID := testutil.InsertUser(t, db, testutil.UserFixture{
+				UserID:       2,
+				Email:        "family-member@ente.com",
+				CreationTime: now - storageWarningOneDayInMicroseconds,
+			})
+			familyRepo := &repo.FamilyRepository{DB: db}
+			if err := familyRepo.CreateFamily(t.Context(), adminID); err != nil {
+				t.Fatalf("CreateFamily() error = %v", err)
+			}
+			token, err := familyRepo.AddMemberInvite(t.Context(), adminID, memberID, "family-member-invite", nil)
+			if err != nil {
+				t.Fatalf("AddMemberInvite() error = %v", err)
+			}
+			if err := familyRepo.AcceptInvite(t.Context(), adminID, memberID, token); err != nil {
+				t.Fatalf("AcceptInvite() error = %v", err)
+			}
+			testutil.InsertUsage(t, db, adminID, 34*storageWarningIntegrationTestGiB)
+			testutil.InsertUsage(t, db, memberID, 256*storageWarningIntegrationTestGiB)
+			testutil.InsertSubscription(t, db, testutil.SubscriptionFixture{
+				UserID:          adminID,
+				Storage:         1000 * storageWarningIntegrationTestGiB,
+				ExpiryTime:      now + 365*storageWarningOneDayInMicroseconds,
+				ProductID:       "photos_yearly",
+				PaymentProvider: ente.Stripe,
+			})
+			testutil.InsertSubscription(t, db, testutil.SubscriptionFixture{
+				UserID:     memberID,
+				Storage:    10 * storageWarningIntegrationTestGiB,
+				ExpiryTime: now + 365*storageWarningOneDayInMicroseconds,
+				ProductID:  ente.FreePlanProductID,
+			})
+			testutil.InsertNotificationHistory(t, db, testutil.NotificationHistoryFixture{
+				UserID:            memberID,
+				TemplateID:        repo.StorageWarningLoginGraceTemplateID,
+				SentTime:          now - graceAgeDays*storageWarningOneDayInMicroseconds,
+				NotificationGroup: repo.StorageWarningLoginGraceNotificationGroup,
+			})
+			sendCount := 0
+			originalSend := sendStorageWarningTemplatedEmail
+			t.Cleanup(func() { sendStorageWarningTemplatedEmail = originalSend })
+			sendStorageWarningTemplatedEmail = func(_ []string, _ string, _ string, _ string, _ string, _ string, _ map[string]interface{}, _ []map[string]interface{}) error {
+				sendCount++
+				return nil
+			}
+			resetter := &recordingUserAccessResetter{}
+			controller := newStorageWarningIntegrationController(db)
+			controller.UserAccessResetter = resetter
+			controller.SendStorageWarningMails()
+
+			if resetter.callCount != 0 {
+				t.Fatalf("expected no access reset for healthy family member, got %d", resetter.callCount)
+			}
+			if sendCount != 0 {
+				t.Fatalf("expected no storage warning for healthy family, got %d emails", sendCount)
+			}
+			for _, templateID := range append(repo.StorageWarningScheduledDeletionTemplateIDs(), repo.StorageWarningLoginGraceTemplateID) {
+				assertStorageWarningNotificationCount(t, db, memberID, templateID, 0)
+				assertStorageWarningNotificationCount(t, db, adminID, templateID, 0)
+			}
+			member, err := controller.UserRepo.Get(memberID)
+			if err != nil {
+				t.Fatalf("Get() error = %v", err)
+			}
+			if member.FamilyAdminID == nil || *member.FamilyAdminID != adminID {
+				t.Fatalf("expected member to remain in family %d, got %v", adminID, member.FamilyAdminID)
+			}
+			membership, err := familyRepo.GetInvite(token)
+			if err != nil {
+				t.Fatalf("GetInvite() error = %v", err)
+			}
+			if membership.Status != ente.ACCEPTED {
+				t.Fatalf("expected accepted family membership, got %s", membership.Status)
+			}
+		})
+	}
+}
+
+func TestBuildStorageWarningSnapshotExpiredBackfillUsesBufferedRecoveryIntegration(t *testing.T) {
 	testutil.WithServerRoot(t)
 
 	db := testutil.RequireTestDB(t)
@@ -100,9 +192,9 @@ func TestBuildIndividualStorageWarningSnapshotExpiredBackfillUsesBufferedRecover
 	})
 
 	controller := newStorageWarningIntegrationController(db)
-	snapshot, err := controller.buildIndividualStorageWarningSnapshot(t.Context(), userID, now)
+	snapshot, err := controller.buildStorageWarningSnapshot(t.Context(), repo.StorageWarningCandidate{RecipientID: userID}, now)
 	if err != nil {
-		t.Fatalf("buildIndividualStorageWarningSnapshot() error = %v", err)
+		t.Fatalf("buildStorageWarningSnapshot() error = %v", err)
 	}
 
 	if snapshot.ExpiredStage != expiredWarningStage0 {
@@ -120,7 +212,7 @@ func TestBuildIndividualStorageWarningSnapshotExpiredBackfillUsesBufferedRecover
 	}
 }
 
-func TestBuildIndividualStorageWarningSnapshotExpiredBackfillContinuesBufferedCycleIntegration(t *testing.T) {
+func TestBuildStorageWarningSnapshotExpiredBackfillContinuesBufferedCycleIntegration(t *testing.T) {
 	testutil.WithServerRoot(t)
 
 	db := testutil.RequireTestDB(t)
@@ -152,9 +244,9 @@ func TestBuildIndividualStorageWarningSnapshotExpiredBackfillContinuesBufferedCy
 	})
 
 	controller := newStorageWarningIntegrationController(db)
-	snapshot, err := controller.buildIndividualStorageWarningSnapshot(t.Context(), userID, anchorNow)
+	snapshot, err := controller.buildStorageWarningSnapshot(t.Context(), repo.StorageWarningCandidate{RecipientID: userID}, anchorNow)
 	if err != nil {
-		t.Fatalf("buildIndividualStorageWarningSnapshot() error = %v", err)
+		t.Fatalf("buildStorageWarningSnapshot() error = %v", err)
 	}
 
 	if snapshot.ExpiredStage != expiredWarningStage60 {
@@ -172,7 +264,7 @@ func TestBuildIndividualStorageWarningSnapshotExpiredBackfillContinuesBufferedCy
 	}
 }
 
-func TestBuildIndividualStorageWarningSnapshotExpiredBackfillWithExisting0dAnd30dSkipsImmediateSend(t *testing.T) {
+func TestBuildStorageWarningSnapshotExpiredBackfillWithExisting0dAnd30dSkipsImmediateSend(t *testing.T) {
 	testutil.WithServerRoot(t)
 
 	db := testutil.RequireTestDB(t)
@@ -188,9 +280,9 @@ func TestBuildIndividualStorageWarningSnapshotExpiredBackfillWithExisting0dAnd30
 	userID := setupExpiredBackfillWithOld0dAnd30dHistory(t, db, anchor-(30*day), t0)
 
 	controller := newStorageWarningIntegrationController(db)
-	snapshot, err := controller.buildIndividualStorageWarningSnapshot(t.Context(), userID, now)
+	snapshot, err := controller.buildStorageWarningSnapshot(t.Context(), repo.StorageWarningCandidate{RecipientID: userID}, now)
 	if err != nil {
-		t.Fatalf("buildIndividualStorageWarningSnapshot() error = %v", err)
+		t.Fatalf("buildStorageWarningSnapshot() error = %v", err)
 	}
 
 	if snapshot.CurrentBucket != storageWarningBucketExpired {
@@ -214,7 +306,7 @@ func TestBuildIndividualStorageWarningSnapshotExpiredBackfillWithExisting0dAnd30
 	}
 }
 
-func TestBuildIndividualStorageWarningSnapshotExpiredBackfillWithExisting0dAnd30dTransitionsTo60dLater(t *testing.T) {
+func TestBuildStorageWarningSnapshotExpiredBackfillWithExisting0dAnd30dTransitionsTo60dLater(t *testing.T) {
 	testutil.WithServerRoot(t)
 
 	db := testutil.RequireTestDB(t)
@@ -231,9 +323,9 @@ func TestBuildIndividualStorageWarningSnapshotExpiredBackfillWithExisting0dAnd30
 	userID := setupExpiredBackfillWithOld0dAnd30dHistory(t, db, anchor-(30*day), t0)
 
 	controller := newStorageWarningIntegrationController(db)
-	snapshot, err := controller.buildIndividualStorageWarningSnapshot(t.Context(), userID, now)
+	snapshot, err := controller.buildStorageWarningSnapshot(t.Context(), repo.StorageWarningCandidate{RecipientID: userID}, now)
 	if err != nil {
-		t.Fatalf("buildIndividualStorageWarningSnapshot() error = %v", err)
+		t.Fatalf("buildStorageWarningSnapshot() error = %v", err)
 	}
 
 	if snapshot.CurrentBucket != storageWarningBucketExpired {

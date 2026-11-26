@@ -9,6 +9,9 @@ export const initLogging = () => {
 
     log.transports.console.level = false;
 
+    process.stdout.on("error", () => undefined);
+    process.stderr.on("error", () => undefined);
+
     log.errorHandler.startCatching({
         onError: ({ error, errorName }) => {
             logError(errorName, error);

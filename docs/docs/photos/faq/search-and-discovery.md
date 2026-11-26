@@ -13,6 +13,8 @@ On mobile, open **Search** and scroll to **File types**. Select **Photos**, **Vi
 
 These shortcuts search your library. They do not change an album's contents.
 
+On web and desktop, type the file extension without the dot, for example **dng** or **heic**, in search and choose the file name result.
+
 ## Map View
 
 ### Why doesn't the map show all my photos? {#missing-photos}
@@ -223,9 +225,17 @@ Open `Settings > Preferences > Machine learning`, enable "Face recognition", and
 
 Learn more in the [Machine learning guide](/photos/features/search-and-discovery/machine-learning).
 
+### Does face recognition or Magic search include photos from albums shared with me? {#ml-shared-albums}
+
+Yes. When Machine learning is on, face recognition and Magic search index photos in albums shared with you and in collaborative albums, as well as photos you uploaded. You do not need to copy those photos into an album you own first.
+
+Indexing runs on your devices. If local indexing is off on a phone, that phone uses indexes built on another of your devices (for example desktop). A device with local indexing on still needs to process newly shared photos before they show up in People or Magic search there.
+
+Names you give people and face labels stay on your account only. They are not shared with other members of the album. See [Are people names and face labels shared with other members?](/photos/faq/sharing-and-collaboration#shared-face-labels).
+
 ### Can I search my library by text that appears inside images? {#search-text-in-images}
 
-Only partially. Ente does not maintain a full OCR index of your photos, so search cannot guarantee matches for arbitrary words. Text-related hits today come from metadata or from magic search (CLIP embeddings); magic search can surface photos with very apparent text, but doesn't offer a dedicated OCR search.
+Only partially (this includes what people often call OCR). Ente does not maintain a full OCR index of your photos, so search cannot guarantee matches for arbitrary words. Text-related hits today come from metadata or from magic search (CLIP embeddings); magic search can surface photos with very apparent text, but doesn't offer a dedicated OCR search.
 
 ### Can I merge or de-merge persons recognized by the app? {#merge-persons}
 
@@ -366,6 +376,12 @@ No. ML results sync to your account and are available on your phone without re-r
 
 Not currently. There is no built-in option to reset the ML database and detected faces.
 
+### Will I lose my faces and search results if I turn machine learning off? {#ml-turn-back-on}
+
+No. Turning machine learning off pauses indexing, but it doesn't delete what Ente has already learned. When you turn it back on, your existing face groups, the names you've given people, your corrections and search results come back, and Ente continues indexing from where it left off.
+
+This makes it safe to turn machine learning off for a while, for example during a large upload.
+
 ### Does Ente adapt as I name people and clean up duplicate face clusters? {#ml-adapts-to-corrections}
 
 Yes. Naming a person triggers automatic merging of the closest matching clusters. Beyond that, Ente surfaces less-confident matches as suggestions for you to accept or reject, and rejected clusters won't be suggested again. All corrections sync across devices.
@@ -396,6 +412,12 @@ Some files may also be too large, damaged, or in a format the app cannot process
 Everything else is still indexed. Face search and magic search keep working for the files that succeeded.
 
 You do not need to do anything if search works for you. If you want help identifying the files still pending, please contact [support@ente.com](mailto:support@ente.com) and [share your logs](/photos/faq/troubleshooting#sharing-logs).
+
+### Why does Machine Learning say processing is paused? {#ml-indexing-paused}
+
+On mobile, Ente pauses face recognition and magic search indexing when your phone isn't in an optimum state for heavy work. This happens when the battery is below 20%, when the battery is too hot or reports a health problem, when the phone itself is running hot, or when Ente can't read your battery or temperature status. `Settings > Machine learning` then shows that processing is paused.
+
+Indexing resumes on its own once the phone is ready again. To help it along, charge your phone, let it cool down, and keep Ente open. Files that are already indexed stay searchable while indexing is paused.
 
 ### Why does my desktop app show different unnamed people than my phone? {#unnamed-people-differ}
 
@@ -452,6 +474,12 @@ You can then search for words in those descriptions to find the photos.
 
 Learn more in [Metadata and Editing FAQ](/photos/faq/metadata-and-editing#descriptions).
 
+### Can I search for keywords or tags I added in Lightroom or Apple Photos? {#search-keyword-tags}
+
+Not currently. Ente doesn't import keyword or tag fields from your photos, so you can't search for them.
+
+Ente does read the description (caption) saved in a photo, and you can search for words in descriptions. If your photo editor can copy keywords into the description or caption field before you export, those words become searchable in Ente.
+
 ## Memories
 
 ### How do I mute the music in Memories? {#mute-memories-music}
@@ -462,6 +490,17 @@ To watch a memory without music in the mobile app:
 2. Tap the speaker icon to mute the music.
 
 Tap the speaker icon again to turn the music back on.
+
+Ente remembers this choice the next time you open a memory on the same device.
+
+### How do I keep screenshots or chat images out of Memories? {#exclude-from-memories}
+
+You can't choose which albums Memories use, but Memories skip anything you've archived or hidden.
+
+- To keep a whole album out, such as Screenshots or WhatsApp Images, archive the album.
+- To keep individual photos out, select them and archive them.
+
+Archived photos are also removed from your home timeline, but they still appear in their albums and in search. See [Archive](/photos/features/albums-and-organization/archive) and [Hide vs Archive](/photos/faq/albums-and-organization#hide-vs-archive).
 
 ## General Search
 

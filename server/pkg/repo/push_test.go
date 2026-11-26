@@ -180,21 +180,22 @@ func TestPushPlatformRegistrationMigration(t *testing.T) {
 	require.Equal(t, 2, count)
 }
 
-func TestAlbumShareTokensRequireRolloutAndActiveSession(t *testing.T) {
+func TestEncryptedPushTokensRequireRolloutAndActiveSession(t *testing.T) {
 	testutil.WithServerRoot(t)
 	db := testutil.RequireTestDB(t)
 	testutil.ResetTables(t, db)
 	t.Cleanup(func() { testutil.ResetTables(t, db) })
+	const internalAndroidID int64 = 23 // Bucket 50, just outside the rollout.
 	var userIDs []int64
 	for _, tc := range []struct {
 		userID                        int64
 		name, platform, flag, session string
 		app                           ente.App
 	}{
-		{2, "eligible", "android", "true", "active", ente.Photos},
+		{internalAndroidID, "eligible", "android", "true", "active", ente.Photos},
 		{4, "ios", "ios", "true", "active", ente.Photos},
 		{3, "non-internal", "android", "false", "active", ente.Photos},
-		{22, "missing flag", "android", "", "active", ente.Photos},
+		{147, "expanded rollout", "android", "", "active", ente.Photos}, // Bucket 49.
 		{5, "legacy", "android", "true", "missing", ente.Photos},
 		{1, "revoked", "android", "true", "revoked", ente.Photos},
 		{7, "wrong owner", "android", "true", "wrong owner", ente.Photos},
@@ -228,17 +229,17 @@ func TestAlbumShareTokensRequireRolloutAndActiveSession(t *testing.T) {
 		}
 	}
 	r := &PushTokenRepository{DB: db}
-	tokens, err := r.GetTokensForAlbumShare(context.Background(), userIDs)
+	tokens, err := r.GetTokensForEncryptedPush(context.Background(), userIDs)
 	require.NoError(t, err)
 	var selected []string
 	for _, token := range tokens {
 		selected = append(selected, token.FCMToken)
 	}
-	require.ElementsMatch(t, []string{"eligible", "rollout missing flag", "rollout false flag"}, selected)
+	require.ElementsMatch(t, []string{"eligible", "ios", "expanded rollout", "rollout missing flag", "rollout false flag"}, selected)
 	for _, apnsToken := range []any{"", nil} {
 		_, err := db.Exec(`UPDATE push_tokens SET apns_token=$1 WHERE fcm_token='eligible'`, apnsToken)
 		require.NoError(t, err)
-		tokens, err := r.GetTokensForAlbumShare(context.Background(), []int64{2})
+		tokens, err := r.GetTokensForEncryptedPush(context.Background(), []int64{internalAndroidID})
 		require.NoError(t, err)
 		require.Len(t, tokens, 1)
 		require.Equal(t, "eligible", tokens[0].FCMToken)
@@ -247,9 +248,28 @@ func TestAlbumShareTokensRequireRolloutAndActiveSession(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, tokens, 1)
 	require.Equal(t, "ios", tokens[0].FCMToken)
-	_, err = db.Exec(`UPDATE remote_store SET key_value='false' WHERE user_id=2`)
+	_, err = db.Exec(`UPDATE remote_store SET key_value='false' WHERE user_id=$1`, internalAndroidID)
 	require.NoError(t, err)
-	tokens, err = r.GetTokensForAlbumShare(context.Background(), []int64{2})
+	tokens, err = r.GetTokensForEncryptedPush(context.Background(), []int64{internalAndroidID})
 	require.NoError(t, err)
 	require.Empty(t, tokens)
+
+	_, err = db.Exec(`UPDATE push_tokens SET platform='ios'`)
+	require.NoError(t, err)
+	_, err = db.Exec(`UPDATE remote_store SET key_value='true' WHERE user_id=$1`, internalAndroidID)
+	require.NoError(t, err)
+	tokens, err = r.GetTokensForEncryptedPush(context.Background(), userIDs)
+	require.NoError(t, err)
+	selected = nil
+	for _, token := range tokens {
+		selected = append(selected, token.FCMToken)
+	}
+	require.ElementsMatch(t, []string{"eligible", "ios"}, selected)
+	_, err = db.Exec(`UPDATE remote_store SET key_value='false' WHERE user_id=$1`, internalAndroidID)
+	require.NoError(t, err)
+	_, err = db.Exec(`DELETE FROM remote_store WHERE user_id=4`)
+	require.NoError(t, err)
+	tokens, err = r.GetTokensForEncryptedPush(context.Background(), userIDs)
+	require.NoError(t, err)
+	require.Empty(t, tokens, "removing internal status must stop iOS album-share pushes")
 }

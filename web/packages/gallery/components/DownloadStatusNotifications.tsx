@@ -34,6 +34,7 @@ export interface DownloadStatusNotificationsProps {
         isHiddenCollectionSummary: boolean | undefined,
     ) => void;
     fullWidthOnMobile?: boolean;
+    horizontal?: "left" | "right";
 }
 
 export const DownloadStatusNotifications: React.FC<
@@ -43,6 +44,7 @@ export const DownloadStatusNotifications: React.FC<
     onRemoveSaveGroup,
     onShowCollectionSummary,
     fullWidthOnMobile,
+    horizontal = "left",
 }) => {
     const { showMiniDialog } = useBaseContext();
     const fileLabel = t("file").toLowerCase();
@@ -197,7 +199,7 @@ export const DownloadStatusNotifications: React.FC<
                 return (
                     <Notification
                         key={group.id}
-                        horizontal="left"
+                        horizontal={horizontal}
                         sx={(theme) => ({
                             "&&": { bottom: `${index * 96 + 24}px` },
                             width: "min(400px, calc(100vw - 48px))",
@@ -206,7 +208,7 @@ export const DownloadStatusNotifications: React.FC<
                                 "&&": {
                                     bottom: `${index * 96 + 16}px`,
                                     ...(fullWidthOnMobile
-                                        ? { left: "8px" }
+                                        ? { [horizontal]: "8px" }
                                         : {}),
                                 },
                                 width: fullWidthOnMobile

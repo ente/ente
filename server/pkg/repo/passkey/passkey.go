@@ -173,15 +173,20 @@ func (r *Repository) AccountsURLForUser(userID int64) (string, error) {
 }
 
 func (r *Repository) GetPasskeyCount(userID int64) (count int64, err error) {
-	err = r.DB.QueryRow(`SELECT COUNT(*) FROM passkeys WHERE user_id = $1 AND deleted_at IS NULL`, userID).Scan(&count)
+	err = r.DB.QueryRow(`
+		SELECT COUNT(*) FROM passkeys p
+		JOIN passkey_credentials pc ON pc.passkey_id = p.id
+		WHERE p.user_id = $1 AND p.deleted_at IS NULL
+	`, userID).Scan(&count)
 	return
 }
 
 func (r *Repository) GetUserPasskeys(userID int64) (passkeys []ente.Passkey, err error) {
 	rows, err := r.DB.Query(`
-		SELECT id, user_id, friendly_name, created_at
-		FROM passkeys
-		WHERE user_id = $1 AND deleted_at IS NULL
+		SELECT p.id, p.user_id, p.friendly_name, p.created_at
+		FROM passkeys p
+		JOIN passkey_credentials pc ON pc.passkey_id = p.id
+		WHERE p.user_id = $1 AND p.deleted_at IS NULL
 	`, userID)
 	if err != nil {
 		err = stacktrace.Propagate(err, "")
@@ -444,10 +449,11 @@ func (r *Repository) FinishRegistration(user *ente.User, friendlyName string, re
 		return
 	}
 
-	newPasskey, err := r.createPasskey(user.ID, friendlyName)
-	if err != nil {
-		err = stacktrace.Propagate(err, "")
-		return
+	newPasskey := &ente.Passkey{
+		ID:           uuid.New(),
+		UserID:       user.ID,
+		FriendlyName: friendlyName,
+		CreatedAt:    time.Now().UnixMicro(),
 	}
 
 	passkeyCredential, err := r.marshalCredentialToPasskeyCredential(credential, newPasskey.ID, rpID)
@@ -456,7 +462,7 @@ func (r *Repository) FinishRegistration(user *ente.User, friendlyName string, re
 		return
 	}
 
-	err = r.createPasskeyCredential(passkeyCredential)
+	err = r.createPasskey(newPasskey, passkeyCredential)
 	if err != nil {
 		err = stacktrace.Propagate(err, "")
 		return

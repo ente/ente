@@ -2,7 +2,14 @@ import { PeopleSortOptions } from "@/components/PeopleSortOptions";
 import type { PeopleSortBy } from "@/utils/people-sort";
 import { PinIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Box, ButtonBase, useMediaQuery, useTheme } from "@mui/material";
+import {
+    Box,
+    ButtonBase,
+    Skeleton,
+    Stack,
+    useMediaQuery,
+    useTheme,
+} from "@mui/material";
 import { ItemCard } from "ente-new/photos/components/Tiles";
 import type { Person } from "ente-new/photos/services/ml/people";
 import { t } from "i18next";
@@ -27,6 +34,8 @@ import {
 interface PeopleNavigationProps extends GalleryBarPresentationProps {
     people: Person[];
     activePerson: Person | undefined;
+    isFirstLoad: boolean;
+    reduceMotion: boolean;
     peopleSortBy: PeopleSortBy;
     onChangePeopleSortBy: (sort: PeopleSortBy) => void;
 }
@@ -37,10 +46,14 @@ export const PeopleNavigation = ({
     onChangePeopleSortBy,
     collapsed,
     mobileDrawerProps,
+    isFirstLoad,
+    reduceMotion,
 }: PeopleNavigationProps) => {
     const { selectPerson, showPeople } = usePhotosNavigation();
     const { onClose } = mobileDrawerProps;
     const mobile = useMediaQuery(useTheme().breakpoints.down("md"));
+    const rowHeight = mobile ? 46 : 50;
+    const loadingAnimation = reduceMotion ? false : "pulse";
     const [searchQuery, setSearchQuery] = useState("");
     const [viewportHeight, setViewportHeight] = useState(0);
     const listRef = useRef<FixedSizeList>(null);
@@ -119,7 +132,44 @@ export const PeopleNavigation = ({
             setSearchQuery={setSearchQuery}
             mobileDrawerProps={mobileDrawerProps}
         >
-            {isSearching && !matchingPeople.length ? (
+            {isFirstLoad && !people.length ? (
+                <Stack
+                    aria-hidden
+                    sx={{
+                        flex: 1,
+                        minHeight: 0,
+                        overflow: "hidden",
+                        gap: "2px",
+                    }}
+                >
+                    {[88, 112, 76, 100, 84, 120, 96, 72].map((width) => (
+                        <Stack
+                            key={width}
+                            direction="row"
+                            sx={{
+                                alignItems: "center",
+                                flexShrink: 0,
+                                height: rowHeight - 2,
+                                paddingInlineStart: "16px",
+                                gap: "12px",
+                            }}
+                        >
+                            <Skeleton
+                                variant="circular"
+                                width={24}
+                                height={24}
+                                animation={loadingAnimation}
+                            />
+                            <Skeleton
+                                variant="rounded"
+                                width={width}
+                                height={12}
+                                animation={loadingAnimation}
+                            />
+                        </Stack>
+                    ))}
+                </Stack>
+            ) : isSearching && !matchingPeople.length ? (
                 <NavigationEmptyState />
             ) : (
                 <Box sx={{ flex: 1, minHeight: 0, minWidth: 0 }}>
@@ -136,7 +186,7 @@ export const PeopleNavigation = ({
                                     `people-${data.people[index]!.id}-${data.people[index]!.displayFaceID}`
                                 }
                                 itemCount={matchingPeople.length}
-                                itemSize={mobile ? 46 : 50}
+                                itemSize={rowHeight}
                                 style={{ overflowX: "hidden" }}
                             >
                                 {PersonRow}

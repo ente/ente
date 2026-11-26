@@ -1,4 +1,9 @@
 {
+    "uploadDestinationUnavailable": "This collection is no longer available. Choose another destination or remove it from the upload.",
+    "uploadDestinationNeedsChoice": "Choose a collection for “{{name}}” or remove the suggestion before uploading.",
+    "uploadDestinationUnavailableLabel": "Unavailable collection (#{{id}})",
+    "uploadDestinationNeedsChoiceLabel": "{{name}} (choose a collection)",
+    "uploadDestinationShared": "{{name}} (shared)",
     "invalidUploadFileName": "Enter a valid file name of at most 255 bytes, including its extension.",
     "discardUnsavedChangesTitle": "Discard unsaved changes?",
     "discardUnsavedChangesBody": "You have unsaved changes. Discarding will lose them.",

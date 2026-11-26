@@ -33,6 +33,7 @@ func Register(privateAPI, publicAPI gin.IRouter, handlers *Handlers) {
 	spaceAPI.GET("/posts/:postID/likes", selected(handlers.ListPostLikes))
 	spaceAPI.POST("/posts/:postID/reply", selected(handlers.ReplyToPost))
 	spaceAPI.DELETE("/posts/:postID", selected(handlers.DeletePost))
+	spaceAPI.DELETE("/posts/:postID/media", selected(handlers.DeletePostMedia))
 	spaceAPI.POST("/friends/:friendSpaceID/pokes", selected(handlers.CreatePoke))
 	spaceAPI.GET("/conversations", selected(handlers.ListConversations))
 	spaceAPI.POST("/friends/:friendSpaceID/read", selected(handlers.MarkNotificationsRead))

@@ -1,1 +1,0 @@
-- Added search for individual settings available for your account and device.

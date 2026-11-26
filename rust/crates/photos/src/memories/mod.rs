@@ -11,6 +11,7 @@ mod places;
 mod rng;
 mod selector;
 mod signals;
+mod specials;
 mod store;
 mod text_embeddings;
 mod time;
@@ -23,11 +24,13 @@ use std::time::Instant;
 pub use calendar::LocalDate;
 pub use input::{
     CachedTrip, CityLookup, ClipVectors, MemoriesRequest, MemoryFile, MemoryPerson, MlInputs,
-    PeopleInputs, Period, ShownClipMemory, ShownPerson, ShownTrip, TripDetection, UnnamedCluster,
+    PeopleInputs, Period, ShownClipMemory, ShownPerson, ShownSpecial, ShownTrip, TripDetection,
+    UnnamedCluster,
 };
 pub use output::{
-    BaseLocation, BaseMemory, Birthday, ClipMemoryType, Memory, MemoryBoundary, MemoryKind,
-    PeopleActivity, PeopleMemory, PeopleMemoryType, SmartMemories, TimeMemory, TripMemory,
+    BaseLocation, BaseMemory, Birthday, ClipMemoryType, Memory, MemoryBoundary, MemoryKind, OneDay,
+    PeopleActivity, PeopleMemory, PeopleMemoryType, SmartMemories, Special, SpecialFormat,
+    ThenAndNow, TimeMemory, TripMemory,
 };
 pub use store::compute_smart_memories_from_store;
 
@@ -38,11 +41,13 @@ use photo::Photo;
 use places::Places;
 use selector::Selector;
 use signals::Signals;
+use specials::Specials;
 use trips::TripHistory;
 
 use crate::ml_store::Result;
 
 const UPDATE_FREQUENCY_DAYS: i64 = 3;
+const SPECIALS_SEED: u64 = 0x5EC1_A15E_ED5E_EDED;
 const MAX_MEMORY_ITEMS: usize = 100;
 const MINIMUM_MEMORY_LENGTH: usize = 5;
 
@@ -67,14 +72,28 @@ pub fn compute_smart_memories(
         .zip(signals.as_ref())
         .map(|(ml, signals)| People::new(&photos, request, &ml.people, signals))
         .transpose()?;
-    let mut selector = Selector::new(
-        signals.as_ref().map(|signals| signals as &dyn PhotoSignals),
-        request.seed,
-    );
+    let photo_signals = signals.as_ref().map(|signals| signals as &dyn PhotoSignals);
+    let mut selector = Selector::new(photo_signals, request.seed);
+    let mut first_period_specials = request
+        .shows_specials
+        .then(|| {
+            Specials::new(
+                &photos,
+                &located,
+                &places,
+                photo_signals,
+                analysis.as_ref(),
+                request.surface_all,
+            )
+        })
+        .transpose()?;
+    let special_history = specials::History::new(&request.shown_specials);
+    let mut special_selector = Selector::new(photo_signals, request.seed ^ SPECIALS_SEED);
     let mut period_memories = Vec::with_capacity(periods.len());
     for &period in periods {
         let mut memories =
             on_this_day::memories(&photos, period, &excluded_collection_ids, &mut selector);
+        let special_position = memories.len();
         if let Some(people) = &people {
             memories.extend(people.memories(period, &mut selector)?);
         }
@@ -111,6 +130,19 @@ pub fn compute_smart_memories(
         memories.extend(time_memories);
         let filler_memories = filler::memories(&unused_photos(&photos, &memories), period);
         memories.extend(filler_memories);
+        if let Some(specials) = first_period_specials.take() {
+            let mut shown_elsewhere = used_file_ids(&memories);
+            if let Some(analysis) = &analysis {
+                shown_elsewhere.extend(trips::photos_on_screen(analysis, &trip_history, period));
+            }
+            let special_memories = specials.memories(
+                period,
+                &special_history,
+                &shown_elsewhere,
+                &mut special_selector,
+            )?;
+            memories.splice(special_position..special_position, special_memories);
+        }
         period_memories.push(memories);
     }
     let base_locations = analysis
@@ -177,14 +209,18 @@ pub fn compute_all_trip_memories(
     memories
 }
 
+fn used_file_ids(memories: &[Memory]) -> HashSet<i64> {
+    memories
+        .iter()
+        .flat_map(|memory| memory.file_ids.iter().copied())
+        .collect()
+}
+
 fn unused_photos<'p>(
     photos: impl IntoIterator<Item = &'p Photo>,
     memories: &[Memory],
 ) -> Vec<&'p Photo> {
-    let used: HashSet<i64> = memories
-        .iter()
-        .flat_map(|memory| memory.file_ids.iter().copied())
-        .collect();
+    let used = used_file_ids(memories);
     photos
         .into_iter()
         .filter(|photo| !used.contains(&photo.id))

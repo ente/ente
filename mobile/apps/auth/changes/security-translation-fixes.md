@@ -1,0 +1,1 @@
+- Corrected translations that misdescribed passkeys, recovery keys, backups, deletion, and security prompts in several languages.

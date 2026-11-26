@@ -10,18 +10,39 @@ import (
 	"github.com/ente/museum/internal/testutil"
 )
 
-func TestGetFileUrlRowByTokenReturnsActiveRowBeforeDisabledRow(t *testing.T) {
+func TestGetFileUrlRowByTokenReturnsActiveRow(t *testing.T) {
 	repository, db := setupFileLinkRepositoryTest(t)
 
-	insertFileLinkToken(t, db, "pft_disabled", "reused-token", 1, 11, true)
-	insertFileLinkToken(t, db, "pft_active", "reused-token", 2, 22, false)
+	insertFileLinkToken(t, db, "pft_disabled", "disabled-token", 1, 11, true)
+	insertFileLinkToken(t, db, "pft_active", "active-token", 2, 22, false)
 
-	row, err := repository.GetFileUrlRowByToken(t.Context(), "reused-token")
+	row, err := repository.GetFileUrlRowByToken(t.Context(), "active-token")
 	if err != nil {
 		t.Fatalf("GetFileUrlRowByToken() error = %v", err)
 	}
 	if row.LinkID != "pft_active" || row.FileID != 2 || row.OwnerID != 22 || row.IsDisabled {
 		t.Fatalf("expected active row, got %+v", row)
+	}
+}
+
+func TestFileLinkInsertCanRetryWithNewTokenAfterCollision(t *testing.T) {
+	repository, db := setupFileLinkRepositoryTest(t)
+	insertFileLinkToken(t, db, "pft_disabled", "disabled-token", 1, 11, true)
+	req := ente.CreateFileUrl{FileID: 2, App: ente.Photos}
+
+	if _, err := repository.Insert(t.Context(), req, 22, "disabled-token"); !errors.Is(err, ente.ErrAccessTokenInUse) {
+		t.Fatalf("expected retryable token collision, got %v", err)
+	}
+	id, err := repository.Insert(t.Context(), req, 22, "new-token")
+	if err != nil {
+		t.Fatalf("Insert() with a new token failed: %v", err)
+	}
+	row, err := repository.GetFileUrlRowByToken(t.Context(), "new-token")
+	if err != nil {
+		t.Fatalf("GetFileUrlRowByToken() error = %v", err)
+	}
+	if row.LinkID != *id || row.FileID != req.FileID || row.OwnerID != 22 || row.IsDisabled {
+		t.Fatalf("expected newly created active link, got %+v", row)
 	}
 }
 

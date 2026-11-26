@@ -7,7 +7,7 @@ environment:
   flutter: ">=1.17.0"
 
 dependencies:
-  dio: 5.9.2
+  dio: 5.11.1
   ente_base:
     path: ../../packages/base
   ente_components:
@@ -24,7 +24,6 @@ dependencies:
   flutter:
     sdk: flutter
   fluttertoast: 8.2.14
-  hugeicons: 1.1.7
   modal_bottom_sheet: 3.0.0
   package_info_plus: 8.3.1
   scrollable_positioned_list: 0.3.8

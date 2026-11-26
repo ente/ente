@@ -123,7 +123,7 @@
   "authToChangeYourPassword": "Vennligst autentiser deg for å endre passordet ditt",
   "authToConfigureTwofactorAuthentication": "Autentiser deg for å konfigurere tofaktorautentisering",
   "authToManageLegacy": "Vennlist autentiser deg for å administrere de betrodde kontaktene dine",
-  "authToViewPasskey": "Vennligst autentiser deg for å se gjennopprettingsnøkkelen din",
+  "authToViewPasskey": "Vennligst autentiser deg for å se tilgangsnøkkelen din",
   "authToViewTrashedFiles": "Vennligst autentiser deg for å se dine slettede filer",
   "authToViewYourActiveSessions": "Vennligst autentiser deg for å se dine aktive økter",
   "authToViewYourHiddenFiles": "Vennligst autentiser deg for å se dine skjulte filer",
@@ -685,10 +685,10 @@
   "leave": "Forlat",
   "leaveAlbum": "Forlat album",
   "leaveFamily": "Forlat familie",
-  "leaveSharedAlbum": "Slett delt album?",
+  "leaveSharedAlbum": "Forlate delt album?",
   "left": "Venstre",
   "legacy": "Arv",
-  "legacyAccounts": "Eldre kontoer",
+  "legacyAccounts": "Arv-kontoer",
   "legacyInvite": "{email} har invitert deg til å være en betrodd kontakt",
   "@legacyInvite": {
     "placeholders": {
@@ -860,7 +860,7 @@
   "@noDeviceLimit": {
     "description": "Text to indicate that there is limit on number of devices"
   },
-  "noDeviceThatCanBeDeleted": "Du har ingen filer i dette albumet som kan bli slettet",
+  "noDeviceThatCanBeDeleted": "Du har ingen filer på denne enheten som kan bli slettet",
   "noDuplicates": "✨ Ingen duplikater",
   "noExifData": "Ingen EXIF-data",
   "noFacesFound": "Ingen ansikter funnet",

@@ -81,12 +81,20 @@ const Page: React.FC = () => {
         valueFromQuery(router.query.spaceId) ?? pathParams.spaceId ?? "";
     const postId = postIdFromQuery(router.query.postId) ?? pathParams.postId;
     const targetCommentId = valueFromQuery(router.query.comment);
-    const photoId =
+    const requestedPhotoId =
         valueFromQuery(router.query.photo) ??
         (typeof window == "undefined"
             ? undefined
             : (new URLSearchParams(window.location.search).get("photo") ??
               undefined));
+    const [replacedLink, setReplacedLink] = React.useState<{
+        from: string;
+        to: string;
+    }>();
+    const photoId =
+        replacedLink && replacedLink.from == requestedPhotoId
+            ? replacedLink.to
+            : requestedPhotoId;
     const [post, setPost] = React.useState<SpacePost | null>(null);
     const [postLoadError, setPostLoadError] = React.useState<string>();
     const [isPostLoading, setIsPostLoading] = React.useState(false);
@@ -184,15 +192,16 @@ const Page: React.FC = () => {
     }
 
     const photos = viewerPhotosFromPost(viewerPhotoFromPost(post));
-    const photoIndex =
+    const linkedPhotoIndex = (items: typeof photos) =>
         photoId === undefined
             ? 0
-            : photos.findIndex(
+            : items.findIndex(
                   (photo) =>
                       photo.imageAsset &&
                       postPhotoIdFromObjectKey(photo.imageAsset.objectKey) ==
                           photoId,
               );
+    const photoIndex = linkedPhotoIndex(photos);
     if (photoIndex < 0) {
         return (
             <SpaceRouteFallback
@@ -202,6 +211,28 @@ const Page: React.FC = () => {
             />
         );
     }
+
+    const updatePostMedia = (updated: SpacePost, index: number) => {
+        setPost(updated);
+        const nextPhotos = viewerPhotosFromPost(updated);
+        if (photoId && linkedPhotoIndex(nextPhotos) < 0) {
+            const photo = postPhotoIdFromObjectKey(
+                nextPhotos[index]!.imageAsset!.objectKey,
+            );
+            setReplacedLink({ from: photoId, to: photo });
+            const query = { ...router.query, spaceId, postId, photo };
+            void router
+                .replace({ pathname: router.pathname, query }, undefined, {
+                    shallow: true,
+                })
+                .then((replaced) => {
+                    if (replaced) setReplacedLink(undefined);
+                })
+                .catch((error: unknown) =>
+                    log.warn("Failed to update the post photo link", error),
+                );
+        }
+    };
 
     return (
         <>
@@ -220,6 +251,7 @@ const Page: React.FC = () => {
                 }
                 onClose={closePost}
                 onOpenProfile={openOwnerProfile}
+                onPostMediaChange={isOwnPost ? updatePostMedia : undefined}
                 onDeletePost={
                     isOwnPost
                         ? async () => {

@@ -88,30 +88,37 @@ class ExtentsPageView extends StatefulWidget {
   State<ExtentsPageView> createState() => _PageViewState();
 }
 
+class NoLeftBounceScrollPhysics extends BouncingScrollPhysics {
+  const NoLeftBounceScrollPhysics({super.parent});
+
+  @override
+  NoLeftBounceScrollPhysics applyTo(ScrollPhysics? ancestor) =>
+      NoLeftBounceScrollPhysics(parent: buildParent(ancestor));
+
+  @override
+  double applyBoundaryConditions(ScrollMetrics position, double value) {
+    if (value < position.pixels &&
+        position.pixels <= position.minScrollExtent) {
+      return value - position.pixels;
+    }
+    if (value < position.minScrollExtent &&
+        position.minScrollExtent < position.pixels) {
+      return value - position.minScrollExtent;
+    }
+    return 0.0;
+  }
+}
+
 class _PageViewState extends State<ExtentsPageView> {
+  static const double _drawerSwipeThreshold = 45;
+
   int _lastReportedPage = 0;
-  VoidCallback? _openDrawerListener;
+  double _leftOverscroll = 0;
 
   @override
   void initState() {
     super.initState();
     _lastReportedPage = widget.controller.initialPage;
-    if (widget.openDrawer != null) {
-      _openDrawerListener = () {
-        if (widget.controller.offset < -45) {
-          widget.openDrawer!();
-        }
-      };
-      widget.controller.addListener(_openDrawerListener!);
-    }
-  }
-
-  @override
-  void dispose() {
-    if (_openDrawerListener != null) {
-      widget.controller.removeListener(_openDrawerListener!);
-    }
-    super.dispose();
   }
 
   AxisDirection? _getDirection(BuildContext context) {
@@ -139,6 +146,17 @@ class _PageViewState extends State<ExtentsPageView> {
 
     return NotificationListener<ScrollNotification>(
       onNotification: (ScrollNotification notification) {
+        if (notification.depth == 0 && widget.openDrawer != null) {
+          if (notification is OverscrollNotification &&
+              notification.dragDetails != null &&
+              notification.overscroll < 0 &&
+              _leftOverscroll > -_drawerSwipeThreshold) {
+            _leftOverscroll += notification.overscroll;
+            if (_leftOverscroll <= -_drawerSwipeThreshold) widget.openDrawer!();
+          } else if (notification is ScrollEndNotification) {
+            _leftOverscroll = 0;
+          }
+        }
         if (notification.depth == 0 &&
             widget.onPageChanged != null &&
             notification is ScrollUpdateNotification) {

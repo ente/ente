@@ -47,21 +47,25 @@ Document scanning is available in the Locker mobile app on Android and iOS.
 1. Tap the **+** button
 2. Select **File**
 3. Choose one or more files from your device
-4. To rename a file, tap the pencil icon beside its name. Enter a new name and tap **Save**
+4. To rename a file, open the menu beside its name and select **Rename**. Enter a new name and tap **Save**
 5. Leave collections unselected to use **Uncategorized**, or select one or more collections
 6. Tap **Save** to upload
+
+![Menu button beside a file highlighted on Upload items, then Rename highlighted on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-file-rename-callout-v1013.png){width=560px}
 
 ## Example: Adding a secret
 
 1. Tap the **+** button
 2. Select **Secret**
 3. Fill in the fields:
-    - **Name**: A name for this entry (e.g., "Bank Account")
+    - **Account**: A name for this entry (e.g., "Bank Account")
     - **Username**: Your username or email (optional)
     - **Password**: Your password (optional)
-    - **Notes**: Any additional information (optional)
+    - **Additional notes**: Any additional information (optional)
 4. Leave collections unselected to use **Uncategorized**. Or select one or more collections to organize this item
 5. Tap **Save**
+
+![Secret form with Account, Username, Password and Additional notes on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-secret-form-v1013.png){width=560px}
 
 ## Organizing with collections
 
@@ -72,6 +76,8 @@ When creating an item:
 1. Tap the collection field
 2. Leave all collections unselected to use **Uncategorized**. Or select an existing collection or create a new one
 3. Tap **Save**
+
+![Collections chips on a new item form on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-collection-picker-v1013.png){width=560px}
 
 Use Uncategorized for items you want to organize later.
 

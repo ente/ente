@@ -1,9 +1,15 @@
 mod conversation;
 mod migrations;
+mod todo;
+mod tool_turn;
 pub use conversation::ConversationSnapshot;
+pub use tool_turn::{Confirm, FinishedReply, ToolTurnState, Undo};
 #[cfg(feature = "sqlite")]
 mod retired_storage;
 mod schema;
+
+#[cfg(all(test, feature = "sqlite"))]
+mod transaction_tests;
 
 use std::collections::BTreeSet;
 use std::sync::Arc;
@@ -15,7 +21,7 @@ use zeroize::Zeroizing;
 use crate::db::backend::{Backend, BackendTx, RowExt, Value};
 use crate::db::crypto;
 use crate::db::models::{
-    AttachmentMeta, EntityType, Message, Sender, Session, SessionWithPreview, StoredAttachment,
+    AttachmentMeta, EntityType, Message, Session, SessionWithPreview, StoredAttachment,
 };
 use crate::db::traits::{Clock, RandomUuidGen, SystemClock, UuidGen};
 use crate::db::{Error, Result};
@@ -25,7 +31,10 @@ pub struct ChatDb<B: Backend> {
     key: Zeroizing<Vec<u8>>,
     clock: Arc<dyn Clock>,
     uuid_gen: Arc<dyn UuidGen>,
+    tools_observer: std::sync::RwLock<Option<ToolsObserver>>,
 }
+
+pub type ToolsObserver = Arc<dyn Fn() + Send + Sync>;
 
 impl<B: Backend> ChatDb<B> {
     pub fn new(
@@ -41,7 +50,21 @@ impl<B: Backend> ChatDb<B> {
             key,
             clock,
             uuid_gen,
+            tools_observer: Default::default(),
         })
+    }
+
+    pub fn observe_tools(&self, observer: ToolsObserver) {
+        if let Ok(mut current) = self.tools_observer.write() {
+            *current = Some(observer);
+        }
+    }
+
+    pub(super) fn tools_changed(&self) {
+        let observer = self.tools_observer.read().ok().and_then(|o| o.clone());
+        if let Some(observer) = observer {
+            observer();
+        }
     }
 
     pub fn new_with_defaults(backend: B, key: Vec<u8>) -> Result<Self> {
@@ -187,49 +210,54 @@ impl<B: Backend> ChatDb<B> {
         attachments: Vec<AttachmentMeta>,
         snapshot: Option<&ConversationSnapshot>,
     ) -> Result<Message> {
-        let sender: Sender = sender.parse()?;
-        let created_at = self.clock.now_us();
-        let uuid = self.uuid_gen.new_uuid();
-        let encrypted_text = crypto::encrypt_string(text, &self.key)?;
-        let attachments_json = self.serialize_attachments(&attachments)?;
-
-        self.backend.transaction(|tx| {
-            if let Some(snapshot) = snapshot
-                && (snapshot.session_uuid != session_uuid
-                    || snapshot.messages.last().map(|m| m.uuid) != parent
-                    || !conversation::snapshot_matches(tx, snapshot, false)?)
-            {
-                return Err(Error::UnsupportedOperation(
-                    "Conversation changed while generating the reply; retry the reply".into(),
-                ));
-            }
-            tx.execute(
-                "INSERT INTO messages (
-                   message_uuid, session_uuid, parent_message_uuid, sender,
-                   text, attachments, created_at
-                 ) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                &[
-                    Value::Text(uuid.to_string()),
-                    Value::Text(session_uuid.to_string()),
-                    optional_uuid(parent),
-                    Value::Text(sender.as_str().to_string()),
-                    Value::Blob(encrypted_text),
-                    attachments_json.map(Value::Text).unwrap_or(Value::Null),
-                    Value::Integer(created_at),
-                ],
-            )?;
-            self.touch_session(tx, session_uuid, created_at)
-        })?;
-
-        Ok(Message {
-            uuid,
+        let message = Message {
+            uuid: self.uuid_gen.new_uuid(),
             session_uuid,
             parent_message_uuid: parent,
-            sender,
+            sender: sender.parse()?,
             text: text.to_string(),
             attachments,
-            created_at,
-        })
+            created_at: self.clock.now_us(),
+        };
+        self.backend
+            .transaction(|tx| {
+                if let Some(snapshot) = snapshot
+                    && (snapshot.session_uuid != session_uuid
+                        || snapshot.messages.last().map(|m| m.uuid) != parent
+                        || !conversation::snapshot_matches(tx, snapshot, false)?)
+                {
+                    return Err(Error::ConversationChanged);
+                }
+                self.write_message(tx, &message)?;
+                self.touch_session(tx, session_uuid, message.created_at)?;
+                match (message.sender, parent) {
+                    (crate::db::Sender::Other, Some(parent)) => self.withdraw_offers(tx, parent),
+                    _ => Ok(false),
+                }
+            })?
+            .then(|| self.tools_changed());
+        Ok(message)
+    }
+
+    fn write_message<T: BackendTx>(&self, tx: &T, message: &Message) -> Result<()> {
+        tx.execute(
+            "INSERT INTO messages (
+               message_uuid, session_uuid, parent_message_uuid, sender,
+               text, attachments, created_at
+             ) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            &[
+                Value::Text(message.uuid.to_string()),
+                Value::Text(message.session_uuid.to_string()),
+                optional_uuid(message.parent_message_uuid),
+                Value::Text(message.sender.as_str().to_string()),
+                Value::Blob(crypto::encrypt_string(&message.text, &self.key)?),
+                self.serialize_attachments(&message.attachments)?
+                    .map(Value::Text)
+                    .unwrap_or(Value::Null),
+                Value::Integer(message.created_at),
+            ],
+        )?;
+        Ok(())
     }
 
     pub fn insert_message_with_uuid(&self, message: &Message) -> Result<Message> {

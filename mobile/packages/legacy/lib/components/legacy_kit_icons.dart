@@ -1,5 +1,5 @@
+import "package:ente_components/hugeicons.dart";
 import "package:flutter/widgets.dart";
-import "package:hugeicons/hugeicons.dart";
 
 const double _hugeIconStrokeWidth = 1.5;
 

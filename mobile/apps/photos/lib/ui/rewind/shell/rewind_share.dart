@@ -5,6 +5,7 @@ import "package:flutter/rendering.dart";
 import "package:flutter/widgets.dart";
 import "package:flutter_svg/flutter_svg.dart";
 import "package:path_provider/path_provider.dart";
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:share_plus/share_plus.dart";
@@ -14,19 +15,28 @@ class RewindShareable extends StatefulWidget {
     required this.child,
     this.branded = true,
     this.enabled = true,
+    this.onShare,
     super.key,
   });
 
   final Widget child;
   final bool branded;
   final bool enabled;
+  final VoidCallback? onShare;
+
+  static bool capturing(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<_Capturing>()?.enabled ??
+      false;
 
   @override
   State<RewindShareable> createState() => _RewindShareableState();
 }
 
 class _RewindShareableState extends State<RewindShareable> {
-  late final _card = RewindShareCard(branded: widget.branded);
+  late final _card = RewindShareCard(
+    branded: widget.branded,
+    onShare: () => widget.onShare?.call(),
+  );
   RewindPageScope? _scope;
 
   @override
@@ -67,8 +77,46 @@ class _RewindShareableState extends State<RewindShareable> {
 
   @override
   Widget build(BuildContext context) {
-    return RepaintBoundary(key: _card.boundary, child: widget.child);
+    return ValueListenableBuilder(
+      valueListenable: _card.stillFrame,
+      builder: (context, stillFrame, _) => Stack(
+        fit: StackFit.passthrough,
+        children: [
+          RepaintBoundary(
+            key: _card.boundary,
+            child: _Capturing(enabled: stillFrame != null, child: widget.child),
+          ),
+          if (stillFrame != null)
+            Positioned.fill(
+              child: RawImage(image: stillFrame, fit: BoxFit.fill),
+            ),
+        ],
+      ),
+    );
   }
+}
+
+class RewindVoice extends StatelessWidget {
+  const RewindVoice(this.lines, {required this.builder, super.key});
+
+  final RewindLines lines;
+  final Widget Function(String text) builder;
+
+  @override
+  Widget build(BuildContext context) => builder(
+    RewindShareable.capturing(context) || RewindPageScope.reelOf(context)
+        ? lines.me
+        : lines.you,
+  );
+}
+
+class _Capturing extends InheritedWidget {
+  const _Capturing({required this.enabled, required super.child});
+
+  final bool enabled;
+
+  @override
+  bool updateShouldNotify(_Capturing oldWidget) => enabled != oldWidget.enabled;
 }
 
 Future<void> shareRewindCard(
@@ -80,7 +128,8 @@ Future<void> shareRewindCard(
 }) async {
   final boundary = card.boundary.currentContext?.findRenderObject();
   if (boundary is! RenderRepaintBoundary) return;
-  var image = await boundary.toImage(pixelRatio: pixelRatio);
+  card.onShare();
+  var image = await _captureInFirstPerson(card, boundary, pixelRatio);
   if (card.branded) {
     final topLeft = boundary.globalToLocal(wordmark.topLeft);
     image = await _brand(
@@ -104,6 +153,22 @@ Future<void> shareRewindCard(
       sharePositionOrigin: origin,
     ),
   );
+}
+
+Future<ui.Image> _captureInFirstPerson(
+  RewindShareCard card,
+  RenderRepaintBoundary boundary,
+  double pixelRatio,
+) async {
+  final stillFrame = await boundary.toImage(pixelRatio: pixelRatio);
+  card.stillFrame.value = stillFrame;
+  try {
+    await WidgetsBinding.instance.endOfFrame;
+    return await boundary.toImage(pixelRatio: pixelRatio);
+  } finally {
+    card.stillFrame.value = null;
+    stillFrame.dispose();
+  }
 }
 
 Future<ui.Image> _brand(

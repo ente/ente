@@ -10,7 +10,8 @@ use crate::rewind::report::{PeopleRace, RacePerson};
 const RACE_PEOPLE: usize = 3;
 const RACE_MINIMUM_PHOTOS: usize = 10;
 const RACE_FACES: usize = 5;
-const RACE_CANDIDATES: usize = 8;
+const RACE_CANDIDATES: usize = 12;
+const BOOTH_FACE_AREA: f64 = 0.06;
 
 pub(in crate::rewind) fn people_race(
     request: &RewindRequest,
@@ -18,20 +19,7 @@ pub(in crate::rewind) fn people_race(
     people: &People,
     ranking: &Ranking<'_>,
 ) -> Option<PeopleRace> {
-    let me = request.me_person_id.as_deref();
-    let mut racers: Vec<(&Entity, Vec<&YearFile>)> = people
-        .persons()
-        .iter()
-        .filter(|person| Some(person.id.as_str()) != me)
-        .map(|person| (person, people.files_of(person, library)))
-        .collect();
-    racers.sort_by(|(first, first_files), (second, second_files)| {
-        second_files
-            .len()
-            .cmp(&first_files.len())
-            .then_with(|| first_photo(first_files).cmp(&first_photo(second_files)))
-            .then_with(|| first.id.cmp(&second.id))
-    });
+    let mut racers = others_by_photos(request, library, people);
     racers.truncate(RACE_PEOPLE);
     if racers.len() < RACE_PEOPLE
         || racers
@@ -58,6 +46,28 @@ pub(in crate::rewind) fn people_race(
     })
 }
 
+pub(super) fn others_by_photos<'p, 'l, 'r>(
+    request: &RewindRequest,
+    library: &'l Library<'r>,
+    people: &'p People,
+) -> Vec<(&'p Entity, Vec<&'l YearFile<'r>>)> {
+    let me = request.me_person_id.as_deref();
+    let mut others: Vec<(&Entity, Vec<&YearFile>)> = people
+        .persons()
+        .iter()
+        .filter(|person| Some(person.id.as_str()) != me)
+        .map(|person| (person, people.files_of(person, library)))
+        .collect();
+    others.sort_by(|(first, first_files), (second, second_files)| {
+        second_files
+            .len()
+            .cmp(&first_files.len())
+            .then_with(|| first_photo(first_files).cmp(&first_photo(second_files)))
+            .then_with(|| first.id.cmp(&second.id))
+    });
+    others
+}
+
 fn first_photo(files: &[&YearFile<'_>]) -> Option<i64> {
     files.iter().map(|file| file.local_time).min()
 }
@@ -73,7 +83,7 @@ fn monthly_counts(files: &[&YearFile<'_>]) -> Vec<u32> {
     counts
 }
 
-fn by_prominence<'l, 'r>(
+pub(super) fn by_prominence<'l, 'r>(
     person: &Entity,
     people: &People,
     library: &'l Library<'r>,
@@ -86,7 +96,7 @@ fn by_prominence<'l, 'r>(
     {
         let (own_faces, prominence) = faces.entry(face.file_id).or_insert((0, 0.0));
         *own_faces += 1;
-        *prominence = prominence.max(face.area * face.score);
+        *prominence = prominence.max(booth_fit(face.area) * face.score);
     }
     let mut files: Vec<(&YearFile, f64)> = faces
         .into_iter()
@@ -102,6 +112,10 @@ fn by_prominence<'l, 'r>(
             .then(first.0.id().cmp(&second.0.id()))
     });
     files.into_iter().map(|(file, _)| file).collect()
+}
+
+fn booth_fit(area: f64) -> f64 {
+    area.min(BOOTH_FACE_AREA * BOOTH_FACE_AREA / area)
 }
 
 #[cfg(test)]
@@ -178,7 +192,7 @@ mod tests {
         assert_eq!(alice.photo_count, 12);
         assert_eq!(alice.monthly_counts, vec![12; 12]);
         assert_eq!(race.people[2].monthly_counts[..3], [0, 10, 10]);
-        assert_eq!(alice.file_ids, [5, 7, 1, 2, 4, 6, 8, 9]);
+        assert_eq!(alice.file_ids, [7, 1, 2, 4, 6, 8, 9, 10, 11, 3, 5]);
         assert_eq!(
             alice.face_ids,
             ["7_alice", "10_alice", "11_alice", "1_alice", "2_alice"]

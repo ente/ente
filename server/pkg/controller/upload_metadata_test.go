@@ -31,7 +31,7 @@ func TestPendingUploadMetadata(t *testing.T) {
 	users := &repo.UserRepository{DB: db}
 	controller := &FileController{
 		S3Config: cleanup.S3Config, ObjectCleanupCtrl: cleanup,
-		UsageCtrl: &UsageController{
+		UsageCtrl: &UsageController{UploadURLRepo: &repo.UploadURLRepository{DB: db},
 			UserRepo: users, UsageRepo: &repo.UsageRepository{DB: db},
 			BillingCtrl: &BillingController{UserRepo: users, BillingRepo: &repo.BillingRepository{DB: db}},
 		},
@@ -58,7 +58,7 @@ func TestPendingUploadMetadata(t *testing.T) {
 					upload, err = controller.GetMultipartUploadURLs(t.Context(), userID, 1, ente.Locker, client)
 				} else {
 					upload, err = controller.GetMultipartUploadURLWithMetadata(t.Context(), userID, ente.MultipartUploadURLRequest{
-						ContentLength: 5, PartLength: 5, PartMD5s: []string{checksum},
+						ContentLength: ente.MinMultipartUploadSize, PartLength: ente.MinMultipartUploadSize, PartMD5s: []string{checksum},
 					}, ente.Locker, client)
 				}
 				require.NoError(t, err)
@@ -92,7 +92,11 @@ func TestPendingUploadMetadata(t *testing.T) {
 			require.Equal(t, tc.multipart, uploadID.Valid)
 			require.Equal(t, !tc.legacy, length.Valid)
 			if length.Valid {
-				require.Equal(t, int64(5), length.Int64)
+				wantLength := int64(5)
+				if tc.multipart {
+					wantLength = ente.MinMultipartUploadSize
+				}
+				require.Equal(t, wantLength, length.Int64)
 			}
 			require.Equal(t, !tc.legacy && !tc.multipart, md5.Valid)
 			if md5.Valid {
@@ -103,7 +107,7 @@ func TestPendingUploadMetadata(t *testing.T) {
 			tx, err := db.Begin()
 			require.NoError(t, err)
 			defer tx.Rollback()
-			require.NoError(t, cleanup.Repo.SetExpiryForTempObject(tx, ente.TempObject{ObjectKey: objectKey}, 1))
+			require.NoError(t, cleanup.Repo.SetExpiryForTempObjects(tx, []string{objectKey}, 1))
 			var afterRetry int64
 			require.NoError(t, tx.QueryRow(`SELECT created_at FROM temp_objects WHERE object_key = $1`, objectKey).Scan(&afterRetry))
 			require.Equal(t, createdAt, afterRetry)

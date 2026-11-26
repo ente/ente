@@ -1,6 +1,7 @@
 import { AuthenticateUser } from "@/components/AuthenticateUser";
 import { CollectionSelector } from "@/components/CollectionSelector";
 import { DesktopWhatsNew } from "@/components/DesktopWhatsNew";
+import { PhotosToastStackPortal } from "@/components/PhotosToastStack";
 import { QuickLinkCreatedNotification } from "@/components/QuickLinkCreatedNotification";
 import { Upload } from "@/components/Upload";
 import { PeopleConsentDialog } from "@/components/gallery";
@@ -77,9 +78,15 @@ const Page: React.FC = () => {
                 {blockingLoad && <TranslucentLoadingOverlay />}
                 <CollectionSelector {...collectionSelectorProps} />
                 <SingleInputDialog {...albumNameInputProps} />
-                <GalleryDownloadNotifications {...downloadNotificationsProps} />
-                {uploadProps && <Upload {...uploadProps} />}
-                <QuickLinkCreatedNotification {...quickLinkNotificationProps} />
+                <PhotosToastStackPortal>
+                    {uploadProps && <Upload {...uploadProps} />}
+                    <GalleryDownloadNotifications
+                        {...downloadNotificationsProps}
+                    />
+                    <QuickLinkCreatedNotification
+                        {...quickLinkNotificationProps}
+                    />
+                </PhotosToastStackPortal>
                 <DesktopWhatsNew />
                 <PeopleConsentDialog {...navigation.peopleConsentDialogProps} />
                 <AuthenticateUser {...authenticateUserDialogProps} />

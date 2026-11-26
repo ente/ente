@@ -10,7 +10,7 @@ import {
 import { ensureLocalUser } from "ente-accounts/services/user";
 import { useBaseContext } from "ente-base/context";
 import { isNamedError } from "ente-base/error";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { contactsDisplaySnapshot } from "../..";
 import { resolveContactDisplayFromSnapshot } from "../../resolver";
 import type { LegacyModule, LegacySuggestedUser } from "../types";
@@ -46,6 +46,7 @@ export const LegacyAddContactContent = <Session,>({
     const currentUser = ensureLocalUser();
     const [email, setEmail] = useState("");
     const [selectedRecoveryDays, setSelectedRecoveryDays] = useState(14);
+    const recipientKeys = useRef(new Map<string, string>());
     const snapshot = contactsDisplaySnapshot();
 
     const normalizedExistingEmails = useMemo(
@@ -95,6 +96,15 @@ export const LegacyAddContactContent = <Session,>({
 
     const normalizedEmail = email.trim().toLowerCase();
 
+    const recipientKey = async (email: string) => {
+        const keys = recipientKeys.current;
+        const existing = keys.get(email);
+        if (existing) return existing;
+        const key = await legacy.publicKey(await getSession(), email);
+        if (key && !keys.has(email)) keys.set(email, key);
+        return keys.get(email);
+    };
+
     const handleVerify = async () => {
         if (!normalizedEmail || !EMAIL_PATTERN.test(normalizedEmail)) {
             showMiniDialog({
@@ -104,10 +114,7 @@ export const LegacyAddContactContent = <Session,>({
             return;
         }
         try {
-            const key = await legacy.publicKey(
-                await getSession(),
-                normalizedEmail,
-            );
+            const key = await recipientKey(normalizedEmail);
             const verificationID = key
                 ? await legacy.verificationID(key)
                 : undefined;
@@ -120,7 +127,7 @@ export const LegacyAddContactContent = <Session,>({
                 return;
             }
             showMiniDialog({
-                title: "Verification ID",
+                title: `Verification ID for ${normalizedEmail}`,
                 message: (
                     <Box
                         sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}
@@ -164,10 +171,7 @@ export const LegacyAddContactContent = <Session,>({
 
         void (async () => {
             try {
-                const key = await legacy.publicKey(
-                    await getSession(),
-                    normalizedEmail,
-                );
+                const key = await recipientKey(normalizedEmail);
                 if (!key) {
                     showMiniDialog(nonEnteDialogAttributes(normalizedEmail));
                     return;
@@ -201,6 +205,7 @@ export const LegacyAddContactContent = <Session,>({
                                 await legacy.addContact(
                                     await getSession(),
                                     normalizedEmail,
+                                    key,
                                     selectedRecoveryDays,
                                 );
                             } catch (error) {

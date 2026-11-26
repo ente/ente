@@ -3,6 +3,8 @@ import "package:photos/ui/rewind/theme/rewind_colors.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 
 class RewindOutlinedText extends StatelessWidget {
+  static const _commaPull = 0.05;
+
   const RewindOutlinedText(
     this.text, {
     required this.style,
@@ -30,7 +32,7 @@ class RewindOutlinedText extends StatelessWidget {
         ..color = ink,
     );
     Text layer(TextStyle style) =>
-        Text(text, style: style, textAlign: textAlign, softWrap: false);
+        Text.rich(_spans(style), textAlign: textAlign, softWrap: false);
     return Stack(
       children: [
         if (shadow != Offset.zero) ...[
@@ -48,6 +50,24 @@ class RewindOutlinedText extends StatelessWidget {
         layer(style),
       ],
     );
+  }
+
+  TextSpan _spans(TextStyle style) {
+    final pulled = TextStyle(
+      letterSpacing:
+          (style.letterSpacing ?? 0) - _commaPull * (style.fontSize ?? 14),
+    );
+    final children = <InlineSpan>[];
+    var start = 0;
+    for (var i = 0; i + 1 < text.length; i++) {
+      if (text[i + 1] != ",") continue;
+      children
+        ..add(TextSpan(text: text.substring(start, i)))
+        ..add(TextSpan(text: text[i], style: pulled));
+      start = i + 1;
+    }
+    children.add(TextSpan(text: text.substring(start)));
+    return TextSpan(style: style, children: children);
   }
 }
 

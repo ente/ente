@@ -50,7 +50,6 @@ class _ReorderCodesPageState extends State<ReorderCodesPage> {
               Padding(
                 padding: const EdgeInsets.only(right: Spacing.sm),
                 child: Semantics(
-                  button: true,
                   identifier: 'auth_reorder_save',
                   child: IconButtonComponent(
                     icon: const Icon(

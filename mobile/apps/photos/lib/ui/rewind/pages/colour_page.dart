@@ -1,10 +1,12 @@
 import "package:flutter/material.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/story/rewind_colours.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
+import "package:photos/ui/rewind/theme/rewind_motion.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
@@ -26,6 +28,10 @@ class ColourPage extends RewindPage {
 
   @override
   String get key => pageKey;
+
+  @override
+  Duration? get reelHold =>
+      const Duration(milliseconds: 2000 + RewindMotion.reelReadingMs);
 
   @override
   RewindChrome get chrome => RewindChrome(
@@ -58,7 +64,7 @@ class ColourPage extends RewindPage {
                 child: RewindEntrance(
                   preset: RewindPreset.flip,
                   active: isActive,
-                  child: _card(look, isActive),
+                  child: _card(look, RewindCopy.of(context), isActive),
                 ),
               ),
               RewindLayer(
@@ -68,13 +74,15 @@ class ColourPage extends RewindPage {
                   preset: RewindPreset.line,
                   active: isActive,
                   delayMs: 800,
-                  child: Text(
-                    "${colour.percent}% of your photos were mostly "
-                    "${look.word}.",
-                    style: RewindTextStyles.body(
-                      19,
-                      height: 1.32,
-                      color: look.text,
+                  child: RewindVoice(
+                    RewindCopy.of(context).colourLine(colour.percent, look),
+                    builder: (text) => Text(
+                      text,
+                      style: RewindTextStyles.body(
+                        19,
+                        height: 1.32,
+                        color: look.text,
+                      ),
                     ),
                   ),
                 ),
@@ -86,7 +94,7 @@ class ColourPage extends RewindPage {
     );
   }
 
-  Widget _card(rust.RewindColour look, bool isActive) {
+  Widget _card(rust.RewindColour look, RewindCopy copy, bool isActive) {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: RewindColors.cream,
@@ -122,7 +130,7 @@ class ColourPage extends RewindPage {
             child: RewindFitWidth(
               width: 302,
               child: Text(
-                look.label,
+                copy.colourName(look),
                 style: RewindTextStyles.display(
                   32,
                   color: RewindColors.ink,
@@ -138,14 +146,27 @@ class ColourPage extends RewindPage {
               preset: RewindPreset.fadeIn,
               active: isActive,
               delayMs: 700,
-              child: Text(
-                look.hex,
-                style: const TextStyle(
-                  fontFamily: "Inter",
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
-                  color: Color(0xFF5C5C5C),
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: look.color,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const SizedBox.square(dimension: 10),
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    look.hex,
+                    style: const TextStyle(
+                      fontFamily: "Inter",
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                      color: Color(0xFF5C5C5C),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

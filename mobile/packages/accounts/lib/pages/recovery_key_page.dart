@@ -4,6 +4,7 @@ import 'dart:io' as io;
 import 'package:dots_indicator/dots_indicator.dart';
 import 'package:ente_accounts/widgets/account_app_bar_logo.dart';
 import 'package:ente_components/ente_components.dart';
+import 'package:ente_components/hugeicons.dart';
 import 'package:ente_configuration/base_configuration.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:ente_strings/ente_strings.dart';
@@ -13,7 +14,6 @@ import 'package:ente_utils/ente_utils.dart';
 import 'package:file_saver/file_saver.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:hugeicons/hugeicons.dart';
 import 'package:share_plus/share_plus.dart';
 
 class RecoveryKeyPage extends StatefulWidget {

@@ -12,12 +12,12 @@ import 'package:ente_auth/ui/settings/general_settings_page.dart';
 import 'package:ente_auth/ui/settings/security_settings_page.dart';
 import 'package:ente_auth/ui/settings/support_settings_page.dart';
 import 'package:ente_auth/ui/settings/theme_settings_page.dart';
+import 'package:ente_components/hugeicons.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:ente_ui/models/settings_search_item.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:hugeicons/hugeicons.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 class SettingsSearchRegistry {

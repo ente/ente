@@ -122,7 +122,6 @@ class _DuplicateCodePageState extends State<DuplicateCodePage> {
             Spacing.xl,
           ),
           child: Semantics(
-            button: true,
             identifier: 'auth_duplicate_trash',
             child: ButtonComponent(
               label: '${l10n.trash} ($selectedItemsCount)',

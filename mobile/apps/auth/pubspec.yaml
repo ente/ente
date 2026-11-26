@@ -1,6 +1,6 @@
 name: ente_auth
 description: ente two-factor authenticator
-version: 4.4.27+1007
+version: 4.4.28+1007
 publish_to: none
 
 resolution: workspace
@@ -13,16 +13,12 @@ dependencies:
   auto_size_text: 3.0.0
   backup_exclusion:
     path: ../../packages/backup_exclusion
-  base32: 2.1.3
-  clipboard: 0.1.3
   collection: 1.19.1
   confetti: 0.8.0
   connectivity_plus: 6.1.4
-  convert: 3.1.2
-  dio: 5.9.2
+  dio: 5.11.1
   dots_indicator: 4.0.1
   dotted_border: 3.1.0
-  dropdown_button2: 2.3.9
   email_validator: 3.0.0
   ente_account_deletion:
     path: ../../packages/account_deletion
@@ -93,7 +89,6 @@ dependencies:
   freezed_annotation: 3.1.0
   gradient_borders: 1.0.1
   http: 1.6.0
-  hugeicons: 1.1.7
   image: 4.7.0
   intl: 0.20.3
   io: 1.0.5
@@ -108,14 +103,13 @@ dependencies:
     git:
       url: https://github.com/ente/move_to_background.git
       ref: 0cdfeed654d79636eff0c57110f3f6ad5801ba2f
-  native_dio_adapter: 1.6.0
+  native_dio_adapter: 1.7.0
   otp: 3.2.0
   package_info_plus: 8.3.1
   password_strength: 0.2.0
   path: 1.9.1
   path_provider: 2.1.5
   pinput: 5.0.2
-  pointycastle: 3.9.1
   protobuf: 4.2.0
   qr_flutter: 4.1.0
   saf_stream: 2.0.0
@@ -143,6 +137,7 @@ dependencies:
   xdg_directories: 1.1.0
 
 dev_dependencies:
+  base32: 2.1.3
   build_runner: 2.13.1
   flutter_lints: 6.0.0
   flutter_test:

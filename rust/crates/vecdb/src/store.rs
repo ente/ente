@@ -1,22 +1,24 @@
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
-use std::io::{ErrorKind, Read};
+use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{
-    Arc, LazyLock, Mutex, MutexGuard, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard,
-    TryLockError, Weak,
+    Arc, LazyLock, Mutex, MutexGuard, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard, Weak,
 };
 use std::time::{Duration, Instant};
 
+use ente_core::crypto::Key;
+
 use super::arena::{UpsertOutcome, VectorArena};
-use super::graph::{Graph, search as graph_search, search_stored};
+use super::cipher::{Cipher, encryption_mismatch};
+use super::graph::{Graph, search as graph_search, search_stored, uses_graph};
 use super::kernel::{StoredVector, VectorPayload, quantize_for};
 use super::lock::WriterLock;
 use super::log::{
-    HEADER_LEN, Log, LogCheckpoint, LogEntry, LogRecord, add_record_len, header_generation,
+    Log, LogCheckpoint, LogEntry, LogRecord, add_record_len, header_is_complete, header_len,
     open_writer_file, remove_if_present, remove_stale_temp_sibling, sync_parent_dir,
-    validate_entry,
+    validate_entry, validate_log_dims,
 };
 use super::snapshot::{
     LoadedSnapshot, load_snapshot, remove_snapshot, snapshot_path, write_snapshot,
@@ -35,11 +37,12 @@ const HANDOFF_CLOSE_WAIT_ROUNDS: u32 = 2500;
 const HANDOFF_WAIT_PARK: Duration = Duration::from_millis(2);
 const KEY_TABLE_COPIES: usize = 2;
 const KEY_ENTRY_OVERHEAD_BYTES: usize = 48;
+const GRAPH_BUILD_CHUNK: usize = 128;
 
 static REGISTRY: LazyLock<Mutex<HashMap<PathBuf, Arc<Mutex<PathSlot>>>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
-static PENDING_SEARCH_GRAPH: LazyLock<Graph> = LazyLock::new(Graph::new);
+static EMPTY_GRAPH: LazyLock<Graph> = LazyLock::new(Graph::new);
 
 struct PathSlot {
     live: Option<Weak<Shared>>,
@@ -51,13 +54,6 @@ impl PathSlot {
             .as_ref()
             .is_some_and(|weak| weak.strong_count() > 0)
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum OpenCost {
-    Ready,
-    NeedsRebuild,
-    Absent,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -80,25 +76,42 @@ struct Shared {
     path: PathBuf,
     dims: usize,
     storage: StorageKind,
+    cipher: Option<Cipher>,
     registry_key: Option<PathBuf>,
     closed: AtomicBool,
+    graph_unsaved: AtomicBool,
     writer: Mutex<WriterHalf>,
     state: RwLock<SearchState>,
+    graph: RwLock<Graph>,
 }
 
 struct SearchState {
     arena: VectorArena,
-    graph: Option<Graph>,
     attrs: AttrTable,
     total_records: u64,
     live_log_bytes: u64,
 }
 
-impl SearchState {
-    fn search_graph(&self) -> &Graph {
-        self.graph.as_ref().unwrap_or(&PENDING_SEARCH_GRAPH)
-    }
+struct SearchView<'a> {
+    state: RwLockReadGuard<'a, SearchState>,
+    graph: Option<RwLockReadGuard<'a, Graph>>,
+}
 
+impl SearchView<'_> {
+    fn graph(&self) -> &Graph {
+        self.graph.as_deref().unwrap_or(&EMPTY_GRAPH)
+    }
+}
+
+impl std::ops::Deref for SearchView<'_> {
+    type Target = SearchState;
+
+    fn deref(&self) -> &SearchState {
+        &self.state
+    }
+}
+
+impl SearchState {
     fn entry_matches(&self, key: &str, vector: VectorPayload<'_>, attrs: &[Attribute]) -> bool {
         self.arena.slot_of_key(key).is_some_and(|slot| {
             self.arena.matches_payload(slot, vector)
@@ -222,6 +235,20 @@ impl Shared {
         self.state.write().unwrap_or_else(PoisonError::into_inner)
     }
 
+    fn graph_read(&self) -> RwLockReadGuard<'_, Graph> {
+        self.graph.read().unwrap_or_else(PoisonError::into_inner)
+    }
+
+    fn graph_write(&self) -> RwLockWriteGuard<'_, Graph> {
+        self.graph.write().unwrap_or_else(PoisonError::into_inner)
+    }
+
+    fn pending_graph_slots(&self) -> usize {
+        let st = self.state_read();
+        let graph = self.graph_read();
+        st.arena.slot_count().saturating_sub(graph.indexed_slots())
+    }
+
     fn is_closed(&self) -> bool {
         self.closed.load(Ordering::Acquire)
     }
@@ -323,8 +350,12 @@ fn join_live(
     shared: Arc<Shared>,
     dims: usize,
     storage: StorageKind,
+    cipher: Option<&Cipher>,
     read_only: bool,
 ) -> Result<VecDb, VecDbError> {
+    if let Some(mismatch) = encryption_mismatch(shared.cipher.as_ref(), cipher) {
+        return Err(VecDbError::encryption_mismatch(&shared.path, mismatch));
+    }
     if shared.dims != dims {
         return Err(VecDbError::DimensionMismatch {
             expected: dims,
@@ -392,6 +423,41 @@ impl VecDb {
         dims: usize,
         storage: Option<StorageKind>,
     ) -> Result<Self, VecDbError> {
+        Self::open_writer(path, dims, storage, None)
+    }
+
+    pub fn open_encrypted(
+        path: &Path,
+        dims: usize,
+        storage: Option<StorageKind>,
+        encryption_key: &Key,
+    ) -> Result<Self, VecDbError> {
+        Self::open_writer(path, dims, storage, Some(Cipher::new(encryption_key)))
+    }
+
+    pub fn open_read_only(
+        path: &Path,
+        dims: usize,
+        storage: Option<StorageKind>,
+    ) -> Result<Self, VecDbError> {
+        Self::open_reader(path, dims, storage, None)
+    }
+
+    pub fn open_read_only_encrypted(
+        path: &Path,
+        dims: usize,
+        storage: Option<StorageKind>,
+        encryption_key: &Key,
+    ) -> Result<Self, VecDbError> {
+        Self::open_reader(path, dims, storage, Some(Cipher::new(encryption_key)))
+    }
+
+    fn open_writer(
+        path: &Path,
+        dims: usize,
+        storage: Option<StorageKind>,
+        cipher: Option<Cipher>,
+    ) -> Result<Self, VecDbError> {
         let storage = storage.unwrap_or(StorageKind::I8);
         let key = registry_key_for(path)?;
         let slot = path_slot(&key);
@@ -401,21 +467,21 @@ impl VecDb {
             drop(guard);
             match observed {
                 Some(shared) if !shared.is_closed() => {
-                    return join_live(shared, dims, storage, false);
+                    return join_live(shared, dims, storage, cipher.as_ref(), false);
                 }
                 observed => drop(observed),
             }
             match wait_for_teardown_handoff(&slot, &key) {
                 SlotHandoff::Join(shared) => {
-                    return join_live(shared, dims, storage, false);
+                    return join_live(shared, dims, storage, cipher.as_ref(), false);
                 }
                 SlotHandoff::Released(reacquired) | SlotHandoff::Expired(reacquired) => {
                     guard = reacquired;
                 }
             }
         }
-        let built = match build_writer(&key, key.clone(), dims, storage) {
-            Ok(built) => built,
+        let shared = match build_writer(&key, key.clone(), dims, storage, cipher) {
+            Ok(shared) => Arc::new(shared),
             Err(error) => {
                 drop(guard);
                 drop(slot);
@@ -423,46 +489,19 @@ impl VecDb {
                 return Err(error);
             }
         };
-        match built {
-            BuiltWriter::Complete(shared) => {
-                let shared = Arc::new(shared);
-                guard.live = Some(Arc::downgrade(&shared));
-                drop(guard);
-                Ok(Self {
-                    shared,
-                    read_only: false,
-                })
-            }
-            BuiltWriter::Pending {
-                shared,
-                snapshot_stale,
-                pending_records,
-            } => {
-                let shared = Arc::new(shared);
-                let half = shared.writer_half();
-                guard.live = Some(Arc::downgrade(&shared));
-                drop(guard);
-                finish_pending_open(&shared, half, snapshot_stale, pending_records);
-                Ok(Self {
-                    shared,
-                    read_only: false,
-                })
-            }
-        }
+        guard.live = Some(Arc::downgrade(&shared));
+        drop(guard);
+        Ok(Self {
+            shared,
+            read_only: false,
+        })
     }
 
-    pub fn open_cost(path: &Path) -> OpenCost {
-        let key = registry_key_for(path).unwrap_or_else(|_| path.to_path_buf());
-        if registry_holds_live(&key) {
-            return OpenCost::Ready;
-        }
-        open_cost_from_files(&key)
-    }
-
-    pub fn open_read_only(
+    fn open_reader(
         path: &Path,
         dims: usize,
         storage: Option<StorageKind>,
+        cipher: Option<Cipher>,
     ) -> Result<Self, VecDbError> {
         let storage = storage.unwrap_or(StorageKind::I8);
         let resolved = registry_key_for(path).unwrap_or_else(|_| path.to_path_buf());
@@ -470,13 +509,13 @@ impl VecDb {
             let observed = lock_slot(&slot).live.as_ref().and_then(Weak::upgrade);
             match observed {
                 Some(shared) if !shared.is_closed() => {
-                    return join_live(shared, dims, storage, true);
+                    return join_live(shared, dims, storage, cipher.as_ref(), true);
                 }
                 Some(closing) => {
                     drop(closing);
                     match wait_for_teardown_handoff(&slot, &resolved) {
                         SlotHandoff::Join(shared) => {
-                            return join_live(shared, dims, storage, true);
+                            return join_live(shared, dims, storage, cipher.as_ref(), true);
                         }
                         SlotHandoff::Released(released) | SlotHandoff::Expired(released) => {
                             drop(released);
@@ -487,7 +526,7 @@ impl VecDb {
             }
         }
         Ok(Self {
-            shared: Arc::new(build_read_only(&resolved, dims, storage)?),
+            shared: Arc::new(build_read_only(&resolved, dims, storage, cipher)?),
             read_only: true,
         })
     }
@@ -712,10 +751,9 @@ impl VecDb {
         if degenerate_distance_cut(params)? {
             return Ok(Vec::new());
         }
-        let st = self.shared.state_read();
-        self.shared.ensure_open()?;
-        let allowed_slots = resolve_allowed_slots(&st, params.allowed_keys.as_deref());
-        search_in_state(&st, query, params, allowed_slots.as_ref())
+        let view = self.search_view(uses_graph(params))?;
+        let allowed_slots = resolve_allowed_slots(&view, params.allowed_keys.as_deref());
+        search_in_state(&view, view.graph(), query, params, allowed_slots.as_ref())
     }
 
     pub fn bulk_search(
@@ -727,12 +765,13 @@ impl VecDb {
         if degenerate_distance_cut(params)? {
             return Ok(queries.iter().map(|_| Vec::new()).collect());
         }
-        let st = self.shared.state_read();
-        self.shared.ensure_open()?;
-        let allowed_slots = resolve_allowed_slots(&st, params.allowed_keys.as_deref());
+        let view = self.search_view(uses_graph(params))?;
+        let allowed_slots = resolve_allowed_slots(&view, params.allowed_keys.as_deref());
         queries
             .iter()
-            .map(|query| search_in_state(&st, query, params, allowed_slots.as_ref()))
+            .map(|query| {
+                search_in_state(&view, view.graph(), query, params, allowed_slots.as_ref())
+            })
             .collect()
     }
 
@@ -747,9 +786,7 @@ impl VecDb {
                 vectors: params.len(),
             });
         }
-        self.shared.ensure_open()?;
-        let st = self.shared.state_read();
-        self.shared.ensure_open()?;
+        let view = self.search_view(params.iter().any(uses_graph))?;
         queries
             .iter()
             .zip(params)
@@ -758,8 +795,14 @@ impl VecDb {
                     return Ok(Vec::new());
                 }
                 let allowed_slots =
-                    resolve_allowed_slots(&st, query_params.allowed_keys.as_deref());
-                search_in_state(&st, query, query_params, allowed_slots.as_ref())
+                    resolve_allowed_slots(&view, query_params.allowed_keys.as_deref());
+                search_in_state(
+                    &view,
+                    view.graph(),
+                    query,
+                    query_params,
+                    allowed_slots.as_ref(),
+                )
             })
             .collect()
     }
@@ -772,12 +815,10 @@ impl VecDb {
         exact: bool,
         restrict_to_input: bool,
     ) -> Result<Vec<KeyMatches>, VecDbError> {
-        self.shared.ensure_open()?;
-        let st = self.shared.state_read();
-        self.shared.ensure_open()?;
+        let view = self.search_view(!exact)?;
         let resolved: Vec<(&String, u32)> = keys
             .iter()
-            .filter_map(|key| st.arena.slot_of_key(key).map(|slot| (key, slot)))
+            .filter_map(|key| view.arena.slot_of_key(key).map(|slot| (key, slot)))
             .collect();
         let degenerate =
             max_distance.is_some_and(|distance| !distance.is_finite() || distance < 0.0);
@@ -799,8 +840,8 @@ impl VecDb {
                 continue;
             }
             let mut matches = search_stored(
-                st.search_graph(),
-                &st.arena,
+                view.graph(),
+                &view.arena,
                 slot,
                 &params,
                 allowed_slots.as_ref(),
@@ -820,10 +861,20 @@ impl VecDb {
     pub fn flush(&self) -> Result<(), VecDbError> {
         let mut half = self.writable_half()?;
         let state = active_state(&mut half)?;
-        if state.mutations_since_snapshot == 0 {
+        if state.mutations_since_snapshot == 0 && !self.shared.graph_unsaved.load(Ordering::Acquire)
+        {
             return Ok(());
         }
         write_snapshot_now(&self.shared, &mut half)
+    }
+
+    pub fn build_pending_graph(&self, max_vectors: usize) -> Result<usize, VecDbError> {
+        self.shared.ensure_open()?;
+        let processed = build_pending_graph(&self.shared, max_vectors);
+        if self.shared.pending_graph_slots() == 0 && !self.read_only {
+            self.flush()?;
+        }
+        Ok(processed)
     }
 
     pub fn reset(&self) -> Result<(), VecDbError> {
@@ -838,8 +889,14 @@ impl VecDb {
         drop(log);
         let dims = self.shared.dims;
         let storage = self.shared.storage;
-        let recreated = remove_data_files(&self.shared.path)
-            .and_then(|()| Log::create(&self.shared.path, dims, storage));
+        let recreated = remove_data_files(&self.shared.path).and_then(|()| {
+            Log::create(
+                &self.shared.path,
+                dims,
+                storage,
+                self.shared.cipher.as_ref(),
+            )
+        });
         let log = match recreated {
             Ok(log) => log,
             Err(error) => {
@@ -857,11 +914,12 @@ impl VecDb {
         {
             let mut st = self.shared.state_write();
             st.arena = arena;
-            st.graph = Some(Graph::new());
             st.attrs.reset();
             st.total_records = 0;
             st.live_log_bytes = 0;
+            *self.shared.graph_write() = Graph::new();
         }
+        self.shared.graph_unsaved.store(false, Ordering::Release);
         half.compaction_retry_at_dead = 0;
         half.mode = WriterMode::Active(WriterState {
             lock,
@@ -942,7 +1000,7 @@ impl VecDb {
             storage: self.shared.storage,
             log_bytes,
             records_since_snapshot,
-            approximate_memory_bytes: approximate_memory_bytes(&st),
+            approximate_memory_bytes: approximate_memory_bytes(&st, &self.shared.graph_read()),
         })
     }
 
@@ -956,6 +1014,16 @@ impl VecDb {
 
     pub fn is_closed(&self) -> bool {
         self.shared.is_closed()
+    }
+
+    fn search_view(&self, approximate: bool) -> Result<SearchView<'_>, VecDbError> {
+        self.shared.ensure_open()?;
+        if approximate {
+            build_pending_graph(&self.shared, usize::MAX);
+        }
+        let state = self.open_state()?;
+        let graph = approximate.then(|| self.shared.graph_read());
+        Ok(SearchView { state, graph })
     }
 
     fn open_state(&self) -> Result<RwLockReadGuard<'_, SearchState>, VecDbError> {
@@ -1013,60 +1081,42 @@ fn resolve_allowed_slots(
     })
 }
 
+fn build_pending_graph(shared: &Shared, max_vectors: usize) -> usize {
+    if shared.pending_graph_slots() == 0 {
+        return 0;
+    }
+    let mut processed = 0;
+    while processed < max_vectors {
+        let st = shared.state_read();
+        let mut graph = shared.graph_write();
+        let pending = st.arena.slot_count().saturating_sub(graph.indexed_slots());
+        if pending == 0 {
+            break;
+        }
+        let step = pending.min(max_vectors - processed).min(GRAPH_BUILD_CHUNK);
+        let end = graph.indexed_slots() + step;
+        graph.index_slots_until(&st.arena, end);
+        processed += step;
+        shared.graph_unsaved.store(true, Ordering::Release);
+    }
+    processed
+}
+
 fn search_in_state(
     state: &SearchState,
+    graph: &Graph,
     query: &[f32],
     params: &SearchParams,
     allowed_slots: Option<&HashSet<u32>>,
 ) -> Result<Vec<Match>, VecDbError> {
     let packed = state.arena.pack_query(query)?;
     Ok(graph_search(
-        state.search_graph(),
+        graph,
         &state.arena,
         &packed,
         params,
         allowed_slots,
     ))
-}
-
-fn registry_holds_live(key: &Path) -> bool {
-    let Some(slot) = existing_path_slot(key) else {
-        return false;
-    };
-    match slot.try_lock() {
-        Ok(guard) => guard.holds_live(),
-        Err(TryLockError::Poisoned(poisoned)) => poisoned.into_inner().holds_live(),
-        Err(TryLockError::WouldBlock) => false,
-    }
-}
-
-fn open_cost_from_files(path: &Path) -> OpenCost {
-    let Ok(mut file) = File::open(path) else {
-        return OpenCost::Absent;
-    };
-    let log_len = match file.metadata() {
-        Ok(meta) => meta.len(),
-        Err(_) => return OpenCost::Absent,
-    };
-    if log_len < HEADER_LEN as u64 {
-        return OpenCost::Absent;
-    }
-    let mut header = [0u8; HEADER_LEN];
-    if file.read_exact(&mut header).is_err() {
-        return OpenCost::Absent;
-    }
-    drop(file);
-    let Ok(generation) = header_generation(&header) else {
-        return OpenCost::NeedsRebuild;
-    };
-    let snapshot_present = std::fs::metadata(snapshot_path(path)).is_ok();
-    match load_snapshot(path, generation) {
-        Some(loaded) if loaded.covered_log_offset <= log_len => OpenCost::Ready,
-        Some(_) => OpenCost::NeedsRebuild,
-        None if snapshot_present => OpenCost::NeedsRebuild,
-        None if log_len > HEADER_LEN as u64 => OpenCost::NeedsRebuild,
-        None => OpenCost::Ready,
-    }
 }
 
 fn close_live_instance(shared: &Arc<Shared>) -> Result<(), VecDbError> {
@@ -1083,10 +1133,10 @@ fn close_live_instance(shared: &Arc<Shared>) -> Result<(), VecDbError> {
     let removed = remove_data_files(&shared.path);
     if let Ok(empty) = VectorArena::with_storage(shared.dims, shared.storage) {
         st.arena = empty;
-        st.graph = Some(Graph::new());
         st.attrs.reset();
         st.total_records = 0;
         st.live_log_bytes = 0;
+        *shared.graph_write() = Graph::new();
     }
     drop(lock);
     if let Some(key) = &shared.registry_key
@@ -1115,15 +1165,12 @@ fn apply_add(
     let mut st = shared.state_write();
     let SearchState {
         arena,
-        graph,
         attrs: attr_table,
         total_records,
         live_log_bytes,
+        ..
     } = &mut *st;
-    let outcome = upsert_entry(arena, attr_table, live_log_bytes, key, vector, attrs)?;
-    if let Some(graph) = graph {
-        apply_outcome(graph, arena, outcome);
-    }
+    upsert_entry(arena, attr_table, live_log_bytes, key, vector, attrs)?;
     *total_records += 1;
     Ok(())
 }
@@ -1187,17 +1234,18 @@ fn apply_policy(
     count: usize,
     now: Instant,
 ) -> Result<(), VecDbError> {
-    let (dead, retired, slots, live_log_bytes) = {
+    let (dead, retired, slots, live_count, live_record_bytes) = {
         let st = shared.state_read();
         (
             st.total_records
                 .saturating_sub(st.arena.live_count() as u64),
             st.arena.dead_count(),
             st.arena.slot_count(),
+            st.arena.live_count() as u64,
             st.live_log_bytes,
         )
     };
-    let (quiet, mutations, log_bytes) = {
+    let (quiet, mutations, log_bytes, live_log_bytes) = {
         let state = active_state(half)?;
         state.mutations_since_snapshot += count;
         let quiet = state
@@ -1210,7 +1258,8 @@ fn apply_policy(
             state
                 .log
                 .current_end_offset()
-                .saturating_sub(HEADER_LEN as u64),
+                .saturating_sub(state.log.header_len()),
+            live_record_bytes + live_count * state.log.record_overhead(),
         )
     };
     let retired_budget_reached = retired >= COMPACTION_MIN_RETIRED_VECTORS
@@ -1241,16 +1290,15 @@ fn apply_policy(
 fn write_snapshot_now(shared: &Shared, half: &mut WriterHalf) -> Result<(), VecDbError> {
     let state = active_state(half)?;
     {
-        let st = shared.state_read();
-        let Some(graph) = &st.graph else {
-            return Ok(());
-        };
+        let graph = shared.graph_read();
         write_snapshot(
             state.log.path(),
             state.log.generation(),
             state.log.current_end_offset(),
-            graph,
+            &graph,
+            state.log.cipher(),
         )?;
+        shared.graph_unsaved.store(false, Ordering::Release);
     }
     state.mutations_since_snapshot = 0;
     Ok(())
@@ -1258,8 +1306,12 @@ fn write_snapshot_now(shared: &Shared, half: &mut WriterHalf) -> Result<(), VecD
 
 fn compact(shared: &Shared, half: &mut WriterHalf) -> Result<(), VecDbError> {
     active_state(half)?;
-    let (mut temp_log, temp_path) =
-        Log::create_temp_sibling(&shared.path, shared.dims, shared.storage)?;
+    let (mut temp_log, temp_path) = Log::create_temp_sibling(
+        &shared.path,
+        shared.dims,
+        shared.storage,
+        shared.cipher.as_ref(),
+    )?;
     let staged = {
         let st = shared.state_read();
         stage_live_entries(&st, &mut temp_log)
@@ -1290,32 +1342,20 @@ fn compact(shared: &Shared, half: &mut WriterHalf) -> Result<(), VecDbError> {
         let _ = std::fs::remove_file(&temp_path);
         (mutations_since_snapshot, old_checkpoint)
     } else {
-        let (live_records, rebuild) = {
-            let mut st = shared.state_write();
-            let SearchState {
-                arena,
-                graph,
-                attrs,
-                total_records,
-                ..
-            } = &mut *st;
-            let rebuild = arena.dead_count() > 0;
-            if rebuild {
-                attrs.repack(arena.live_slots());
-                arena.compact_in_place();
-                *graph = None;
-            }
-            *total_records = arena.live_count() as u64;
-            (*total_records as usize, rebuild)
-        };
-        if rebuild {
-            let graph = {
-                let st = shared.state_read();
-                Graph::rebuild(&st.arena)
-            };
-            shared.state_write().graph = Some(graph);
+        let mut st = shared.state_write();
+        let SearchState {
+            arena,
+            attrs,
+            total_records,
+            ..
+        } = &mut *st;
+        if arena.dead_count() > 0 {
+            attrs.repack(arena.live_slots());
+            arena.compact_in_place();
+            *shared.graph_write() = Graph::new();
         }
-        (live_records, compacted_checkpoint)
+        *total_records = arena.live_count() as u64;
+        (*total_records as usize, compacted_checkpoint)
     };
     let restored =
         restore_writer_mode(shared, half, lock, last_write, pending, expected_checkpoint);
@@ -1338,26 +1378,33 @@ fn restore_writer_mode(
             .metadata()
             .map_err(|source| VecDbError::io(&shared.path, source))?
             .len()
-            < HEADER_LEN as u64
+            < header_len(shared.cipher.as_ref()) as u64
         {
             return Err(VecDbError::Corrupt(
                 "log header was truncated while the writer was closed".to_string(),
             ));
         }
-        let mut log = Log::open(file, &shared.path, shared.dims, shared.storage)?;
+        let mut log = Log::open(
+            file,
+            &shared.path,
+            shared.dims,
+            shared.storage,
+            shared.cipher.as_ref(),
+        )?;
         let mut pending = mutations_since_snapshot;
         if log.checkpoint() != expected_checkpoint {
             let replayed = replay(&mut log, shared.dims, ReplayMode::Writer)?;
             log.truncate_to(replayed.recoverable_end)?;
-            let graph = Graph::rebuild(&replayed.arena);
             pending = replayed.total_records as usize;
-            *shared.state_write() = SearchState {
+            let mut st = shared.state_write();
+            *st = SearchState {
                 arena: replayed.arena,
-                graph: Some(graph),
                 attrs: replayed.attrs,
                 total_records: replayed.total_records,
                 live_log_bytes: replayed.live_log_bytes,
             };
+            *shared.graph_write() = Graph::new();
+            drop(st);
             half.compaction_retry_at_dead = 0;
         }
         Ok((log, pending))
@@ -1399,21 +1446,12 @@ fn recover_after_failed_reset(
     if let Ok(empty) = VectorArena::with_storage(shared.dims, shared.storage) {
         let mut st = shared.state_write();
         st.arena = empty;
-        st.graph = Some(Graph::new());
         st.attrs.reset();
         st.total_records = 0;
         st.live_log_bytes = 0;
+        *shared.graph_write() = Graph::new();
         half.compaction_retry_at_dead = 0;
     }
-}
-
-enum BuiltWriter {
-    Complete(Shared),
-    Pending {
-        shared: Shared,
-        snapshot_stale: bool,
-        pending_records: usize,
-    },
 }
 
 fn build_writer(
@@ -1421,15 +1459,16 @@ fn build_writer(
     registry_key: PathBuf,
     dims: usize,
     storage: StorageKind,
-) -> Result<BuiltWriter, VecDbError> {
+    cipher: Option<Cipher>,
+) -> Result<Shared, VecDbError> {
     let lock = WriterLock::acquire(path)?;
     let mut log = if std::fs::metadata(path).is_ok() {
-        open_existing_writer_log(path, dims, storage)?
+        open_existing_writer_log(path, dims, storage, cipher.as_ref())?
     } else {
-        match Log::create(path, dims, storage) {
+        match Log::create(path, dims, storage, cipher.as_ref()) {
             Ok(created) => created,
             Err(VecDbError::Io { source, .. }) if source.kind() == ErrorKind::AlreadyExists => {
-                open_existing_writer_log(path, dims, storage)?
+                open_existing_writer_log(path, dims, storage, cipher.as_ref())?
             }
             Err(error) => return Err(error),
         }
@@ -1450,67 +1489,49 @@ fn build_writer(
         tail_records,
         ..
     } = replayed;
-    match graph {
-        Some(graph) => {
-            let mut mutations_since_snapshot = 0;
-            if tail_records > 0
-                && let Err(error) = write_snapshot(
-                    log.path(),
-                    log.generation(),
-                    log.current_end_offset(),
-                    &graph,
-                )
-            {
-                log::warn!(
-                    "continuing without an open-time snapshot for {}: {error}",
-                    path.display()
-                );
-                mutations_since_snapshot = (tail_records as usize).max(1);
-            }
-            Ok(BuiltWriter::Complete(writer_shared(
-                path,
-                registry_key,
-                dims,
-                storage,
-                WriterState {
-                    lock,
-                    log,
-                    mutations_since_snapshot,
-                    last_write: None,
-                },
-                SearchState {
-                    arena,
-                    graph: Some(graph),
-                    attrs,
-                    total_records,
-                    live_log_bytes,
-                },
-            )))
-        }
-        None => Ok(BuiltWriter::Pending {
-            shared: writer_shared(
-                path,
-                registry_key,
-                dims,
-                storage,
-                WriterState {
-                    lock,
-                    log,
-                    mutations_since_snapshot: 0,
-                    last_write: None,
-                },
-                SearchState {
-                    arena,
-                    graph: None,
-                    attrs,
-                    total_records,
-                    live_log_bytes,
-                },
-            ),
-            snapshot_stale: total_records > 0 || snapshot_present,
-            pending_records: total_records as usize,
-        }),
+    let (graph, unsnapshotted_records, snapshot_stale) = match graph {
+        Some(graph) => (graph, tail_records, tail_records > 0),
+        None => (
+            Graph::new(),
+            total_records,
+            total_records > 0 || snapshot_present,
+        ),
+    };
+    let mut mutations_since_snapshot = 0;
+    if snapshot_stale
+        && let Err(error) = write_snapshot(
+            log.path(),
+            log.generation(),
+            log.current_end_offset(),
+            &graph,
+            log.cipher(),
+        )
+    {
+        log::warn!(
+            "continuing without an open-time snapshot for {}: {error}",
+            path.display()
+        );
+        mutations_since_snapshot = (unsnapshotted_records as usize).max(1);
     }
+    Ok(writer_shared(
+        path,
+        registry_key,
+        dims,
+        storage,
+        WriterState {
+            lock,
+            log,
+            mutations_since_snapshot,
+            last_write: None,
+        },
+        SearchState {
+            arena,
+            attrs,
+            total_records,
+            live_log_bytes,
+        },
+        graph,
+    ))
 }
 
 fn writer_shared(
@@ -1520,68 +1541,35 @@ fn writer_shared(
     storage: StorageKind,
     writer: WriterState,
     state: SearchState,
+    graph: Graph,
 ) -> Shared {
     Shared {
         path: path.to_path_buf(),
         dims,
         storage,
+        cipher: writer.log.cipher().cloned(),
         registry_key: Some(registry_key),
         closed: AtomicBool::new(false),
+        graph_unsaved: AtomicBool::new(false),
         writer: Mutex::new(WriterHalf {
             compaction_retry_at_dead: 0,
             mode: WriterMode::Active(writer),
         }),
         state: RwLock::new(state),
+        graph: RwLock::new(graph),
     }
 }
 
-fn finish_pending_open(
-    shared: &Shared,
-    mut half: MutexGuard<'_, WriterHalf>,
-    snapshot_stale: bool,
-    pending_records: usize,
-) {
-    let graph = {
-        let st = shared.state_read();
-        Graph::rebuild(&st.arena)
-    };
-    install_graph(shared, graph);
-    if !snapshot_stale {
-        return;
-    }
-    if let Err(error) = write_snapshot_now(shared, &mut half) {
-        log::warn!(
-            "continuing without an open-time snapshot for {}: {error}",
-            shared.path.display()
-        );
-        if let WriterMode::Active(state) = &mut half.mode {
-            state.mutations_since_snapshot = pending_records.max(1);
-        }
-    }
-}
-
-fn install_graph(shared: &Shared, graph: Graph) {
-    let mut installable = Some(graph);
-    loop {
-        match shared.state.try_write() {
-            Ok(mut st) => {
-                st.graph = installable.take();
-                return;
-            }
-            Err(TryLockError::Poisoned(poisoned)) => {
-                poisoned.into_inner().graph = installable.take();
-                return;
-            }
-            Err(TryLockError::WouldBlock) => std::thread::yield_now(),
-        }
-    }
-}
-
-fn build_read_only(path: &Path, dims: usize, storage: StorageKind) -> Result<Shared, VecDbError> {
-    let file = match File::open(path) {
+fn build_read_only(
+    path: &Path,
+    dims: usize,
+    storage: StorageKind,
+    cipher: Option<Cipher>,
+) -> Result<Shared, VecDbError> {
+    let mut file = match File::open(path) {
         Ok(file) => file,
         Err(error) if error.kind() == ErrorKind::NotFound => {
-            return empty_read_only(path, dims, storage);
+            return empty_read_only(path, dims, storage, cipher);
         }
         Err(source) => return Err(VecDbError::io(path, source)),
     };
@@ -1589,10 +1577,10 @@ fn build_read_only(path: &Path, dims: usize, storage: StorageKind) -> Result<Sha
         .metadata()
         .map_err(|source| VecDbError::io(path, source))?
         .len();
-    if file_len < HEADER_LEN as u64 {
-        return empty_read_only(path, dims, storage);
+    if !header_is_complete(&mut file, path, file_len, cipher.as_ref())? {
+        return empty_read_only(path, dims, storage, cipher);
     }
-    let mut log = Log::open(file, path, dims, storage)?;
+    let mut log = Log::open(file, path, dims, storage, cipher.as_ref())?;
     let replayed = replay(&mut log, dims, ReplayMode::ReadOnly)?;
     drop(log);
     let ReplayedState {
@@ -1604,60 +1592,66 @@ fn build_read_only(path: &Path, dims: usize, storage: StorageKind) -> Result<Sha
         recoverable_end,
         ..
     } = replayed;
-    let graph = graph.unwrap_or_else(|| Graph::rebuild(&arena));
     Ok(read_only_shared(
         path,
-        arena,
-        graph,
-        attrs,
-        total_records,
-        live_log_bytes,
+        cipher,
+        SearchState {
+            arena,
+            attrs,
+            total_records,
+            live_log_bytes,
+        },
+        graph.unwrap_or_else(Graph::new),
         recoverable_end,
     ))
 }
 
-fn empty_read_only(path: &Path, dims: usize, storage: StorageKind) -> Result<Shared, VecDbError> {
+fn empty_read_only(
+    path: &Path,
+    dims: usize,
+    storage: StorageKind,
+    cipher: Option<Cipher>,
+) -> Result<Shared, VecDbError> {
+    validate_log_dims(dims, storage, cipher.as_ref())?;
     Ok(read_only_shared(
         path,
-        VectorArena::with_storage(dims, storage)?,
+        cipher,
+        SearchState {
+            arena: VectorArena::with_storage(dims, storage)?,
+            attrs: AttrTable::default(),
+            total_records: 0,
+            live_log_bytes: 0,
+        },
         Graph::new(),
-        AttrTable::default(),
-        0,
-        0,
         0,
     ))
 }
 
 fn read_only_shared(
     path: &Path,
-    arena: VectorArena,
+    cipher: Option<Cipher>,
+    state: SearchState,
     graph: Graph,
-    attrs: AttrTable,
-    total_records: u64,
-    live_log_bytes: u64,
     log_bytes: u64,
 ) -> Shared {
     Shared {
         path: path.to_path_buf(),
-        dims: arena.dims(),
-        storage: arena.storage_kind(),
+        dims: state.arena.dims(),
+        storage: state.arena.storage_kind(),
+        cipher,
         registry_key: None,
         closed: AtomicBool::new(false),
+        graph_unsaved: AtomicBool::new(false),
         writer: Mutex::new(WriterHalf {
             compaction_retry_at_dead: 0,
             mode: WriterMode::ReadOnly { log_bytes },
         }),
-        state: RwLock::new(SearchState {
-            arena,
-            graph: Some(graph),
-            attrs,
-            total_records,
-            live_log_bytes,
-        }),
+        state: RwLock::new(state),
+        graph: RwLock::new(graph),
     }
 }
 
-fn approximate_memory_bytes(state: &SearchState) -> usize {
+fn approximate_memory_bytes(state: &SearchState, graph: &Graph) -> usize {
     let vector_bytes = state.arena.vector_memory_bytes();
     let key_bytes: usize = state
         .arena
@@ -1665,7 +1659,7 @@ fn approximate_memory_bytes(state: &SearchState) -> usize {
         .filter_map(|slot| state.arena.key_of_slot(slot))
         .map(|key| KEY_TABLE_COPIES * (key.len() + KEY_ENTRY_OVERHEAD_BYTES))
         .sum();
-    let graph_bytes = state.graph.as_ref().map_or(0, Graph::memory_bytes);
+    let graph_bytes = graph.memory_bytes();
     let retired_key_slots = state.arena.dead_count() * size_of::<Box<str>>();
     vector_bytes + key_bytes + retired_key_slots + graph_bytes + state.attrs.memory_bytes()
 }
@@ -1686,7 +1680,7 @@ enum ReplayMode {
 }
 
 fn replay(log: &mut Log, dims: usize, mode: ReplayMode) -> Result<ReplayedState, VecDbError> {
-    let mut snapshot = load_snapshot(log.path(), log.generation());
+    let mut snapshot = load_snapshot(log.path(), log.generation(), log.cipher());
     if let Some(loaded) = &snapshot
         && loaded.covered_log_offset > log.current_end_offset()
     {
@@ -1727,7 +1721,7 @@ fn replay(log: &mut Log, dims: usize, mode: ReplayMode) -> Result<ReplayedState,
                     vector,
                     attrs: record_attrs,
                 } => {
-                    let outcome = upsert_entry(
+                    upsert_entry(
                         &mut arena,
                         &mut attrs,
                         &mut live_log_bytes,
@@ -1735,9 +1729,6 @@ fn replay(log: &mut Log, dims: usize, mode: ReplayMode) -> Result<ReplayedState,
                         vector.as_payload(),
                         &record_attrs,
                     )?;
-                    if let Some(graph) = &mut graph {
-                        apply_outcome(graph, &arena, outcome);
-                    }
                 }
                 LogRecord::Tombstone { key } => {
                     remove_entry(&mut arena, &mut attrs, &mut live_log_bytes, &key);
@@ -1792,16 +1783,13 @@ fn attach_snapshot_graph(
         arena.slot_count(),
         loaded.insert_ordinal,
     ) {
-        Ok(attached) => *graph = Some(attached),
+        Ok(mut attached) => {
+            attached.resume_from_first_unindexed(arena);
+            *graph = Some(attached);
+        }
         Err(error) => {
             log::debug!("discarding snapshot for {}: {error}", path.display());
         }
-    }
-}
-
-fn apply_outcome(graph: &mut Graph, arena: &VectorArena, outcome: UpsertOutcome) {
-    if let UpsertOutcome::NewSlot(slot) = outcome {
-        graph.insert(slot, arena);
     }
 }
 
@@ -1818,9 +1806,10 @@ fn open_existing_writer_log(
     path: &Path,
     dims: usize,
     storage: StorageKind,
+    cipher: Option<&Cipher>,
 ) -> Result<Log, VecDbError> {
     let file = open_writer_file(path, false)?;
-    Log::open(file, path, dims, storage)
+    Log::open(file, path, dims, storage, cipher)
 }
 
 fn promote_compacted_log(temp_path: &Path, path: &Path) -> Result<(), VecDbError> {
@@ -1886,9 +1875,11 @@ mod tests {
 
     use tempfile::TempDir;
 
+    use super::super::EncryptionMismatch;
     use super::super::crc::crc32;
     use super::super::kernel::splitmix64;
     use super::super::lock::lock_path;
+    use super::super::log::{ENCODE_FLUSH_BYTES, HEADER_LEN, SEALED_HEADER_LEN};
     use super::super::test_support;
     use super::*;
 
@@ -1912,7 +1903,7 @@ mod tests {
             db.bulk_add_with_attrs(
                 &["key".into(), "key".into()],
                 &[vector.clone(), vector.clone()],
-                &[Some(attrs.clone()), Some(attrs.clone())],
+                &[Some(attrs.clone()), Some(attrs)],
             )
             .unwrap();
             db.flush().unwrap();
@@ -1995,7 +1986,7 @@ mod tests {
                 let state = db.shared.state_read();
                 assert_eq!(state.arena.dead_count(), 144);
                 assert_eq!(state.arena.live_count(), 3000);
-                assert_eq!(state.graph.as_ref().unwrap().insert_ordinal(), 3144);
+                assert_eq!(db.shared.graph_read().insert_ordinal(), 3000);
             };
             verify(&db);
             fs::copy(&path, &replay_path).unwrap();
@@ -2003,23 +1994,23 @@ mod tests {
             let read_only = VecDb::open_read_only(&replay_path, 32, Some(storage)).unwrap();
             verify(&read_only);
             test_support::assert_identical_graphs(
-                db.shared.state_read().graph.as_ref().unwrap(),
-                read_only.shared.state_read().graph.as_ref().unwrap(),
+                &db.shared.graph_read(),
+                &read_only.shared.graph_read(),
             );
             drop(read_only);
             let replayed = VecDb::open(&replay_path, 32, Some(storage)).unwrap();
             verify(&replayed);
             test_support::assert_identical_graphs(
-                db.shared.state_read().graph.as_ref().unwrap(),
-                replayed.shared.state_read().graph.as_ref().unwrap(),
+                &db.shared.graph_read(),
+                &replayed.shared.graph_read(),
             );
             db.flush().unwrap();
             drop(db);
             let reopened = VecDb::open(&path, 32, Some(storage)).unwrap();
             verify(&reopened);
             test_support::assert_identical_graphs(
-                reopened.shared.state_read().graph.as_ref().unwrap(),
-                replayed.shared.state_read().graph.as_ref().unwrap(),
+                &reopened.shared.graph_read(),
+                &replayed.shared.graph_read(),
             );
         }
     }
@@ -2055,15 +2046,16 @@ mod tests {
             db.bulk_add_with_attrs(
                 &vec!["key".to_string(); 5],
                 &[first.clone(), first.clone(), second, first.clone(), first],
-                &[None, Some(attrs.clone()), None, None, None],
+                &[None, Some(attrs), None, None, None],
             )
             .unwrap();
             let verify = |db: &VecDb| {
+                db.build_pending_graph(usize::MAX).unwrap();
                 let state = db.shared.state_read();
                 assert_eq!(state.total_records, 4);
                 assert_eq!(state.arena.slot_of_key("key"), Some(2));
                 assert_eq!(state.arena.dead_count(), 2);
-                assert_eq!(state.graph.as_ref().unwrap().insert_ordinal(), 3);
+                assert_eq!(db.shared.graph_read().insert_ordinal(), 1);
                 assert_eq!(
                     state.live_log_bytes,
                     add_record_len("key", 32, storage, &[])
@@ -2089,9 +2081,9 @@ mod tests {
         let db = open_writer(&path);
         let entries = bulk_entries(0, 100, 733);
         bulk_add(&db, &entries).unwrap();
-        db.flush().unwrap();
+        db.build_pending_graph(usize::MAX).unwrap();
         let generation = generation_of(&path);
-        let loaded = load_snapshot(&path, generation).unwrap();
+        let loaded = load_snapshot(&path, generation, None).unwrap();
         let graph = Graph::from_parts(loaded.entry_point, loaded.parts, 100, loaded.insert_ordinal)
             .unwrap();
         for (index, (key, vector)) in entries.iter().take(64).enumerate() {
@@ -2102,8 +2094,8 @@ mod tests {
         let state = db.shared.state_read();
         assert_eq!(state.arena.dead_count(), 0);
         assert_eq!(state.total_records, 100);
-        assert_eq!(state.graph.as_ref().unwrap().insert_ordinal(), 100);
-        test_support::assert_identical_graphs(&graph, state.graph.as_ref().unwrap());
+        assert_eq!(db.shared.graph_read().insert_ordinal(), 100);
+        test_support::assert_identical_graphs(&graph, &db.shared.graph_read());
         for (index, (key, _)) in entries.iter().enumerate() {
             assert_eq!(state.arena.slot_of_key(key), Some(index as u32));
         }
@@ -2243,6 +2235,7 @@ mod tests {
                     db.bulk_search_stored(&stored_keys, 10, None, true, false)
                         .unwrap()
                 );
+                db.flush().unwrap();
                 drop(db);
                 let reopened = VecDb::open(&path, 32, Some(storage)).unwrap();
                 assert_cluster_recall(&reopened, &vectors, &survivors);
@@ -2324,7 +2317,8 @@ mod tests {
                 open(&path, 8, None),
                 Err(VecDbError::InvalidDimensions {
                     dims: 8,
-                    storage: StorageKind::I8
+                    storage: StorageKind::I8,
+                    ..
                 })
             ));
             assert!(!path.exists());
@@ -2413,7 +2407,8 @@ mod tests {
                 open(&path, 8, Some(StorageKind::I8)),
                 Err(VecDbError::InvalidDimensions {
                     dims: 8,
-                    storage: StorageKind::I8
+                    storage: StorageKind::I8,
+                    ..
                 })
             ));
             assert!(!path.exists());
@@ -2990,10 +2985,22 @@ mod tests {
         bulk_add(&db, &bulk_entries(0, 2, 500)).unwrap();
         db.flush().unwrap();
         drop(db);
-        let mut captured_for_read_only =
-            Log::open(File::open(&path).unwrap(), &path, DIMS, StorageKind::F32).unwrap();
-        let mut captured_for_writer =
-            Log::open(File::open(&path).unwrap(), &path, DIMS, StorageKind::F32).unwrap();
+        let mut captured_for_read_only = Log::open(
+            File::open(&path).unwrap(),
+            &path,
+            DIMS,
+            StorageKind::F32,
+            None,
+        )
+        .unwrap();
+        let mut captured_for_writer = Log::open(
+            File::open(&path).unwrap(),
+            &path,
+            DIMS,
+            StorageKind::F32,
+            None,
+        )
+        .unwrap();
         let stale_end = captured_for_read_only.current_end_offset();
         let racer = open_writer(&path);
         bulk_add(&racer, &bulk_entries(2, 2, 500)).unwrap();
@@ -3028,8 +3035,14 @@ mod tests {
         bulk_add(&db, &bulk_entries(0, 2, 700)).unwrap();
         db.flush().unwrap();
         drop(db);
-        let mut captured_for_read_only =
-            Log::open(File::open(&path).unwrap(), &path, DIMS, StorageKind::F32).unwrap();
+        let mut captured_for_read_only = Log::open(
+            File::open(&path).unwrap(),
+            &path,
+            DIMS,
+            StorageKind::F32,
+            None,
+        )
+        .unwrap();
         let stale_end = captured_for_read_only.current_end_offset();
         let racer = open_writer(&path);
         bulk_add(&racer, &bulk_entries(2, 2, 700)).unwrap();
@@ -3041,7 +3054,7 @@ mod tests {
         assert!(covered_end > stale_end);
         assert!(grown_end > covered_end);
         assert_eq!(
-            load_snapshot(&path, generation_of(&path))
+            load_snapshot(&path, generation_of(&path), None)
                 .unwrap()
                 .covered_log_offset,
             covered_end
@@ -3399,6 +3412,7 @@ mod tests {
                 .is_empty()
                 .unwrap()
         );
+        holder.unlock().unwrap();
         drop(holder);
         let writer = open_writer(&alias);
         assert!(writer.is_empty().unwrap());
@@ -3741,10 +3755,7 @@ mod tests {
                 assert!(Instant::now() < deadline);
                 thread::yield_now();
             }
-            let opener = {
-                let path = path.clone();
-                thread::spawn(move || VecDb::open(&path, DIMS, Some(StorageKind::F32)))
-            };
+            let opener = thread::spawn(move || VecDb::open(&path, DIMS, Some(StorageKind::F32)));
             thread::sleep(Duration::from_millis(5));
             drop(frozen);
             deleter.join().unwrap().unwrap();
@@ -4180,7 +4191,7 @@ mod tests {
         drop(open_writer(&path));
         assert!(snapshot_exists(&path));
         let log_len = fs::metadata(&path).unwrap().len();
-        let loaded = load_snapshot(&path, generation_of(&path)).unwrap();
+        let loaded = load_snapshot(&path, generation_of(&path), None).unwrap();
         assert_eq!(loaded.covered_log_offset, log_len);
         let snapshot_bytes = fs::read(snapshot_path(&path)).unwrap();
         drop(open_writer(&path));
@@ -4205,10 +4216,10 @@ mod tests {
         {
             let db = open_writer(&split_path);
             bulk_add(&db, &bulk_entries(0, 40, 500)).unwrap();
-            db.flush().unwrap();
+            db.build_pending_graph(usize::MAX).unwrap();
         }
         assert_eq!(
-            load_snapshot(&split_path, generation_of(&split_path))
+            load_snapshot(&split_path, generation_of(&split_path), None)
                 .unwrap()
                 .insert_ordinal,
             40
@@ -4221,12 +4232,15 @@ mod tests {
         let split = open_writer(&split_path);
         let whole = open_writer(&whole_path);
         bulk_add(&whole, &bulk_entries(0, 40, 500)).unwrap();
+        whole.build_pending_graph(usize::MAX).unwrap();
         whole.add("tail-new", &tail_new).unwrap();
         whole.add("key-3", &older_upsert).unwrap();
+        split.build_pending_graph(usize::MAX).unwrap();
+        whole.build_pending_graph(usize::MAX).unwrap();
         let split_state = split.shared.state_read();
         let whole_state = whole.shared.state_read();
-        let split_graph = split_state.graph.as_ref().unwrap();
-        let whole_graph = whole_state.graph.as_ref().unwrap();
+        let split_graph = &split.shared.graph_read();
+        let whole_graph = &whole.shared.graph_read();
         assert_eq!(split_graph.insert_ordinal(), 42);
         assert_eq!(whole_graph.insert_ordinal(), 42);
         for key in (0..40)
@@ -4272,9 +4286,10 @@ mod tests {
         assert_eq!(stats.records_since_snapshot, 0);
         assert!(stats.log_bytes < log_bytes_before);
         assert_ne!(generation_of(&path), generation_before);
-        let loaded = load_snapshot(&path, generation_of(&path)).unwrap();
+        let loaded = load_snapshot(&path, generation_of(&path), None).unwrap();
         assert_eq!(loaded.covered_log_offset, stats.log_bytes);
-        assert_eq!(loaded.insert_ordinal, 90);
+        assert_eq!(loaded.entry_point, None);
+        assert!(loaded.parts.is_empty());
         let live_vector = |index: u64| {
             if index < 40 {
                 seeded_unit_vector(5000 + index, DIMS)
@@ -4335,21 +4350,25 @@ mod tests {
     }
 
     #[test]
-    fn compaction_installs_the_graph_a_fresh_rebuild_of_the_compacted_log_builds() {
+    fn compaction_leaves_a_graph_that_builds_like_a_fresh_open_of_the_compacted_log() {
         let dir = TempDir::new().unwrap();
         let path = dir.path().join("db");
         let copy_path = dir.path().join("copy");
         let db = open_writer(&path);
         bulk_add(&db, &bulk_entries(0, 300, 500)).unwrap();
+        db.build_pending_graph(usize::MAX).unwrap();
         let removals: Vec<String> = (0..40).map(|index| format!("key-{}", index * 7)).collect();
         assert_eq!(db.bulk_remove(&removals).unwrap(), 40);
         assert_eq!(db.stats().unwrap().dead_count, 0);
+        assert_eq!(db.shared.graph_read().node_count(), 0);
         fs::copy(&path, &copy_path).unwrap();
         let rebuilt = open_writer(&copy_path);
+        db.build_pending_graph(usize::MAX).unwrap();
+        rebuilt.build_pending_graph(usize::MAX).unwrap();
         let st = db.shared.state_read();
         let rebuilt_st = rebuilt.shared.state_read();
-        let installed = st.graph.as_ref().unwrap();
-        let from_scratch = rebuilt_st.graph.as_ref().unwrap();
+        let installed = &db.shared.graph_read();
+        let from_scratch = &rebuilt.shared.graph_read();
         assert_eq!(st.arena.live_count(), 260);
         assert_eq!(st.arena.slot_count(), 260);
         for slot in st.arena.live_slots() {
@@ -4367,7 +4386,236 @@ mod tests {
     }
 
     #[test]
-    fn a_repacked_state_with_no_graph_serves_exact_results_for_approx_searches() {
+    fn writes_leave_the_graph_to_the_next_approximate_search() {
+        let dir = TempDir::new().unwrap();
+        let db = open_writer(&dir.path().join("db"));
+        let entries = bulk_entries(0, 300, 9100);
+        bulk_add(&db, &entries).unwrap();
+        db.add("single", &seeded_unit_vector(9999, DIMS)).unwrap();
+        assert_eq!(db.shared.graph_read().node_count(), 0);
+        let exact = SearchParams {
+            exact: true,
+            ..limit_params(10)
+        };
+        let query = seeded_unit_vector(4242, DIMS);
+        let expected = db.search(&query, &exact).unwrap();
+        db.bulk_search_stored(&["key-3".to_string()], 5, None, true, false)
+            .unwrap();
+        assert_eq!(db.shared.graph_read().node_count(), 0);
+        assert_eq!(db.search(&query, &limit_params(10)).unwrap(), expected);
+        assert_eq!(db.shared.graph_read().node_count(), 301);
+        let later = bulk_entries(300, 50, 9100);
+        bulk_add(&db, &later).unwrap();
+        assert_eq!(db.shared.pending_graph_slots(), 50);
+        db.bulk_search_varied(
+            std::slice::from_ref(&later[7].1),
+            std::slice::from_ref(&exact),
+        )
+        .unwrap();
+        assert_eq!(db.shared.pending_graph_slots(), 50);
+        let stored = db
+            .bulk_search_stored(&[later[7].0.clone()], 1, None, false, false)
+            .unwrap();
+        assert_eq!(db.shared.pending_graph_slots(), 0);
+        assert_eq!(stored[0].matches.len(), 1);
+        assert_own_nearest(&db, &later[20].0, &later[20].1);
+    }
+
+    #[test]
+    fn building_the_pending_graph_honors_the_budget_and_saves_it_when_done() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_writer(&path);
+        bulk_add(&db, &bulk_entries(0, 300, 9200)).unwrap();
+        assert_eq!(db.build_pending_graph(100).unwrap(), 100);
+        assert_eq!(db.shared.graph_read().node_count(), 100);
+        assert!(!snapshot_exists(&path));
+        assert_eq!(db.build_pending_graph(150).unwrap(), 150);
+        assert_eq!(db.shared.graph_read().node_count(), 250);
+        assert!(!snapshot_exists(&path));
+        assert_eq!(db.build_pending_graph(50).unwrap(), 50);
+        let loaded = load_snapshot(&path, generation_of(&path), None).unwrap();
+        assert_eq!(loaded.parts.len(), 300);
+        assert_eq!(db.stats().unwrap().records_since_snapshot, 0);
+        assert_eq!(db.build_pending_graph(100).unwrap(), 0);
+        drop(db);
+        let reopened = open_writer(&path);
+        assert_eq!(reopened.shared.graph_read().node_count(), 300);
+        assert_eq!(reopened.shared.pending_graph_slots(), 0);
+    }
+
+    #[test]
+    fn flush_saves_a_graph_that_a_search_built() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let db = open_writer(&path);
+        let entries = bulk_entries(0, 300, 9300);
+        bulk_add(&db, &entries).unwrap();
+        db.flush().unwrap();
+        assert!(
+            load_snapshot(&path, generation_of(&path), None)
+                .unwrap()
+                .parts
+                .is_empty()
+        );
+        assert_own_nearest(&db, &entries[5].0, &entries[5].1);
+        db.flush().unwrap();
+        assert_eq!(
+            load_snapshot(&path, generation_of(&path), None)
+                .unwrap()
+                .parts
+                .len(),
+            300
+        );
+        drop(db);
+        let reopened = open_writer(&path);
+        assert_eq!(reopened.shared.pending_graph_slots(), 0);
+        assert_own_nearest(&reopened, &entries[9].0, &entries[9].1);
+    }
+
+    #[test]
+    fn small_filter_searches_scan_without_building_the_graph() {
+        let dir = TempDir::new().unwrap();
+        let db = open_writer(&dir.path().join("db"));
+        let entries = bulk_entries(0, 300, 9700);
+        bulk_add(&db, &entries).unwrap();
+        let filtered = SearchParams {
+            allowed_keys: Some(vec![entries[5].0.clone(), entries[6].0.clone()]),
+            ..limit_params(2)
+        };
+        let matches = db.search(&entries[5].1, &filtered).unwrap();
+        assert_eq!(matches.len(), 2);
+        assert_eq!(matches[0].key, entries[5].0);
+        let queries = vec![entries[6].1.clone()];
+        assert_eq!(
+            db.bulk_search(&queries, &filtered).unwrap()[0][0].key,
+            entries[6].0
+        );
+        assert_eq!(
+            db.bulk_search_varied(&queries, std::slice::from_ref(&filtered))
+                .unwrap()[0][0]
+                .key,
+            entries[6].0
+        );
+        assert_eq!(db.shared.pending_graph_slots(), 300);
+        assert_own_nearest(&db, &entries[7].0, &entries[7].1);
+        assert_eq!(db.shared.pending_graph_slots(), 0);
+    }
+
+    #[test]
+    fn opening_without_a_snapshot_leaves_the_graph_for_later() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let entries = bulk_entries(0, 300, 9400);
+        {
+            let db = open_writer(&path);
+            bulk_add(&db, &entries).unwrap();
+            db.build_pending_graph(usize::MAX).unwrap();
+        }
+        fs::remove_file(snapshot_path(&path)).unwrap();
+        let reopened = open_writer(&path);
+        assert!(snapshot_exists(&path));
+        assert_eq!(reopened.shared.graph_read().node_count(), 0);
+        assert_eq!(reopened.shared.pending_graph_slots(), 300);
+        assert_own_nearest(&reopened, &entries[11].0, &entries[11].1);
+        assert_eq!(reopened.shared.graph_read().node_count(), 300);
+    }
+
+    #[test]
+    fn reopening_a_partially_built_graph_resumes_like_an_uninterrupted_build() {
+        let dir = TempDir::new().unwrap();
+        let entries = bulk_entries(0, 300, 9600);
+        let dead_before_build: Vec<String> =
+            (95..100).map(|index| format!("key-{index}")).collect();
+        let start = |path: &Path| {
+            let db = open_writer(path);
+            bulk_add(&db, &entries).unwrap();
+            assert_eq!(db.bulk_remove(&dead_before_build).unwrap(), 5);
+            assert_eq!(db.build_pending_graph(100).unwrap(), 100);
+            assert!(db.remove("key-40").unwrap());
+            db
+        };
+        let interrupted_path = dir.path().join("interrupted");
+        let interrupted = start(&interrupted_path);
+        interrupted.flush().unwrap();
+        drop(interrupted);
+        let control = start(&dir.path().join("control"));
+        assert_eq!(control.build_pending_graph(usize::MAX).unwrap(), 200);
+        let reopened = open_writer(&interrupted_path);
+        assert_eq!(reopened.shared.graph_read().node_count(), 95);
+        assert_eq!(reopened.shared.pending_graph_slots(), 200);
+        assert_eq!(reopened.build_pending_graph(usize::MAX).unwrap(), 200);
+        test_support::assert_identical_graphs(
+            &reopened.shared.graph_read(),
+            &control.shared.graph_read(),
+        );
+        assert_own_nearest(&reopened, &entries[250].0, &entries[250].1);
+        assert!(reopened.search(&entries[40].1, &limit_params(1)).unwrap()[0].key != "key-40");
+    }
+
+    #[test]
+    fn a_saved_graph_with_a_hole_below_its_last_node_is_completed_after_reopen() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let entries = bulk_entries(0, 300, 9700);
+        {
+            let db = open_writer(&path);
+            bulk_add(&db, &entries).unwrap();
+            assert_eq!(db.build_pending_graph(100).unwrap(), 100);
+            {
+                let st = db.shared.state_read();
+                let mut graph = db.shared.graph_write();
+                for slot in 200..300 {
+                    graph.insert(slot, &st.arena);
+                }
+            }
+            write_snapshot_now(&db.shared, &mut db.shared.writer_half()).unwrap();
+        }
+        let reopened = open_writer(&path);
+        assert_eq!(reopened.shared.graph_read().node_count(), 200);
+        assert_eq!(reopened.shared.pending_graph_slots(), 200);
+        assert_eq!(reopened.build_pending_graph(150).unwrap(), 150);
+        assert_eq!(reopened.shared.graph_read().node_count(), 300);
+        assert_eq!(reopened.build_pending_graph(150).unwrap(), 50);
+        assert_eq!(reopened.shared.graph_read().node_count(), 300);
+        assert_own_nearest(&reopened, &entries[150].0, &entries[150].1);
+        drop(reopened);
+        let again = open_writer(&path);
+        assert_eq!(again.shared.pending_graph_slots(), 0);
+        assert_eq!(again.shared.graph_read().node_count(), 300);
+    }
+
+    #[test]
+    fn exact_searches_do_not_wait_for_the_graph() {
+        let dir = TempDir::new().unwrap();
+        let db = open_writer(&dir.path().join("db"));
+        let entries = bulk_entries(0, 200, 9500);
+        bulk_add(&db, &entries).unwrap();
+        let exact = SearchParams {
+            exact: true,
+            ..limit_params(3)
+        };
+        let held = db.shared.graph_write();
+        let (sender, receiver) = std::sync::mpsc::channel();
+        thread::scope(|scope| {
+            scope.spawn(|| {
+                let single = db.search(&entries[3].1, &exact).unwrap();
+                let stored = db
+                    .bulk_search_stored(std::slice::from_ref(&entries[4].0), 3, None, true, false)
+                    .unwrap();
+                sender.send((single, stored)).unwrap();
+            });
+            let (single, stored) = receiver
+                .recv_timeout(Duration::from_secs(30))
+                .expect("exact search waited for the graph");
+            drop(held);
+            assert_eq!(single[0].key, entries[3].0);
+            assert_eq!(stored[0].matches.len(), 3);
+        });
+    }
+
+    #[test]
+    fn a_repacked_state_with_an_empty_graph_rebuilds_it_for_approx_searches() {
         let dir = TempDir::new().unwrap();
         let path = dir.path().join("db");
         let db = open_writer(&path);
@@ -4400,19 +4648,18 @@ mod tests {
             let mut st = db.shared.state_write();
             let SearchState {
                 arena,
-                graph,
                 attrs,
                 total_records,
                 ..
             } = &mut *st;
             attrs.repack(arena.live_slots());
             arena.compact_in_place();
-            *graph = None;
+            *db.shared.graph_write() = Graph::new();
             *total_records = arena.live_count() as u64;
         }
         {
             let st = db.shared.state_read();
-            assert!(st.graph.is_none());
+            assert_eq!(db.shared.graph_read().node_count(), 0);
             assert_eq!(st.arena.slot_count(), 180);
         }
         assert_eq!(db.len().unwrap(), 180);
@@ -4465,7 +4712,7 @@ mod tests {
         assert_own_nearest(&reopened, "key-100", &seeded_unit_vector(310, DIMS));
         let stats = reopened.stats().unwrap();
         assert_eq!(stats.dead_count, 0);
-        let loaded = load_snapshot(&path, generation_of(&path)).unwrap();
+        let loaded = load_snapshot(&path, generation_of(&path), None).unwrap();
         assert_eq!(loaded.covered_log_offset, stats.log_bytes);
         assert_ne!(fs::read(snapshot_path(&path)).unwrap(), stale_snapshot);
     }
@@ -4505,14 +4752,14 @@ mod tests {
         let dir = TempDir::new().unwrap();
         let path = dir.path().join("db");
         drop(
-            Log::create(&path, DIMS, StorageKind::F32)
+            Log::create(&path, DIMS, StorageKind::F32, None)
                 .unwrap()
                 .into_file(),
         );
         let old_generation = generation_of(&path);
         let temp = temp_sibling(&path);
         drop(
-            Log::create(&temp, DIMS, StorageKind::F32)
+            Log::create(&temp, DIMS, StorageKind::F32, None)
                 .unwrap()
                 .into_file(),
         );
@@ -4521,7 +4768,7 @@ mod tests {
         assert!(!temp.exists());
         assert_eq!(generation_of(&path), new_generation);
         assert_ne!(generation_of(&path), old_generation);
-        let log = open_existing_writer_log(&path, DIMS, StorageKind::F32).unwrap();
+        let log = open_existing_writer_log(&path, DIMS, StorageKind::F32, None).unwrap();
         assert_eq!(log.generation(), new_generation);
         drop(log);
         assert!(matches!(
@@ -4591,7 +4838,7 @@ mod tests {
         let WriterState { lock, log, .. } = take_writer(&db);
         let checkpoint = log.checkpoint();
         drop(log);
-        let mut foreign = open_existing_writer_log(&path, DIMS, StorageKind::F32).unwrap();
+        let mut foreign = open_existing_writer_log(&path, DIMS, StorageKind::F32, None).unwrap();
         foreign
             .append(&[LogEntry::Add {
                 key: "foreign",
@@ -4626,7 +4873,7 @@ mod tests {
         let old_len = log.current_end_offset();
         drop(log);
         fs::remove_file(&path).unwrap();
-        let mut replacement = Log::create(&path, DIMS, StorageKind::F32).unwrap();
+        let mut replacement = Log::create(&path, DIMS, StorageKind::F32, None).unwrap();
         replacement
             .append(&[LogEntry::Add {
                 key: "other",
@@ -4949,7 +5196,7 @@ mod tests {
         drop(log);
         remove_data_files(&path).unwrap();
         drop(
-            Log::create(&path, DIMS, StorageKind::F32)
+            Log::create(&path, DIMS, StorageKind::F32, None)
                 .unwrap()
                 .into_file(),
         );
@@ -5199,10 +5446,9 @@ mod tests {
         }
         let packed = held.arena.pack_query(&query).unwrap();
         for _ in 0..25 {
-            let during = graph_search(held.search_graph(), &held.arena, &packed, &exact, None);
+            let during = graph_search(&db.shared.graph_read(), &held.arena, &packed, &exact, None);
             assert_eq!(during, before);
         }
-        assert!(held.graph.is_some());
         assert!(!compactor.is_finished());
         drop(held);
         compactor.join().unwrap().unwrap();
@@ -5752,201 +5998,6 @@ mod tests {
         assert!(fs::symlink_metadata(&alias).is_ok());
     }
 
-    #[test]
-    fn open_cost_reports_ready_for_a_live_instance() {
-        let dir = TempDir::new().unwrap();
-        let path = dir.path().join("db");
-        let db = open_writer(&path);
-        bulk_add(&db, &bulk_entries(0, 5, 980)).unwrap();
-        assert_eq!(VecDb::open_cost(&path), OpenCost::Ready);
-        drop(db);
-        assert_eq!(VecDb::open_cost(&path), OpenCost::NeedsRebuild);
-    }
-
-    #[test]
-    fn open_cost_walks_every_file_branch() {
-        let dir = TempDir::new().unwrap();
-        let path = dir.path().join("db");
-        assert_eq!(VecDb::open_cost(&path), OpenCost::Absent);
-        fs::write(&path, [0x45u8, 0x56, 0x44, 0x42, 0x01]).unwrap();
-        assert_eq!(VecDb::open_cost(&path), OpenCost::Absent);
-        fs::remove_file(&path).unwrap();
-        drop(open_writer(&path));
-        assert_eq!(VecDb::open_cost(&path), OpenCost::Ready);
-        let db = open_writer(&path);
-        bulk_add(&db, &bulk_entries(0, 4, 985)).unwrap();
-        drop(db);
-        assert_eq!(VecDb::open_cost(&path), OpenCost::NeedsRebuild);
-        drop(open_writer(&path));
-        assert!(snapshot_exists(&path));
-        assert_eq!(VecDb::open_cost(&path), OpenCost::Ready);
-        let healthy_snapshot = fs::read(snapshot_path(&path)).unwrap();
-        let mut corrupted = healthy_snapshot.clone();
-        corrupted[20] ^= 0x5A;
-        fs::write(snapshot_path(&path), &corrupted).unwrap();
-        assert_eq!(VecDb::open_cost(&path), OpenCost::NeedsRebuild);
-        fs::remove_file(&path).unwrap();
-        fs::remove_file(snapshot_path(&path)).unwrap();
-        let db = open_writer(&path);
-        db.add("fresh", &seeded_unit_vector(1, DIMS)).unwrap();
-        drop(db);
-        fs::write(snapshot_path(&path), &healthy_snapshot).unwrap();
-        assert_eq!(VecDb::open_cost(&path), OpenCost::NeedsRebuild);
-    }
-
-    #[test]
-    fn open_cost_flags_a_snapshot_covering_beyond_the_log() {
-        let dir = TempDir::new().unwrap();
-        let path = dir.path().join("db");
-        let db = open_writer(&path);
-        db.add("first", &seeded_unit_vector(1, DIMS)).unwrap();
-        let boundary = db.stats().unwrap().log_bytes;
-        db.add("second", &seeded_unit_vector(2, DIMS)).unwrap();
-        db.flush().unwrap();
-        drop(db);
-        assert_eq!(VecDb::open_cost(&path), OpenCost::Ready);
-        let clean = fs::read(&path).unwrap();
-        fs::write(&path, &clean[..boundary as usize]).unwrap();
-        assert_eq!(VecDb::open_cost(&path), OpenCost::NeedsRebuild);
-    }
-
-    #[test]
-    fn open_cost_ignores_the_writer_lock_and_leaves_a_live_writer_undisturbed() {
-        let dir = TempDir::new().unwrap();
-        let path = dir.path().join("db");
-        let db = open_writer(&path);
-        bulk_add(&db, &bulk_entries(0, 3, 990)).unwrap();
-        db.flush().unwrap();
-        drop(db);
-        let held = WriterLock::acquire(&path).unwrap();
-        assert_eq!(VecDb::open_cost(&path), OpenCost::Ready);
-        drop(held);
-        let db = open_writer(&path);
-        let log_before = fs::read(&path).unwrap();
-        let snapshot_before = fs::read(snapshot_path(&path)).unwrap();
-        assert_eq!(VecDb::open_cost(&path), OpenCost::Ready);
-        assert_eq!(fs::read(&path).unwrap(), log_before);
-        assert_eq!(fs::read(snapshot_path(&path)).unwrap(), snapshot_before);
-        db.add("after", &seeded_unit_vector(7, DIMS)).unwrap();
-        assert!(db.contains("after").unwrap());
-        assert_own_nearest(&db, "after", &seeded_unit_vector(7, DIMS));
-    }
-
-    #[test]
-    fn searches_serve_exact_results_while_the_graph_rebuild_is_pending() {
-        const COUNT: usize = 2000;
-        let dir = TempDir::new().unwrap();
-        let path = dir.path().join("db");
-        let control_path = dir.path().join("control");
-        let entries = bulk_entries(0, COUNT, 8000);
-        let replacement = seeded_unit_vector(31_415, DIMS);
-        let query = seeded_unit_vector(4321, DIMS);
-        let bulk_queries: Vec<Vec<f32>> = (0..3)
-            .map(|index| seeded_unit_vector(5000 + index, DIMS))
-            .collect();
-        let stored_keys = vec![
-            "key-10".to_string(),
-            "missing".to_string(),
-            "key-500".to_string(),
-        ];
-        let approx = limit_params(10);
-        let exact = SearchParams {
-            limit: Some(10),
-            exact: true,
-            ..SearchParams::default()
-        };
-        let control = open_writer(&control_path);
-        bulk_add(&control, &entries).unwrap();
-        let expected_single = control.search(&query, &exact).unwrap();
-        let expected_bulk = control.bulk_search(&bulk_queries, &exact).unwrap();
-        let expected_stored = control
-            .bulk_search_stored(&stored_keys, 5, None, true, false)
-            .unwrap();
-        control.add("key-0", &replacement).unwrap();
-        let expected_exact_after = control.search(&query, &exact).unwrap();
-        let expected_approx_after = control.search(&query, &approx).unwrap();
-        drop(control);
-        {
-            let db = open_writer(&path);
-            bulk_add(&db, &entries).unwrap();
-        }
-        assert!(!snapshot_exists(&path));
-        let opener = {
-            let path = path.clone();
-            thread::spawn(move || VecDb::open(&path, DIMS, Some(StorageKind::F32)).unwrap())
-        };
-        let key = registry_key_for(&path).unwrap();
-        let deadline = Instant::now() + Duration::from_secs(60);
-        let joined = loop {
-            assert!(Instant::now() < deadline);
-            let registered =
-                existing_path_slot(&key).is_some_and(|slot| lock_slot(&slot).holds_live());
-            if registered {
-                break VecDb::open_read_only(&path, DIMS, Some(StorageKind::F32)).unwrap();
-            }
-            thread::yield_now();
-        };
-        let pin = joined.shared.state_read();
-        assert!(pin.graph.is_none());
-        assert_eq!(joined.search(&query, &approx).unwrap(), expected_single);
-        assert_eq!(joined.search(&query, &exact).unwrap(), expected_single);
-        assert_eq!(
-            joined.bulk_search(&bulk_queries, &approx).unwrap(),
-            expected_bulk
-        );
-        assert_eq!(
-            joined
-                .bulk_search_stored(&stored_keys, 5, None, false, false)
-                .unwrap(),
-            expected_stored
-        );
-        assert!(!opener.is_finished());
-        let writer = VecDb::open(&path, DIMS, Some(StorageKind::F32)).unwrap();
-        assert!(Arc::ptr_eq(&writer.shared, &joined.shared));
-        let adder = {
-            let vector = replacement.clone();
-            thread::spawn(move || {
-                writer.add("key-0", &vector).unwrap();
-                writer
-            })
-        };
-        assert_eq!(joined.get("key-0").unwrap().unwrap(), entries[0].1);
-        assert!(!adder.is_finished());
-        assert!(!opener.is_finished());
-        drop(pin);
-        let opened = opener.join().unwrap();
-        assert!(snapshot_exists(&path));
-        let writer = adder.join().unwrap();
-        assert_eq!(writer.get("key-0").unwrap().unwrap(), replacement);
-        {
-            let st = joined.shared.state_read();
-            assert_eq!(
-                st.graph.as_ref().unwrap().insert_ordinal(),
-                COUNT as u64 + 1
-            );
-        }
-        assert_eq!(opened.search(&query, &exact).unwrap(), expected_exact_after);
-        assert_eq!(
-            opened.search(&query, &approx).unwrap(),
-            expected_approx_after
-        );
-        drop(opened);
-        drop(writer);
-        drop(joined);
-        let reopened = open_writer(&path);
-        {
-            let st = reopened.shared.state_read();
-            assert_eq!(
-                st.graph.as_ref().unwrap().insert_ordinal(),
-                COUNT as u64 + 1
-            );
-        }
-        assert_eq!(
-            reopened.search(&query, &approx).unwrap(),
-            expected_approx_after
-        );
-    }
-
     fn attr(name: &str, value: AttrValue) -> Attribute {
         Attribute {
             name: name.to_string(),
@@ -6284,7 +6335,8 @@ mod tests {
     }
 
     fn logged_add_records(path: &Path, dims: usize) -> Vec<(String, StoredVector)> {
-        let mut log = Log::open(File::open(path).unwrap(), path, dims, StorageKind::I8).unwrap();
+        let mut log =
+            Log::open(File::open(path).unwrap(), path, dims, StorageKind::I8, None).unwrap();
         let mut scanner = log.scan().unwrap();
         let mut records = Vec::new();
         while let Some((record, _)) = scanner.next_record().unwrap() {
@@ -6344,7 +6396,8 @@ mod tests {
             VecDb::open(&dir.path().join("fresh"), 8, Some(StorageKind::I8)),
             Err(VecDbError::InvalidDimensions {
                 dims: 8,
-                storage: StorageKind::I8
+                storage: StorageKind::I8,
+                ..
             })
         ));
         assert!(!dir.path().join("fresh").exists());
@@ -6405,7 +6458,7 @@ mod tests {
         drop(read_alias);
         drop(joined);
         drop(i8_db);
-        assert_eq!(VecDb::open_cost(&i8_path), OpenCost::Ready);
+        assert!(snapshot_exists(&i8_path));
         let standalone = VecDb::open_read_only(&i8_path, I8_DIMS, Some(StorageKind::I8)).unwrap();
         assert_eq!(standalone.stats().unwrap().storage, StorageKind::I8);
         assert!(standalone.contains("i").unwrap());
@@ -6426,7 +6479,8 @@ mod tests {
             VecDb::open(&dir.path().join("narrow"), 16, Some(StorageKind::I8)),
             Err(VecDbError::InvalidDimensions {
                 dims: 16,
-                storage: StorageKind::I8
+                storage: StorageKind::I8,
+                ..
             })
         ));
         assert!(VecDb::open(&dir.path().join("narrow"), 16, Some(StorageKind::F32)).is_ok());
@@ -6577,11 +6631,9 @@ mod tests {
         verify(&rebuilt);
         let from_copy = open_i8(&copy_path);
         verify(&from_copy);
-        let rebuilt_state = rebuilt.shared.state_read();
-        let copy_state = from_copy.shared.state_read();
         test_support::assert_identical_graphs(
-            rebuilt_state.graph.as_ref().unwrap(),
-            copy_state.graph.as_ref().unwrap(),
+            &rebuilt.shared.graph_read(),
+            &from_copy.shared.graph_read(),
         );
     }
 
@@ -6603,7 +6655,7 @@ mod tests {
         {
             let db = open_i8(&split_path);
             bulk_add(&db, &i8_entries(0, 40, 500)).unwrap();
-            db.flush().unwrap();
+            db.build_pending_graph(usize::MAX).unwrap();
         }
         {
             let db = VecDb::open(&split_path, I8_DIMS, Some(StorageKind::I8)).unwrap();
@@ -6614,13 +6666,14 @@ mod tests {
         let split = VecDb::open(&split_path, I8_DIMS, Some(StorageKind::I8)).unwrap();
         let whole = open_i8(&whole_path);
         bulk_add(&whole, &i8_entries(0, 40, 500)).unwrap();
+        whole.build_pending_graph(usize::MAX).unwrap();
         whole.add("tail-new", &tail_new).unwrap();
         whole.add("key-3", &older_upsert).unwrap();
+        split.build_pending_graph(usize::MAX).unwrap();
+        whole.build_pending_graph(usize::MAX).unwrap();
         assert_same_stored(&stored_vectors(&split), &stored_vectors(&whole));
-        let split_state = split.shared.state_read();
-        let whole_state = whole.shared.state_read();
-        let split_graph = split_state.graph.as_ref().unwrap();
-        let whole_graph = whole_state.graph.as_ref().unwrap();
+        let split_graph = &split.shared.graph_read();
+        let whole_graph = &whole.shared.graph_read();
         assert_eq!(split_graph.insert_ordinal(), 42);
         assert_eq!(whole_graph.insert_ordinal(), 42);
         assert!(
@@ -6669,5 +6722,553 @@ mod tests {
             &logged_add_records(&dir.path().join("i8"), dims),
             &[("again".to_string(), StoredVector::quantize(original))],
         );
+    }
+
+    fn encryption_key(seed: u8) -> Key {
+        Key::from_bytes([seed; 32])
+    }
+
+    fn open_sealed(path: &Path, key: &Key) -> VecDb {
+        VecDb::open_encrypted(path, DIMS, Some(StorageKind::F32), key).unwrap()
+    }
+
+    fn open_sealed_reader(path: &Path, key: &Key) -> Result<VecDb, VecDbError> {
+        VecDb::open_read_only_encrypted(path, DIMS, Some(StorageKind::F32), key)
+    }
+
+    fn assert_encryption_mismatch(opened: Result<VecDb, VecDbError>, expected: EncryptionMismatch) {
+        assert!(
+            matches!(opened, Err(VecDbError::Encryption { mismatch, .. }) if mismatch == expected)
+        );
+    }
+
+    fn contains_bytes(haystack: &[u8], needle: &[u8]) -> bool {
+        haystack
+            .windows(needle.len())
+            .any(|window| window == needle)
+    }
+
+    #[test]
+    fn encrypted_db_round_trips_through_snapshot_replay_and_read_only_opens() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("db");
+        let key = encryption_key(1);
+        let db = open_sealed(&path, &key);
+        bulk_add(&db, &bulk_entries(0, 50, 100)).unwrap();
+        db.add_with_attrs("tagged", &seeded_unit_vector(7, DIMS), &sample_attrs(3))
+            .unwrap();
+        let removals = ["key-0".to_string(), "key-1".to_string()];
+        assert_eq!(db.bulk_remove(&removals).unwrap(), 2);
+        db.build_pending_graph(usize::MAX).unwrap();
+        let query = seeded_unit_vector(999, DIMS);
+        let approximate = db.search(&query, &limit_params(5)).unwrap();
+        let exact_params = SearchParams {
+            exact: true,
+            ..limit_params(5)
+        };
+        let exact = db.search(&query, &exact_params).unwrap();
+        drop(db);
+        assert!(snapshot_exists(&path));
+        let verify = |db: &VecDb| {
+            assert_eq!(db.len().unwrap(), 49);
+            assert!(!db.contains("key-0").unwrap());
+            assert_eq!(db.get_attrs("tagged").unwrap(), Some(sample_attrs(3)));
+            assert_own_nearest(db, "key-7", &seeded_unit_vector(107, DIMS));
+            assert_eq!(db.search(&query, &exact_params).unwrap(), exact);
+        };
+        let reopened = open_sealed(&path, &key);
+        verify(&reopened);
+        assert_eq!(
+            reopened.search(&query, &limit_params(5)).unwrap(),
+            approximate
+        );
+        drop(reopened);
+        let reader = open_sealed_reader(&path, &key).unwrap();
+        verify(&reader);
+        assert_eq!(
+            reader.search(&query, &limit_params(5)).unwrap(),
+            approximate
+        );
+        drop(reader);
+        fs::remove_file(snapshot_path(&path)).unwrap();
+        verify(&open_sealed(&path, &key));
+    }
+
+    #[test]
+    fn encrypted_files_hold_no_keys_attributes_or_vectors() {
+        let dir = TempDir::new().unwrap();
+        let key = encryption_key(2);
+        let attrs = vec![attr("needle-name", AttrValue::Str("needle-value".into()))];
+        let vector = seeded_unit_vector(42, DIMS);
+        let vector_bytes: Vec<u8> = vector[..2]
+            .iter()
+            .flat_map(|value| value.to_le_bytes())
+            .collect();
+        for encrypted in [false, true] {
+            let path = dir.path().join(format!("db-{encrypted}"));
+            let db = if encrypted {
+                open_sealed(&path, &key)
+            } else {
+                open_writer(&path)
+            };
+            db.add_with_attrs("needle-key", &vector, &attrs).unwrap();
+            db.build_pending_graph(usize::MAX).unwrap();
+            drop(db);
+            let log = fs::read(&path).unwrap();
+            let snapshot = fs::read(snapshot_path(&path)).unwrap();
+            for needle in [
+                &b"needle-key"[..],
+                b"needle-name",
+                b"needle-value",
+                &vector_bytes,
+            ] {
+                assert_eq!(contains_bytes(&log, needle), !encrypted);
+            }
+            assert_eq!(&log[..4], if encrypted { b"EVDE" } else { b"EVDB" });
+            assert_eq!(&snapshot[..4], if encrypted { b"EVGE" } else { b"EVDG" });
+        }
+    }
+
+    #[test]
+    fn mismatched_encryption_is_reported_on_every_open_path_without_touching_files() {
+        let dir = TempDir::new().unwrap();
+        let key = encryption_key(3);
+        let wrong_key = encryption_key(4);
+        let storage = Some(StorageKind::F32);
+        let plain = dir.path().join("plain");
+        let sealed = dir.path().join("sealed");
+        for db in [open_writer(&plain), open_sealed(&sealed, &key)] {
+            bulk_add(&db, &bulk_entries(0, 3, 200)).unwrap();
+            db.build_pending_graph(usize::MAX).unwrap();
+        }
+        let files = |path: &Path| {
+            (
+                fs::read(path).unwrap(),
+                fs::read(snapshot_path(path)).unwrap(),
+            )
+        };
+        let plain_files = files(&plain);
+        let sealed_files = files(&sealed);
+        assert_encryption_mismatch(
+            VecDb::open_encrypted(&plain, DIMS, storage, &key),
+            EncryptionMismatch::UnexpectedKey,
+        );
+        assert_encryption_mismatch(
+            open_sealed_reader(&plain, &key),
+            EncryptionMismatch::UnexpectedKey,
+        );
+        assert_encryption_mismatch(
+            VecDb::open(&sealed, DIMS, storage),
+            EncryptionMismatch::MissingKey,
+        );
+        assert_encryption_mismatch(
+            VecDb::open_read_only(&sealed, DIMS, storage),
+            EncryptionMismatch::MissingKey,
+        );
+        assert_encryption_mismatch(
+            VecDb::open_encrypted(&sealed, DIMS, storage, &wrong_key),
+            EncryptionMismatch::WrongKey,
+        );
+        assert_encryption_mismatch(
+            open_sealed_reader(&sealed, &wrong_key),
+            EncryptionMismatch::WrongKey,
+        );
+        assert_eq!(files(&plain), plain_files);
+        assert_eq!(files(&sealed), sealed_files);
+        assert_eq!(open_writer(&plain).len().unwrap(), 3);
+        assert_eq!(open_sealed(&sealed, &key).len().unwrap(), 3);
+    }
+
+    #[test]
+    fn joining_a_live_instance_requires_the_same_encryption() {
+        let dir = TempDir::new().unwrap();
+        let key = encryption_key(5);
+        let storage = Some(StorageKind::F32);
+        let sealed = dir.path().join("sealed");
+        let live = open_sealed(&sealed, &key);
+        live.add("key-0", &seeded_unit_vector(1, DIMS)).unwrap();
+        assert_encryption_mismatch(
+            VecDb::open(&sealed, DIMS, storage),
+            EncryptionMismatch::MissingKey,
+        );
+        assert_encryption_mismatch(
+            VecDb::open_read_only(&sealed, DIMS, storage),
+            EncryptionMismatch::MissingKey,
+        );
+        assert_encryption_mismatch(
+            VecDb::open_encrypted(&sealed, DIMS, storage, &encryption_key(6)),
+            EncryptionMismatch::WrongKey,
+        );
+        assert!(Arc::ptr_eq(
+            &open_sealed(&sealed, &key).shared,
+            &live.shared
+        ));
+        assert!(Arc::ptr_eq(
+            &open_sealed_reader(&sealed, &key).unwrap().shared,
+            &live.shared
+        ));
+
+        let plain = dir.path().join("plain");
+        let live_plain = open_writer(&plain);
+        assert_encryption_mismatch(
+            VecDb::open_encrypted(&plain, DIMS, storage, &key),
+            EncryptionMismatch::UnexpectedKey,
+        );
+        assert_encryption_mismatch(
+            open_sealed_reader(&plain, &key),
+            EncryptionMismatch::UnexpectedKey,
+        );
+        drop(live_plain);
+    }
+
+    #[test]
+    fn encrypted_torn_tails_are_truncated_and_mid_log_damage_is_preserved() {
+        let dir = TempDir::new().unwrap();
+        let key = encryption_key(7);
+        let path = dir.path().join("db");
+        let db = open_sealed(&path, &key);
+        bulk_add(&db, &bulk_entries(0, 3, 300)).unwrap();
+        drop(db);
+        assert!(!snapshot_exists(&path));
+        let clean = fs::read(&path).unwrap();
+        let frame_len = (clean.len() - SEALED_HEADER_LEN) / 3;
+
+        let mut damaged = clean.clone();
+        damaged[SEALED_HEADER_LEN + frame_len + 40] ^= 0x01;
+        fs::write(&path, &damaged).unwrap();
+        assert!(matches!(
+            VecDb::open_encrypted(&path, DIMS, Some(StorageKind::F32), &key),
+            Err(VecDbError::Corrupt(_))
+        ));
+        assert!(matches!(
+            open_sealed_reader(&path, &key),
+            Err(VecDbError::Corrupt(_))
+        ));
+        assert_eq!(fs::read(&path).unwrap(), damaged);
+        assert!(!snapshot_exists(&path));
+
+        fs::write(&path, &clean[..clean.len() - 5]).unwrap();
+        let reopened = open_sealed(&path, &key);
+        assert_eq!(reopened.len().unwrap(), 2);
+        assert!(!reopened.contains("key-2").unwrap());
+        drop(reopened);
+        assert_eq!(
+            fs::read(&path).unwrap(),
+            clean[..SEALED_HEADER_LEN + 2 * frame_len]
+        );
+    }
+
+    #[test]
+    fn encrypted_compaction_and_reset_keep_the_log_encrypted() {
+        let dir = TempDir::new().unwrap();
+        let key = encryption_key(8);
+        let path = dir.path().join("db");
+        let db = open_sealed(&path, &key);
+        bulk_add(&db, &bulk_entries(0, 120, 1000)).unwrap();
+        let generation_before = generation_of(&path);
+        let removals: Vec<String> = (0..80).map(|index| format!("key-{index}")).collect();
+        assert_eq!(db.bulk_remove(&removals).unwrap(), 80);
+        assert_ne!(generation_of(&path), generation_before);
+        assert_eq!(db.stats().unwrap().dead_count, 0);
+        assert_eq!(&fs::read(&path).unwrap()[..4], b"EVDE");
+        assert_eq!(&fs::read(snapshot_path(&path)).unwrap()[..4], b"EVGE");
+        drop(db);
+        let reopened = open_sealed(&path, &key);
+        assert_eq!(reopened.len().unwrap(), 40);
+        assert_own_nearest(&reopened, "key-100", &seeded_unit_vector(1100, DIMS));
+        assert_encryption_mismatch(
+            VecDb::open_read_only(&path, DIMS, Some(StorageKind::F32)),
+            EncryptionMismatch::MissingKey,
+        );
+        reopened.reset().unwrap();
+        reopened.add("fresh", &seeded_unit_vector(5, DIMS)).unwrap();
+        drop(reopened);
+        assert_eq!(&fs::read(&path).unwrap()[..4], b"EVDE");
+        let after_reset = open_sealed(&path, &key);
+        assert_eq!(after_reset.len().unwrap(), 1);
+        assert!(after_reset.contains("fresh").unwrap());
+    }
+
+    #[test]
+    fn encrypted_framing_overhead_does_not_count_as_dead_log_bytes() {
+        let dir = TempDir::new().unwrap();
+        let key = encryption_key(9);
+        for encrypted in [false, true] {
+            let path = dir.path().join(format!("db-{encrypted}"));
+            let db = if encrypted {
+                open_sealed(&path, &key)
+            } else {
+                open_writer(&path)
+            };
+            bulk_add(&db, &bulk_entries(0, 1000, 4000)).unwrap();
+            let generation = generation_of(&path);
+            bulk_add(&db, &bulk_entries(0, 64, 9000)).unwrap();
+            assert_eq!(db.stats().unwrap().dead_count, 64);
+            assert_eq!(generation_of(&path), generation);
+        }
+    }
+
+    #[test]
+    fn encrypted_appends_spanning_several_flushes_replay_in_full() {
+        let dir = TempDir::new().unwrap();
+        let key = encryption_key(14);
+        let path = dir.path().join("db");
+        let seed = 500;
+        let db = open_sealed(&path, &key);
+        let before = fs::metadata(&path).unwrap().len();
+        bulk_add(&db, &bulk_entries(0, 1200, seed)).unwrap();
+        let after = fs::metadata(&path).unwrap().len();
+        assert!(after - before > 2 * ENCODE_FLUSH_BYTES as u64);
+        drop(db);
+        let verify = |db: &VecDb| {
+            assert_eq!(db.len().unwrap(), 1200);
+            assert_own_nearest(db, "key-1199", &seeded_unit_vector(seed + 1199, DIMS));
+        };
+        verify(&open_sealed_reader(&path, &key).unwrap());
+        verify(&open_sealed(&path, &key));
+        assert_eq!(fs::metadata(&path).unwrap().len(), after);
+    }
+
+    #[test]
+    fn a_damaged_encrypted_snapshot_is_rebuilt_from_the_log() {
+        let dir = TempDir::new().unwrap();
+        let key = encryption_key(10);
+        let path = dir.path().join("db");
+        let db = open_sealed(&path, &key);
+        bulk_add(&db, &bulk_entries(0, 40, 600)).unwrap();
+        db.build_pending_graph(usize::MAX).unwrap();
+        drop(db);
+        let mut snapshot = fs::read(snapshot_path(&path)).unwrap();
+        let middle = snapshot.len() / 2;
+        snapshot[middle] ^= 0x01;
+        fs::write(snapshot_path(&path), &snapshot).unwrap();
+        let reopened = open_sealed(&path, &key);
+        assert_eq!(reopened.len().unwrap(), 40);
+        for index in (0..40u64).step_by(7) {
+            assert_own_nearest(
+                &reopened,
+                &format!("key-{index}"),
+                &seeded_unit_vector(600 + index, DIMS),
+            );
+        }
+        drop(reopened);
+        assert_ne!(fs::read(snapshot_path(&path)).unwrap(), snapshot);
+        assert!(load_snapshot(&path, generation_of(&path), Some(&Cipher::new(&key))).is_some());
+    }
+
+    #[test]
+    fn short_and_damaged_headers_are_classified_on_every_open_path_without_touching_files() {
+        let dir = TempDir::new().unwrap();
+        let key = encryption_key(11);
+        let wrong_key = encryption_key(12);
+        let plain_header = dir.path().join("plain-header");
+        drop(open_writer(&plain_header));
+        let plain_header = fs::read(&plain_header).unwrap();
+        let plain_log = dir.path().join("plain-log");
+        open_writer(&plain_log)
+            .add("key-0", &seeded_unit_vector(1, DIMS))
+            .unwrap();
+        let plain_log = fs::read(&plain_log).unwrap();
+        let sealed_log = dir.path().join("sealed-log");
+        open_sealed(&sealed_log, &key)
+            .add("key-0", &seeded_unit_vector(1, DIMS))
+            .unwrap();
+        let sealed_log = fs::read(&sealed_log).unwrap();
+        let relabel = |bytes: &[u8], magic: &[u8; 4]| {
+            let mut relabeled = bytes.to_vec();
+            relabeled[..4].copy_from_slice(magic);
+            relabeled
+        };
+
+        struct HeaderCase<'a> {
+            name: &'a str,
+            bytes: Vec<u8>,
+            key: Option<&'a Key>,
+            expected: Option<EncryptionMismatch>,
+        }
+        fn case<'a>(
+            name: &'a str,
+            bytes: &[u8],
+            key: Option<&'a Key>,
+            expected: Option<EncryptionMismatch>,
+        ) -> HeaderCase<'a> {
+            HeaderCase {
+                name,
+                bytes: bytes.to_vec(),
+                key,
+                expected,
+            }
+        }
+        let cases = [
+            case(
+                "plain-header",
+                &plain_header,
+                Some(&key),
+                Some(EncryptionMismatch::UnexpectedKey),
+            ),
+            case(
+                "plain-prefix",
+                &plain_header[..10],
+                Some(&key),
+                Some(EncryptionMismatch::UnexpectedKey),
+            ),
+            case(
+                "sealed-log",
+                &sealed_log,
+                None,
+                Some(EncryptionMismatch::MissingKey),
+            ),
+            case(
+                "sealed-prefix",
+                &sealed_log[..10],
+                None,
+                Some(EncryptionMismatch::MissingKey),
+            ),
+            case(
+                "sealed-tagged-prefix-without-key",
+                &sealed_log[..68],
+                None,
+                Some(EncryptionMismatch::MissingKey),
+            ),
+            case("sealed-prefix-keyed", &sealed_log[..10], Some(&key), None),
+            case("sealed-tagged-prefix", &sealed_log[..68], Some(&key), None),
+            case(
+                "sealed-tagged-prefix-wrong-key",
+                &sealed_log[..68],
+                Some(&wrong_key),
+                None,
+            ),
+            case(
+                "damaged-magic-sealed-prefix-keyed",
+                &relabel(&sealed_log[..68], b"XVDE"),
+                Some(&key),
+                None,
+            ),
+            case(
+                "unknown-header-keyed",
+                &[0x01; HEADER_LEN + 8],
+                Some(&key),
+                None,
+            ),
+            case(
+                "relabeled-plain-log",
+                &relabel(&plain_log, b"EVDE"),
+                None,
+                None,
+            ),
+            case(
+                "relabeled-plain-header",
+                &relabel(&plain_header, b"EVDE"),
+                None,
+                None,
+            ),
+            case(
+                "sealed-log-wrong-key",
+                &sealed_log,
+                Some(&wrong_key),
+                Some(EncryptionMismatch::WrongKey),
+            ),
+        ];
+        let storage = Some(StorageKind::F32);
+        for HeaderCase {
+            name,
+            bytes,
+            key,
+            expected,
+        } in cases
+        {
+            let path = dir.path().join(name);
+            fs::write(&path, &bytes).unwrap();
+            let opened = [
+                match key {
+                    None => VecDb::open(&path, DIMS, storage),
+                    Some(key) => VecDb::open_encrypted(&path, DIMS, storage, key),
+                },
+                match key {
+                    None => VecDb::open_read_only(&path, DIMS, storage),
+                    Some(key) => VecDb::open_read_only_encrypted(&path, DIMS, storage, key),
+                },
+            ];
+            for outcome in opened {
+                match expected {
+                    Some(kind) => assert!(
+                        matches!(outcome, Err(VecDbError::Encryption { mismatch, .. }) if mismatch == kind),
+                        "{name}"
+                    ),
+                    None => assert!(matches!(outcome, Err(VecDbError::Corrupt(_))), "{name}"),
+                }
+            }
+            assert_eq!(fs::read(&path).unwrap(), bytes, "{name}");
+            assert!(!snapshot_exists(&path), "{name}");
+        }
+    }
+
+    #[test]
+    fn encrypted_dimensions_must_fit_the_frame_length_before_any_file_is_created() {
+        let dir = TempDir::new().unwrap();
+        let key = encryption_key(13);
+        let path = dir.path().join("db");
+        let too_many = 1 << 30;
+        let rejects_too_many = |opened: Result<VecDb, VecDbError>| {
+            matches!(
+                opened,
+                Err(VecDbError::InvalidDimensions { dims, max_dims, .. })
+                    if dims == too_many && max_dims < too_many
+            )
+        };
+        let storage = Some(StorageKind::F32);
+        assert!(rejects_too_many(VecDb::open_encrypted(
+            &path, too_many, storage, &key
+        )));
+        assert!(rejects_too_many(VecDb::open_read_only_encrypted(
+            &path, too_many, storage, &key
+        )));
+        assert!(!path.exists());
+        assert!(!snapshot_exists(&path));
+
+        let stub = dir.path().join("stub");
+        fs::write(&stub, [0u8; 2]).unwrap();
+        assert!(rejects_too_many(VecDb::open_encrypted(
+            &stub, too_many, storage, &key
+        )));
+        assert!(rejects_too_many(VecDb::open_read_only_encrypted(
+            &stub, too_many, storage, &key
+        )));
+        assert_eq!(fs::read(&stub).unwrap(), [0u8; 2]);
+        assert!(VecDb::open_read_only(&path, too_many, storage).is_ok());
+    }
+
+    #[test]
+    fn encrypted_default_storage_round_trips_through_replay_and_read_only_opens() {
+        let dir = TempDir::new().unwrap();
+        let key = encryption_key(14);
+        let path = dir.path().join("db");
+        let entries: Vec<(String, Vec<f32>)> = (0..40u64)
+            .map(|index| {
+                (
+                    format!("key-{index}"),
+                    seeded_unit_vector(700 + index, I8_DIMS),
+                )
+            })
+            .collect();
+        let db = VecDb::open_encrypted(&path, I8_DIMS, None, &key).unwrap();
+        assert_eq!(db.stats().unwrap().storage, StorageKind::I8);
+        bulk_add(&db, &entries).unwrap();
+        assert!(db.remove("key-3").unwrap());
+        db.build_pending_graph(usize::MAX).unwrap();
+        drop(db);
+        assert_eq!(&fs::read(&path).unwrap()[..4], b"EVDE");
+        fs::remove_file(snapshot_path(&path)).unwrap();
+        let verify = |db: &VecDb| {
+            assert_eq!(db.len().unwrap(), 39);
+            assert!(!db.contains("key-3").unwrap());
+            for (name, vector) in entries.iter().filter(|(name, _)| name != "key-3") {
+                assert_own_nearest_i8(db, name, vector);
+            }
+        };
+        let reopened = VecDb::open_encrypted(&path, I8_DIMS, None, &key).unwrap();
+        verify(&reopened);
+        drop(reopened);
+        verify(&VecDb::open_read_only_encrypted(&path, I8_DIMS, None, &key).unwrap());
     }
 }

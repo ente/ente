@@ -61,6 +61,15 @@
                     android:scheme="https"
                     android:host="albums.ente.com"/>
             </intent-filter>
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="photos.ente.com"
+                    android:path="/redirect/email"/>
+            </intent-filter>
 
             <intent-filter android:label="@string/backup">
                 <action android:name="android.intent.action.SEND" />

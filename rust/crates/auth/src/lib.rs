@@ -1,5 +1,7 @@
 pub mod backup;
 pub mod code;
+#[cfg(feature = "import")]
+pub mod import;
 pub mod record;
 
 use ente_core::{

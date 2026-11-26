@@ -1,18 +1,19 @@
 import "dart:math" as math;
 
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:photos/models/file_load_result.dart";
 import "package:photos/models/memories/memory.dart";
 import "package:photos/models/selected_files.dart";
+import "package:photos/service_locator.dart";
 import "package:photos/ui/viewer/gallery/gallery.dart";
 import "package:photos/ui/viewer/gallery/state/boundary_reporter_mixin.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_boundaries_provider.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
 
-enum MemoryShareSheetAction { shareMemory, shareItems }
+enum MemoryShareSheetAction { shareMemory, shareVideo, shareItems }
 
 class MemoryShareSheetResult {
   final MemoryShareSheetAction action;
@@ -64,6 +65,8 @@ class _MemoryShareSelectionSheetState
       .toList(growable: false);
   late final SelectedFiles _selectedFiles;
 
+  bool get _startsOnLastItem => widget.initialIndex == _memories.length - 1;
+
   bool get _hasSelection => _selectedFiles.files.isNotEmpty;
 
   bool get _areAllSelected => _files.every(_selectedFiles.isFileSelected);
@@ -76,7 +79,11 @@ class _MemoryShareSelectionSheetState
   void initState() {
     super.initState();
     _selectedFiles = SelectedFiles()
-      ..selectAll({_memories[widget.initialIndex].file})
+      ..selectAll(
+        _startsOnLastItem
+            ? _files.toSet()
+            : {_memories[widget.initialIndex].file},
+      )
       ..addListener(_onSelectionChanged);
   }
 
@@ -123,7 +130,7 @@ class _MemoryShareSelectionSheetState
               ],
             ),
           ),
-          actions: _buildActions(l10n),
+          actions: _buildActions(l10n, maxHeight: sheetHeight / 2),
         ),
       ),
     );
@@ -172,37 +179,63 @@ class _MemoryShareSelectionSheetState
         showSelectAll: false,
         disablePinnedGroupHeader: true,
         disableVerticalPaddingForScrollbar: true,
+        fileToReveal: _startsOnLastItem
+            ? null
+            : _memories[widget.initialIndex].file,
         footer: const SizedBox.shrink(),
       ),
     );
   }
 
-  List<Widget> _buildActions(StringsLocalizations l10n) {
+  List<Widget> _buildActions(
+    StringsLocalizations l10n, {
+    required double maxHeight,
+  }) {
+    final canShareVideo = flagService.memoryVideoExportEnabled;
     return [
       _MemoryShareSheetBoundary(
         position: BoundaryPosition.bottom,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (widget.canShareMemoryLink) ...[
-              _buildAction(
-                l10n.shareMemory,
-                MemoryShareSheetAction.shareMemory,
-                leading: const HugeIcon(
-                  icon: HugeIcons.strokeRoundedLink02,
-                  size: IconSizes.small,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: maxHeight),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (canShareVideo) ...[
+                  _buildAction(
+                    l10n.shareAsVideo,
+                    MemoryShareSheetAction.shareVideo,
+                    leading: const HugeIcon(
+                      icon: HugeIcons.strokeRoundedVideo01,
+                      size: IconSizes.small,
+                    ),
+                  ),
+                  const SizedBox(height: Spacing.md),
+                ],
+                if (widget.canShareMemoryLink) ...[
+                  _buildAction(
+                    l10n.shareMemory,
+                    MemoryShareSheetAction.shareMemory,
+                    variant: canShareVideo
+                        ? ButtonComponentVariant.secondary
+                        : ButtonComponentVariant.primary,
+                    leading: const HugeIcon(
+                      icon: HugeIcons.strokeRoundedLink02,
+                      size: IconSizes.small,
+                    ),
+                  ),
+                  const SizedBox(height: Spacing.md),
+                ],
+                _buildAction(
+                  l10n.shareItemCount(count: _selectedFiles.files.length),
+                  MemoryShareSheetAction.shareItems,
+                  variant: canShareVideo || widget.canShareMemoryLink
+                      ? ButtonComponentVariant.secondary
+                      : ButtonComponentVariant.primary,
                 ),
-              ),
-              const SizedBox(height: Spacing.md),
-            ],
-            _buildAction(
-              l10n.shareItemCount(count: _selectedFiles.files.length),
-              MemoryShareSheetAction.shareItems,
-              variant: widget.canShareMemoryLink
-                  ? ButtonComponentVariant.secondary
-                  : ButtonComponentVariant.primary,
+              ],
             ),
-          ],
+          ),
         ),
       ),
     ];

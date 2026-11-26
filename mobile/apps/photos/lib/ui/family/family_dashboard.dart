@@ -1,11 +1,11 @@
 import 'dart:typed_data';
 
 import 'package:ente_components/ente_components.dart';
+import 'package:ente_components/hugeicons.dart';
 import 'package:ente_contacts/contacts.dart' as contacts;
 import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:flutter/material.dart';
-import 'package:hugeicons/hugeicons.dart';
 import 'package:photos/models/user_details.dart';
 import 'package:photos/ui/viewer/people/person_face_widget.dart';
 import 'package:photos/utils/avatar_util.dart';
@@ -166,9 +166,10 @@ class FamilyDashboard extends StatelessWidget {
     }
     if (a.isAdmin != b.isAdmin) return a.isAdmin ? -1 : 1;
 
-    final displayNameComparison = _displayNameFor(
-      a,
-    ).toLowerCase().compareTo(_displayNameFor(b).toLowerCase());
+    final displayNameComparison = compareNames(
+      _displayNameFor(a),
+      _displayNameFor(b),
+    );
     return displayNameComparison != 0
         ? displayNameComparison
         : a.email.toLowerCase().compareTo(b.email.toLowerCase());

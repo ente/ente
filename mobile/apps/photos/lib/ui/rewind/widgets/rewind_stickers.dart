@@ -15,6 +15,18 @@ enum RewindTick {
     Offset(8.5, 5.17),
     Offset(8.5, 2),
   ]),
+  forwardFlipped(Size(10.5, 18), 4, [
+    Offset(8.5, 16),
+    Offset(3.3, 12.4),
+    Offset(2, 5.17),
+    Offset(2, 2),
+  ]),
+  slant(Size(13.9, 19.3), 5.4, [
+    Offset(2.7, 16.6),
+    Offset(7.33, 11.19),
+    Offset(9.65, 7.33),
+    Offset(11.19, 2.7),
+  ]),
   bold(Size(16, 23), 6, [
     Offset(3, 20),
     Offset(9.8, 18),

@@ -9,11 +9,16 @@ import "package:photos/events/files_updated_event.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/models/file_load_result.dart";
 import "package:photos/models/gallery_type.dart";
+import "package:photos/models/selected_files.dart";
 import "package:photos/module/metadata/local_file.dart";
+import "package:photos/ui/device_picker/device_media_library.dart";
 import "package:photos/ui/device_picker/device_picker_controller.dart";
 import "package:photos/ui/device_picker/device_picker_selection.dart";
 import "package:photos/ui/viewer/gallery/gallery.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
+
+typedef DevicePickerFileLoader =
+    Future<Map<String, EnteFile>> Function(List<String> localIDs);
 
 class DevicePickerGallery extends StatefulWidget {
   const DevicePickerGallery({
@@ -21,18 +26,24 @@ class DevicePickerGallery extends StatefulWidget {
     required this.model,
     required this.footer,
     this.header,
+    this.selectedFiles,
+    this.loadFiles,
   });
 
   final DevicePickerController model;
   final Widget footer;
   final Widget? header;
+  final SelectedFiles? selectedFiles;
+  final DevicePickerFileLoader? loadFiles;
 
   @override
   State<DevicePickerGallery> createState() => _DevicePickerGalleryState();
 }
 
 class _DevicePickerGalleryState extends State<DevicePickerGallery> {
-  final _selection = DevicePickerSelectedFiles();
+  late final _selection = DevicePickerSelectedFiles(
+    selectionLimit: widget.model.selectionLimit,
+  );
   final _reload = StreamController<FilesUpdatedEvent>.broadcast();
   final _assets = <String, AssetEntity>{};
   final _files = <String, EnteFile>{};
@@ -47,7 +58,7 @@ class _DevicePickerGalleryState extends State<DevicePickerGallery> {
       item.id,
       () => fileFromAsset(widget.model.album?.name ?? '', item),
     );
-    _selection.register(file, item.id);
+    if (widget.selectedFiles == null) _selection.register(file, item.id);
     if (file.duration == null || file.duration == 0) {
       file.duration = item.duration;
     }
@@ -58,10 +69,12 @@ class _DevicePickerGalleryState extends State<DevicePickerGallery> {
   void initState() {
     super.initState();
     _updateFiles();
-    _readSelection();
-    _selection.addListener(_writeSelection);
     widget.model.addListener(_modelChanged);
-    widget.model.selectionChanges.addListener(_readSelection);
+    if (widget.selectedFiles == null) {
+      _readSelection();
+      _selection.addListener(_writeSelection);
+      widget.model.selectionChanges.addListener(_readSelection);
+    }
   }
 
   void _updateFiles() {
@@ -84,7 +97,9 @@ class _DevicePickerGalleryState extends State<DevicePickerGallery> {
   }
 
   void _modelChanged() {
-    _selection.locked = widget.model.confirming;
+    if (widget.selectedFiles == null) {
+      _selection.locked = widget.model.confirming;
+    }
     if (const ListEquality<AssetEntity>(
       IdentityEquality(),
     ).equals(_snapshot, widget.model.media)) {
@@ -100,7 +115,8 @@ class _DevicePickerGalleryState extends State<DevicePickerGallery> {
         .map((item) => item.id)
         .where((id) => !_resolvedIDs.contains(id))
         .toList();
-    final files = await widget.model.library.files(ids).catchError((
+    final loadFiles = widget.loadFiles ?? widget.model.library.files;
+    final files = await loadFiles(ids).catchError((
       Object error,
       StackTrace stack,
     ) {
@@ -111,9 +127,19 @@ class _DevicePickerGalleryState extends State<DevicePickerGallery> {
     });
     if (!mounted) return FileLoadResult([], false);
     if (!identical(snapshot, _snapshot)) return _loadFiles();
-    _files.addAll(files);
     _resolvedIDs.addAll(ids);
-    _readSelection();
+    if (widget.selectedFiles == null || widget.loadFiles != null) {
+      _files.addAll(files);
+      if (widget.selectedFiles == null) _readSelection();
+    } else {
+      for (final entry in files.entries) {
+        _files[entry.key] = devicePickerFileFromAsset(
+          widget.model.album?.name ?? '',
+          _assets[entry.key]!,
+          entry.value,
+        );
+      }
+    }
     return FileLoadResult(
       snapshot
           .map(_fileFor)
@@ -126,19 +152,31 @@ class _DevicePickerGalleryState extends State<DevicePickerGallery> {
   }
 
   void _readSelection() {
+    if (_syncingSelection) return;
     _syncingSelection = true;
-    final next = widget.model.selection.map(_fileFor).toSet();
-    if (!setEquals(_selection.files, next)) _selection.replaceSelection(next);
-    _syncingSelection = false;
+    try {
+      final next = widget.model.selection.map(_fileFor).toSet();
+      if (!setEquals(_selection.files, next)) _selection.replaceSelection(next);
+    } finally {
+      _syncingSelection = false;
+    }
   }
 
   void _writeSelection() {
     if (_syncingSelection) return;
-    widget.model.replaceSelection(
-      _selection.files
-          .map((file) => _assets[_selection.assetID(file)])
-          .nonNulls,
-    );
+    _syncingSelection = true;
+    try {
+      widget.model.replaceSelection(
+        _selection.files
+            .map((file) => _assets[_selection.assetID(file)])
+            .nonNulls,
+      );
+    } finally {
+      _syncingSelection = false;
+    }
+    if (_selection.files.length != widget.model.selectionCount) {
+      _readSelection();
+    }
   }
 
   void _loadMore(ScrollMetrics metrics) {
@@ -163,8 +201,10 @@ class _DevicePickerGalleryState extends State<DevicePickerGallery> {
   @override
   void dispose() {
     widget.model.removeListener(_modelChanged);
-    widget.model.selectionChanges.removeListener(_readSelection);
-    _selection.dispose();
+    if (widget.selectedFiles == null) {
+      widget.model.selectionChanges.removeListener(_readSelection);
+      _selection.dispose();
+    }
     unawaited(_reload.close());
     super.dispose();
   }
@@ -183,7 +223,9 @@ class _DevicePickerGalleryState extends State<DevicePickerGallery> {
           },
           child: GalleryFilesState(
             child: Gallery(
-              key: PageStorageKey(widget.model.album?.id),
+              key: widget.model.browsingFilenameMatches
+                  ? ValueKey(widget.model.album?.name)
+                  : PageStorageKey(widget.model.album?.id),
               asyncLoader: (_, _, {limit, asc}) => _loadFiles(),
               reloadEvent: _reload.stream,
               reloadDebounceTime: Duration.zero,
@@ -191,10 +233,13 @@ class _DevicePickerGalleryState extends State<DevicePickerGallery> {
               tagPrefix: 'device_picker_gallery',
               albumName: widget.model.album?.name ?? '',
               galleryType: GalleryType.localFolder,
-              selectedFiles: _selection,
+              selectedFiles: widget.selectedFiles ?? _selection,
               inSelectionMode: true,
+              limitSelectionToOne: widget.model.selectionLimit == 1,
+              showSelectAll:
+                  (widget.selectedFiles == null || widget.loadFiles != null) &&
+                  widget.model.selectionLimit != 1,
               disableSelection: widget.model.confirming,
-              sortAsyncFn: () => false,
               disablePinnedGroupHeader: true,
               disableVerticalPaddingForScrollbar: true,
               header: widget.header,

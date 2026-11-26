@@ -1,5 +1,7 @@
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import { Box, IconButton, Stack, Tooltip, Typography } from "@mui/material";
+import { SectionBackButton } from "@/components/gallery/SectionBackButton";
+import { sectionHeadingHeight } from "@/components/gallery/header-styles";
+import { Box, Stack } from "@mui/material";
+import { GalleryItemsSummary } from "ente-new/photos/components/gallery/ListHeader";
 import type { CollectionSummary } from "ente-new/photos/services/collection-summary";
 import { t } from "i18next";
 import { useState } from "react";
@@ -11,45 +13,36 @@ import { AlbumTile } from "./AlbumTile";
 interface AlbumsHeaderProps {
     title: string;
     albums: CollectionSummary[];
+    height: number;
+    fileCount?: number;
 }
 
 export const albumsHeaderHeight = 311;
 
-export const AlbumsHeader = ({ title, albums }: AlbumsHeaderProps) => {
-    const { backToAlbums } = usePhotosNavigation();
+export const AlbumsHeader = ({
+    title,
+    albums,
+    height,
+    fileCount,
+}: AlbumsHeaderProps) => {
     const [scrollOffset, setScrollOffset] = useState(0);
 
     return (
-        <Stack
-            sx={{
-                height: albums.length ? albumsHeaderHeight : 78,
-                gap: "24px",
-            }}
-        >
+        <Stack sx={{ height, gap: "24px" }}>
             <Stack
                 direction="row"
-                sx={{ alignItems: "center", minHeight: 54, gap: 1 }}
+                sx={{
+                    alignItems: "center",
+                    minHeight: sectionHeadingHeight,
+                    gap: 1,
+                }}
             >
-                <Tooltip title={t("go_back")}>
-                    <IconButton
-                        aria-label={t("go_back")}
-                        onClick={backToAlbums}
-                        sx={{ width: 32, height: 32 }}
-                    >
-                        <ArrowBackIcon sx={{ fontSize: 20 }} />
-                    </IconButton>
-                </Tooltip>
-                <Typography
-                    component="h2"
-                    sx={{
-                        fontFamily: '"Outfit Variable", Outfit, sans-serif',
-                        fontWeight: 600,
-                        fontSize: 24,
-                        lineHeight: "32px",
-                    }}
-                >
-                    {title}
-                </Typography>
+                <SectionBackButton />
+                <GalleryItemsSummary
+                    name={title}
+                    fileCount={fileCount}
+                    nameProps={{ component: "h2" }}
+                />
             </Stack>
             {albums.length > 0 && (
                 <Box

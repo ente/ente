@@ -1,13 +1,12 @@
 import "dart:async";
 import "dart:math" as math;
 
-import "package:collection/collection.dart";
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/components/loading_widget.dart";
 import "package:flutter/material.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:photos/events/event.dart";
 import "package:photos/models/local_entity_data.dart";
 import "package:photos/models/search/album_search_result.dart";
@@ -164,20 +163,15 @@ class _SearchSectionAllPageState extends State<SearchSectionAllPage> {
                 _LocationSortKey.count => a.resultFiles().length.compareTo(
                   b.resultFiles().length,
                 ),
-                _LocationSortKey.name => compareAsciiLowerCaseNatural(
-                  a.name(),
-                  b.name(),
-                ),
+                _LocationSortKey.name => compareNames(a.name(), b.name()),
               };
               if (comparison != 0) {
                 return _locationSortAscending ? comparison : -comparison;
               }
-              return compareAsciiLowerCaseNatural(a.name(), b.name());
+              return compareNames(a.name(), b.name());
             });
           } else if (widget.sectionType.sortByName) {
-            sectionResults.sort(
-              (a, b) => compareAsciiLowerCaseNatural(a.name(), b.name()),
-            );
+            sectionResults.sort((a, b) => compareNames(a.name(), b.name()));
           }
 
           final filteredResults = _filterResults(sectionResults);
@@ -393,6 +387,7 @@ class _SearchSectionAllPageState extends State<SearchSectionAllPage> {
 
   Widget _buildSearchAction() {
     return IconButtonComponent(
+      tooltip: context.strings.search,
       variant: IconButtonComponentVariant.primary,
       shouldSurfaceExecutionStates: false,
       icon: const HugeIcon(icon: HugeIcons.strokeRoundedSearch01),

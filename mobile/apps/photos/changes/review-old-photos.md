@@ -1,1 +1,0 @@
-- Added gallery cleanup to review photos month by month and choose what to keep or delete.

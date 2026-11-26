@@ -229,7 +229,7 @@
   "authToViewTrashedFiles": "Çöp dosyalarınızı görüntülemek için lütfen kimlik doğrulaması yapın",
   "authToViewYourActiveSessions": "Aktif oturumlarınızı görüntülemek için lütfen kimliğinizi doğrulayın",
   "authToViewYourHiddenFiles": "Gizli dosyalarınızı görüntülemek için kimlik doğrulama yapınız",
-  "authToViewYourMemories": "Kodlarınızı görmek için lütfen kimlik doğrulaması yapın",
+  "authToViewYourMemories": "Anılarınızı görmek için lütfen kimlik doğrulaması yapın",
   "authToViewYourRecoveryKey": "Kurtarma anahtarınızı görmek için lütfen kimliğinizi doğrulayın",
   "autoAddPeople": "Kişileri otomatik ekle",
   "autoAddToAlbum": "Albüme otomatik ekle",
@@ -1116,7 +1116,7 @@
   "layoutGrouped": "Gruplandırıldı",
   "layoutTrip": "Seyahat",
   "leave": "Ayrıl",
-  "leaveAlbum": "Albümü yeniden adlandır",
+  "leaveAlbum": "Albümden ayrıl",
   "leaveCollection": "Koleksiyondan ayrıl",
   "leaveFamily": "Aile planından ayrıl",
   "leaveFamilyPlan": "Aile planından ayrıl",
@@ -1124,10 +1124,10 @@
     "description": "Button label for leaving family plan",
     "type": "text"
   },
-  "leaveSharedAlbum": "Paylaşılan albüm silinsin mi?",
+  "leaveSharedAlbum": "Paylaşılan albümden ayrılmak istiyor musunuz?",
   "left": "Sol",
-  "legacy": "Geleneksel",
-  "legacyAccounts": "Geleneksel hesaplar",
+  "legacy": "Miras",
+  "legacyAccounts": "Miras hesapları",
   "legacyInvite": "{email} sizi güvenilir bir kişi olmaya davet etti",
   "@legacyInvite": {
     "placeholders": {
@@ -1137,7 +1137,7 @@
       }
     }
   },
-  "legacyPageDesc": "Geleneksel yol, güvendiğiniz kişilerin yokluğunuzda hesabınıza erişmesine olanak tanır.",
+  "legacyPageDesc": "Miras özelliği, güvendiğiniz kişilerin yokluğunuzda hesabınıza erişmesine olanak tanır.",
   "legacyPageDesc2": "Güvenilir kişiler hesap kurtarma işlemini başlatabilir ve 30 gün içinde engellenmezse şifrenizi sıfırlayabilir ve hesabınıza erişebilir.",
   "lightTheme": "Aydınlık",
   "likeAll": "Hepsini beğen",
@@ -2560,7 +2560,7 @@
   "yesDelete": "Evet, sil",
   "yesDiscardChanges": "Evet, değişiklikleri sil",
   "yesIgnore": "Evet, görmezden gel",
-  "yesRemove": "Evet, sil",
+  "yesRemove": "Evet, kaldır",
   "yesRenew": "Evet, yenile",
   "yesResetPerson": "Evet, kişiyi sıfırla",
   "you": "Sen",

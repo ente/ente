@@ -1,6 +1,7 @@
 import "dart:async";
 
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:flutter/material.dart";
 import "package:flutter/rendering.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -258,6 +259,43 @@ void main() {
       tester.getSize(find.byKey(const ValueKey("filter-chip-surface"))).height,
       greaterThan(40),
     );
+  });
+
+  testWidgets("FilterChipComponent can keep navigation selection compact", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrap(
+        const FilterChipComponent(
+          label: "Photos",
+          state: FilterChipComponentState.selected,
+        ),
+      ),
+    );
+    expect(find.byType(HugeIcon), findsOneWidget);
+
+    var selected = false;
+    await tester.pumpWidget(
+      _wrap(
+        StatefulBuilder(
+          builder: (context, setState) => FilterChipComponent(
+            label: "Photos",
+            showSelectedTrailing: false,
+            state: selected
+                ? FilterChipComponentState.selected
+                : FilterChipComponentState.unselected,
+            onChanged: (value) => setState(() => selected = value),
+          ),
+        ),
+      ),
+    );
+    final surface = find.byKey(const ValueKey("filter-chip-surface"));
+    final width = tester.getSize(surface).width;
+    await tester.tap(find.text("Photos"));
+    await tester.pumpAndSettle();
+    expect(selected, isTrue);
+    expect(find.byType(HugeIcon), findsNothing);
+    expect(tester.getSize(surface).width, width);
   });
 
   testWidgets("FilterChipComponent truncates long labels inside a wrap", (

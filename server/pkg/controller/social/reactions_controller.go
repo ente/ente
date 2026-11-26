@@ -1,6 +1,8 @@
 package social
 
 import (
+	"context"
+
 	"github.com/ente/museum/ente"
 	socialentity "github.com/ente/museum/ente/social"
 	"github.com/ente/museum/pkg/controller/access"
@@ -10,11 +12,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type FileLikePushSender interface {
+	NotifyFileLike(ctx context.Context, recipients []int64)
+}
+
 type ReactionsController struct {
 	Repo           *socialrepo.ReactionsRepository
 	CommentsRepo   *socialrepo.CommentsRepository
 	CollectionRepo *repo.CollectionRepository
 	AccessCtrl     access.Controller
+	PushCtrl       FileLikePushSender
 }
 
 type UpsertReactionRequest struct {
@@ -114,9 +121,12 @@ func (c *ReactionsController) Upsert(ctx *gin.Context, req UpsertReactionRequest
 		// file_id to validate that the caller has consistent context.
 		reaction.FileID = nil
 	}
-	id, err := c.Repo.Upsert(ctx, reaction)
+	id, inserted, err := c.Repo.Upsert(ctx, reaction)
 	if err != nil {
 		return "", stacktrace.Propagate(err, "")
+	}
+	if inserted && reaction.FileID != nil && c.PushCtrl != nil {
+		notifyAlbumMembers(ctx.Request.Context(), c.CollectionRepo, reaction.CollectionID, reaction.UserID, c.PushCtrl.NotifyFileLike)
 	}
 	return id, nil
 }

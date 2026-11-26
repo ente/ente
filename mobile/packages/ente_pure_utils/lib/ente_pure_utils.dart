@@ -9,6 +9,7 @@ export 'src/extensions/list.dart';
 export 'src/extensions/string.dart';
 export 'src/fake_progress.dart';
 export 'src/locale_display_name.dart';
+export 'src/name_sort.dart';
 export 'src/navigation_util.dart';
 export 'src/parse_util.dart';
 export 'src/platform_detector.dart';

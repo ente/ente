@@ -1,6 +1,7 @@
 import { authPageConfig } from "@/auth-page-config";
 import { AppLockReauthenticationDialog } from "@/components/app-lock/AppLockReauthenticationDialog";
 import { AppLockSetupError } from "@/components/app-lock/LockScreenContents";
+import { PhotosToastStack } from "@/components/PhotosToastStack";
 import {
     updateAvailableForDownloadDialogAttributes,
     updateReadyToInstallDialogAttributes,
@@ -31,9 +32,11 @@ import {
     TranslucentLoadingOverlay,
 } from "ente-base/components/loaders";
 import { AttributedMiniDialog } from "ente-base/components/MiniDialog";
-import { Notification } from "ente-base/components/Notification";
 import { ThemedLoadingBar } from "ente-base/components/ThemedLoadingBar";
-import { useAttributedMiniDialog } from "ente-base/components/utils/dialog";
+import {
+    errorDialogAttributes,
+    useAttributedMiniDialog,
+} from "ente-base/components/utils/dialog";
 import {
     useIsRouteChangeInProgress,
     useNotification,
@@ -43,6 +46,7 @@ import {
 import { photosTheme } from "ente-base/components/utils/theme";
 import { useLoadingBar } from "ente-base/components/utils/use-loading-bar";
 import { BaseContext, deriveBaseContext } from "ente-base/context";
+import { HTTPError } from "ente-base/http";
 import log from "ente-base/log";
 import { logStartupBanner } from "ente-base/log-web";
 import type { AppUpdate } from "ente-base/types/ipc";
@@ -148,7 +152,24 @@ const App: React.FC<PhotosAppProps> = ({ Component, pageProps }) => {
     }, []);
 
     const baseContext = useMemo(
-        () => deriveBaseContext({ logout, showMiniDialog }),
+        () =>
+            deriveBaseContext({
+                logout,
+                showMiniDialog,
+                getErrorDialogAttributes: (error) => {
+                    // Museum uses HTTP 426 for storage quota failures.
+                    if (
+                        error instanceof HTTPError &&
+                        error.res.status === 426 &&
+                        new URL(error.res.url).pathname.endsWith("/files/copy")
+                    ) {
+                        return errorDialogAttributes(
+                            t("storage_quota_exceeded"),
+                        );
+                    }
+                    return undefined;
+                },
+            }),
         [logout, showMiniDialog],
     );
     const appContext = useMemo(
@@ -179,34 +200,35 @@ const App: React.FC<PhotosAppProps> = ({ Component, pageProps }) => {
 
             <ThemedLoadingBar ref={loadingBarRef} />
             <AttributedMiniDialog {...miniDialogProps} appearance="centered" />
-            <Notification {...notificationProps} />
 
             {isDesktop && (
                 <WindowTitlebar {...{ isFileViewerOpen }}>
                     {title}
                 </WindowTitlebar>
             )}
-            <BaseContext value={baseContext}>
-                <PhotosAppContext value={appContext}>
-                    <AuthPageProvider value={authPageConfig}>
-                        {!isI18nReady ? (
-                            <LoadingIndicator />
-                        ) : isDesktop ? (
-                            <DesktopMainContent
-                                Component={Component}
-                                pageProps={pageProps}
-                                isChangingRoute={isChangingRoute}
-                            />
-                        ) : (
-                            <WebMainContent
-                                Component={Component}
-                                pageProps={pageProps}
-                                isChangingRoute={isChangingRoute}
-                            />
-                        )}
-                    </AuthPageProvider>
-                </PhotosAppContext>
-            </BaseContext>
+            <PhotosToastStack notificationProps={notificationProps}>
+                <BaseContext value={baseContext}>
+                    <PhotosAppContext value={appContext}>
+                        <AuthPageProvider value={authPageConfig}>
+                            {!isI18nReady ? (
+                                <LoadingIndicator />
+                            ) : isDesktop ? (
+                                <DesktopMainContent
+                                    Component={Component}
+                                    pageProps={pageProps}
+                                    isChangingRoute={isChangingRoute}
+                                />
+                            ) : (
+                                <WebMainContent
+                                    Component={Component}
+                                    pageProps={pageProps}
+                                    isChangingRoute={isChangingRoute}
+                                />
+                            )}
+                        </AuthPageProvider>
+                    </PhotosAppContext>
+                </BaseContext>
+            </PhotosToastStack>
         </ThemeProvider>
     );
 };

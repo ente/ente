@@ -31,6 +31,12 @@ On Android 10 and older, deleting photos from your device is permanent. Learn mo
 
 Yes. Face recognition runs entirely on your device in gallery mode. Enable it from the banner on the Search tab or from `Settings > Machine learning`. All processing happens locally -- no data leaves your phone.
 
+### Can I name people in gallery mode? {#offline-name-people}
+
+No. In gallery mode, Ente groups similar faces on your device, but you can't give a group a name. When you open a face group, Ente asks you to sign up to tag them. Naming people needs an Ente account.
+
+Face groups made in gallery mode are not kept after you sign up. See [Will I lose my photos or ML data when I sign up?](#data-preserved-on-signup)
+
 ### Does magic search work without an account? {#offline-magic-search}
 
 Yes. Natural language search (magic search) also runs on-device. After enabling ML, Ente indexes your photos locally so you can search using descriptions like "beach sunset" or "birthday cake".
@@ -63,7 +69,15 @@ There are three places to sign up:
 
 ### Will I lose my photos or ML data when I sign up? {#data-preserved-on-signup}
 
-No. All your device photos remain on your device, and any ML processing (face recognition, search embeddings) done in gallery mode is preserved. Signing up adds cloud features on top of your existing local experience.
+Your photos stay on your device. Signing up doesn't delete or upload anything until you choose folders to back up.
+
+Face recognition and magic search results from gallery mode are not carried over. Once you're signed in, machine learning runs only on photos backed up to Ente, so People and magic search can look empty until your photos upload and are indexed.
+
+To get them back, choose your folders in `Settings > Backup > Backed up folders` and keep machine learning turned on. See [Will signed-in machine learning include photos I have not backed up?](#signed-in-indexing-scope)
+
+### Why did People disappear after I signed up? {#people-gone-after-signup}
+
+People (face groups) built in gallery mode are not kept after you sign up. See [Will I lose my photos or ML data when I sign up?](#data-preserved-on-signup).
 
 ### Will signed-in machine learning include photos I have not backed up? {#signed-in-indexing-scope}
 

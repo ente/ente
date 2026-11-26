@@ -1,44 +1,69 @@
 import "dart:async";
 import "dart:math";
 
+import "package:flutter/gestures.dart" show DragStartBehavior;
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_svg/flutter_svg.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
+import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
+import "package:photos/ui/rewind/theme/rewind_motion.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
 import "package:photos/ui/rewind/widgets/rewind_confetti.dart";
 import "package:photos/ui/rewind/widgets/rewind_count_up.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
 import "package:photos/ui/rewind/widgets/rewind_keyframes.dart";
-import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo_frames.dart";
+import "package:photos/ui/rewind/widgets/rewind_photo_gallery.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_swap_in.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
 import "package:photos/ui/rewind/widgets/rewind_wave.dart";
 
-typedef PlaceStamp = ({rust.RewindCity city, EnteFile? photo});
+typedef PlaceStamp = ({
+  rust.RewindCity city,
+  EnteFile? photo,
+  List<EnteFile> gallery,
+});
 
 class PlacesQuizPage extends RewindPage {
-  PlacesQuizPage(this.places, this.stamps)
+  PlacesQuizPage(this.places, this.stamps, {required this.showDistance})
     : _board = _shuffledBoard(stamps.map((stamp) => stamp.city.name));
 
   static const pageKey = "places";
 
   final rust.Places places;
   final List<PlaceStamp> stamps;
+  final bool showDistance;
   final List<_Slot> _board;
   int? _guess;
+  var _played = false;
 
   @override
   String get key => pageKey;
+
+  @override
+  Duration? get reelHold =>
+      const Duration(milliseconds: 3000 + RewindMotion.reelReadingMs);
+
+  @override
+  List<EnteFile> get reelThumbnails => [
+    for (final stamp in stamps) ?stamp.photo,
+  ];
+
+  @override
+  void resetAnswer() {
+    _guess = null;
+    _played = false;
+  }
 
   static List<_Slot> _shuffledBoard(Iterable<String> names) {
     final count = min(names.length, _Slot.fillOrder.length);
@@ -111,37 +136,51 @@ class _PlacesQuiz extends StatefulWidget {
 }
 
 class _PlacesQuizState extends State<_PlacesQuiz> {
-  static const _background = Color(0xFF3F78F0);
-  static const _stripes = Color(0xFF4A82F5);
+  RewindCopy get _copy => RewindCopy.of(context);
+
+  String _cityOf(rust.RewindCity city) => _copy.city(city.name, city.country);
+
+  static const _background = Color(0xFF123E97);
+  static const _stripes = Color(0xFF0C3B9B);
   static const _revealMs = 1250;
   static const _rankMs = 600;
   static const _rankGapMs = 330;
   static const _crownMs = _rankMs + 3 * _rankGapMs + 700;
   static const _doneMs = _rankMs + 3 * _rankGapMs + 1300;
 
-  late var _phase = widget.page._guess == null ? _Phase.pick : _Phase.done;
+  late final _reel = RewindPageScope.reelOf(context);
+  late var _phase = !_reel && widget.page._played ? _Phase.done : _Phase.pick;
   late final _replayed = _phase == _Phase.done;
   final _timers = <Timer>[];
   Timer? _invite;
   var _wiggles = 0;
   var _wiggling = -1;
+  var _swipe = 0.0;
 
   List<PlaceStamp> get _stamps => widget.page.stamps;
 
   List<_Slot> get _board => widget.page._board;
 
-  int? get _guess => widget.page._guess;
+  int? get _guess => _reel ? null : widget.page._guess;
 
   @override
   void initState() {
     super.initState();
-    _syncInvite();
+    _sync();
   }
 
   @override
   void didUpdateWidget(_PlacesQuiz oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _syncInvite();
+    _sync();
+  }
+
+  void _sync() {
+    if (!_reel) {
+      _syncInvite();
+    } else if (widget.isActive && _phase == _Phase.pick) {
+      _phase = _Phase.reveal;
+    }
   }
 
   @override
@@ -179,7 +218,9 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
   void _pick(int rank) {
     if (_phase != _Phase.pick) return;
     unawaited(HapticFeedback.selectionClick());
-    widget.page._guess = rank;
+    widget.page
+      .._guess = rank
+      .._played = true;
     setState(() => _phase = _Phase.picked);
     _syncInvite();
     _later(_revealMs, () => setState(() => _phase = _Phase.reveal));
@@ -193,15 +234,38 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
     _later(_revealMs + _doneMs, () => setState(() => _phase = _Phase.done));
   }
 
+  void _skip() {
+    if (_phase != _Phase.pick) return;
+    widget.page._played = true;
+    setState(() => _phase = _Phase.reveal);
+    _syncInvite();
+    _later(_doneMs, () => setState(() => _phase = _Phase.done));
+  }
+
+  void _endSwipe() {
+    if (_swipe < 0) {
+      _skip();
+    } else if (_swipe > 0) {
+      RewindPageScope.navigatorOf(context)?.previous();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final revealed = _phase == _Phase.reveal || _phase == _Phase.done;
+    final picking = widget.isActive && _phase == _Phase.pick;
     final podium = RewindStage(children: _podium(revealed));
     return RewindShareable(
       enabled: _phase == _Phase.done,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
+        dragStartBehavior: DragStartBehavior.down,
         onTap: _phase == _Phase.done ? null : () {},
+        onVerticalDragStart: picking ? (_) => _swipe = 0 : null,
+        onVerticalDragUpdate: picking
+            ? (details) => _swipe += details.primaryDelta ?? 0
+            : null,
+        onVerticalDragEnd: picking ? (_) => _endSwipe() : null,
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -214,6 +278,8 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
                 data: MediaQuery.of(context).copyWith(disableAnimations: true),
                 child: podium,
               )
+            else if (_reel)
+              podium
             else ...[
               RewindStage(children: _boardLayers()),
               RewindWaveReveal(
@@ -262,7 +328,7 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
               child: Column(
                 children: [
                   Text(
-                    "WHERE DID YOU SHOOT MOST?",
+                    _copy.placesQuestion,
                     textAlign: TextAlign.center,
                     style: RewindTextStyles.display(
                       20,
@@ -273,7 +339,7 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
                   ),
                   const SizedBox(height: 7),
                   Text(
-                    "Make a guess 👀",
+                    _copy.placesHint,
                     textAlign: TextAlign.center,
                     style: RewindTextStyles.body(17, height: 1.2),
                   ),
@@ -291,10 +357,10 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
           child: _leave(
             150,
             RewindSwapIn(
-              text: _stamps[picked].city.name,
+              text: _cityOf(_stamps[picked].city),
               alignment: Alignment.centerLeft,
               child: Text(
-                "${_stamps[picked].city.name}? Let’s check\nthe postmarks.",
+                _copy.placesPicked(_cityOf(_stamps[picked].city)),
                 style: RewindTextStyles.body(19, height: 1.15),
               ),
             ),
@@ -380,6 +446,9 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
     );
   }
 
+  bool _opensGallery(int rank) =>
+      _phase == _Phase.done && _stamps[rank].gallery.length > 1;
+
   Widget _stamp(int rank, _Slot slot, Size size, double lift) {
     final photo = _stamps[rank].photo;
     return SizedBox.fromSize(
@@ -387,8 +456,12 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
       child: RewindStamp(
         photo: photo == null
             ? const ColoredBox(color: Color(0xFFD9D9D9))
-            : RewindPhoto(photo, placeholder: const Color(0xFFD9D9D9)),
-        label: _stamps[rank].city.name,
+            : RewindPhoto(
+                photo,
+                placeholder: const Color(0xFFD9D9D9),
+                zoomable: _phase == _Phase.done && !_opensGallery(rank),
+              ),
+        label: _cityOf(_stamps[rank].city),
         portrait: slot.portrait,
         width: size.width,
         lift: lift * 139.6 / size.width,
@@ -432,12 +505,39 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
           durationMs: 760,
           curve: const Cubic(0.2, 0.9, 0.3, 1.25),
           poses: const [RewindPose(0, scale: 1.14, turn: -4), RewindPose(1)],
-          child: Transform.rotate(
-            angle: slot.turn * pi / 180,
-            child: _stamp(rank, slot, rect.size, 4),
+          child: GestureDetector(
+            onTap: _opensGallery(rank) ? () => _showGallery(rank) : null,
+            child: Transform.rotate(
+              angle: slot.turn * pi / 180,
+              child: _stamp(rank, slot, rect.size, 4),
+            ),
           ),
         ),
       ),
+    );
+  }
+
+  void _showGallery(int rank) {
+    final stamp = _stamps[rank];
+    final photo = stamp.photo;
+    const width = 168.0;
+    showRewindPhotoGallery(
+      context,
+      header: Transform.rotate(
+        angle: -3 * pi / 180,
+        child: RewindStamp(
+          photo: photo == null
+              ? const ColoredBox(color: Color(0xFFD9D9D9))
+              : RewindPhoto(photo, placeholder: const Color(0xFFD9D9D9)),
+          label: stamp.city.country.isEmpty
+              ? _cityOf(stamp.city)
+              : stamp.city.country,
+          width: width,
+        ),
+      ),
+      headerSize: const Size(width, width * 93.9 / 139.6),
+      title: _cityOf(stamp.city),
+      photos: stamp.gallery,
     );
   }
 
@@ -522,7 +622,7 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
                 delayMs: delay,
                 durationMs: 700,
                 builder: (context, text) => Text(
-                  "$text ${count == 1 ? "photo" : "photos"}",
+                  _copy.photoTally(text, count),
                   style: RewindTextStyles.body(first ? 15.43 : 14, height: 1.2)
                       .copyWith(
                         fontFeatures: const [FontFeature.tabularFigures()],
@@ -565,7 +665,7 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
 
   List<Widget> _head(bool revealed) {
     final places = widget.page.places;
-    final travelled = places.distanceKm > 0;
+    final travelled = widget.page.showDistance && places.distanceKm > 0;
     final winner = _stamps.first.city;
     Widget swap(Widget child) => RewindKeyframes(
       active: revealed,
@@ -587,9 +687,12 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
         child: _leave(
           110,
           swap(
-            Text(
-              travelled ? "YOUR PHOTOS TRAVELLED" : "YOUR TOP PLACE",
-              style: RewindTextStyles.display(17, letterSpacing: 0.3),
+            RewindVoice(
+              _copy.placesHeading(travelled: travelled),
+              builder: (text) => Text(
+                text,
+                style: RewindTextStyles.display(17, letterSpacing: 0.3),
+              ),
             ),
           ),
         ),
@@ -604,8 +707,8 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
               width: 330,
               child: RewindOutlinedText(
                 travelled
-                    ? "${rewindCount(places.distanceKm)} KM"
-                    : winner.name.toUpperCase(),
+                    ? _copy.distance(places.distanceKm)
+                    : _cityOf(winner).toUpperCase(),
                 style: RewindTextStyles.display(
                   71.872,
                   color: RewindColors.yellow,
@@ -634,23 +737,15 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
     final guess = _guess ?? 0;
     final cities = [for (final stamp in _stamps) stamp.city];
     final winner = cities.first;
-    final winning = rewindCounted(winner.photoCount, "photo", "photos");
+    final won = _copy.placesWon(_cityOf(winner), winner.photoCount);
     if (guess == 0) {
-      final next = cities.skip(1).take(2).map((city) => city.name).toList();
-      return switch (next.length) {
-        0 => "${winner.name} won with $winning.",
-        1 => "${winner.name} won with $winning. ${next[0]} came next.",
-        _ =>
-          "${winner.name} won with $winning. "
-              "${next[0]} and ${next[1]} came next.",
-      };
+      final next = cities.skip(1).take(2).map(_cityOf).toList();
+      return next.isEmpty ? won : "$won ${_copy.placesNext(next)}";
     }
     final pick = cities[guess];
-    if (guess < 3) {
-      return "${pick.name} came ${guess == 1 ? "2nd" : "3rd"}. "
-          "${winner.name} won with $winning.";
-    }
-    return "${pick.name} had ${rewindCount(pick.photoCount)}. "
-        "${winner.name} ran away with ${rewindCount(winner.photoCount)}.";
+    final placing = guess < 3
+        ? _copy.placesPlaced(_cityOf(pick), guess + 1)
+        : _copy.placesHad(_cityOf(pick), pick.photoCount);
+    return "$placing $won";
   }
 }

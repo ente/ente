@@ -1189,6 +1189,11 @@ mod export_process;
 
 mod export_sources;
 
+mod family;
+
+#[cfg(feature = "museum")]
+mod family_museum;
+
 mod feedback;
 
 mod files;
@@ -1202,3 +1207,5 @@ mod mail;
 mod museum;
 
 mod paste;
+
+mod people;

@@ -22,7 +22,13 @@ async fn run(endpoint: String) -> TestResult {
     let trusted_session = support::open_session(endpoint, &trusted);
 
     // An emergency-contact invitation satisfies Museum's contact eligibility rule.
-    ente_legacy::add_contact(&owner_session, &trusted.email, Some(14)).await?;
+    ente_legacy::add_contact(
+        &owner_session,
+        &trusted.email,
+        &trusted.key_attributes.public_key,
+        Some(14),
+    )
+    .await?;
 
     let initial_data = ContactData {
         contact_user_id: trusted.user_id,

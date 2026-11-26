@@ -1697,6 +1697,20 @@ impl SpaceAccountCtxHandle {
             .map_err(Into::into)
     }
 
+    #[wasm_bindgen(js_name = deletePostMedia)]
+    pub async fn delete_post_media(
+        &self,
+        space_id: String,
+        post_id: i64,
+        object_key: String,
+    ) -> Result<<PostResponse as Tsify>::JsType, Error> {
+        let post = self
+            .inner
+            .delete_post_media(&space_id, post_id, &object_key)
+            .await?;
+        PostResponse::from(post).into_js().map_err(Into::into)
+    }
+
     #[wasm_bindgen(js_name = listSpaceFriends)]
     pub async fn list_space_friends(
         &self,

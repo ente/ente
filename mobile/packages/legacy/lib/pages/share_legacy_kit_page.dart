@@ -4,6 +4,7 @@ import "dart:typed_data";
 
 import "package:collection/collection.dart";
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:ente_legacy/components/legacy_kit_card_preview.dart";
 import "package:ente_legacy/components/legacy_kit_recovery_wait_time_sheet.dart";
 import "package:ente_legacy/legacy_api.dart";
@@ -18,7 +19,6 @@ import "package:ente_ui/utils/dialog_util.dart";
 import "package:ente_ui/utils/toast_util.dart";
 import "package:flutter/material.dart";
 import "package:flutter_svg/flutter_svg.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:intl/intl.dart";
 import "package:path_provider/path_provider.dart";
 import "package:share_plus/share_plus.dart";

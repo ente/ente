@@ -85,6 +85,9 @@ class RustMLDataDB implements IMLDataDB<int> {
   Future<rust.FillState> fillState(rust.Index index) async =>
       (await store).fillState(index: index);
 
+  Future<int> buildPendingVectorGraphs({required int maxVectors}) async =>
+      (await store).buildPendingGraphs(maxVectors: maxVectors);
+
   Future<void> releaseVectorIndexes() async {
     if (_dbFuture == null) return;
     try {

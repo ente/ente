@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/ente/stacktrace"
+	"github.com/lib/pq"
 
 	"github.com/ente/museum/ente"
 	"github.com/ente/museum/pkg/utils/time"
@@ -41,6 +42,26 @@ func (repo *ObjectCleanupRepository) GetFileUploadBucket(ctx context.Context, ob
 		AND (purpose IS NULL OR purpose = 'file_upload')`, objectKey, userID, app).Scan(&bucket)
 	if err != nil {
 		return "", stacktrace.Propagate(err, "")
+	}
+	if !bucket.Valid || bucket.String == "" {
+		return "", ente.NewBadRequestWithMessage("staged upload not found")
+	}
+	return bucket.String, nil
+}
+
+func (repo *ObjectCleanupRepository) GetPreviewUploadBucket(ctx context.Context, objectKey string, userID int64, app ente.App) (string, error) {
+	var bucket sql.NullString
+	var cleanupState sql.NullString
+	err := repo.DB.QueryRowContext(ctx, `SELECT bucket_id, cleanup_state FROM temp_objects
+		WHERE object_key = $1
+		AND (user_id IS NULL OR user_id = $2)
+		AND (app IS NULL OR app = $3)
+		AND (purpose IS NULL OR purpose = $4)`, objectKey, userID, app, ente.PreviewVideo).Scan(&bucket, &cleanupState)
+	if err != nil {
+		return "", stacktrace.Propagate(err, "")
+	}
+	if cleanupState.Valid {
+		return "", ente.NewBadRequestWithMessage("staged upload not found")
 	}
 	if !bucket.Valid || bucket.String == "" {
 		return "", ente.NewBadRequestWithMessage("staged upload not found")
@@ -146,36 +167,42 @@ func (repo *ObjectCleanupRepository) GetAndLockExpiredObjects() (*sql.Tx, []ente
 	return tx, tempObjects, nil
 }
 
-func (repo *ObjectCleanupRepository) SetExpiryForTempObject(tx *sql.Tx, tempObject ente.TempObject, expirationTime int64) error {
-	if tempObject.IsMultipart {
-		_, err := tx.Exec(`
-			UPDATE temp_objects SET expiration_time = $1 WHERE object_key = $2 AND upload_id = $3
-			`, expirationTime, tempObject.ObjectKey, tempObject.UploadID)
-		return stacktrace.Propagate(err, "")
-	} else {
-		_, err := tx.Exec(`
-			UPDATE temp_objects SET expiration_time = $1 WHERE object_key = $2
-			`, expirationTime, tempObject.ObjectKey)
-		return stacktrace.Propagate(err, "")
+func (repo *ObjectCleanupRepository) SetExpiryForTempObjects(tx *sql.Tx, objectKeys []string, expirationTime int64) error {
+	if len(objectKeys) == 0 {
+		return nil
 	}
+	_, err := tx.Exec(`
+		UPDATE temp_objects SET expiration_time = $1 WHERE object_key = ANY($2::text[])
+		`, expirationTime, pq.Array(objectKeys))
+	return stacktrace.Propagate(err, "")
 }
 
-func (repo *ObjectCleanupRepository) RemoveTempObject(tx *sql.Tx, tempObject ente.TempObject) error {
+func (repo *ObjectCleanupRepository) SetCleanupStateForTempObjects(tx *sql.Tx, objectKeys []string, state ente.TempObjectCleanupState, expirationTime int64) error {
+	if len(objectKeys) == 0 {
+		return nil
+	}
+	_, err := tx.Exec(`UPDATE temp_objects SET cleanup_state = $1, expiration_time = $2 WHERE object_key = ANY($3::text[])`,
+		state, expirationTime, pq.Array(objectKeys))
+	return stacktrace.Propagate(err, "")
+}
+
+func (repo *ObjectCleanupRepository) RemoveTempObject(tempObject ente.TempObject) error {
 	if tempObject.IsMultipart {
-		_, err := tx.Exec(`
+		_, err := repo.DB.Exec(`
 			DELETE FROM temp_objects WHERE object_key = $1 AND upload_id = $2
 			`, tempObject.ObjectKey, tempObject.UploadID)
 		return stacktrace.Propagate(err, "")
-	} else {
-		_, err := tx.Exec(`
-			DELETE FROM temp_objects WHERE object_key = $1
-			`, tempObject.ObjectKey)
-		return stacktrace.Propagate(err, "")
 	}
+	_, err := repo.DB.Exec(`
+		DELETE FROM temp_objects WHERE object_key = $1
+		`, tempObject.ObjectKey)
+	return stacktrace.Propagate(err, "")
 }
 
-func (repo *ObjectCleanupRepository) SetCleanupState(tx *sql.Tx, objectKey string, state ente.TempObjectCleanupState, expirationTime int64) error {
-	_, err := tx.Exec(`UPDATE temp_objects SET cleanup_state = $1, expiration_time = $2 WHERE object_key = $3`,
-		state, expirationTime, objectKey)
+func (repo *ObjectCleanupRepository) CompleteHoldRelease(objectKey string, expirationTime int64) error {
+	_, err := repo.DB.Exec(
+		`UPDATE temp_objects SET cleanup_state = $1, expiration_time = $2, is_multipart = FALSE WHERE object_key = $3`,
+		ente.TempObjectDelete, expirationTime, objectKey,
+	)
 	return stacktrace.Propagate(err, "")
 }

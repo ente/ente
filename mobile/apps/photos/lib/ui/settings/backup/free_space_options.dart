@@ -2,11 +2,11 @@ import "dart:async";
 import "dart:io";
 
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/foundation.dart" show kDebugMode;
 import "package:flutter/material.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:photos/models/duplicate_files.dart";
 import "package:photos/models/freeable_space_info.dart";
 import "package:photos/service_locator.dart";
@@ -86,15 +86,14 @@ class _FreeUpSpaceOptionsScreenState extends State<FreeUpSpaceOptionsScreen> {
 
   Widget _buildReviewOptions(BuildContext context, StringsLocalizations l10n) {
     final options = <Widget>[
-      if (flagService.internalUser)
-        _buildFreeSpaceOption(
-          title: l10n.oldPhotos,
-          subtitle: l10n.oldPhotosDesc,
-          icon: HugeIcons.strokeRoundedClock02,
-          onTap: () async {
-            await routeToPage(context, const ReviewOldPhotosPage());
-          },
-        ),
+      _buildFreeSpaceOption(
+        title: l10n.oldPhotos,
+        subtitle: l10n.oldPhotosDesc,
+        icon: HugeIcons.strokeRoundedClock02,
+        onTap: () async {
+          await routeToPage(context, const ReviewOldPhotosPage());
+        },
+      ),
       if (flagService.enableVectorDb)
         _buildFreeSpaceOption(
           title: l10n.similarImages,

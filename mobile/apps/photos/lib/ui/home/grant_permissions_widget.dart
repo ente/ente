@@ -3,11 +3,11 @@ import "dart:io";
 import "dart:math";
 
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import "package:hugeicons/hugeicons.dart";
 import "package:logging/logging.dart";
 import 'package:photo_manager/photo_manager.dart';
 import "package:photos/app_mode.dart";
@@ -19,6 +19,7 @@ import "package:photos/services/machine_learning/ml_service.dart";
 import "package:photos/services/machine_learning/semantic_search/semantic_search_service.dart";
 import 'package:photos/services/sync/sync_service.dart';
 import "package:photos/theme/ente_theme.dart";
+import "package:photos/ui/account/onboarding_page_scaffold.dart";
 import "package:photos/ui/common/web_page.dart";
 import "package:photos/ui/components/alert_bottom_sheet.dart";
 import "package:photos/ui/components/buttons/button_widget_v2.dart";
@@ -47,6 +48,17 @@ class _GrantPermissionsWidgetState extends State<GrantPermissionsWidget>
   late final rive.FileLoader _permissionsAnimationLoader;
 
   static const double _logoWidth = 50;
+  static const double _offlineHeaderHeight = 340;
+  static const double _offlineIllustrationWidth = 375;
+  static const double _offlineTitleMaxWidth = 277;
+  static const _offlineTitleStyle = TextStyle(
+    fontFamily: TextStyles.outfitFontFamily,
+    package: TextStyles.fontPackage,
+    fontSize: 30,
+    height: 1.08,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 0,
+  );
 
   @override
   void initState() {
@@ -415,103 +427,51 @@ class _GrantPermissionsWidgetState extends State<GrantPermissionsWidget>
   }
 
   Widget _buildOfflinePermissionScreen(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          _buildSkeletonGallery(context),
-          _buildOfflinePermissionHeader(context),
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    colorScheme.contentReverse.withValues(alpha: 0.4),
-                    colorScheme.contentReverse,
-                  ],
-                  stops: const [0.0, 0.45],
-                ),
-              ),
-            ),
-          ),
-          SafeArea(
-            child: CustomScrollView(
-              primary: false,
-              slivers: [
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const SizedBox(height: 32),
-                        ConstrainedBox(
-                          constraints: BoxConstraints(
-                            maxHeight: MediaQuery.sizeOf(context).height * 0.2,
-                          ),
-                          child: _buildPermissionsAnimation(),
-                        ),
-                        const Flexible(child: SizedBox(height: 22)),
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 297),
-                          child: Text(
-                            context.strings.bringMemoriesTogether,
-                            textAlign: .center,
-                            textScaler: .noScaling,
-                            style: TextStyle(
-                              fontWeight: .w900,
-                              fontFamily: TextStyles.outfitFontFamily,
-                              package: TextStyles.fontPackage,
-                              fontSize: min(
-                                MediaQuery.of(context).size.width * 0.125,
-                                32,
-                              ),
-                              height: 1.08,
-                              color: colorScheme.textBase,
-                            ),
-                          ),
-                        ),
-                        const Flexible(child: SizedBox(height: 24)),
-                        Text(
-                          context.strings.localGalleryPermissionDesc,
-                          textAlign: TextAlign.center,
-                          style: TextStyles.body.copyWith(
-                            color: colorScheme.contentLight.withValues(
-                              alpha: 0.8,
-                            ),
-                          ),
-                        ),
-                        const Flexible(child: SizedBox(height: 32)),
-                        ButtonComponent(
-                          variant: ButtonComponentVariant.neutral,
-                          density: ButtonComponentDensity.compact,
-                          label: context.strings.continueLabel,
-                          shouldShowSuccessState: false,
-                          onTap: _onTapOfflineGrantPermission,
-                        ),
-                        const Flexible(child: SizedBox(height: 42)),
-                        _buildOfflineTermsAndPrivacy(context),
-                        const Flexible(child: SizedBox(height: 24)),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+    final illustrationScale =
+        MediaQuery.sizeOf(context).width / _offlineIllustrationWidth;
+    return OnboardingPageScaffold(
+      title: context.strings.bringMemoriesTogether,
+      titleStyle: _offlineTitleStyle,
+      titleMaxWidth: MediaQuery.textScalerOf(
+        context,
+      ).scale(_offlineTitleMaxWidth),
+      titleMaxLines: null,
+      titleTopPadding: 43,
+      illustration: OnboardingIllustration.permission,
+      headerHeight: _offlineHeaderHeight * illustrationScale,
+      fitsHeaderToContent: true,
+      illustrationScale: illustrationScale,
+      titleBarStyle: OnboardingTitleBarStyle.header,
+      manageInputFocus: false,
+      body: Text(
+        context.strings.localGalleryPermissionDesc,
+        textAlign: TextAlign.center,
+        style: TextStyles.body.copyWith(
+          color: context.componentColors.textLight,
+        ),
       ),
+      actions: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ButtonComponent(
+              variant: ButtonComponentVariant.neutral,
+              label: context.strings.continueLabel,
+              shouldShowSuccessState: false,
+              onTap: _onTapOfflineGrantPermission,
+            ),
+            const SizedBox(height: Spacing.xxl),
+            _buildOfflineTermsAndPrivacy(context),
+            const SizedBox(height: Spacing.xxl),
+          ],
+        ),
+      ],
     );
   }
 
   Widget _buildOfflineTermsAndPrivacy(BuildContext context) {
     final colorScheme = getEnteColorScheme(context);
-    final textStyle = TextStyles.body.copyWith(
+    final textStyle = TextStyles.mini.copyWith(
       color: colorScheme.contentLight.withValues(alpha: 0.8),
     );
 
@@ -555,106 +515,6 @@ class _GrantPermissionsWidgetState extends State<GrantPermissionsWidget>
           ),
         ),
       },
-    );
-  }
-
-  Widget _buildOfflinePermissionHeader(BuildContext context) {
-    final colorScheme = getEnteColorScheme(context);
-    return SafeArea(
-      bottom: false,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: SizedBox(
-          height: 52,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              HugeIcon(
-                icon: HugeIcons.strokeRoundedMenu01,
-                size: 18,
-                color: colorScheme.strokeBase,
-              ),
-              SvgPicture.asset(
-                "assets/ente-branding.svg",
-                height: 15,
-                colorFilter: ColorFilter.mode(
-                  colorScheme.content,
-                  BlendMode.srcIn,
-                ),
-              ),
-              HugeIcon(
-                icon: HugeIcons.strokeRoundedUpload01,
-                size: 18,
-                color: colorScheme.strokeBase,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSkeletonGallery(BuildContext context) {
-    const skeletonColor = Color.fromRGBO(217, 217, 217, 0.39);
-    const memoryAspectRatio = 0.75;
-    final topPadding = MediaQuery.of(context).padding.top;
-
-    return Padding(
-      padding: EdgeInsets.only(top: topPadding + 56, left: 8, right: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AspectRatio(
-            aspectRatio: 3 * memoryAspectRatio,
-            child: GridView.builder(
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: 4,
-                childAspectRatio: memoryAspectRatio,
-              ),
-              itemCount: 3,
-              itemBuilder: (context, index) {
-                return Container(
-                  decoration: BoxDecoration(
-                    color: skeletonColor,
-                    borderRadius: BorderRadius.circular(13),
-                  ),
-                );
-              },
-            ),
-          ),
-          const SizedBox(height: 12),
-          Container(
-            width: 71,
-            height: 19,
-            decoration: BoxDecoration(
-              color: skeletonColor,
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Expanded(
-            child: GridView.builder(
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: 4,
-                mainAxisSpacing: 4,
-              ),
-              itemCount: 9,
-              itemBuilder: (context, index) {
-                return Container(
-                  decoration: BoxDecoration(
-                    color: skeletonColor,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

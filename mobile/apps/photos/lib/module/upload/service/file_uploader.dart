@@ -25,6 +25,7 @@ import "package:photos/models/backup/backup_item.dart";
 import 'package:photos/models/file/file.dart';
 import 'package:photos/models/file/file_type.dart';
 import "package:photos/models/user_details.dart";
+import "package:photos/module/download/file.dart";
 import "package:photos/module/metadata/exif.dart";
 import 'package:photos/module/upload/model/media_upload_data.dart';
 import "package:photos/module/upload/service/existing_upload_resolver.dart";
@@ -82,6 +83,7 @@ class FileUploader {
 
   late MultiPartUploader _multiPartUploader;
   UploadTransport? _uploadTransport;
+  Timer? _rateLimitTimer;
   StreamSubscription<LocalPhotosUpdatedEvent>? _localPhotosUpdatedSubscription;
 
   FileUploader._privateConstructor();
@@ -228,6 +230,9 @@ class FileUploader {
       clearQueue(SyncStopRequestedError());
       return;
     }
+    if (_rateLimitTimer?.isActive ?? false) {
+      return;
+    }
     final pendingItem = _queue.startNext(
       maximumConcurrentUploads: kMaximumConcurrentUploads,
       maximumConcurrentVideoUploads: kMaximumConcurrentVideoUploads,
@@ -274,6 +279,14 @@ class FileUploader {
         return null;
       }
       _queue.fail(item, e);
+      if (e is DioException && e.response?.statusCode == 429) {
+        _rateLimitTimer?.cancel();
+        _rateLimitTimer = Timer(const Duration(seconds: 5), () {
+          for (var i = 0; i < kMaximumConcurrentUploads; i++) {
+            _pollQueue();
+          }
+        });
+      }
       return null;
     } finally {
       _queue.finishAttempt(item);
@@ -794,6 +807,7 @@ class FileUploader {
       if ((isMultipartUpload || hasExistingMultiPart) &&
           isPutOrMultiPartError(e)) {
         await UploadLocksDB.instance.deleteMultipartTrack(lockKey);
+        await deleteFileSystemEntityIfPresent(File(encryptedFilePath));
       }
       rethrow;
     } finally {
@@ -841,11 +855,13 @@ class FileUploader {
       // succeeds.
       // A Live Photo source is an app-created archive, and each retry rebuilds
       // it, so it must be removed after every attempt.
-      if ((Platform.isIOS &&
-              (file.fileType == FileType.livePhoto ||
-                  uploadCompleted ||
-                  uploadHardFailure)) ||
-          (uploadCompleted && file.isSharedMediaToAppSandbox)) {
+      final bool shouldDeleteSource = file.isSharedMediaToAppSandbox
+          ? uploadCompleted
+          : Platform.isIOS &&
+                (file.fileType == FileType.livePhoto ||
+                    uploadCompleted ||
+                    uploadHardFailure);
+      if (shouldDeleteSource) {
         await deleteFileSystemEntityIfPresent(mediaUploadData.sourceFile);
       }
     }
@@ -923,6 +939,18 @@ class FileUploader {
       }
       if (deleteEntry) {
         await FilesDB.instance.deleteLocalFile(file);
+        if (file.isSharedMediaToAppSandbox) {
+          await deleteFileSystemEntityIfPresent(
+            File(getSharedMediaFilePath(file)),
+          );
+        }
+        Bus.instance.fire(
+          LocalPhotosUpdatedEvent(
+            [file],
+            type: EventType.deletedFromDevice,
+            source: "invalidFile",
+          ),
+        );
       }
       if (canIgnoreFile) {
         await LocalSyncService.instance.ignoreUpload(file, e);

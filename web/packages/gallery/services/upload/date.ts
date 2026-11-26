@@ -1,5 +1,25 @@
+import { ensureElectron } from "ente-base/electron";
 import { nameAndExtension } from "ente-base/file-name";
 import log from "ente-base/log";
+import type { UploadItem } from ".";
+
+export const earliestFileSystemTime = async (
+    uploadItem: UploadItem,
+    modificationTime: number,
+) => {
+    if (uploadItem instanceof File || Array.isArray(uploadItem))
+        return modificationTime;
+
+    const path = typeof uploadItem == "string" ? uploadItem : uploadItem.path;
+    try {
+        const birthtimeMs = await ensureElectron().fs.statBirthtime(path);
+        if (birthtimeMs > 0)
+            return Math.min(birthtimeMs * 1000, modificationTime);
+    } catch (e) {
+        log.warn("Failed to read file creation time", e);
+    }
+    return modificationTime;
+};
 
 // These heuristics recover dates from screenshots and chat app exports.
 export const tryParseEpochMicrosecondsFromFileName = (
@@ -93,7 +113,33 @@ const parseDateFromFusedDateString = (s: string) =>
         second: Number(s.slice(13, 15)),
     });
 
-export const parseDateFromDigitGroups = (s: string) => {
+export const parseDateFromDigitGroups = (s: string) =>
+    parseDateFromLeadingDigitGroups(s) ?? parseDateAfterNumbers(s);
+
+const parseDateAfterNumbers = (s: string) => {
+    const date = /(?<!\d)\d{4}([-.])\d{2}\1\d{2}(?!\d)/.exec(s);
+    if (!date || containsDate(s.slice(0, date.index))) return undefined;
+    return parseDateFromLeadingDigitGroups(s.slice(date.index));
+};
+
+const containsDate = (s: string) => {
+    const groups = s.match(/\d+/g) ?? [];
+    return groups.some(
+        (group, i) =>
+            (group.length == 8 &&
+                parseDateFromFusedDateString(group) !== undefined) ||
+            validateAndGetDateFromComponents({
+                year: Number(group),
+                month: Number(groups[i + 1]) - 1,
+                day: Number(groups[i + 2]),
+                hour: NaN,
+                minute: NaN,
+                second: NaN,
+            }) !== undefined,
+    );
+};
+
+const parseDateFromLeadingDigitGroups = (s: string) => {
     const [year, month, day, hour, minute, second] = s.match(/\d+/g) ?? [];
 
     // Also recognize fused YYYYMMDD-HHMMSS dates.

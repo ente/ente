@@ -7,6 +7,7 @@ import "package:image/image.dart" as img;
 import "package:logging/logging.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/module/download/file.dart";
+import 'package:pro_image_editor/features/crop_rotate_editor/utils/crop_aspect_ratios.dart';
 import "package:pro_image_editor/pro_image_editor.dart";
 
 final _logger = Logger("lossless_edits");
@@ -100,7 +101,8 @@ bool isTransformOnlyLossless(TransformConfigs t) {
       t.isRectangularCropper &&
       _isSameRect(t.cropRect, fullImageRect) &&
       _isSameDouble(t.scaleUser, 1) &&
-      t.aspectRatio == -1 &&
+      (t.aspectRatio == CropAspectRatios.custom ||
+          t.aspectRatio == CropAspectRatios.original) &&
       _isSameOffset(t.offset, Offset.zero);
 
   return isLosslessTransformOnly;

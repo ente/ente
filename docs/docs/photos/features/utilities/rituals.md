@@ -36,6 +36,8 @@ Rituals help you build a photo habit by prompting you to take photos on specific
 - You can also add photos to the album from anywhere in the app
 - Only your own photos count toward completion
 
+![Camera button highlighted on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-ritual-camera-callout.png){width=320px}
+
 ## Reminders
 
 ![Send reminder toggle and time on Create new ritual sheet on Ente Photos mobile](https://docs-assets.ente.com/screenshots/phone-ritual-reminders-callout.png){width=320px}

@@ -9,6 +9,10 @@ Google Takeout is how you export a whole Google Photos library. Takeout gives yo
 
 Follow the steps below to export the library and import it into Ente. Ente reads those JSON files, matches them to each photo or video, and encrypts the metadata before upload. Learn more in the [Migration FAQ](/photos/faq/migration).
 
+> [!NOTE]
+>
+> Import a Google Takeout from a computer. The **Ente desktop app** (Windows, macOS or Linux) can import ZIP files or an unzipped folder. [photos.ente.com](https://photos.ente.com) can import an unzipped folder only. The mobile apps do not have a Takeout importer. [Download the desktop app](https://ente.com/download/), then follow the steps below.
+
 ### Steps
 
 1. Open [takeout.google.com](https://takeout.google.com).

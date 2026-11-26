@@ -5,7 +5,6 @@ import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:intl/intl.dart" show NumberFormat;
 import "package:photos/theme/ente_theme.dart";
-import "package:photos/ui/viewer/people/memory_lane_now_caption.dart";
 
 class MemoryLaneCaption extends StatefulWidget {
   const MemoryLaneCaption({
@@ -300,9 +299,7 @@ class _CaptionLayout {
         .replaceAll(MemoryLaneCaption.namePlaceholder, caption.name)
         .replaceAll(MemoryLaneCaption.timePlaceholder, time)
         .trim();
-    final timeStyle = caption.value == null
-        ? MemoryLaneNowCaption.textStyle
-        : MemoryLaneCaption.numberStyle;
+    final timeStyle = MemoryLaneCaption.numberStyle;
     TextPainter measure(String text, TextStyle style) => TextPainter(
       text: TextSpan(text: text, style: style),
       textDirection: direction,

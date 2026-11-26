@@ -1,1 +1,0 @@
-- Fixed jerky popup menu opening animations.

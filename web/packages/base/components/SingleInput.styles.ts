@@ -59,7 +59,7 @@ export const v2LabelSx = {
     fontWeight: 500,
     color: "text.muted",
 };
-export const v2InputSx: SxProps<Theme> = (theme) => ({
+export const v2InputSx = ((theme: Theme) => ({
     height: 52,
     boxSizing: "content-box",
     display: "flex",
@@ -79,7 +79,7 @@ export const v2InputSx: SxProps<Theme> = (theme) => ({
         "&.Mui-focused": { borderColor: "rgba(255 255 255 / 0.18)" },
     }),
     "&.Mui-error": { borderColor: errorColor },
-});
+})) satisfies SxProps<Theme>;
 export const v2HelperSx = (isError: boolean) => (theme: Theme) => ({
     fontSize: 12,
     lineHeight: "16px",

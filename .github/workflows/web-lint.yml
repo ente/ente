@@ -51,6 +51,7 @@ jobs:
                   path: |
                       web/apps/photos/.next/cache
                       web/apps/*/*.tsbuildinfo
+                      web/e2e/*.tsbuildinfo
                       web/packages/*/*.tsbuildinfo
                       web/packages/wasm/*/*.tsbuildinfo
 
@@ -58,9 +59,9 @@ jobs:
 
             - run: npm audit --audit-level critical
 
-            - run: _ENTE_IS_DESKTOP=1 npm run build:photos
-
             - run: npm run build:wasm
+
+            - run: _ENTE_IS_DESKTOP=1 npm exec --workspace photos -- next build --webpack
 
             - run: node scripts/lint.mjs
 

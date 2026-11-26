@@ -13,6 +13,8 @@ class RewindProgress extends ChangeNotifier {
   static const _resumePageKey = "${_prefix}_resume_page";
   static const _resumeStopKey = "${_prefix}_resume_stop";
   static const _completedKey = "${_prefix}_completed";
+  static const _dismissedKey = "${_prefix}_dismissed";
+  static const _newCardsNotifiedKey = "${_prefix}_new_cards_notified";
 
   bool get opened => _prefs.getBool(_openedKey) ?? false;
 
@@ -24,6 +26,12 @@ class RewindProgress extends ChangeNotifier {
   int get resumeStop => _prefs.getInt(_resumeStopKey) ?? 0;
 
   bool get completed => _prefs.getBool(_completedKey) ?? false;
+
+  bool get dismissed => _prefs.getBool(_dismissedKey) ?? false;
+
+  bool get newCardsNotified => _prefs.getBool(_newCardsNotifiedKey) ?? false;
+
+  Future<void> reload() => _prefs.reload();
 
   Future<void> markOpened() async {
     await _prefs.setBool(_openedKey, true);
@@ -41,9 +49,18 @@ class RewindProgress extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> markDismissed() async {
+    final saved = _prefs.setBool(_dismissedKey, true);
+    notifyListeners();
+    await saved;
+  }
+
   Future<void> markNotificationScheduled() =>
       _prefs.setBool(_notificationScheduledKey, true);
 
   Future<void> clearNotificationScheduled() =>
       _prefs.remove(_notificationScheduledKey);
+
+  Future<void> markNewCardsNotified() =>
+      _prefs.setBool(_newCardsNotifiedKey, true);
 }

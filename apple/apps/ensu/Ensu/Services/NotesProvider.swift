@@ -130,6 +130,21 @@ actor NotesProvider {
         }
     }
 
+    func inspectSourceRevision(_ id: String, operation: NotesReadOperation) async throws -> String?
+    {
+        try await diskGate.withLock {
+            let root = self.root
+            let record = try self.registration(id)
+            return try await operation.perform {
+                let source = try Self.source(record, operation: operation)
+                return try Self.handle(root, id).inspectSourceRevision(
+                    source: source,
+                    cancellation: operation.cancellation
+                )
+            }
+        }
+    }
+
     func index(
         _ id: String,
         context: LlmContext,

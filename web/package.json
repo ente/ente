@@ -73,10 +73,13 @@
             "katex": "0.18.2"
         }
     },
+    "dependencies": {
+        "@rive-app/canvas-lite": "2.51.0"
+    },
     "devDependencies": {
-        "@playwright/test": "1.65.0",
-        "concurrently": "10.0.6",
-        "eslint": "10.12.0",
+        "@playwright/test": "1.65.1",
+        "concurrently": "10.0.7",
+        "eslint": "10.15.0",
         "knip": "6.41.0",
         "prettier": "3.9.9",
         "typescript": "6.0.3"

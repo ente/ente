@@ -19,6 +19,7 @@ import androidx.media3.effect.Crop
 import androidx.media3.effect.Presentation
 import androidx.media3.effect.ScaleAndRotateTransformation
 import androidx.media3.transformer.Composition
+import androidx.media3.transformer.DefaultEncoderFactory
 import androidx.media3.transformer.EditedMediaItem
 import androidx.media3.transformer.EditedMediaItemSequence
 import androidx.media3.transformer.Effects
@@ -29,6 +30,7 @@ import androidx.media3.muxer.BufferInfo
 import androidx.media3.muxer.Muxer
 import androidx.media3.transformer.ProgressHolder
 import androidx.media3.transformer.Transformer
+import androidx.media3.transformer.VideoEncoderSettings
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -117,6 +119,46 @@ class VideoExportEngine(
         }
     }
 
+    suspend fun exportSlideshow(
+        request: SlideshowExportRequest,
+        onProgress: ((Float) -> Unit)? = null
+    ): String = withContext(Dispatchers.IO) {
+        val outputFile = File(request.outputPath).canonicalFile
+        require(
+            request.items.all { File(it.path).canonicalFile != outputFile } &&
+                request.music?.let { File(it.path).canonicalFile } != outputFile
+        ) { "Slideshow output must differ from input and music paths" }
+
+        val composer = SlideshowComposer(context, request)
+        try {
+            val composition = composer.compose()
+            withContext(Dispatchers.Main) {
+                export(
+                    composition = composition,
+                    outputPath = outputFile.path,
+                    transcodeVideo = true,
+                    optimizeTrim = false,
+                    maxDurationUs = null,
+                    videoBitrate = request.videoBitrate,
+                    maxFramesInEncoder = SLIDESHOW_MAX_FRAMES_IN_ENCODER,
+                    onProgress = onProgress
+                )
+            }
+            require(outputFile.isFile && outputFile.length() > 0) {
+                "Output file was not created"
+            }
+            request.outputPath
+        } catch (error: CancellationException) {
+            outputFile.delete()
+            throw error
+        } catch (error: Exception) {
+            outputFile.delete()
+            throw VideoProcessingException("Slideshow export failed: ${error.message}", error)
+        } finally {
+            composer.close()
+        }
+    }
+
     private fun buildMediaItem(
         inputFile: File,
         clipRange: VideoClipRangeUs
@@ -186,6 +228,8 @@ class VideoExportEngine(
         transcodeVideo: Boolean,
         optimizeTrim: Boolean,
         maxDurationUs: Long?,
+        videoBitrate: Int? = null,
+        maxFramesInEncoder: Int? = null,
         onProgress: ((Float) -> Unit)?
     ): ExportResult = coroutineScope {
         var progressJob: Job? = null
@@ -198,8 +242,20 @@ class VideoExportEngine(
                 if (transcodeVideo) {
                     transformerBuilder.setVideoMimeType(MimeTypes.VIDEO_H264)
                 }
+                if (videoBitrate != null) {
+                    transformerBuilder.setEncoderFactory(
+                        DefaultEncoderFactory.Builder(context)
+                            .setRequestedVideoEncoderSettings(
+                                VideoEncoderSettings.Builder().setBitrate(videoBitrate).build()
+                            )
+                            .build()
+                    )
+                }
                 if (optimizeTrim) {
                     transformerBuilder.experimentalSetTrimOptimizationEnabled(true)
+                }
+                if (maxFramesInEncoder != null) {
+                    transformerBuilder.experimentalSetMaxFramesInEncoder(maxFramesInEncoder)
                 }
                 val transformer = transformerBuilder
                     .addListener(object : Transformer.Listener {
@@ -264,6 +320,10 @@ class VideoExportEngine(
         } finally {
             extractor.release()
         }
+    }
+
+    private companion object {
+        const val SLIDESHOW_MAX_FRAMES_IN_ENCODER = 16
     }
 }
 

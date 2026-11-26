@@ -61,14 +61,20 @@ pub struct AssetStore {
 #[napi]
 impl AssetStore {
     #[napi(constructor)]
-    pub fn new(assets_dir: String, legacy_models_dir: String) -> Self {
+    pub fn new(assets_dir: String, legacy_models_dir: String) -> Result<Self> {
         let inner = ente_assets::AssetStore::new(assets_dir);
-        for warning in
-            assets::migrate_desktop_models(&inner, std::path::Path::new(&legacy_models_dir))
-        {
+        let migration =
+            assets::migrate_desktop_models(&inner, std::path::Path::new(&legacy_models_dir));
+        let warnings = match &migration {
+            Ok(warnings) => warnings,
+            Err(error) => &error.warnings,
+        };
+        for warning in warnings {
             ::log::warn!("Photos model migration: {warning}");
         }
-        Self { inner }
+        migration
+            .map_err(|error| Error::from_reason(format!("Photos model migration: {error}")))?;
+        Ok(Self { inner })
     }
 
     #[napi]

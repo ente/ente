@@ -1,4 +1,5 @@
 import "package:collection/collection.dart";
+import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:photos/models/device_collection.dart";
 import "package:photos/settings/local_settings.dart";
 
@@ -34,7 +35,7 @@ void sortDeviceCollections(
 }
 
 int _compareByName(DeviceCollection first, DeviceCollection second) {
-  return compareAsciiLowerCaseNatural(first.name, second.name);
+  return compareNames(first.name, second.name);
 }
 
 int _newestPhotoTime(DeviceCollection deviceCollection) {

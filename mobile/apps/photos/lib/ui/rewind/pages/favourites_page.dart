@@ -2,9 +2,11 @@ import "dart:math";
 import "dart:ui" show lerpDouble;
 
 import "package:flutter/material.dart";
+import "package:flutter/services.dart";
 import "package:photos/models/file/file.dart";
-import "package:photos/src/rust/api/rewind_api.dart" as rust;
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
+import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
@@ -13,7 +15,6 @@ import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
 import "package:photos/ui/rewind/widgets/rewind_elapsed.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
-import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo.dart";
 import "package:photos/ui/rewind/widgets/rewind_reveal_layer.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
@@ -21,50 +22,7 @@ import "package:photos/ui/rewind/widgets/rewind_text.dart";
 
 typedef _Pose = ({Offset center, double turn, double scale, double opacity});
 
-const _Pose _gone = (
-  center: Offset(-170, 380),
-  turn: -30,
-  scale: 0.892,
-  opacity: 1,
-);
-const _Pose _left = (
-  center: Offset(92.1, 363.5),
-  turn: -19.8,
-  scale: 0.892,
-  opacity: 1,
-);
-const _Pose _front = (
-  center: Offset(194.6, 340.2),
-  turn: 0,
-  scale: 1,
-  opacity: 1,
-);
-const _Pose _right = (
-  center: Offset(297.9, 363.5),
-  turn: 19.8,
-  scale: 0.892,
-  opacity: 1,
-);
-const _Pose _coming = (
-  center: Offset(560, 380),
-  turn: 30,
-  scale: 0.892,
-  opacity: 1,
-);
-const _slots = [_gone, _left, _front, _right, _coming];
-
-const _Pose _frontFrom = (
-  center: Offset(194.6, 400),
-  turn: 0,
-  scale: 0.9,
-  opacity: 0,
-);
-const _Pose _backFrom = (
-  center: Offset(194.6, 350),
-  turn: 0,
-  scale: 0.892,
-  opacity: 0,
-);
+typedef _Settle = ({double from, double to, double atMs});
 
 _Pose _lerp(_Pose a, _Pose b, double t) => (
   center: Offset.lerp(a.center, b.center, t)!,
@@ -73,18 +31,46 @@ _Pose _lerp(_Pose a, _Pose b, double t) => (
   opacity: lerpDouble(a.opacity, b.opacity, t)!,
 );
 
+const _titleRect = Rect.fromLTWH(28, 664, 334, 40);
+const _lineRect = Rect.fromLTWH(28, 718, 334, 22);
+const _sparkleAt = Offset(38.9, 110.9);
+const _hundredAt = Offset(277, 482.7);
+
+Widget _backdrop() => RewindBackdrop(
+  color: const Color(0xFFFB4196),
+  pattern: RewindStripes(const Color(0xFFFF4D9F).withValues(alpha: 0.42)),
+);
+
+Widget _title(String title) => RewindOutlinedText(
+  title,
+  style: RewindTextStyles.display(
+    48.039,
+    color: RewindColors.white,
+    height: 0.84,
+    letterSpacing: -1.4412,
+  ),
+  shadow: const Offset(1.766, 2.119),
+);
+
+Widget _sparkle() =>
+    const CustomPaint(size: Size.square(70), painter: _SparklePainter());
+
+Widget _hundred() => Image.file(
+  RewindAssets.file(RewindAssets.hundredSticker),
+  width: 110,
+  height: 104,
+);
+
 class FavouritesPage extends RewindPage {
-  const FavouritesPage(this.favourites, this.photos);
+  const FavouritesPage(this.photos);
 
-  static const _firstTurnMs = 1100.0;
-  static const _beatMs = 1800.0;
-  static const _turnMs = 760.0;
-
-  final rust.Favourites favourites;
   final List<EnteFile> photos;
 
   @override
   String get key => "favourites";
+
+  @override
+  Duration? get reelHold => const Duration(milliseconds: 7100);
 
   @override
   Widget build(
@@ -92,21 +78,184 @@ class FavouritesPage extends RewindPage {
     double position, {
     required bool isActive,
   }) {
-    final count = favourites.photoCount;
-    final title = rewindCounted(count, "FAVOURITE", "FAVOURITES");
-    const line = "Not that you were counting. We were.";
-    return RewindShareable(
+    return _Favourites(photos: photos, position: position, isActive: isActive);
+  }
+}
+
+class _Favourites extends StatefulWidget {
+  const _Favourites({
+    required this.photos,
+    required this.position,
+    required this.isActive,
+  });
+
+  final List<EnteFile> photos;
+  final double position;
+  final bool isActive;
+
+  @override
+  State<_Favourites> createState() => _FavouritesState();
+}
+
+class _FavouritesState extends State<_Favourites> {
+  static const _firstTurnMs = 2200.0;
+  static const _beatMs = 2100.0;
+  static const _handsOffMs = 3000.0;
+  static const _turn = RewindMotion.soft;
+  static const _dragPerTurn = 110.0;
+  static const _flingVelocity = 350.0;
+
+  var _ms = 0.0;
+  var _shownFront = 0;
+  var _latchedFront = 0;
+  var _grabbedFront = 0;
+  bool? _still;
+  double? _dragged;
+  _Settle? _settle;
+
+  List<EnteFile> get _photos => widget.photos;
+
+  bool get _wraps => _photos.length >= 3;
+
+  bool get _swipes => _photos.length >= 2;
+
+  double get _turnMs => _turn.duration.inMilliseconds.toDouble();
+
+  static int _frontOf(double spun) => (spun + 0.5).floor();
+
+  double _spunAt(double ms, {required bool still}) {
+    final dragged = _dragged;
+    if (dragged != null) return dragged;
+    final settle = _settle;
+    if (settle == null) {
+      return _wraps ? _autoSpun(ms, from: 0, turnAtMs: _firstTurnMs) : 0;
+    }
+    final into = ms - settle.atMs;
+    if (!still && into >= 0 && into < _turnMs) {
+      return lerpDouble(
+        settle.from,
+        settle.to,
+        _turn.transform(into / _turnMs),
+      )!;
+    }
+    return _wraps
+        ? _autoSpun(ms, from: settle.to, turnAtMs: settle.atMs + _handsOffMs)
+        : settle.to;
+  }
+
+  double _autoSpun(
+    double ms, {
+    required double from,
+    required double turnAtMs,
+  }) {
+    if (ms < turnAtMs) return from;
+    final since = ms - turnAtMs;
+    final turns = (since / _beatMs).floor();
+    final within = (since - turns * _beatMs) / _turnMs;
+    return from + turns + _turn.transform(min(1.0, within));
+  }
+
+  double _bounded(double spun) =>
+      _wraps ? spun : spun.clamp(0.0, _photos.length - 1.0);
+
+  double get _stageScale => RewindStage.scaleFor(MediaQuery.sizeOf(context));
+
+  void _settleTo(double from, double to) {
+    setState(() {
+      _dragged = null;
+      _settle = (from: from, to: _bounded(to), atMs: _ms);
+    });
+  }
+
+  void _step(int by) {
+    final front = _shownFront.toDouble();
+    _settleTo(front, front + by);
+  }
+
+  void _restartFromShown(double ms) {
+    final front = _shownFront.toDouble();
+    _settle = (from: front, to: front, atMs: ms);
+  }
+
+  void _grab(DragStartDetails details) {
+    final spun = _spunAt(_ms, still: MediaQuery.disableAnimationsOf(context));
+    _grabbedFront = _frontOf(spun);
+    setState(() => _dragged = spun);
+  }
+
+  void _drag(DragUpdateDetails details) {
+    final dragged = _dragged;
+    if (dragged == null) return;
+    final next = _bounded(
+      dragged - details.primaryDelta! / (_dragPerTurn * _stageScale),
+    );
+    if (_frontOf(next) != _frontOf(dragged)) HapticFeedback.selectionClick();
+    setState(() => _dragged = next);
+  }
+
+  void _release(DragEndDetails details) {
+    final dragged = _dragged;
+    if (dragged == null) return;
+    final velocity = (details.primaryVelocity ?? 0) / _stageScale;
+    final nearest = dragged.roundToDouble();
+    _settleTo(
+      dragged,
+      velocity.abs() < _flingVelocity
+          ? nearest
+          : velocity < 0
+          ? min(dragged.floorToDouble() + 1, max(_grabbedFront + 1.0, nearest))
+          : max(dragged.ceilToDouble() - 1, min(_grabbedFront - 1.0, nearest)),
+    );
+  }
+
+  void _latch() => _latchedFront = _shownFront;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      onScrollLeft: _swipes ? () => _step(1) : null,
+      onScrollRight: _swipes ? () => _step(-1) : null,
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        excludeFromSemantics: true,
+        onHorizontalDragStart: _swipes ? _grab : null,
+        onHorizontalDragUpdate: _swipes ? _drag : null,
+        onHorizontalDragEnd: _swipes ? _release : null,
+        onHorizontalDragCancel: _swipes
+            ? () => _release(DragEndDetails())
+            : null,
+        child: RewindShareable(
+          onShare: _latch,
+          child: Builder(
+            builder: (context) =>
+                _page(context, capturing: RewindShareable.capturing(context)),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _page(BuildContext context, {required bool capturing}) {
+    final position = capturing ? 0.0 : widget.position;
+    final isActive = widget.isActive || capturing;
+    final covered = RewindPageScope.coveredOf(context);
+    final media = MediaQuery.of(context);
+    final copy = RewindCopy.of(context);
+    final title = capturing
+        ? copy.myFavouriteTitle
+        : RewindPageScope.reelOf(context)
+        ? copy.myFavouritesTitle
+        : copy.favouritesTitle;
+    return MediaQuery(
+      data: media.copyWith(
+        disableAnimations: media.disableAnimations || capturing,
+      ),
       child: Stack(
         fit: StackFit.expand,
         children: [
-          RewindBackdrop(
-            color: const Color(0xFFFB4196),
-            pattern: RewindStripes(
-              const Color(0xFFFF4D9F).withValues(alpha: 0.42),
-            ),
-          ),
+          _backdrop(),
           Semantics(
-            label: "${title.toLowerCase()}. $line",
+            label: copy.favouritesLabel,
             child: ExcludeSemantics(
               child: RewindStage(
                 children: [
@@ -115,31 +264,50 @@ class FavouritesPage extends RewindPage {
                       position: position,
                       centerY: 340,
                       child: RewindElapsed(
-                        active: isActive,
+                        active: isActive && !covered,
                         stillMs: _firstTurnMs,
-                        builder: (context, ms) =>
-                            Stack(clipBehavior: Clip.none, children: _deck(ms)),
+                        builder: (context, ms) {
+                          if (capturing) {
+                            return _Deck(
+                              photos: _photos,
+                              ms: ms,
+                              spun: _latchedFront.toDouble(),
+                              wraps: _wraps,
+                              frontOnly: true,
+                            );
+                          }
+                          final still = MediaQuery.disableAnimationsOf(context);
+                          if (_still != null && _still != still) {
+                            _restartFromShown(ms);
+                          }
+                          _still = still;
+                          final spun = _spunAt(ms, still: still);
+                          _ms = ms;
+                          _shownFront = _frontOf(spun);
+                          return _Deck(
+                            photos: _photos,
+                            ms: ms,
+                            spun: spun,
+                            wraps: _wraps,
+                            frontOnly: false,
+                          );
+                        },
                       ),
                     ),
                   ),
-                  if (count >= 100)
-                    RewindRevealLayer(
-                      left: 277,
-                      top: 466,
-                      height: 104,
-                      position: position,
-                      active: isActive,
-                      preset: RewindPreset.pop,
-                      delayMs: 1150,
-                      child: Image.file(
-                        RewindAssets.file(RewindAssets.hundredSticker),
-                        width: 110,
-                        height: 104,
-                      ),
-                    ),
                   RewindRevealLayer(
-                    left: 38.9,
-                    top: 110.9,
+                    left: _hundredAt.dx,
+                    top: _hundredAt.dy,
+                    height: 104,
+                    position: position,
+                    active: isActive,
+                    preset: RewindPreset.pop,
+                    delayMs: 1150,
+                    child: _hundred(),
+                  ),
+                  RewindRevealLayer(
+                    left: _sparkleAt.dx,
+                    top: _sparkleAt.dy,
                     height: 70,
                     position: position,
                     active: isActive,
@@ -149,42 +317,34 @@ class FavouritesPage extends RewindPage {
                       idle: RewindIdle.twinkle,
                       active: isActive,
                       delayMs: 1950,
-                      child: const CustomPaint(
-                        size: Size.square(70),
-                        painter: _SparklePainter(),
-                      ),
+                      child: _sparkle(),
                     ),
                   ),
                   RewindRevealLayer(
-                    left: 28,
-                    top: 664,
-                    width: 331,
-                    maxWidth: 331,
-                    height: 40,
+                    left: _titleRect.left,
+                    top: _titleRect.top,
+                    width: _titleRect.width,
+                    maxWidth: _titleRect.width,
+                    height: _titleRect.height,
                     position: position,
                     active: isActive,
                     preset: RewindPreset.slap,
                     delayMs: 1300,
-                    child: RewindOutlinedText(
-                      title,
-                      style: RewindTextStyles.display(
-                        48.039,
-                        color: RewindColors.white,
-                        height: 0.84,
-                        letterSpacing: -1.4412,
-                      ),
-                      shadow: const Offset(1.766, 2.119),
-                    ),
+                    child: _title(title),
                   ),
                   RewindRevealLayer(
-                    left: 28,
-                    top: 718,
-                    width: 316,
-                    height: 22,
+                    left: _lineRect.left,
+                    top: _lineRect.top,
+                    width: _lineRect.width,
+                    height: _lineRect.height,
                     position: position,
                     active: isActive,
                     delayMs: 1600,
-                    child: Text(line, style: RewindTextStyles.body(17)),
+                    child: Text(
+                      capturing ? copy.favouriteLine : copy.favouritesLine,
+                      textAlign: TextAlign.center,
+                      style: RewindTextStyles.body(17),
+                    ),
                   ),
                 ],
               ),
@@ -194,54 +354,90 @@ class FavouritesPage extends RewindPage {
       ),
     );
   }
+}
 
-  List<Widget> _deck(double ms) {
-    if (photos.length < 3) {
-      return [
-        if (photos.length == 2)
-          _card(photos[1], 1, _entering(_backFrom, _right, ms, 320)),
-        if (photos.isNotEmpty)
-          _card(photos[0], 0, _entering(_frontFrom, _front, ms, 0)),
-      ];
-    }
-    if (ms <= _firstTurnMs) {
-      return [
-        _card(photos.last, 0, _entering(_backFrom, _left, ms, 260)),
-        _card(photos[1], 2, _entering(_backFrom, _right, ms, 320)),
-        _card(photos[0], 1, _entering(_frontFrom, _front, ms, 0)),
-      ];
-    }
-    final since = ms - _firstTurnMs;
-    final turn = (since / _beatMs).floor();
-    final progress = min(1.0, (since - turn * _beatMs) / _turnMs);
-    Widget card(int relative) {
-      final sequence = turn + relative;
-      return _card(
-        photos[(sequence - 1) % photos.length],
-        sequence,
-        _lerp(_slots[relative + 1], _slots[relative], progress),
-      );
-    }
+class _Deck extends StatelessWidget {
+  const _Deck({
+    required this.photos,
+    required this.ms,
+    required this.spun,
+    required this.wraps,
+    required this.frontOnly,
+  });
 
-    return [card(0), card(3), card(1), card(2)];
-  }
+  static const _entrance = RewindMotion.soft;
+  static const _backDelayMs = 260.0;
+  static const _sideDelayMs = 320.0;
+  static const _reach = 2.0;
 
-  _Pose _entering(_Pose from, _Pose to, double ms, int delayMs) => _lerp(
-    from,
-    to,
-    rewindProgress(
-      ms,
-      delayMs: delayMs.toDouble(),
-      durationMs: RewindMotion.soft.duration.inMilliseconds.toDouble(),
-      curve: RewindMotion.soft,
-    ),
+  static const _pivot = Offset(194.6, 581);
+  static const _radius = 240.8;
+  static const _slotArc = 25.4 * pi / 180;
+  static const _slotTurn = 19.8;
+  static const _sideScale = 0.892;
+  static const _offsideShift = 430.0;
+  static const _offsideY = 380.0;
+  static const _offsideTurn = 30.0;
+  static const _bobPx = 2.4;
+  static const _bobMs = 2800.0;
+
+  static const _Pose _frontFrom = (
+    center: Offset(194.6, 400),
+    turn: 0,
+    scale: 0.9,
+    opacity: 0,
+  );
+  static const _Pose _backFrom = (
+    center: Offset(194.6, 350),
+    turn: 0,
+    scale: 0.892,
+    opacity: 0,
   );
 
-  Widget _card(EnteFile file, int sequence, _Pose pose) {
+  final List<EnteFile> photos;
+  final double ms;
+  final double spun;
+  final bool wraps;
+  final bool frontOnly;
+
+  @override
+  Widget build(BuildContext context) {
+    if (frontOnly) {
+      return Stack(clipBehavior: Clip.none, children: [_card(spun.round(), 0)]);
+    }
+    final cards = [
+      for (
+        var sequence = (spun - _reach).floor();
+        sequence <= (spun + _reach).ceil();
+        sequence++
+      )
+        if ((sequence - spun).abs() < _reach &&
+            (wraps || (sequence >= 0 && sequence < photos.length)))
+          (sequence: sequence, slot: sequence - spun),
+    ];
+    cards.sort((a, b) {
+      final depth = b.slot.abs().compareTo(a.slot.abs());
+      return depth != 0 ? depth : a.slot.compareTo(b.slot);
+    });
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [for (final card in cards) _card(card.sequence, card.slot)],
+    );
+  }
+
+  Widget _card(int sequence, double slot) {
+    final pose = frontOnly
+        ? _onWheel(0)
+        : spun == 0
+        ? _entering(slot)
+        : _onWheel(slot);
+    final bob = frontOnly
+        ? 0.0
+        : _bobPx * sin(2 * pi * ms / _bobMs + sequence * 1.7);
     return Positioned.fromRect(
       key: ValueKey(sequence),
       rect: Rect.fromCenter(
-        center: pose.center,
+        center: pose.center + Offset(0, bob),
         width: _FavouriteCard.size.width,
         height: _FavouriteCard.size.height,
       ),
@@ -252,10 +448,50 @@ class FavouritesPage extends RewindPage {
           transform: Matrix4.identity()
             ..rotateZ(pose.turn * pi / 180)
             ..scaleByDouble(pose.scale, pose.scale, 1, 1),
-          child: _FavouriteCard(file),
+          child: _FavouriteCard(photos[sequence % photos.length]),
         ),
       ),
     );
+  }
+
+  _Pose _entering(double slot) {
+    final resting = _onWheel(slot);
+    if (slot.abs() > 1) return resting;
+    final (from, delayMs) = switch (slot) {
+      0 => (_frontFrom, 0.0),
+      < 0 => (_backFrom, _backDelayMs),
+      _ => (_backFrom, _sideDelayMs),
+    };
+    return _lerp(
+      from,
+      resting,
+      rewindProgress(
+        ms,
+        delayMs: delayMs,
+        durationMs: _entrance.duration.inMilliseconds.toDouble(),
+        curve: _entrance,
+      ),
+    );
+  }
+
+  _Pose _onWheel(double slot) {
+    if (slot.abs() <= 1) {
+      final arc = slot * _slotArc;
+      return (
+        center: _pivot + Offset(sin(arc), -cos(arc)) * _radius,
+        turn: slot * _slotTurn,
+        scale: 1 - (1 - _sideScale) * slot * slot,
+        opacity: 1,
+      );
+    }
+    final side = slot.sign;
+    final _Pose offside = (
+      center: Offset(_pivot.dx + side * _offsideShift, _offsideY),
+      turn: side * _offsideTurn,
+      scale: _sideScale,
+      opacity: 1,
+    );
+    return _lerp(_onWheel(side), offside, slot.abs() - 1);
   }
 }
 
@@ -273,6 +509,13 @@ class _FavouriteCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: RewindColors.cream,
         borderRadius: BorderRadius.circular(26.85),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x2E000000),
+            blurRadius: 22,
+            offset: Offset(0, 10),
+          ),
+        ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(19.02),

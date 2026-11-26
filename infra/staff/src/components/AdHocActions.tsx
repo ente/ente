@@ -1,3 +1,4 @@
+import BlockRoundedIcon from "@mui/icons-material/BlockRounded";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import RestoreRoundedIcon from "@mui/icons-material/RestoreRounded";
 import StorageRoundedIcon from "@mui/icons-material/StorageRounded";
@@ -15,6 +16,7 @@ import React, { useState } from "react";
 import type { ScheduledDeletion } from "../services/admin-user";
 import {
     recoverScheduledDeletion,
+    setAccountSuspended,
     unblockStorageWarningLogin,
 } from "../services/admin-user";
 import { useStaffSession } from "../services/session";
@@ -24,28 +26,31 @@ import { ConfirmationDialog } from "./ConfirmationDialog";
 interface AdHocActionsProps {
     email: string;
     activeUserID?: number | undefined;
+    isSuspended: boolean;
     scheduledDeletions: ScheduledDeletion[];
     scheduledDeletionsLoading: boolean;
     scheduledDeletionsLoaded: boolean;
     disabled: boolean;
     onOpen: () => Promise<void>;
-    onRecovered: () => Promise<void>;
+    onAccountChanged: () => Promise<void>;
 }
 
 export const AdHocActions: React.FC<AdHocActionsProps> = ({
     email,
     activeUserID,
+    isSuspended,
     scheduledDeletions,
     scheduledDeletionsLoading,
     scheduledDeletionsLoaded,
     disabled,
     onOpen,
-    onRecovered,
+    onAccountChanged,
 }) => {
     const session = useStaffSession();
     const [anchorEl, setAnchorEl] = useState<HTMLElement>();
     const [recovering, setRecovering] = useState<ScheduledDeletion>();
     const [unblocking, setUnblocking] = useState(false);
+    const [suspensionAction, setSuspensionAction] = useState<boolean>();
     const [loading, setLoading] = useState(false);
     const [scheduledDeletionError, setScheduledDeletionError] =
         useState<string>();
@@ -78,7 +83,7 @@ export const AdHocActions: React.FC<AdHocActionsProps> = ({
         try {
             await recoverScheduledDeletion(session, recovering.userID, email);
             setRecovering(undefined);
-            await onRecovered();
+            await onAccountChanged();
         } catch (error) {
             alert(
                 error instanceof Error
@@ -104,6 +109,25 @@ export const AdHocActions: React.FC<AdHocActionsProps> = ({
                 error instanceof Error
                     ? error.message
                     : "Failed to unblock login",
+            );
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const updateSuspension = async () => {
+        if (activeUserID === undefined || suspensionAction === undefined)
+            return;
+        setLoading(true);
+        try {
+            await setAccountSuspended(session, activeUserID, suspensionAction);
+            setSuspensionAction(undefined);
+            await onAccountChanged();
+        } catch (error) {
+            alert(
+                error instanceof Error
+                    ? error.message
+                    : "Failed to update account suspension",
             );
         } finally {
             setLoading(false);
@@ -152,6 +176,32 @@ export const AdHocActions: React.FC<AdHocActionsProps> = ({
                         {email}
                     </Typography>
                 </Box>
+                <Divider />
+                <ListSubheader disableSticky>Account access</ListSubheader>
+                <MenuItem
+                    disabled={activeUserID === undefined || loading}
+                    onClick={() => {
+                        closeMenu();
+                        setSuspensionAction(!isSuspended);
+                    }}
+                    sx={{ gap: 1.5, py: 1.25 }}
+                >
+                    <BlockRoundedIcon
+                        color={isSuspended ? "success" : "error"}
+                    />
+                    <Box sx={{ textAlign: "left" }}>
+                        <Typography sx={{ fontWeight: 600 }} variant="body2">
+                            {isSuspended
+                                ? "Unsuspend account"
+                                : "Suspend account"}
+                        </Typography>
+                        <Typography color="text.secondary" variant="caption">
+                            {isSuspended
+                                ? "Allow the user to sign in again."
+                                : "Block sign-in and end all active sessions."}
+                        </Typography>
+                    </Box>
+                </MenuItem>
                 <Divider />
                 <ListSubheader disableSticky>Scheduled deletion</ListSubheader>
                 {scheduledDeletionsLoading ? (
@@ -327,6 +377,30 @@ export const AdHocActions: React.FC<AdHocActionsProps> = ({
                     </Typography>
                 </MenuItem>
             </Menu>
+            <ConfirmationDialog
+                open={suspensionAction !== undefined}
+                onClose={() => setSuspensionAction(undefined)}
+                title={
+                    suspensionAction ? "Suspend account?" : "Unsuspend account?"
+                }
+                actions={[
+                    {
+                        label: suspensionAction ? "Suspend" : "Unsuspend",
+                        loadingLabel: suspensionAction
+                            ? "Suspending..."
+                            : "Unsuspending...",
+                        loading,
+                        tone: suspensionAction ? "danger" : "success",
+                        onClick: () => {
+                            updateSuspension().catch(console.error);
+                        },
+                    },
+                ]}
+            >
+                {suspensionAction
+                    ? `Suspend ${email} (user #${activeUserID})? This blocks sign-in and ends all active sessions across all apps.`
+                    : `Unsuspend ${email} (user #${activeUserID})? The user can sign in again.`}
+            </ConfirmationDialog>
             <ConfirmationDialog
                 open={recovering !== undefined}
                 onClose={() => setRecovering(undefined)}

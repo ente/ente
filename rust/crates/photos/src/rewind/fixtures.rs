@@ -67,11 +67,20 @@ pub(super) fn located(mut file: RewindFile, latitude: f64, longitude: f64) -> Re
 }
 
 pub(super) fn daily_photos(first_id: i64, first_day: &str, days: i64) -> Vec<RewindFile> {
+    photos_every(first_id, first_day, days, 1)
+}
+
+pub(super) fn photos_every(
+    first_id: i64,
+    first_day: &str,
+    count: i64,
+    days_apart: i64,
+) -> Vec<RewindFile> {
     let start = micros(first_day);
-    (0..days)
-        .map(|day| {
-            let mut file = photo(first_id + day, first_day);
-            file.creation_time = start + day * 86_400_000_000;
+    (0..count)
+        .map(|index| {
+            let mut file = photo(first_id + index, first_day);
+            file.creation_time = start + index * days_apart * 86_400_000_000;
             file
         })
         .collect()
@@ -82,12 +91,11 @@ pub(super) fn request_at(now: &str, files: Vec<RewindFile>) -> RewindRequest {
         year: 2026,
         now: micros(now),
         utc_offset_seconds: 0,
-        season_start: micros("2026-12-05T00:00:00"),
-        installed_at: micros("2024-03-01T00:00:00"),
         local_gallery_mode: false,
         files,
         people: Vec::new(),
         me_person_id: None,
+        just_clustered: true,
     }
 }
 

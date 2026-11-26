@@ -1,9 +1,9 @@
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:ente_sharing/models/user.dart";
 import "package:ente_sharing/user_avatar_widget.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:locker/extensions/collection_extension.dart";
 import "package:locker/models/selected_collections.dart";
 import "package:locker/services/collections/collections_service.dart";
@@ -92,7 +92,9 @@ class CollectionListWidget extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  collection.displayName ?? 'Unnamed Collection',
+                  collection.type == CollectionType.uncategorized
+                      ? context.strings.uncategorized
+                      : collection.displayName ?? 'Unnamed Collection',
                   style: TextStyles.body,
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,

@@ -69,6 +69,14 @@
       "slug": "ahrefs"
     },
     {
+      "title": "AIDA",
+      "slug": "aida",
+      "altNames": [
+        "AIDA Cloud",
+        "aidacloud"
+      ]
+    },
+    {
       "title": "Airtable"
     },
     {
@@ -1156,6 +1164,10 @@
       "slug": "halo"
     },
     {
+      "title": "HARDRADA",
+      "hex": "0B0B0B"
+    },
+    {
       "title": "Healthchecks.io",
       "slug": "healthchecks"
     },
@@ -1204,6 +1216,14 @@
     {
       "title": "Hulu",
       "slug": "hulu"
+    },
+    {
+      "title": "Hustix Macro",
+      "slug": "hustix-macro",
+      "altNames": [
+        "Hustix",
+        "hustix-macro"
+      ]
     },
     {
       "title": "Hytale",
@@ -1366,6 +1386,10 @@
       "altNames": [
         "keygen.sh"
       ]
+    },
+    {
+      "title": "KeyHelp",
+      "slug": "keyhelp"
     },
     {
       "title": "Kick"
@@ -1887,6 +1911,17 @@
     },
     {
       "title": "NVIDIA"
+    },
+    {
+      "title": "NY.gov",
+      "slug": "ny_gov",
+      "altNames": [
+        "NY Gov",
+        "NY.Gov ID",
+        "New York State",
+        "my.ny.gov",
+        "login.ny.gov"
+      ]
     },
     {
       "title": "OCENSA",
@@ -2647,6 +2682,14 @@
       "title": "TorGuard"
     },
     {
+      "title": "Toronto District School Board",
+      "slug": "tdsb",
+      "hex": "009D57",
+      "altNames": [
+        "TDSB"
+      ]
+    },
+    {
       "title": "Toshl Finance",
       "slug": "toshl_finance",
       "altNames": [
@@ -2677,6 +2720,14 @@
       "title": "Tresorit"
     },
     {
+      "title": "TRMNL",
+      "slug": "trmnl",
+      "hex": "F8654B",
+      "altNames": [
+        "trmnl.com"
+      ]
+    },
+    {
       "title": "TRowePrice",
       "hex": "00CFEC",
       "altNames": [
@@ -2691,6 +2742,15 @@
       "slug": "truth_social",
       "altNames": [
         "truthsocial.com"
+      ]
+    },
+    {
+      "title": "TU Dortmund",
+      "slug": "tu-dortmund",
+      "altNames": [
+        "Technische Universität Dortmund",
+        "Technical University Dortmund",
+        "TUDO"
       ]
     },
     {
@@ -2752,6 +2812,9 @@
     {
       "title": "UCF",
       "slug": "ucf"
+    },
+    {
+      "title": "UFile"
     },
     {
       "title": "unitedhealthgroup",
@@ -2861,6 +2924,18 @@
       "title": "volcengine",
       "altNames": [
         "火山引擎"
+      ]
+    },
+    {
+      "title": "Voope",
+      "slug": "voope",
+      "altNames": [
+        "Voope Soluções",
+        "Voope Solucoes",
+        "Voope Sistemas",
+        "voopesistemas",
+        "voopesistemas.com.br",
+        "voope.com.br"
       ]
     },
     {

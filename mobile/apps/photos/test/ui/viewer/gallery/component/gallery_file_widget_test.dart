@@ -17,6 +17,7 @@ import "package:photos/ui/viewer/file/thumbnail_widget.dart";
 import "package:photos/ui/viewer/gallery/component/gallery_file_widget.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_boundaries_provider.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_context_state.dart";
+import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
 import "package:photos/ui/viewer/gallery/swipe_selection_wrapper.dart";
 import "package:photos/ui/viewer/gallery/swipe_to_select_helper.dart";
 import "package:shared_preferences/shared_preferences.dart";
@@ -210,6 +211,47 @@ void main() {
       },
     );
   }
+
+  testWidgets("long-press previews a photo with the full selection locked", (
+    tester,
+  ) async {
+    final files = List.generate(
+      2,
+      (i) => EnteFile()
+        ..generatedID = i + 1
+        ..fileType = FileType.image,
+    );
+    final selected = SelectedFiles()..selectAll(files.toSet());
+    addTearDown(selected.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GalleryFilesState(
+          child: GalleryContextState(
+            sortOrderAsc: false,
+            inSelectionMode: true,
+            disableSelection: true,
+            child: GalleryFileWidget(
+              file: files.first,
+              selectedFiles: selected,
+              limitSelectionToOne: false,
+              tag: "person_share_gallery",
+              photoGridSize: photoGridSizeDefault,
+              currentUserID: null,
+            ),
+          ),
+        )..setGalleryFiles = files,
+      ),
+    );
+    final tile = find.byType(GalleryFileWidget);
+    final navigator = Navigator.of(tester.element(tile));
+    final press = await tester.startGesture(tester.getCenter(tile));
+    await tester.binding.delayed(const Duration(milliseconds: 600));
+    expect(navigator.canPop(), isTrue);
+    expect(selected.files, files.toSet());
+    await press.up();
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 100));
+  });
 
   testWidgets("Grid thumbnail tiers and overrides recreate the loader", (
     tester,

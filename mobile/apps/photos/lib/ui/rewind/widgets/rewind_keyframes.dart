@@ -84,6 +84,9 @@ class _RewindKeyframesState extends State<RewindKeyframes>
     vsync: this,
     duration: Duration(milliseconds: widget.delayMs + widget.durationMs),
   );
+  final _childKey = GlobalKey();
+
+  Widget get _child => KeyedSubtree(key: _childKey, child: widget.child);
 
   @override
   void initState() {
@@ -120,7 +123,7 @@ class _RewindKeyframesState extends State<RewindKeyframes>
             _controller.value * _controller.duration!.inMilliseconds -
             widget.delayMs;
         if (elapsed < 0 && widget.hiddenBeforeStart) {
-          return Opacity(opacity: 0, child: widget.child);
+          return Opacity(opacity: 0, child: _child);
         }
         final t = (elapsed / widget.durationMs).clamp(0.0, 1.0);
         return _posed(
@@ -134,7 +137,7 @@ class _RewindKeyframesState extends State<RewindKeyframes>
     final child = Transform(
       transform: pose.matrix,
       alignment: widget.origin,
-      child: widget.child,
+      child: _child,
     );
     if (pose.opacity >= 1) return child;
     return Opacity(opacity: pose.opacity.clamp(0.0, 1.0), child: child);

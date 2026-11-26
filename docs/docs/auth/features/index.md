@@ -19,6 +19,8 @@ Ente Auth supports the icon pack provided by [simple-icons](https://github.com/s
 
 Quickly find your codes by searching based on issuer or account name. You can also configure the app to focus the search bar automatically on app start by going to **Settings → General → Focus search on app start**.
 
+To find a setting, open **Settings** and tap the search icon at the top, then type what you're looking for, such as "export" or "app lock".
+
 On desktop, you can search without clicking the search icon. With your code list open, start typing and Ente Auth opens search with what you typed. You can also press `/`, or `Cmd + F` on macOS (`Ctrl + F` on Windows and Linux), to open search. Press `Esc` to clear the search and close it.
 
 If you've moved focus to a code with your keyboard, `C` and `N` copy the current and next code instead of starting a search. See [How do I copy the current or next code?](/auth/faq/#copy-current-next-code)
@@ -76,17 +78,18 @@ Securely share codes temporarily with others.
 
 ### Custom sorting
 
-![Edit order sheet with Issuer, Account, Frequently used, Recently used, Custom on Ente Auth mobile](https://docs-assets.ente.com/screenshots/auth-sort-callout.png){width=320px}
-
 Customize the order in which your codes are displayed. Ente Auth provides several sorting options:
 
 - Issuer name
 - Account name
 - Frequently used
 - Recently used
+- Newest first (codes you added most recently appear at the top)
 - Manual (custom drag-and-drop order)
 
 Access the sort menu in the top-right corner (next to the search icon) to change your sorting preference.
+
+![Newest first highlighted on the Edit order sheet on Ente Auth mobile](https://docs-assets.ente.com/screenshots/auth-sort-callout-v4427.png){width=560px}
 
 ### Offline mode
 
@@ -146,12 +149,12 @@ On Android, **Hide content** under `Settings > Security > App lock` blocks scree
 
 ### Import / Export
 
-![Import codes provider list on Ente Auth mobile](https://docs-assets.ente.com/screenshots/auth-import-hub.png){width=320px}
-
 Ente Auth offers various import and export options for your codes.
 
 - **Export:** Export your codes in plain text, as an encrypted file, or automatically via the CLI.
 - **Import:** Import codes from various other authentication apps.
+
+![Import codes provider list including Open Authenticator on Ente Auth mobile](https://docs-assets.ente.com/screenshots/auth-import-hub-v4427.png){width=560px}
 
 For detailed instructions, refer to the [migration guides](../migration/).
 

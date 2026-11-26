@@ -1,4 +1,4 @@
-import "package:collection/collection.dart";
+import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:photos/models/search/generic_search_result.dart";
 import "package:photos/models/search/search_constants.dart";
 import "package:photos/settings/local_settings.dart";
@@ -54,7 +54,7 @@ void sortPeopleFaces(List<GenericSearchResult> faces, PeopleSortConfig config) {
         if (!aHasPerson) {
           compareValue = b.fileCount().compareTo(a.fileCount());
         } else {
-          compareValue = compareAsciiLowerCaseNatural(a.name(), b.name());
+          compareValue = compareNames(a.name(), b.name());
           if (!config.nameSortAscending) {
             compareValue = -compareValue;
           }
@@ -73,7 +73,7 @@ void sortPeopleFaces(List<GenericSearchResult> faces, PeopleSortConfig config) {
     if (compareValue != 0) {
       return compareValue;
     }
-    return compareAsciiLowerCaseNatural(a.name(), b.name());
+    return compareNames(a.name(), b.name());
   });
 }
 

@@ -7,6 +7,30 @@ description: Release notes of recent updates to Ente Locker
 
 A short summary list of changes to Ente Locker.
 
+## v1.0.13 (mobile) - Nov 2026
+
+- Fix unlocking with existing desktop PINs containing letters or symbols.
+- Hid app content earlier during iOS app-lock transitions.
+- Fixed singular item counts and localized the Add item button's accessibility label.
+- Added Indonesian, Swedish, and Simplified Chinese language support.
+- Improved screen reader labels and announcements for buttons, menus, and scanner controls.
+- Added search filters and multi-selection for items and collections.
+- Removed item and collection selection counts below the search filters.
+
+## v1.0.12 (mobile) - Nov 2026
+
+- Fixed deleted collections remaining selected.
+- Kept items in your own collections when removing them from Important.
+- Fixed an app launch failure on iOS 27.
+- Improved spacing between onboarding and recovery-key actions.
+- Removed the unused microphone permission on Android.
+- Limited restore selection to one collection.
+- Fixed duplicate files in search results.
+- Improved search responsiveness.
+- Moved the session token to secure storage.
+- Added a 30-day deletion notice to Trash. (@fosszil)
+- Updated the empty home screen to show save options regardless of Legacy kit setup.
+
 ## v1.0.11 (mobile) - Oct 2026
 
 - Open images right in Locker. Pinch or double-tap to zoom.

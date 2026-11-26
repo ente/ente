@@ -7,8 +7,7 @@ import UIKit
 private let logger = Logger(subsystem: "io.ente.cast", category: "VideoPlayer")
 
 struct VideoPlayerView: View {
-    let videoData: Data
-    let suggestedFilename: String?
+    let videoURL: URL
     @State private var player: AVPlayer?
     @State private var isPlaying = false
     @State private var playerItem: AVPlayerItem?
@@ -16,11 +15,6 @@ struct VideoPlayerView: View {
     @State private var toastMessage = ""
     @State private var toastIcon = ""
     @State private var playerObservers: [NSObjectProtocol] = []
-
-    init(videoData: Data, suggestedFilename: String? = nil) {
-        self.videoData = videoData
-        self.suggestedFilename = suggestedFilename
-    }
 
     var body: some View {
         ZStack {
@@ -66,31 +60,32 @@ struct VideoPlayerView: View {
     private func setupVideoPlayer() {
         Task {
             do {
-                let suggestedExtension = suggestedFilename?.components(separatedBy: ".").last?
-                    .lowercased()
-
-                let tempURL = try await createTemporaryVideoFile(
-                    from: videoData,
-                    suggestedExtension: suggestedExtension,
-                )
-
-                let asset = AVURLAsset(url: tempURL)
+                let asset = AVURLAsset(url: videoURL)
                 let isPlayable = try await asset.load(.isPlayable)
-                let hasVideoTracks = try await !asset.loadTracks(withMediaType: .video).isEmpty
-
-                if isPlayable, hasVideoTracks {
-                    let playerItem = AVPlayerItem(url: tempURL)
-                    let player = AVPlayer(playerItem: playerItem)
-
-                    monitorPlayerItemStatus(playerItem)
-
-                    self.playerItem = playerItem
-                    self.player = player
-
-                    setupPlayer()
-                } else {
-                    tryVideoFallback(originalURL: tempURL)
+                let tracks = try await asset.loadTracks(withMediaType: .video)
+                guard isPlayable, !tracks.isEmpty else {
+                    throw VideoPlayerError.invalidVideo
                 }
+                for track in tracks {
+                    let naturalSize = try await track.load(.naturalSize)
+                    let transform = try await track.load(.preferredTransform)
+                    let displaySize = CGRect(origin: .zero, size: naturalSize)
+                        .applying(transform)
+                        .standardized
+                        .size
+                    guard validVideoDimensions(naturalSize),
+                        validVideoDimensions(displaySize)
+                    else {
+                        throw VideoPlayerError.dimensionsTooLarge
+                    }
+                }
+
+                let playerItem = AVPlayerItem(url: videoURL)
+                let player = AVPlayer(playerItem: playerItem)
+                monitorPlayerItemStatus(playerItem)
+                self.playerItem = playerItem
+                self.player = player
+                setupPlayer()
             } catch {
                 logger.error(
                     "Failed to set up video player: \(error.localizedDescription, privacy: .public)"
@@ -102,27 +97,11 @@ struct VideoPlayerView: View {
         }
     }
 
-    private func tryVideoFallback(originalURL: URL) {
-        Task {
-            do {
-                let fallbackURL = originalURL.deletingPathExtension().appendingPathExtension("mov")
-                try FileManager.default.copyItem(at: originalURL, to: fallbackURL)
-
-                await MainActor.run {
-                    let playerItem = AVPlayerItem(url: fallbackURL)
-                    let player = AVPlayer(playerItem: playerItem)
-
-                    self.playerItem = playerItem
-                    self.player = player
-
-                    setupPlayer()
-                }
-            } catch {
-                logger.error(
-                    "Video fallback failed: \(error.localizedDescription, privacy: .public)")
-                showErrorState()
-            }
-        }
+    private func validVideoDimensions(_ size: CGSize) -> Bool {
+        let width = abs(size.width)
+        let height = abs(size.height)
+        return width.isFinite && height.isFinite && width > 0 && height > 0
+            && width <= 8192 && height <= 8192 && width * height <= 35_000_000
     }
 
     private func showErrorState() {}
@@ -217,73 +196,6 @@ struct VideoPlayerView: View {
         playerObservers = [playbackEnded, playbackFailed, willResignActive, didBecomeActive]
     }
 
-    private func createTemporaryVideoFile(
-        from data: Data,
-        suggestedExtension: String? = nil
-    ) async throws -> URL {
-        let tempDirectory = FileManager.default.temporaryDirectory
-        let fileExtension = detectVideoExtension(from: data) ?? suggestedExtension ?? "mp4"
-        let tempURL =
-            tempDirectory
-            .appendingPathComponent("cast_video_\(UUID().uuidString).\(fileExtension)")
-
-        try data.write(to: tempURL)
-
-        Task {
-            try? await Task.sleep(nanoseconds: 60_000_000_000)
-            try? FileManager.default.removeItem(at: tempURL)
-        }
-
-        return tempURL
-    }
-
-    private func detectVideoExtension(from data: Data) -> String? {
-        let headerBytes = data.prefix(32)
-
-        if headerBytes.count >= 4 {
-            let signature = headerBytes.prefix(4)
-
-            if headerBytes.count >= 12 {
-                let ftyp = headerBytes.subdata(in: 4..<8)
-                if ftyp == Data("ftyp".utf8) {
-                    let brand = headerBytes.subdata(in: 8..<12)
-                    if brand == Data("mp41".utf8) || brand == Data("mp42".utf8)
-                        || brand == Data("isom".utf8) || brand == Data("M4V ".utf8)
-                    {
-                        return "mp4"
-                    } else if brand == Data("qt  ".utf8) {
-                        return "mov"
-                    }
-                }
-            }
-
-            if headerBytes.count >= 4 {
-                if signature[0] == 0x00, signature[1] == 0x00, signature[2] == 0x00,
-                    signature[3] == 0x01
-                {
-                    return "mp4"
-                }
-            }
-
-            if signature == Data("RIFF".utf8), headerBytes.count >= 12 {
-                let aviSignature = headerBytes.subdata(in: 8..<12)
-                if aviSignature == Data("AVI ".utf8) {
-                    return "avi"
-                }
-            }
-
-            if signature == Data([0x1A, 0x45, 0xDF, 0xA3]) {
-                return "webm"
-            }
-
-            if signature == Data([0x1A, 0x45, 0xDF, 0xA3]) {
-                return "mkv"
-            }
-        }
-
-        return "mp4"
-    }
-
     private func removePlayerObservers() {
         for observer in playerObservers {
             NotificationCenter.default.removeObserver(observer)
@@ -312,7 +224,20 @@ struct VideoPlayerView: View {
     }
 }
 
+private enum VideoPlayerError: LocalizedError {
+    case invalidVideo
+    case dimensionsTooLarge
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidVideo:
+            "The video is not playable"
+        case .dimensionsTooLarge:
+            "The video dimensions exceed the playback limit"
+        }
+    }
+}
+
 #Preview {
-    let mockData = Data()
-    VideoPlayerView(videoData: mockData, suggestedFilename: "sample_video.mp4")
+    VideoPlayerView(videoURL: URL(fileURLWithPath: "/dev/null"))
 }

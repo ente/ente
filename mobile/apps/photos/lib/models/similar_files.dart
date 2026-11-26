@@ -69,6 +69,9 @@ class SimilarFiles {
 }
 
 class SimilarFilesCache {
+  static const currentVersion = 2;
+
+  final int version;
   final List<String> similarFilesJsonStringList;
   final Set<int> allCheckedFileIDs;
   final double distanceThreshold;
@@ -79,6 +82,7 @@ class SimilarFilesCache {
   final int cachedTime;
 
   SimilarFilesCache({
+    this.version = currentVersion,
     required this.similarFilesJsonStringList,
     required this.allCheckedFileIDs,
     required this.distanceThreshold,
@@ -99,6 +103,17 @@ class SimilarFilesCache {
     return _similarFilesList!;
   }
 
+  List<Set<int>> fileIDGroupsWithin(double maxDistance) {
+    final groups = <Set<int>>[];
+    for (final jsonString in similarFilesJsonStringList) {
+      final json = jsonDecode(jsonString) as Map<String, dynamic>;
+      if ((json['distance'] as num).toDouble() <= maxDistance) {
+        groups.add(Set<int>.from(json['fileIDs']));
+      }
+    }
+    return groups;
+  }
+
   Future<Set<int>> getGroupedFileIDs() async {
     final similarFiles = await similarFilesList();
     final groupedFileIDs = <int>{};
@@ -110,6 +125,7 @@ class SimilarFilesCache {
 
   factory SimilarFilesCache.fromJson(Map<String, dynamic> json) {
     return SimilarFilesCache(
+      version: json['version'] as int? ?? 0,
       similarFilesJsonStringList: List<String>.from(
         json['similarFilesJsonStringList'],
       ),
@@ -122,6 +138,7 @@ class SimilarFilesCache {
 
   Map<String, dynamic> toJson() {
     return {
+      'version': version,
       'similarFilesJsonStringList': similarFilesJsonStringList,
       'allCheckedFileIDs': allCheckedFileIDs.toList(),
       'distanceThreshold': distanceThreshold,

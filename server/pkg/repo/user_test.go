@@ -1,9 +1,13 @@
 package repo
 
 import (
+	"context"
+	"database/sql"
 	"testing"
+	"time"
 
 	"github.com/ente/museum/internal/testutil"
+	storageBonusRepo "github.com/ente/museum/pkg/repo/storagebonus"
 	"github.com/stretchr/testify/require"
 )
 
@@ -33,4 +37,60 @@ func TestGetUsersWhoUpgradedNDaysAgoIncludesFamilyAdminID(t *testing.T) {
 	require.Nil(t, familyAdminIDs[soloUserID])
 	require.NotNil(t, familyAdminIDs[familyAdminID])
 	require.Equal(t, familyAdminID, *familyAdminIDs[familyAdminID])
+}
+
+func TestGetUsersWithIndividualPlanWhoHaveExceededStorageQuota(t *testing.T) {
+	db := testutil.RequireTestDB(t)
+	testutil.ResetTables(t, db)
+	t.Cleanup(func() { testutil.ResetTables(t, db) })
+
+	pool, err := sql.Open("postgres", "sslmode=disable")
+	require.NoError(t, err)
+	pool.SetMaxOpenConns(1)
+	t.Cleanup(func() { _ = pool.Close() })
+
+	activeUserID := testutil.InsertUser(t, db, testutil.UserFixture{
+		UserID:       1,
+		Email:        "over@example.com",
+		CreationTime: 1,
+	})
+	deletedUserID := testutil.InsertUser(t, db, testutil.UserFixture{
+		UserID:       2,
+		Email:        "deleted-over@example.com",
+		CreationTime: 1,
+	})
+	for _, userID := range []int64{activeUserID, deletedUserID} {
+		testutil.InsertUsage(t, db, userID, 200)
+		testutil.InsertSubscription(t, db, testutil.SubscriptionFixture{UserID: userID, Storage: 100})
+	}
+	_, err = db.Exec(`UPDATE users SET email_hash = 'deleted+2@ente.io' WHERE user_id = $1`, deletedUserID)
+	require.NoError(t, err)
+
+	userRepo := &UserRepository{
+		DB:                  pool,
+		SecretEncryptionKey: testutil.SecretEncryptionKey(),
+		StorageBonusRepo:    storageBonusRepo.NewRepository(pool),
+	}
+	users, err := userRepo.GetUsersWithIndividualPlanWhoHaveExceededStorageQuota()
+	require.NoError(t, err)
+	require.Equal(t, 0, pool.Stats().InUse)
+	require.Len(t, users, 1)
+	require.Equal(t, activeUserID, users[0].ID)
+	require.Equal(t, "over@example.com", users[0].Email)
+
+	closedDB, err := sql.Open("postgres", "sslmode=disable")
+	require.NoError(t, err)
+	require.NoError(t, closedDB.Close())
+	failingRepo := &UserRepository{
+		DB:                  pool,
+		SecretEncryptionKey: testutil.SecretEncryptionKey(),
+		StorageBonusRepo:    storageBonusRepo.NewRepository(closedDB),
+	}
+	_, err = failingRepo.GetUsersWithIndividualPlanWhoHaveExceededStorageQuota()
+	require.Error(t, err)
+	require.Equal(t, 0, pool.Stats().InUse)
+
+	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
+	defer cancel()
+	require.NoError(t, pool.PingContext(ctx))
 }

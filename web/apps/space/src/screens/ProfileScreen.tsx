@@ -37,7 +37,11 @@ import { useBrowserBackClose } from "hooks/use-browser-back-close";
 import React, { useState } from "react";
 import type { SetupProfile } from "screens/SetupProfileScreen";
 import type { SpaceInviteIntent } from "services/invite";
-import { isSpaceContentError, type SpacePostAsset } from "services/space";
+import {
+    isSpaceContentError,
+    type SpacePost,
+    type SpacePostAsset,
+} from "services/space";
 import { spaceEmptyStateButtonSx } from "styles/buttons";
 import {
     spaceAppBackground,
@@ -226,6 +230,7 @@ interface ProfileScreenProps {
     onCreateSpace?: () => void;
     onPostPhotoSelect?: (files: File[]) => void;
     onDeletePost?: (postId: number) => Promise<void> | void;
+    onPostMediaChange?: (post: SpacePost) => void;
     onOpenFriends?: () => void;
     onOpenProfileCover?: () => void;
     onOpenProfilePhoto?: () => void;
@@ -267,6 +272,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     onCreateSpace,
     onPostPhotoSelect,
     onDeletePost,
+    onPostMediaChange,
     onOpenFriends,
     onOpenProfileCover,
     onOpenProfilePhoto,
@@ -524,7 +530,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
     const dimensionsForPost = React.useCallback(
         (item: ProfilePostItem): ProfilePhotoDimensions =>
-            loadedPhotoDimensionsByID[item.id] ?? {
+            loadedPhotoDimensionsByID[profilePostImageCacheKey(item)] ?? {
                 height: item.height ?? 1,
                 width: item.width ?? 1,
             },
@@ -640,7 +646,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                         photo: { ...photo, imageUrl: openedImageUrl },
                     });
                 }}
-                onRememberDimensions={rememberLoadedPhotoDimensions}
+                onRememberDimensions={(_, image) =>
+                    rememberLoadedPhotoDimensions(
+                        profilePostImageCacheKey(item),
+                        image,
+                    )
+                }
             />
         );
     };
@@ -1527,6 +1538,24 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                         }
                         onDeletePost={
                             isOwnerProfile ? deleteSelectedPost : undefined
+                        }
+                        onPostMediaChange={
+                            isOwnerProfile && onPostMediaChange
+                                ? (post, index) => {
+                                      onPostMediaChange(post);
+                                      setSelectedPost({
+                                          ...selectedPost,
+                                          photo: viewerPhotosFromPost(post)[
+                                              index
+                                          ]!,
+                                          photoIndex: index,
+                                      });
+                                      setTilePhotoIndices((indices) => ({
+                                          ...indices,
+                                          [selectedPost.id]: index,
+                                      }));
+                                  }
+                                : undefined
                         }
                         onOpenProfile={closeSelectedPost}
                         onReplyToPost={

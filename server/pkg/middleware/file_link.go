@@ -150,8 +150,9 @@ func (m *FileLinkMiddleware) checkDeviceLimit(c *gin.Context, accessToken string
 }
 
 func shouldCheckFileLinkDeviceLimit(reqPath string) bool {
-	// File-link admission is currently anchored to /file-link/info, which is the
-	// discovery endpoint clients call before fetching the actual blob.
+	// Device limits are best effort and gate metadata needed for decryption.
+	// Blob routes still enforce link access and any configured password, but
+	// intentionally allow ciphertext downloads without device admission.
 	return reqPath == "/file-link/info"
 }
 

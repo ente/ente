@@ -64,14 +64,35 @@ export const derivePeopleFilteredFiles = (
     hiddenFileIDs: GalleryState["hiddenFileIDs"],
     view: Extract<GalleryView, { type: "people" }>,
     currentUserID: number | undefined,
+    additionalPeople: Person[] = [],
+    filesWithUnassignedFaces?: ReadonlySet<number>,
 ) => {
     const pfSet = new Set(view.activePerson?.fileIDs ?? []);
+    const requiredFiles = additionalPeople.map(
+        ({ fileIDs }) => new Set(fileIDs),
+    );
+    const excludedFiles = new Set<number>();
+    if (filesWithUnassignedFaces) {
+        const selected = new Set(additionalPeople.map(({ id }) => id));
+        selected.add(view.activePerson?.id ?? "");
+        for (const person of view.people) {
+            if (!selected.has(person.id)) {
+                for (const fileID of person.fileIDs) {
+                    if (pfSet.has(fileID)) excludedFiles.add(fileID);
+                }
+            }
+        }
+    }
     return uniqueFilesByID(
         suppressSharedFilesSavedByUser(
             collectionFiles.filter((f) => {
                 if (!pfSet.has(f.id)) return false;
                 if (hiddenFileIDs.has(f.id)) return false;
-                return true;
+                return (
+                    !filesWithUnassignedFaces?.has(f.id) &&
+                    !excludedFiles.has(f.id) &&
+                    requiredFiles.every((ids) => ids.has(f.id))
+                );
             }),
             currentUserID,
             undefined,

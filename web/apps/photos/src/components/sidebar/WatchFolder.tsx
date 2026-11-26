@@ -205,7 +205,10 @@ const WatchList: React.FC<WatchListProps> = ({
 }) =>
     watches === undefined ? (
         <Stack sx={{ alignItems: "center", py: 2 }}>
-            <CircularProgress size={24} aria-label="Loading watched folders" />
+            <CircularProgress
+                size={24}
+                aria-label={t("loading_watched_folders")}
+            />
         </Stack>
     ) : (
         <Stack sx={{ gap: 1 }}>

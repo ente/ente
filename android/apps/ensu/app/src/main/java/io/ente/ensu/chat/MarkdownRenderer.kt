@@ -106,12 +106,12 @@ fun MarkdownView(
                                                     Arrangement.spacedBy(EnsuSpacing.sm.dp),
                                             ) {
                                                 Text(
-                                                    text = "•",
+                                                    text = item.marker,
                                                     style = EnsuTypography.message,
                                                     color = EnsuColor.textPrimary(),
                                                 )
                                                 InlineMarkdownText(
-                                                    text = item,
+                                                    text = item.text,
                                                     style = EnsuTypography.message,
                                                     color = EnsuColor.textPrimary(),
                                                     appendCursor = itemCursor,
@@ -694,6 +694,8 @@ private fun colorForInlineSegment(
 ): androidx.compose.ui.graphics.Color =
     if (inlineStyle == InlineMarkdownStyle.Link) EnsuColor.accent() else baseColor
 
+private data class MarkdownListItem(val text: String, val marker: String)
+
 private sealed interface MarkdownBlock {
     data class Heading(val level: Int, val text: String) : MarkdownBlock
 
@@ -705,7 +707,7 @@ private sealed interface MarkdownBlock {
 
     data class Math(val text: String) : MarkdownBlock
 
-    data class ListItems(val items: List<String>) : MarkdownBlock
+    data class ListItems(val items: List<MarkdownListItem>) : MarkdownBlock
 
     data object Divider : MarkdownBlock
 }
@@ -731,7 +733,7 @@ private object MarkdownParser {
         val lines = text.split("\n")
         val blocks = mutableListOf<MarkdownBlock>()
         val paragraph = mutableListOf<String>()
-        val listItems = mutableListOf<String>()
+        val listItems = mutableListOf<MarkdownListItem>()
         val mathLines = mutableListOf<String>()
         var mathEndDelimiter: String? = null
 
@@ -873,14 +875,19 @@ private object MarkdownParser {
 
             if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
                 flushParagraph()
-                listItems.add(trimmed.drop(2).trimStart())
+                listItems.add(MarkdownListItem(trimmed.drop(2).trimStart(), "•"))
                 continue
             }
 
             val orderedMatch = Regex("^(\\d+)\\. ").find(trimmed)
             if (orderedMatch != null) {
                 flushParagraph()
-                listItems.add(trimmed.substring(orderedMatch.value.length).trimStart())
+                listItems.add(
+                    MarkdownListItem(
+                        trimmed.substring(orderedMatch.value.length).trimStart(),
+                        "${orderedMatch.groupValues[1]}.",
+                    )
+                )
                 continue
             }
 

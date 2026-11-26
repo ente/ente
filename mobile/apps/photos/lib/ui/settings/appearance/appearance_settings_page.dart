@@ -2,13 +2,13 @@ import "dart:io";
 
 import "package:adaptive_theme/adaptive_theme.dart";
 import "package:ente_components/ente_components.dart";
+import "package:ente_components/hugeicons.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:ente_ui/components/settings/theme_selector.dart";
 import "package:ente_ui/pages/language_selector_page.dart";
 import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
-import "package:hugeicons/hugeicons.dart";
 import "package:photos/app.dart";
 import "package:photos/locale.dart";
 import "package:photos/ui/settings/app_icon_selection_screen.dart";

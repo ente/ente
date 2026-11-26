@@ -11,6 +11,7 @@ import {
     type DialogProps,
     type Theme,
 } from "@mui/material";
+import { RiveIllustration } from "ente-base/components/RiveIllustration";
 import { SlideUpTransition } from "ente-new/photos/components/mui/SlideUpTransition";
 import { t } from "i18next";
 import { uploadStatColors } from "../upload-progress-stats";
@@ -177,9 +178,20 @@ function UploadProgressSummary() {
                 </Stack>
             </Stack>
             <Box
-                component="img"
-                alt=""
-                src="/images/upload-progress-sleeping-duck.svg"
+                component={RiveIllustration}
+                src={
+                    new URL(
+                        "../../assets/ente-sleeping-ducky.riv",
+                        import.meta.url,
+                    )
+                }
+                stateMachine="Sleep"
+                fallback={
+                    <img
+                        src="/images/upload-progress-sleeping-duck.svg"
+                        alt=""
+                    />
+                }
                 sx={mascotSx}
             />
         </Box>
@@ -297,5 +309,7 @@ const mascotSx = {
     width: 128,
     maxWidth: "100%",
     justifySelf: "center",
+    aspectRatio: "129 / 159",
+    "& img": { display: "block", width: "100%" },
     [uploadSheetMediaQuery]: { display: "none" },
 };
