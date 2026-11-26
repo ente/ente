@@ -10,7 +10,7 @@ dependencies:
   bip39: 1.0.6
   collection: 1.19.1
   crypto: 3.0.7
-  dio: 5.9.2
+  dio: 5.11.1
   dotted_border: 3.1.0
   ente_accounts:
     path: ../accounts

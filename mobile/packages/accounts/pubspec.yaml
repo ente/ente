@@ -9,7 +9,7 @@ environment:
 dependencies:
   app_links: 6.4.1
   collection: 1.19.1
-  dio: 5.9.2
+  dio: 5.11.1
   dots_indicator: 4.0.1
   email_validator: 3.0.0
   ente_base:

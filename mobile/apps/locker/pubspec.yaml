@@ -12,7 +12,7 @@ dependencies:
   app_links: 6.4.1
   camera: 0.12.1
   collection: 1.19.1
-  dio: 5.9.2
+  dio: 5.11.1
   dots_indicator: 4.0.1
   dotted_border: 3.1.0
   ente_account_deletion:
