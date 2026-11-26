@@ -54,6 +54,7 @@ func (repo *FileRepository) Create(
 		return file, -1, stacktrace.Propagate(err, "")
 	}
 	defer tx.Rollback()
+	file.UpdationTime = time.Microseconds()
 	var fileID int64
 	finishPhase = dbmetrics.Start(dbmetrics.FileCreate, "insert_file")
 	err = tx.QueryRowContext(ctx, `INSERT INTO files
@@ -75,13 +76,6 @@ func (repo *FileRepository) Create(
 			(collection_id, file_id, encrypted_key, key_decryption_nonce, is_deleted, updation_time, c_owner_id, f_owner_id)
 			VALUES($1, $2, $3, $4, $5, $6, $7, $8)`, file.CollectionID, file.ID,
 		file.EncryptedKey, file.KeyDecryptionNonce, false, file.UpdationTime, file.OwnerID, collectionOwnerID)
-	finishPhase(err)
-	if err != nil {
-		return file, -1, stacktrace.Propagate(err, "")
-	}
-	finishPhase = dbmetrics.Start(dbmetrics.FileCreate, "update_collection")
-	_, err = tx.ExecContext(ctx, `UPDATE collections SET updation_time = $1
-			WHERE collection_id = $2`, file.UpdationTime, file.CollectionID)
 	finishPhase(err)
 	if err != nil {
 		return file, -1, stacktrace.Propagate(err, "")
@@ -119,18 +113,42 @@ func (repo *FileRepository) Create(
 	if err != nil {
 		return file, -1, stacktrace.Propagate(err, "")
 	}
-	finishPhase = dbmetrics.Start(dbmetrics.FileCreate, "update_usage")
-	usage, err := repo.updateUsageForFileCreation(ctx, tx, file.OwnerID, usageDiff, app)
-	finishPhase(err)
-	if err != nil {
-		return file, -1, stacktrace.Propagate(err, "")
-	}
 
 	finishPhase = dbmetrics.Start(dbmetrics.FileCreate, "mark_replication")
 	err = repo.markObjectAsNeedingReplication(ctx, tx, file.File.ObjectKey, buckets.File, ente.FILE)
 	if err == nil {
 		err = repo.markObjectAsNeedingReplication(ctx, tx, file.Thumbnail.ObjectKey, buckets.Thumbnail, ente.THUMBNAIL)
 	}
+	finishPhase(err)
+	if err != nil {
+		return file, -1, stacktrace.Propagate(err, "")
+	}
+
+	finishPhase = dbmetrics.Start(dbmetrics.FileCreate, "update_collection")
+	var committedTime int64
+	err = tx.QueryRowContext(ctx, `UPDATE collections
+			SET updation_time = GREATEST(updation_time + 1, $1)
+			WHERE collection_id = $2 AND is_deleted = FALSE
+			RETURNING updation_time`, file.UpdationTime, file.CollectionID).Scan(&committedTime)
+	if errors.Is(err, sql.ErrNoRows) {
+		err = ente.ErrCollectionDeleted
+	}
+	if err == nil && committedTime != file.UpdationTime {
+		file.UpdationTime = committedTime
+		_, err = tx.ExecContext(ctx, `WITH _ AS (
+				UPDATE files SET updation_time = $1 WHERE file_id = $2
+			)
+			UPDATE collection_files SET updation_time = $1
+			WHERE collection_id = $3 AND file_id = $2`,
+			file.UpdationTime, file.ID, file.CollectionID)
+	}
+	finishPhase(err)
+	if err != nil {
+		return file, -1, stacktrace.Propagate(err, "")
+	}
+
+	finishPhase = dbmetrics.Start(dbmetrics.FileCreate, "update_usage")
+	usage, err := repo.updateUsageForFileCreation(ctx, tx, file.OwnerID, usageDiff, app)
 	finishPhase(err)
 	if err != nil {
 		return file, -1, stacktrace.Propagate(err, "")
