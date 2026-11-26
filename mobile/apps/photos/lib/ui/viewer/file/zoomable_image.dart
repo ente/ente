@@ -85,6 +85,9 @@ class _ZoomableImageState extends State<ZoomableImage> {
   // for the original.
   bool _firedOnReady = false;
   bool _interactionLocked = false;
+  bool _sheetOpen = false;
+  bool _ignoreDrag = false;
+  Offset? _downPosition;
   final _imageFrameReady = ValueNotifier(false);
   final _imageZoomController = ImageZoomController();
   late final StreamSubscription<ResetZoomOfPhotoView> _resetZoomSubscription;
@@ -191,12 +194,27 @@ class _ZoomableImageState extends State<ZoomableImage> {
     }
   }
 
+  void _onVerticalDragStart(DragStartDetails details) {
+    final size = MediaQuery.sizeOf(context);
+    final insets = MediaQuery.systemGestureInsetsOf(context);
+    final p = _downPosition ?? details.globalPosition;
+    _ignoreDrag =
+        p.dy > size.height - insets.bottom ||
+        p.dx < insets.left ||
+        p.dx > size.width - insets.right;
+  }
+
   void _onVerticalDragUpdate(DragUpdateDetails details) {
-    if (_imageZoomController.isZoomed) return;
+    if (_ignoreDrag || _imageZoomController.isZoomed) return;
     if (details.delta.dy > dragSensitivity) {
       unawaited(Navigator.maybePop(context));
     } else if (details.delta.dy < -dragSensitivity) {
-      showDetailsSheet(context, widget.photo);
+      if (_sheetOpen) return;
+      _sheetOpen = true;
+      showDetailsSheet(
+        context,
+        widget.photo,
+      ).whenComplete(() => _sheetOpen = false);
     }
   }
 
@@ -260,9 +278,17 @@ class _ZoomableImageState extends State<ZoomableImage> {
             !widget.enableVerticalSwipeActions
         ? null
         : _onVerticalDragUpdate;
-    return GestureDetector(
-      onVerticalDragUpdate: verticalDragCallback,
-      child: content,
+    return Listener(
+      onPointerDown: verticalDragCallback == null
+          ? null
+          : (event) => _downPosition = event.position,
+      child: GestureDetector(
+        onVerticalDragStart: verticalDragCallback == null
+            ? null
+            : _onVerticalDragStart,
+        onVerticalDragUpdate: verticalDragCallback,
+        child: content,
+      ),
     );
   }
 

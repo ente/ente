@@ -1,0 +1,1 @@
+- Ignore swipes that start in the system gesture zones, so the back and home gestures do not also change the photo, open the details sheet, or switch tabs.
