@@ -1601,6 +1601,29 @@ export class FileViewerPhotoSwipe<
             }
         };
 
+        const handleAdjustVolume = (step: number) => {
+            const video = videoVideoEl;
+            const controller = video?.closest("media-controller");
+            if (!video || !controller) return;
+            if (video.muted) {
+                if (step > 0)
+                    controller.dispatchEvent(
+                        new CustomEvent("mediaunmuterequest", {
+                            bubbles: true,
+                            composed: true,
+                        }),
+                    );
+                return;
+            }
+            controller.dispatchEvent(
+                new CustomEvent("mediavolumerequest", {
+                    bubbles: true,
+                    composed: true,
+                    detail: Math.min(1, Math.max(0, video.volume + step)),
+                }),
+            );
+        };
+
         const handleTogglePlayIfPossible = () => {
             switch (currentAnnotatedFile().itemData.fileType) {
                 case FileType.video:
@@ -1709,6 +1732,27 @@ export class FileViewerPhotoSwipe<
                     case "Delete":
                         cb = handleDelete;
                         break;
+                    case "ArrowUp":
+                    case "ArrowDown": {
+                        const video = videoVideoEl;
+                        if (!video) break;
+                        pswpEvent.preventDefault();
+                        if (
+                            video.muted &&
+                            key == "ArrowDown" &&
+                            (!isFocusVisibledOnUIControl() ||
+                                document.activeElement?.tagName ==
+                                    "MEDIA-VOLUME-RANGE")
+                        ) {
+                            e.preventDefault();
+                            return;
+                        }
+                        if (isFocusVisibledOnUIControl()) return;
+                        e.preventDefault();
+                        cb = () =>
+                            handleAdjustVolume(key == "ArrowUp" ? 0.05 : -0.05);
+                        break;
+                    }
                     case "ArrowLeft":
                         pswpEvent.preventDefault();
                         if (
