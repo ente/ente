@@ -308,6 +308,44 @@ void main() {
   });
 
   group("double-tap focal zoom", () {
+    testWidgets("a preview and its original share the same zoom stops", (
+      tester,
+    ) async {
+      final controller = ImageZoomController();
+      addTearDown(controller.dispose);
+      Future<void> show(ui.Image image) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Center(
+              child: SizedBox.fromSize(
+                size: _viewportSize,
+                child: ImageZoomViewer(
+                  imageProvider: _DeterministicImageProvider(image),
+                  sourceImageSize: const Size(2400, 1600),
+                  controller: controller,
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+      }
+
+      await show(landscapeImage);
+      final tap =
+          tester.getCenter(find.byType(ImageZoomViewer)) + const Offset(50, 0);
+      await _doubleTap(tester, tap);
+      final zoomed = controller.transform;
+
+      await show(largerLandscapeImage);
+      _expectSameTransform(controller.transform, zoomed);
+      await _doubleTap(tester, tap);
+      expect(controller.stage, ImageZoomStage.originalSize);
+      expect(controller.transform.scale, closeTo(6, 0.01));
+      await _doubleTap(tester, tap);
+      expect(controller.transform, ImageZoomTransform.identity);
+    });
+
     testWidgets("centers the tapped horizontal area", (tester) async {
       final harness = await _pumpViewer(tester, image: landscapeImage);
 

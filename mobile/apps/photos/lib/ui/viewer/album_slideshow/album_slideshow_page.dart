@@ -405,6 +405,7 @@ class _AlbumSlideshowPageState extends State<AlbumSlideshowPage>
               tagPrefix: "album_slideshow",
               backgroundDecoration: const BoxDecoration(),
               isFromMemories: true,
+              isSelectedViewerPage: true,
               onFinalFileLoad: ({required int memoryDuration}) =>
                   _onSlideReady(file.tag),
             ),
