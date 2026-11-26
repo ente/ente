@@ -12,7 +12,6 @@ import "package:photos/models/ml/face/person.dart";
 import "package:photos/models/social/reaction.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
-import "package:photos/services/favorites_service.dart";
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
 import "package:photos/services/memories/memory_sources.dart";
 import "package:photos/services/rewind/rewind_edition.dart";
@@ -279,6 +278,7 @@ class _Albums {
     final collections = CollectionsService.instance;
     final hidden = collections.getHiddenCollectionIds();
     final archivedOrHidden = collections.archivedOrHiddenCollectionIds();
+    final activeCollections = collections.getActiveCollections();
     return _Albums(
       hidden: hidden,
       archived: archivedOrHidden.difference(hidden),
@@ -288,11 +288,16 @@ class _Albums {
           if (_isScreenshotName(collection.displayName)) collection.id,
       },
       shared: {
-        for (final collection in collections.getActiveCollections())
+        for (final collection in activeCollections)
           if (_isSharedAlbum(collection, userID)) collection.id,
       },
-      favourites:
-          (await FavoritesService.instance.getFavoritesCollection())?.id,
+      favourites: activeCollections
+          .firstWhereOrNull(
+            (collection) =>
+                collection.type == CollectionType.favorites &&
+                collection.isOwner(userID),
+          )
+          ?.id,
     );
   }
 
