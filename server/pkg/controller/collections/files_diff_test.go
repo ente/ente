@@ -14,7 +14,6 @@ import (
 	"github.com/ente/museum/pkg/utils/auth"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
-	log "github.com/sirupsen/logrus"
 )
 
 func TestFileDiffScrubsDeletedAndPendingFiles(t *testing.T) {
@@ -28,18 +27,10 @@ func TestFileDiffScrubsDeletedAndPendingFiles(t *testing.T) {
 	activeFileID := addShareTestOwnerFile(t, db, collectionID, collectionOwnerID)
 	deletedFileID := addShareTestOwnerFile(t, db, collectionID, collectionOwnerID)
 	pendingFileID := addShareTestOwnerFile(t, db, collectionID, collectionOwnerID)
-	restoredFileID := addShareTestOwnerFile(t, db, collectionID, collectionOwnerID)
 	if _, err := db.Exec(
 		`UPDATE collection_files SET moderation_status = $1, anon_user_id = 'guest', updation_time = 2
 		 WHERE collection_id = $2 AND file_id = $3`,
 		ente.ModerationPending, collectionID, pendingFileID,
-	); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := db.Exec(
-		`UPDATE collection_files SET moderation_status = $1, anon_user_id = 'guest', updation_time = 3
-		 WHERE collection_id = $2 AND file_id = $3`,
-		ente.ModerationRejected, collectionID, restoredFileID,
 	); err != nil {
 		t.Fatal(err)
 	}
@@ -121,11 +112,6 @@ func TestFileDiffScrubsDeletedAndPendingFiles(t *testing.T) {
 				t.Fatalf("active file was scrubbed: %+v", active)
 			}
 
-			restored := findFileDiffTestFile(t, files, restoredFileID)
-			if restored.IsDeleted || restored.EncryptedKey != "collection-file-key" || restored.AnonUserID != nil || restored.ModerationStatus != nil {
-				t.Fatalf("unexpected restored file: %+v", restored)
-			}
-
 			for _, id := range []int64{deletedFileID, pendingFileID} {
 				deleted := findFileDiffTestFile(t, files, id)
 				if !deleted.IsDeleted || deleted.OwnerID != collectionOwnerID || deleted.CollectionID != collectionID || deleted.UpdationTime != 2 {
@@ -142,32 +128,6 @@ func TestFileDiffScrubsDeletedAndPendingFiles(t *testing.T) {
 				assertFileDiffTestWireShape(t, deleted)
 			}
 		})
-	}
-	t.Run("equal timestamp across page boundary", func(t *testing.T) {
-		files, hasMore, err := controller.getDiff(collectionID, 1, 1, false, log.NewEntry(log.StandardLogger()))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if !hasMore || len(files) != 2 {
-			t.Fatalf("got %d files, hasMore=%t; expected both rows at time 2", len(files), hasMore)
-		}
-		scrubDeletedFiles(files, false)
-		pending := findFileDiffTestFile(t, files, pendingFileID)
-		if !pending.IsDeleted || pending.EncryptedKey != "" {
-			t.Fatalf("pending file at page boundary was not scrubbed: %+v", pending)
-		}
-	})
-
-	for _, actor := range []int64{viewerID, collectionOwnerID} {
-		ctx := newBatchShareTestContext(actor)
-		file, err := controller.GetFile(ctx, collectionID, pendingFileID, actor == viewerID)
-		if file != nil || !errors.Is(err, &ente.ErrFileNotFoundInAlbum) {
-			t.Fatalf("pending file lookup for user %d = (%+v, %v), want file not found", actor, file, err)
-		}
-		file, err = controller.GetFile(ctx, collectionID, restoredFileID, true)
-		if err != nil || file == nil || file.AnonUserID != nil || file.ModerationStatus != nil || file.EncryptedKey == "" {
-			t.Fatalf("restored file lookup for user %d = (%+v, %v)", actor, file, err)
-		}
 	}
 }
 

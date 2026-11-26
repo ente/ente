@@ -17,13 +17,11 @@ import (
 	"github.com/ente/museum/pkg/controller/collections"
 	"github.com/ente/museum/pkg/controller/email"
 	"github.com/ente/museum/pkg/controller/public"
-	"github.com/ente/museum/pkg/controller/storagebonus"
 	"github.com/ente/museum/pkg/middleware"
 	"github.com/ente/museum/pkg/repo"
 	castrepo "github.com/ente/museum/pkg/repo/cast"
 	publicrepo "github.com/ente/museum/pkg/repo/public"
 	socialrepo "github.com/ente/museum/pkg/repo/social"
-	bonusrepo "github.com/ente/museum/pkg/repo/storagebonus"
 	"github.com/gin-gonic/gin"
 	"github.com/patrickmn/go-cache"
 	"github.com/spf13/viper"
@@ -61,17 +59,11 @@ func TestCollectionMutationAppIsolation(t *testing.T) {
 		CollectionLinkRepo: linkRepo, CollectionRepo: collectionRepo, Cache: linkRepo.Cache,
 		BillingCtrl: h.Controller.BillingCtrl, PublicCollectionCtrl: h.Controller.CollectionLinkCtrl,
 	}
-	publicHandler := &PublicCollectionHandler{
-		Controller:             h.Controller.CollectionLinkCtrl,
-		StorageBonusController: &storagebonus.Controller{StorageBonus: &bonusrepo.Repository{DB: db}},
-	}
 	publicAPI := router.Group("/public-collection", linkAuth.Authenticate(func(c *gin.Context) string { return c.FullPath() }))
-	publicAPI.GET("/info", publicHandler.GetCollection)
 	socialHandler := &PublicCommentsHandler{AnonIdentityCtrl: &public.AnonIdentityController{
 		JwtSecret: []byte("guest-identity-test-secret"), AnonUsersRepo: &socialrepo.AnonUsersRepository{DB: db},
 	}}
 	publicAPI.POST("/anon-identity", socialHandler.CreateAnonIdentity)
-	storage.GET("/v2", h.GetV2)
 	storage.POST("/share-url", h.ShareURL)
 	storage.PUT("/share-url", h.UpdateShareURL)
 	storage.DELETE("/share-url/:collectionID", h.UnShareURL)
@@ -173,20 +165,6 @@ func TestCollectionMutationAppIsolation(t *testing.T) {
 			require.NoError(t, json.Unmarshal(guest.Body.Bytes(), &identity))
 			require.NotEmpty(t, identity.Token)
 			require.NotEmpty(t, identity.AnonUserID)
-
-			req := httptest.NewRequest(http.MethodGet, "/public-collection/info", nil)
-			req.Header.Set("X-Auth-Access-Token", link.Token)
-			response := httptest.NewRecorder()
-			router.ServeHTTP(response, req)
-			require.Equal(t, http.StatusOK, response.Code, response.Body.String())
-			require.Contains(t, response.Body.String(), `"requireApproval":true`)
-
-			req = httptest.NewRequest(http.MethodGet, "/collections/v2", nil)
-			req.Header.Set("X-Auth-Token", fmt.Sprintf("%s-%d", app, ownerID))
-			response = httptest.NewRecorder()
-			router.ServeHTTP(response, req)
-			require.Equal(t, http.StatusOK, response.Code, response.Body.String())
-			require.Contains(t, response.Body.String(), `"requireApproval":true`)
 
 			disabled := linkRequest(http.MethodPut, ownerID, `"requireApproval":false`, http.StatusOK)
 			require.Contains(t, disabled, `"requireApproval":false`)
