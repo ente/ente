@@ -226,6 +226,8 @@ func (c *FileController) Create(ctx *gin.Context, userID int64, file ente.File, 
 		}
 		return file, stacktrace.Propagate(err, "")
 	}
+	c.S3Config.RecordUploadProgress(buckets.File)
+	c.S3Config.RecordUploadProgress(buckets.Thumbnail)
 	if usage == fileSize+thumbnailSize && app == ente.Photos {
 		go c.maybeSendFirstUploadEmail(file.OwnerID, userAgent)
 	}
@@ -341,6 +343,12 @@ func (c *FileController) Update(ctx context.Context, userID int64, file ente.Fil
 		repo.FileObjectBuckets{File: fileObject.bucket, Thumbnail: thumbnailObject.bucket})
 	if err != nil {
 		return response, stacktrace.Propagate(err, "")
+	}
+	if existingFileObjectKey != file.File.ObjectKey {
+		c.S3Config.RecordUploadProgress(fileObject.bucket)
+	}
+	if existingThumbnailObjectKey != file.Thumbnail.ObjectKey {
+		c.S3Config.RecordUploadProgress(thumbnailObject.bucket)
 	}
 	response.ID = file.ID
 	response.UpdationTime = file.UpdationTime
@@ -728,6 +736,9 @@ func (c *FileController) UpdateThumbnail(ctx *gin.Context, fileID int64, newThum
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
+	if oldObject != nil {
+		c.S3Config.RecordUploadProgress(thumbnailObject.bucket)
+	}
 	return nil
 }
 
@@ -882,7 +893,6 @@ func (c *FileController) getPreSignedURLForDC(objectKey string, dc string, objTy
 func (c *FileController) getUploadedObject(ctx context.Context, objectKey string, userID int64, app ente.App) (uploadedObject, error) {
 	object := uploadedObject{}
 	bucketID, err := c.ObjectCleanupRepo.GetFileUploadBucket(ctx, objectKey, userID, app)
-	staged := err == nil
 	if errors.Is(err, sql.ErrNoRows) {
 		bucketID, err = c.ObjectRepo.GetObjectUploadBucket(ctx, objectKey, userID)
 	}
@@ -905,9 +915,6 @@ func (c *FileController) getUploadedObject(ctx context.Context, objectKey string
 			Bucket: bucket,
 		})
 		if err == nil {
-			if staged {
-				c.S3Config.RecordUploadProgress(bucketID)
-			}
 			object.size = *head.ContentLength
 			return object, nil
 		}

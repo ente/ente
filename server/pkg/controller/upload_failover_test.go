@@ -77,7 +77,7 @@ func TestMultipartUploadDuringHotStorageFailover(t *testing.T) {
 					upload, err = controller.GetMultipartUploadURLs(t.Context(), userID, 2, ente.Locker, "test")
 				} else {
 					upload, err = controller.GetMultipartUploadURLWithMetadata(t.Context(), userID, ente.MultipartUploadURLRequest{
-						ContentLength: (5 << 20) + 1, PartLength: 5 << 20,
+						ContentLength: ente.MinMultipartUploadSize, PartLength: 8 << 20,
 					}, ente.Locker, "test")
 				}
 				require.NoError(t, err)
@@ -152,19 +152,40 @@ func TestUploadFailoverRegistrationProgress(t *testing.T) {
 	}
 }
 
-func TestFailedUploadVerificationDoesNotReportProgress(t *testing.T) {
-	test := newFileBucketTest(t)
-	key := test.upload(t, fileBucketB2, 5)
-	storage := httptest.NewServer(http.NotFoundHandler())
-	t.Cleanup(storage.Close)
-	viper.Set("s3."+fileBucketB2+".endpoint", storage.URL)
-	test.switchBucket(fileBucketB2)
-	config := test.controller.S3Config
-	primeUploadStall(config)
-	_, err := test.controller.getUploadedObject(t.Context(), key, 1, ente.Photos)
-	require.ErrorIs(t, err, ente.ErrObjSizeFetchFailed)
-	config.RecordUploadActivity(time.Now())
-	require.True(t, config.HasHotStorageFailedOver())
+func TestFailedRegistrationDoesNotReportProgress(t *testing.T) {
+	t.Run("partial HEAD failure", func(t *testing.T) {
+		test := newFileBucketTest(t)
+		file := test.newFile(t, fileBucketB2, fileBucketB2)
+		storage := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method == http.MethodHead && r.URL.Path == "/"+fileBucketB2+"/"+file.Thumbnail.ObjectKey {
+				w.Header().Set("Content-Length", "10")
+				return
+			}
+			w.WriteHeader(http.StatusNotFound)
+		}))
+		t.Cleanup(storage.Close)
+		viper.Set("s3."+fileBucketB2+".endpoint", storage.URL)
+		test.switchBucket(fileBucketB2)
+		config := test.controller.S3Config
+		primeUploadStall(config)
+		_, err := test.controller.Create(fileBucketContext(http.MethodPost), file.OwnerID, file, "test", ente.Photos)
+		require.ErrorIs(t, err, ente.ErrObjSizeFetchFailed)
+		config.RecordUploadActivity(time.Now())
+		require.True(t, config.HasHotStorageFailedOver())
+	})
+
+	t.Run("size mismatch", func(t *testing.T) {
+		test := newFileBucketTest(t)
+		file := test.newFile(t, fileBucketB2, fileBucketB2)
+		file.File.Size = 999
+		config := test.controller.S3Config
+		config.RecordUploadProgress(fileBucketB2)
+		primeUploadStall(config)
+		_, err := test.controller.Create(fileBucketContext(http.MethodPost), file.OwnerID, file, "test", ente.Photos)
+		require.ErrorIs(t, err, ente.ErrBadRequest)
+		config.RecordUploadActivity(time.Now())
+		require.True(t, config.HasHotStorageFailedOver())
+	})
 }
 
 func TestMultipartUploadFailureClassification(t *testing.T) {
@@ -186,7 +207,7 @@ func TestMultipartUploadFailureClassification(t *testing.T) {
 	t.Cleanup(storage.Close)
 	viper.Set("s3."+fileBucketB2+".endpoint", storage.URL)
 	test.switchBucket(fileBucketB2)
-	req := ente.MultipartUploadURLRequest{ContentLength: 5, PartLength: 5}
+	req := ente.MultipartUploadURLRequest{ContentLength: ente.MinMultipartUploadSize, PartLength: ente.MinMultipartUploadSize}
 	for _, tc := range []struct {
 		name      string
 		invalid   bool
@@ -276,7 +297,7 @@ func TestUploadFailoverURLIssuance(t *testing.T) {
 					_, err = test.controller.GetMultipartUploadURLs(t.Context(), 1, 1, ente.Photos, "test")
 				case tc.multipart:
 					_, err = test.controller.GetMultipartUploadURLWithMetadata(t.Context(), 1, ente.MultipartUploadURLRequest{
-						ContentLength: 5, PartLength: 5,
+						ContentLength: ente.MinMultipartUploadSize, PartLength: ente.MinMultipartUploadSize,
 					}, ente.Photos, "test")
 				case tc.legacy:
 					_, err = test.controller.GetUploadURLs(t.Context(), 1, 1, ente.Photos, false, "test")

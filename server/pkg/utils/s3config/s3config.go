@@ -20,6 +20,7 @@ type S3Config struct {
 	buckets                   map[string]string
 	hotDC                     string
 	secondaryHotDC            string
+	canFailoverHotStorage     bool
 	hotStorageFailedOver      atomic.Bool
 	uploadFailover            uploadFailover
 	derivedStorageDC          string
@@ -130,6 +131,7 @@ func (config *S3Config) initialize() {
 		log.Fatalf("Unable to decode into struct: %v\n", err)
 		return
 	}
+	config.canFailoverHotStorage = config.hasFailoverHotStorage()
 
 }
 
@@ -196,6 +198,10 @@ func (config *S3Config) GetHotDataCenters() (string, string) {
 }
 
 func (config *S3Config) CanFailoverHotStorage() bool {
+	return config.canFailoverHotStorage
+}
+
+func (config *S3Config) hasFailoverHotStorage() bool {
 	if !((config.hotDC == dcB2EuropeCentral && config.secondaryHotDC == dcWasabiEuropeCentral_v3) ||
 		(config.hotDC == dcWasabiEuropeCentral_v3 && config.secondaryHotDC == dcB2EuropeCentral)) {
 		return false
