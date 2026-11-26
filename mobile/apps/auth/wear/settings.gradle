@@ -1,0 +1,15 @@
+pluginManagement {
+    repositories { google(); mavenCentral(); gradlePluginPortal() }
+}
+plugins {
+    id 'com.android.application' version '8.12.1' apply false
+    id 'com.android.library' version '8.12.1' apply false
+    id 'org.jetbrains.kotlin.android' version '2.2.20' apply false
+    id 'org.jetbrains.kotlin.plugin.compose' version '2.2.20' apply false
+}
+dependencyResolutionManagement {
+    repositories { google(); mavenCentral() }
+}
+rootProject.name = 'AuthWatch'
+include ':app', ':auth-core'
+project(':auth-core').projectDir = file('../android/auth-core')
