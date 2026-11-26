@@ -9,6 +9,9 @@ import app_links
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     GeneratedPluginRegistrant.register(with: self)
+    if #available(iOS 17, *), let registrar = registrar(forPlugin: "WatchPlugin") {
+      WatchPlugin.register(with: registrar)
+    }
     super.application(application, didFinishLaunchingWithOptions: launchOptions)
 
     if let url = AppLinks.shared.getLink(launchOptions: launchOptions) {

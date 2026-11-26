@@ -23,6 +23,7 @@ class AppLock extends StatefulWidget {
   final bool debugShowCheckedModeBanner;
 
   final VoidCallback? onUnlock;
+  final ValueChanged<bool>? onLockStateChanged;
 
   const AppLock({
     super.key,
@@ -39,6 +40,7 @@ class AppLock extends StatefulWidget {
     this.darkTheme,
     this.lightTheme,
     this.onUnlock,
+    this.onLockStateChanged,
   });
 
   static _AppLockState? of(BuildContext context) =>
@@ -70,6 +72,7 @@ class _AppLockState extends State<AppLock> with WidgetsBindingObserver {
     this._isLocked = false;
     this._enabled = this.widget.enabled;
     this._themeMode = this.widget.savedThemeMode;
+    this.widget.onLockStateChanged?.call(!this._didUnlockForAppLaunch);
   }
 
   @override
@@ -249,6 +252,7 @@ class _AppLockState extends State<AppLock> with WidgetsBindingObserver {
 
   void _didUnlockOnAppLaunch(Object? args) {
     this._didUnlockForAppLaunch = true;
+    this.widget.onLockStateChanged?.call(this._isLocked);
     _navigatorKey.currentState!.pushReplacementNamed(
       '/unlocked',
       arguments: args,
@@ -271,5 +275,8 @@ class _AppLockState extends State<AppLock> with WidgetsBindingObserver {
     setState(() {
       this._isLocked = locked;
     });
+    this.widget.onLockStateChanged?.call(
+      this._isLocked || !this._didUnlockForAppLaunch,
+    );
   }
 }
