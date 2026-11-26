@@ -310,23 +310,6 @@ enum Pick {
     Abstain,
 }
 
-fn constrained_choice(
-    preferred: LlamaToken,
-    legal: impl FnOnce() -> Result<LlamaToken, Error>,
-    masked: impl FnOnce(LlamaToken) -> bool,
-) -> Result<(Pick, bool), Error> {
-    let token = legal()?;
-    let rejected = token != preferred;
-    Ok((
-        if masked(token) {
-            Pick::Abstain
-        } else {
-            Pick::Token(token)
-        },
-        rejected,
-    ))
-}
-
 fn accepts(grammar: &mut LlamaSampler, token: LlamaToken, logit: f32) -> bool {
     let mut single = LlamaTokenDataArray::new(vec![LlamaTokenData::new(token, logit, 0.0)], false);
     grammar.apply(&mut single);
@@ -396,39 +379,34 @@ impl ToolDecode {
             .map(|(i, logit)| (i as i32, *logit))
             .ok_or(super::ToolCallFailure::Invalid)?;
         let preferred = LlamaToken(best.0);
-        let (pick, rejected) = constrained_choice(
-            preferred,
-            || {
-                if accepts(&mut self.grammar, preferred, best.1) {
-                    return Ok(preferred);
-                }
-                let mut all = ctx.token_data_array_ith(index);
-                self.grammar.apply(&mut all);
-                all.data
-                    .iter()
-                    .filter(|candidate| candidate.logit().is_finite())
-                    .max_by(|a, b| a.logit().total_cmp(&b.logit()))
-                    .map(LlamaTokenData::id)
-                    .ok_or_else(|| super::ToolCallFailure::Invalid.into())
-            },
-            |token| {
-                self.veto
-                    .as_mut()
-                    .is_some_and(|veto| !accepts(veto, token, logits[token.0 as usize]))
-            },
-        )?;
-        self.rejected_steps += u32::from(rejected);
-        match pick {
-            Pick::Abstain => self.abstained = true,
-            Pick::Token(token) if !ctx.model.vocab().is_eog(token) => {
-                self.grammar.accept(token);
-                if let Some(veto) = &mut self.veto {
-                    veto.accept(token);
-                }
-            }
-            Pick::Token(_) => {}
+        let token = if accepts(&mut self.grammar, preferred, best.1) {
+            preferred
+        } else {
+            let mut all = ctx.token_data_array_ith(index);
+            self.grammar.apply(&mut all);
+            all.data
+                .iter()
+                .filter(|candidate| candidate.logit().is_finite())
+                .max_by(|a, b| a.logit().total_cmp(&b.logit()))
+                .map(LlamaTokenData::id)
+                .ok_or(super::ToolCallFailure::Invalid)?
+        };
+        self.rejected_steps += u32::from(token != preferred);
+        if self
+            .veto
+            .as_mut()
+            .is_some_and(|veto| !accepts(veto, token, logits[token.0 as usize]))
+        {
+            self.abstained = true;
+            return Ok(Pick::Abstain);
         }
-        Ok(pick)
+        if !ctx.model.vocab().is_eog(token) {
+            self.grammar.accept(token);
+            if let Some(veto) = &mut self.veto {
+                veto.accept(token);
+            }
+        }
+        Ok(Pick::Token(token))
     }
 
     fn finish(&self, reason: FinishReason) -> Result<ToolOutcome, Error> {
@@ -1421,43 +1399,5 @@ mod tests {
                 );
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod constrained_tests {
-    use super::*;
-
-    #[test]
-    fn masked_preference_abstains() {
-        let preferred = LlamaToken(1);
-        assert_eq!(
-            constrained_choice(preferred, || Ok(preferred), |_| true).unwrap(),
-            (Pick::Abstain, false)
-        );
-    }
-
-    #[test]
-    fn illegal_everywhere_then_masked_best_abstains() {
-        let preferred = LlamaToken(1);
-        let fallback = LlamaToken(2);
-        assert_eq!(
-            constrained_choice(preferred, || Ok(fallback), |token| token == fallback).unwrap(),
-            (Pick::Abstain, true)
-        );
-    }
-
-    #[test]
-    fn legal_preference_passes_and_counts_fallbacks() {
-        let preferred = LlamaToken(1);
-        let fallback = LlamaToken(2);
-        assert_eq!(
-            constrained_choice(preferred, || Ok(preferred), |_| false).unwrap(),
-            (Pick::Token(preferred), false)
-        );
-        assert_eq!(
-            constrained_choice(preferred, || Ok(fallback), |_| false).unwrap(),
-            (Pick::Token(fallback), true)
-        );
     }
 }

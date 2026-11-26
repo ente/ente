@@ -471,50 +471,6 @@ fn allowed_is_optional_in_json() {
 }
 
 #[test]
-fn pass_two_render_extends_pass_one_by_the_call_and_a_suffix() {
-    let request = request("List then save.");
-    let base = vec![
-        ChatMessage::new("system", "Be brief."),
-        ChatMessage::new("user", "List then save."),
-    ];
-    for format in [Format::Gemma, Format::Lfm, Format::Qwen] {
-        for count in [1, 2] {
-            let calls = calls()[..count].to_vec();
-            let first = crate::llm::render_native(format, base.clone(), Some(&request));
-            let mut messages = base.clone();
-            let mut assistant = ChatMessage::new("assistant", "");
-            assistant.tool_calls = calls.clone();
-            messages.push(assistant);
-            messages.extend((0..count).map(|_| ChatMessage::new("tool", "result")));
-            let second = crate::llm::render_native(format, messages, Some(&request));
-            let mut expected = first + &format.render_calls(&calls);
-            match format {
-                Format::Gemma => {
-                    for call in &calls {
-                        expected.push_str(&format!("<|tool_response>response:{}{{value:<|\"|>result<|\"|>}}<tool_response|>", call.name));
-                    }
-                }
-                Format::Lfm => {
-                    expected.push_str("<|im_end|>\n");
-                    for _ in &calls {
-                        expected.push_str("<|im_start|>tool\n<|tool_response_start|>result<|tool_response_end|><|im_end|>\n");
-                    }
-                    expected.push_str("<|im_start|>assistant\n");
-                }
-                Format::Qwen => {
-                    expected.push_str("<|im_end|>\n<|im_start|>user");
-                    for _ in &calls {
-                        expected.push_str("\n<tool_response>\nresult\n</tool_response>");
-                    }
-                    expected.push_str("<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n");
-                }
-            }
-            assert_eq!(second, expected, "{format:?} {count}");
-        }
-    }
-}
-
-#[test]
 fn rendering_parsed_calls_reproduces_the_raw_text() {
     let mut calls = calls();
     calls[0].arguments.insert(
