@@ -201,19 +201,67 @@ func TestCreateAdvancesPastFutureCollectionVersion(t *testing.T) {
 
 func TestCreateIgnoresCallerUpdationTime(t *testing.T) {
 	repository, file := setupFileCreateLockTest(t)
+	db := repository.DB
 	file.UpdationTime = math.MaxInt64
 
+	before := time.Now().UnixMicro()
 	created, _, err := repository.Create(file, 200, 20, 220, file.OwnerID, ente.Photos, testCreateBuckets)
+	after := time.Now().UnixMicro()
 	require.NoError(t, err)
-	require.Less(t, created.UpdationTime, int64(math.MaxInt64))
-	assertFileCreateVersionsMatch(t, repository.DB, file.CollectionID, created.ID, created.UpdationTime)
+	require.GreaterOrEqual(t, created.UpdationTime, before)
+	require.LessOrEqual(t, created.UpdationTime, after)
+	assertFileCreateVersionsMatch(t, db, file.CollectionID, created.ID, created.UpdationTime)
 
-	stageCreateTestObjects(t, repository.DB, "after-max-file", "after-max-thumb")
+	stageCreateTestObjects(t, db, "after-max-file", "after-max-thumb")
 	next := newTestUploadFile(file.OwnerID, file.CollectionID, "after-max-file", "after-max-thumb", 1)
-	second, _, err := repository.Create(next, 200, 20, 220, file.OwnerID, ente.Photos, testCreateBuckets)
+
+	pool, err := sql.Open("postgres", "sslmode=disable")
 	require.NoError(t, err)
-	require.Greater(t, second.UpdationTime, created.UpdationTime)
-	assertFileCreateVersionsMatch(t, repository.DB, file.CollectionID, second.ID, second.UpdationTime)
+	t.Cleanup(func() { _ = pool.Close() })
+	pool.SetMaxOpenConns(1)
+	repository.DB = pool
+
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	holder, err := pool.BeginTx(ctx, nil)
+	require.NoError(t, err)
+	defer holder.Rollback()
+	var one int
+	require.NoError(t, holder.QueryRowContext(ctx, `SELECT 1`).Scan(&one))
+
+	beforeCall := time.Now().UnixMicro()
+	type result struct {
+		file ente.File
+		err  error
+	}
+	completed := make(chan result, 1)
+	go func() {
+		second, _, err := repository.Create(next, 200, 20, 220, file.OwnerID, ente.Photos, testCreateBuckets)
+		completed <- result{second, err}
+	}()
+	finished := false
+	t.Cleanup(func() {
+		_ = holder.Rollback()
+		if !finished {
+			<-completed
+		}
+	})
+
+	require.Eventually(t, func() bool {
+		return pool.Stats().WaitCount == 1
+	}, 5*time.Second, time.Millisecond)
+	for time.Now().UnixMicro() <= max(beforeCall, created.UpdationTime+1) {
+	}
+	releasedAt := time.Now().UnixMicro()
+	require.NoError(t, holder.Rollback())
+
+	written := <-completed
+	afterSecond := time.Now().UnixMicro()
+	finished = true
+	require.NoError(t, written.err)
+	require.GreaterOrEqual(t, written.file.UpdationTime, releasedAt)
+	require.LessOrEqual(t, written.file.UpdationTime, afterSecond)
+	assertFileCreateVersionsMatch(t, db, file.CollectionID, written.file.ID, written.file.UpdationTime)
 }
 
 func TestCreateConcurrentUploadsStrictlyIncreaseVersion(t *testing.T) {
