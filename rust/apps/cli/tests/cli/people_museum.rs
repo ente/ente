@@ -248,6 +248,13 @@ fn people_list_and_filter_files_against_museum() -> TestResult {
         assert!(error.contains(&format!("file {dinner}:")), "{error}");
         assert!(error.contains("file results are incomplete"), "{error}");
         assert_eq!(listed(&output), [beach]);
+
+        save_person(&origin, &owner, &key, None, &person("Bell\u{7}", &[garden])).await;
+        let output = home.run(&["photos", "person", "list"]);
+        assert!(failure(&output).contains("person list is incomplete"));
+        let table = String::from_utf8(output.stdout).unwrap();
+        assert!(table.contains("Bell\\u{7}"), "{table}");
+        assert!(!table.contains('\u{7}'), "{table}");
         Ok(())
     })
 }

@@ -763,7 +763,6 @@ pub struct FileQuery {
     #[arg(
         long,
         value_name = "PERSON",
-        value_parser = nonempty_search,
         help = "Include files of a person, given by ID or exact name",
         long_help = "Include files of the person with this ID or exact name, as `person list` shows them; hidden people can be selected too. Requires machine learning to be on for your account; see `person list --help`."
     )]

@@ -53,21 +53,42 @@ fn person(key: &Key, id: &str, updated_at: i64, data: &Value) -> Value {
         "header": b64::encode(encrypted.decryption_header.as_bytes())})
 }
 
+fn failing_page(server: &mut Server, since: i64) -> Mock {
+    server
+        .mock("GET", "/user-entity/entity/diff")
+        .match_query(Matcher::UrlEncoded("sinceTime".into(), since.to_string()))
+        .with_status(400)
+        .expect(1)
+        .create()
+}
+
+fn tombstones(updated_at: std::ops::RangeInclusive<i64>) -> Vec<Value> {
+    updated_at
+        .map(|n| json!({"id": format!("gone-{n}"), "isDeleted": true, "updatedAt": n}))
+        .collect()
+}
+
 #[test]
-fn people_sync_follows_full_pages_and_resumes_from_the_saved_cursor() {
+fn people_sync_restarts_an_unfinished_first_sync_and_then_resumes_from_its_cursor() {
     let mut server = Server::new();
     let home = TestHome::new();
     home.seed(&server.url());
-    let albums = albums(&mut server, 3);
-    let consent = consent(&mut server, true, 3);
+    let albums = albums(&mut server, 4);
+    let consent = consent(&mut server, true, 6);
     let key = Key::generate();
     let key_request = people_key(&mut server, &key);
-    let deleted = (1..=500)
-        .map(|n| json!({"id": format!("gone-{n}"), "isDeleted": true, "updatedAt": n}))
-        .collect::<Vec<_>>();
+    let deleted = tombstones(1..=500);
     let ada = person(&key, "ada", 600, &json!({"name": "Ada"}));
-    let full = page(&mut server, 0, &deleted, 1);
-    let rest = page(&mut server, 499, &[deleted[499].clone(), ada], 1);
+    let unnamed = person(&key, "unnamed", 600, &json!({"name": ""}));
+    let not_synced = "no local people data; run the command online first";
+    let full = page(&mut server, 0, &deleted, 2);
+    let cut_off = failing_page(&mut server, 499);
+
+    failure(&home.run(&["photos", "person", "list"]));
+    assert!(failure(&home.run(&["--offline", "photos", "person", "list"])).contains(not_synced));
+    cut_off.assert();
+    cut_off.remove();
+    let rest = page(&mut server, 499, &[deleted[499].clone(), ada, unnamed], 1);
     let caught_up = page(&mut server, 600, &[], 2);
 
     for selector in ["Ada", "ada"] {
@@ -77,20 +98,87 @@ fn people_sync_follows_full_pages_and_resumes_from_the_saved_cursor() {
         );
     }
     assert_eq!(home.json(&["photos", "person", "list"]), json!([]));
-    assert_eq!(
-        home.json(&["--offline", "photos", "file", "list", "--person", "Ada"]),
-        json!([])
-    );
+    for selector in ["Ada", ""] {
+        assert_eq!(
+            home.json(&["--offline", "photos", "file", "list", "--person", selector]),
+            json!([])
+        );
+    }
     assert!(
         failure(&home.run(&["--offline", "photos", "file", "list", "--person", "gone-1"]))
             .contains("no person matches \"gone-1\"")
     );
+    caught_up.assert();
+    caught_up.remove();
+
+    let later = page(&mut server, 600, &tombstones(601..=1100), 1);
+    let later_cut_off = failing_page(&mut server, 1099);
+    failure(&home.run(&["photos", "person", "list"]));
+    assert_eq!(
+        home.json(&["--offline", "photos", "person", "list"]),
+        json!([])
+    );
+    later_cut_off.assert();
+    later_cut_off.remove();
+    let resumed = page(&mut server, 1099, &[], 1);
+    assert_eq!(home.json(&["photos", "person", "list"]), json!([]));
+
     albums.assert();
     consent.assert();
     key_request.assert();
     full.assert();
     rest.assert();
-    caught_up.assert();
+    later.assert();
+    resumed.assert();
+}
+
+#[test]
+fn person_selection_prefers_ids_and_matches_names_of_unreadable_records() {
+    let mut server = Server::new();
+    let home = TestHome::new();
+    home.seed(&server.url());
+    let albums = albums(&mut server, 1);
+    let consent = consent(&mut server, true, 1);
+    let key = Key::generate();
+    let key_request = people_key(&mut server, &key);
+    let rows = [
+        person(&key, "ada", 1, &json!({"name": "Ada"})),
+        person(
+            &key,
+            "ada-unreadable",
+            2,
+            &json!({"name": "Ada", "isHidden": "yes"}),
+        ),
+        person(&key, "named-like-an-id", 3, &json!({"name": "ada"})),
+        person(&key, "nameless-unreadable", 4, &json!({"isHidden": "yes"})),
+        person(&key, "numbered", 5, &json!({"name": 5})),
+    ];
+    let diff = page(&mut server, 0, &rows, 1);
+
+    assert_eq!(
+        home.json(&["photos", "file", "list", "--person", "ada"]),
+        json!([])
+    );
+    let offline = |selector: &str| {
+        failure(&home.run(&["--offline", "photos", "file", "list", "--person", selector]))
+    };
+    let error = offline("Ada");
+    assert!(error.contains("person \"Ada\" is ambiguous"), "{error}");
+    assert!(error.contains("  ada  \"Ada\""), "{error}");
+    assert!(error.contains("  ada-unreadable  \"Ada\""), "{error}");
+    for (selector, id) in [
+        ("ada-unreadable", "ada-unreadable"),
+        ("", "nameless-unreadable"),
+    ] {
+        let error = offline(selector);
+        assert!(error.contains(&format!("person {id}:")), "{error}");
+    }
+    let error = offline("5");
+    assert!(error.contains("no person matches \"5\""), "{error}");
+    albums.assert();
+    consent.assert();
+    key_request.assert();
+    diff.assert();
 }
 
 #[test]

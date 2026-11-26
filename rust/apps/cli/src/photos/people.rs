@@ -6,6 +6,7 @@ use ente_photos::{
     ml_consent,
     people::{self, Person},
 };
+use serde_json::{Map, Value};
 
 use crate::{
     args::{ListArgs, Options},
@@ -22,6 +23,7 @@ pub const SCHEMA: &str = "
 
 struct Entry {
     id: String,
+    name: Option<String>,
     person: Result<Person>,
 }
 
@@ -43,7 +45,8 @@ pub async fn sync(db: &mut Db, session: &Session, options: &Options) -> Result<(
             "machine learning is off for this account; turn it on in the Ente Photos app under Settings > Machine learning to see people"
         );
     }
-    let mut since = cursor(db)?.unwrap_or(0);
+    let synced_before = cursor(db)?;
+    let mut since = synced_before.unwrap_or(0);
     loop {
         let page = people::diff(session, since).await?;
         db.write(|tx| {
@@ -58,10 +61,12 @@ pub async fn sync(db: &mut Db, session: &Session, options: &Options) -> Result<(
             for person in &page.updated {
                 upsert.execute(params![person.id, person.updated_at, person.data])?;
             }
-            tx.execute(
-                "INSERT INTO photos_people_sync VALUES(1,?1) ON CONFLICT(id) DO UPDATE SET cursor=excluded.cursor",
-                [page.cursor],
-            )?;
+            if synced_before.is_some() || !page.has_more {
+                tx.execute(
+                    "INSERT INTO photos_people_sync VALUES(1,?1) ON CONFLICT(id) DO UPDATE SET cursor=excluded.cursor",
+                    [page.cursor],
+                )?;
+            }
             Ok(())
         })?;
         if !page.has_more {
@@ -107,23 +112,25 @@ pub fn list(
 }
 
 pub fn file_ids(db: &Db, selector: &str) -> Result<BTreeSet<i64>> {
-    let matches = read(db)?
+    let entries = read(db)?;
+    let by_id = entries.iter().any(|entry| entry.id == selector);
+    let matches = entries
         .into_iter()
         .filter(|entry| {
-            entry.id == selector
-                || entry
-                    .person
-                    .as_ref()
-                    .is_ok_and(|person| person.name == selector)
+            if by_id {
+                entry.id == selector
+            } else {
+                entry.name.as_deref() == Some(selector)
+            }
         })
         .collect();
     let entry = select(matches, selector, "person", "Use an ID.", |entry| {
         (
             escape_controls(&entry.id),
             entry
-                .person
-                .as_ref()
-                .map_or_else(|_| "unavailable".to_owned(), |person| person.name.clone()),
+                .name
+                .clone()
+                .unwrap_or_else(|| "unavailable".to_owned()),
         )
     })?;
     let person = entry
@@ -141,11 +148,26 @@ fn read(db: &Db) -> Result<Vec<Entry>> {
     })?;
     Ok(rows
         .into_iter()
-        .map(|(id, record)| Entry {
-            person: Person::from_json(&record).map_err(Into::into),
-            id,
+        .map(|(id, record)| {
+            let person = Person::from_json(&record).map_err(anyhow::Error::from);
+            let name = match &person {
+                Ok(person) => Some(person.name.clone()),
+                Err(_) => recorded_name(&record),
+            };
+            Entry { id, name, person }
         })
         .collect())
+}
+
+fn recorded_name(record: &str) -> Option<String> {
+    match serde_json::from_str::<Map<String, Value>>(record)
+        .ok()?
+        .remove("name")
+    {
+        None | Some(Value::Null) => Some(String::new()),
+        Some(Value::String(name)) => Some(name),
+        Some(_) => None,
+    }
 }
 
 fn cursor(db: &Db) -> core_db::Result<Option<i64>> {
