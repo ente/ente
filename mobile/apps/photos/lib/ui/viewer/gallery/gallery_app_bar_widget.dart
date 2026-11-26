@@ -28,7 +28,6 @@ import 'package:photos/module/download/gallery.dart';
 import 'package:photos/service_locator.dart';
 import 'package:photos/services/collections_service.dart';
 import "package:photos/services/files_service.dart";
-import 'package:photos/services/pending_uploads_service.dart';
 import "package:photos/services/review_service.dart";
 import "package:photos/states/location_screen_state.dart";
 import "package:photos/theme/ente_theme.dart";
@@ -675,7 +674,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
     final collection = widget.collection;
     if (collection != null &&
         (collection.isOwner(userId) || collection.isAdmin(userId)) &&
-        PendingUploadsService.instance.showsShield(collection)) {
+        collection.publicURLs.any((url) => url.requireApproval)) {
       actions.add(
         IconButtonComponent(
           tooltip: strings.reviewUploads,
@@ -1414,16 +1413,12 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
   }
 
   Future<void> _trashCollection() async {
-    final collection = widget.collection!;
     final int count = await CollectionsService.instance.getFileCount(
-      collection,
+      widget.collection!,
       useCache: false,
     );
-    final pendingCount = count == 0
-        ? PendingUploadsService.instance.count(collection.id)
-        : await collectionActions.pendingCountForWarning(collection);
     if (!mounted) return;
-    final bool isEmptyCollection = count == 0 && pendingCount == 0;
+    final bool isEmptyCollection = count == 0;
     if (isEmptyCollection) {
       final dialog = createProgressDialog(
         context,
@@ -1431,7 +1426,9 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
       );
       await dialog.show();
       try {
-        await CollectionsService.instance.trashEmptyCollection(collection);
+        await CollectionsService.instance.trashEmptyCollection(
+          widget.collection!,
+        );
         await dialog.hide();
         if (!mounted) return;
         Navigator.of(context).pop();
@@ -1444,8 +1441,7 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
     } else {
       final bool result = await collectionActions.deleteCollectionSheet(
         context,
-        collection,
-        pendingCount: pendingCount,
+        widget.collection!,
       );
       if (!mounted) return;
       if (result == true) {

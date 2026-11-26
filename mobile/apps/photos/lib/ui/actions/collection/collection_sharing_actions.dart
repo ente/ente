@@ -19,7 +19,6 @@ import "package:photos/models/metadata/common_keys.dart";
 import 'package:photos/services/account/user_service.dart';
 import 'package:photos/services/collections_service.dart';
 import 'package:photos/services/hidden_service.dart';
-import 'package:photos/services/pending_uploads_service.dart';
 import 'package:photos/ui/components/action_sheet_widget.dart';
 import 'package:photos/ui/components/buttons/button_widget.dart';
 import 'package:photos/ui/components/models/button_type.dart';
@@ -64,19 +63,6 @@ class CollectionActions {
 
   CollectionActions(this.collectionsService);
 
-  Future<int> pendingCountForWarning(Collection collection) async {
-    final pending = PendingUploadsService.instance;
-    if (!collection.publicURLs.any((url) => url.requireApproval)) {
-      return pending.count(collection.id);
-    }
-    try {
-      return await pending.loadedCount(collection.id);
-    } catch (error, stack) {
-      logger.warning('Could not load pending uploads', error, stack);
-      return pending.count(collection.id);
-    }
-  }
-
   Future<bool> enableUrl(
     BuildContext context,
     Collection collection, {
@@ -102,8 +88,6 @@ class CollectionActions {
   }
 
   Future<bool> disableUrl(BuildContext context, Collection collection) async {
-    final pendingCount = await pendingCountForWarning(collection);
-    if (!context.mounted) return false;
     final actionResult = await showActionSheet(
       context: context,
       buttons: [
@@ -131,13 +115,9 @@ class CollectionActions {
         ),
       ],
       title: context.strings.removePublicLink,
-      body: pendingCount == 0
-          ? context.strings.disableLinkMessage(
-              albumName: collection.displayName,
-            )
-          : collection.isQuickLinkCollection() && !collection.hasSharees
-          ? '${context.strings.disableLinkMessage(albumName: collection.displayName)}\n${context.strings.pendingUploadsMoveToTrash(count: pendingCount)}'
-          : context.strings.removeLinkPendingWarning(count: pendingCount),
+      body: context.strings.disableLinkMessage(
+        albumName: collection.displayName,
+      ),
     );
     if (actionResult?.action != null) {
       if (actionResult!.action == ButtonAction.error) {
@@ -394,13 +374,11 @@ class CollectionActions {
 
   Future<bool> deleteMultipleCollectionSheet(
     BuildContext context,
-    List<Collection> collections, {
-    required int pendingCount,
-  }) async {
+    List<Collection> collections,
+  ) async {
     return _showDeleteCollectionConfirmationSheet(
       context: context,
       title: context.strings.deleteMultipleAlbumsQuestion,
-      pendingCount: pendingCount,
       message: context.strings.deleteMultipleAlbumDialog(
         count: collections.length,
       ),
@@ -429,9 +407,8 @@ class CollectionActions {
 
   Future<bool> deleteCollectionSheet(
     BuildContext bContext,
-    Collection collection, {
-    required int pendingCount,
-  }) async {
+    Collection collection,
+  ) async {
     final currentUserID = Configuration.instance.getUserID()!;
     if (collection.owner.id != currentUserID) {
       throw AssertionError("Can not delete album owned by others");
@@ -450,7 +427,6 @@ class CollectionActions {
       context: bContext,
       title: bContext.strings.deleteAlbumQuestion,
       message: bContext.strings.deleteAlbumDialog,
-      pendingCount: pendingCount,
       keepPhotos: () async {
         try {
           await trashCollectionKeepingPhotos(collection);
@@ -474,7 +450,6 @@ class CollectionActions {
     required BuildContext context,
     required String title,
     required String message,
-    required int pendingCount,
     required Future<void> Function() keepPhotos,
     required Future<void> Function() deletePhotos,
   }) async {
@@ -489,9 +464,7 @@ class CollectionActions {
           closeTooltip: l10n.close,
           closeResult: ButtonResult(ButtonAction.third),
           content: StyledText(
-            text: pendingCount > 0
-                ? '$message\n${l10n.pendingUploadsMoveToTrash(count: pendingCount)}'
-                : message,
+            text: message,
             textAlign: TextAlign.center,
             style: TextStyles.body.copyWith(color: colors.textLight),
             tags: {

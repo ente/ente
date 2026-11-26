@@ -305,32 +305,26 @@ class _ManageSharedLinkWidgetState extends State<ManageSharedLinkWidget> {
   }
 
   Future<void> _turnOffApproval(BuildContext context) async {
-    final count = await sharingActions.pendingCountForWarning(
-      widget.collection,
-    );
-    if (!context.mounted) return;
-    if (count > 0) {
-      final turnOff = await showBottomSheetComponent<bool>(
-        context: context,
-        builder: (sheetContext) => BottomSheetComponent(
-          title: context.strings.turnOffApprovalQuestion,
-          content: Text(
-            context.strings.turnOffApprovalWarning(count: count),
-            style: TextStyles.body.copyWith(
-              color: sheetContext.componentColors.textLight,
-            ),
+    final turnOff = await showBottomSheetComponent<bool>(
+      context: context,
+      builder: (sheetContext) => BottomSheetComponent(
+        title: context.strings.turnOffApprovalQuestion,
+        content: Text(
+          context.strings.turnOffApprovalWarning,
+          style: TextStyles.body.copyWith(
+            color: sheetContext.componentColors.textLight,
           ),
-          closeTooltip: context.strings.close,
-          actions: [
-            ButtonComponent(
-              label: context.strings.turnOffApproval,
-              onTap: () => Navigator.of(sheetContext).pop(true),
-            ),
-          ],
         ),
-      );
-      if (turnOff != true || !context.mounted) return;
-    }
+        closeTooltip: context.strings.close,
+        actions: [
+          ButtonComponent(
+            label: context.strings.turnOffApproval,
+            onTap: () => Navigator.of(sheetContext).pop(true),
+          ),
+        ],
+      ),
+    );
+    if (turnOff != true || !context.mounted) return;
     await _updateUrlSettings(context, {'requireApproval': false});
   }
 

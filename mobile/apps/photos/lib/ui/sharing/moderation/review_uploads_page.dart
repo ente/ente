@@ -42,7 +42,7 @@ class _ReviewUploadsPageState extends State<ReviewUploadsPage> {
   final _service = PendingUploadsService.instance;
   final _stack = ReviewSwipeStackController();
   final _selected = <int>{};
-  late final ReviewQueue _queue = _service.reviewQueue(widget.collection.id);
+  final _queue = ReviewQueue();
   List<PendingUpload> _files = [];
   _View _view = _View.grid;
   (int, int) _result = (0, 0);
@@ -58,19 +58,15 @@ class _ReviewUploadsPageState extends State<ReviewUploadsPage> {
     unawaited(_refresh());
   }
 
-  Future<void> _refresh({bool reload = false}) async {
+  Future<void> _refresh() async {
     setState(() {
       _loading = _files.isEmpty;
       _error = null;
     });
-    final reviewSession = _service.session;
     try {
-      if (reload) await _service.resync(widget.collection.id);
-      final files = await _service.files(widget.collection.id);
-      if (!mounted || reviewSession != _service.session) return;
-      _queue.retain(files.map((upload) => upload.file.uploadedFileID!));
-      await _service.saveReviewQueue(widget.collection.id, _queue);
+      final files = await _service.load(widget.collection.id);
       if (!mounted) return;
+      _queue.retain(files.map((upload) => upload.file.uploadedFileID!));
       setState(() {
         _files = files;
         _selected.removeWhere(
@@ -98,10 +94,8 @@ class _ReviewUploadsPageState extends State<ReviewUploadsPage> {
     }
   }
 
-  Future<void> _choose(int id, ReviewChoice choice) async {
+  void _choose(int id, ReviewChoice choice) {
     _queue.choose(id, choice);
-    await _service.saveReviewQueue(widget.collection.id, _queue);
-    if (!mounted) return;
     setState(() {
       if (_undecided.isEmpty) _view = _View.choices;
     });
@@ -114,11 +108,7 @@ class _ReviewUploadsPageState extends State<ReviewUploadsPage> {
     });
   }
 
-  Future<void> _undo() async {
-    _queue.undo();
-    await _service.saveReviewQueue(widget.collection.id, _queue);
-    if (mounted) setState(() {});
-  }
+  void _undo() => setState(_queue.undo);
 
   List<int> _queued(ReviewChoice choice) => _queue.choices.entries
       .where((entry) => entry.value == choice)
@@ -162,7 +152,7 @@ class _ReviewUploadsPageState extends State<ReviewUploadsPage> {
             },
           ),
           ButtonComponent(
-            label: l10n.continueLater,
+            label: l10n.discardChanges,
             variant: ButtonComponentVariant.secondary,
             onTap: () {
               Navigator.of(sheetContext).pop();
@@ -178,7 +168,7 @@ class _ReviewUploadsPageState extends State<ReviewUploadsPage> {
   Future<void> _send(Map<ReviewChoice, List<int>> choices) async {
     if (_sending) return;
     setState(() => _sending = true);
-    final reviewSession = _service.session;
+    final sentIDs = <int>{};
     var sent = false;
     try {
       for (final MapEntry(key: choice, value: ids) in choices.entries) {
@@ -191,11 +181,9 @@ class _ReviewUploadsPageState extends State<ReviewUploadsPage> {
               .skip(start)
               .take(PendingUploadsService.submitBatchSize)
               .toList();
-          if (reviewSession != _service.session) return;
           await _service.submit(widget.collection.id, choice.name, batch);
-          if (reviewSession != _service.session) return;
           _queue.remove(batch);
-          await _service.saveReviewQueue(widget.collection.id, _queue);
+          sentIDs.addAll(batch);
         }
       }
       sent = true;
@@ -218,10 +206,11 @@ class _ReviewUploadsPageState extends State<ReviewUploadsPage> {
     } catch (error, stack) {
       _logger.warning('Failed to sync reviewed files', error, stack);
     }
-    final files = await _service.files(widget.collection.id);
     if (!mounted) return;
     setState(() {
-      _files = files;
+      _files = _files
+          .where((upload) => !sentIDs.contains(upload.file.uploadedFileID))
+          .toList();
       if (sent) {
         _result = (
           choices[ReviewChoice.approve]?.length ?? 0,
@@ -394,7 +383,7 @@ class _ReviewUploadsPageState extends State<ReviewUploadsPage> {
               shouldSurfaceExecutionStates: false,
               tooltip: l10n.refreshUploads,
               icon: const HugeIcon(icon: HugeIcons.strokeRoundedRefresh),
-              onTap: _sending ? null : () => _refresh(reload: true),
+              onTap: _sending ? null : _refresh,
             ),
           ],
           slivers: [
@@ -580,7 +569,7 @@ class _ReviewUploadsPageState extends State<ReviewUploadsPage> {
           strokeWidth: 1.554,
           color: colors.textBase,
         ),
-        onTap: () => unawaited(_undo()),
+        onTap: _undo,
       ),
       _RoundActionButton(
         size: _actionButtonSize,
@@ -640,7 +629,7 @@ class _ReviewUploadsPageState extends State<ReviewUploadsPage> {
                         controller: _stack,
                         isFavorite: (_) => false,
                         onCardTap: (_) {},
-                        onSwiped: (file, direction) => _choose(
+                        onSwiped: (file, direction) async => _choose(
                           file.uploadedFileID!,
                           direction == ReviewSwipeDirection.right
                               ? ReviewChoice.approve
@@ -706,12 +695,6 @@ class _ReviewUploadsPageState extends State<ReviewUploadsPage> {
                       approved: _queue.choices[id] == ReviewChoice.approve,
                       onRemove: () {
                         _queue.remove([id]);
-                        unawaited(
-                          _service.saveReviewQueue(
-                            widget.collection.id,
-                            _queue,
-                          ),
-                        );
                         if (_queue.choices.isEmpty) {
                           _backFromChoices();
                         } else {
