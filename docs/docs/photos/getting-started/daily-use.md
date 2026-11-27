@@ -20,6 +20,8 @@ The first time you open Ente Photos on a mobile device, you'll be prompted to se
 3. Tap to confirm your selection
 4. Your selected albums will now back up automatically
 
+![Mobile: Ready to backup screen with Choose albums to backup highlighted, then the Backup to Ente album picker with Start backup highlighted](https://docs-assets.ente.com/screenshots/phone-onboarding-select-folders-v1370.png){width=560px}
+
 You can change backed up albums later in **Settings > Backup > Backed up folders**.
 
 **On desktop:** Desktop works differently - instead of albums, you set up [watch folders](/photos/features/backup-and-sync/watch-folders) that automatically sync whenever files are added or deleted.

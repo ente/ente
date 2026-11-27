@@ -34,9 +34,7 @@ You can choose which albums should be backed up when you first sign up for Ente.
 
 Open `Settings > Backup > Backed up folders` and select or deselect albums as needed.
 
-![Ente Photos Android Backup menu highlighting the Backed up folders row](https://docs-assets.ente.com/screenshots/phone-backup-backed-up-folders-callout.png){width=320px}
-
-![Ente Photos Android Backed up folders screen with selectable device albums and checkmarks](https://docs-assets.ente.com/screenshots/phone-backup-backed-up-folders.png){width=320px}
+![Mobile: home with Settings menu (three bars) highlighted, then Backup, then Backed up folders, then the Backed up folders album picker](https://docs-assets.ente.com/screenshots/phone-settings-backup-backed-up-folders-path-v1370.png){width=560px}
 
 **On desktop:** Use the [watch folders](/photos/features/backup-and-sync/watch-folders) feature to select directories to sync.
 
