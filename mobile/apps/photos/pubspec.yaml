@@ -1,7 +1,7 @@
 name: photos
 description: ente photos application
 
-version: 1.3.71+2370
+version: 1.3.71+2371
 publish_to: none
 
 resolution: workspace
