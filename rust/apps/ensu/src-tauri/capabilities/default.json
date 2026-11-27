@@ -5,6 +5,7 @@
     "windows": ["main"],
     "permissions": [
         "core:default",
+        "core:window:allow-set-focus",
         "dialog:default",
         "fs:allow-exists",
         "fs:allow-mkdir",
