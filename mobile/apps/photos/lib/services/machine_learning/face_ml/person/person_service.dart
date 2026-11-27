@@ -222,11 +222,19 @@ class PersonService {
       _cachedRemoteSyncTime = remoteSyncTime;
       _invalidatePersonCache();
     }
-    if (_cachedPersonsFuture == null) {
-      final generation = _personCacheGeneration;
-      _cachedPersonsFuture = _fetchAndCachePersons(generation);
+    final cached = _cachedPersonsFuture;
+    if (cached != null) return cached;
+
+    final load = _fetchAndCachePersons(_personCacheGeneration);
+    _cachedPersonsFuture = load;
+    try {
+      return await load;
+    } catch (_) {
+      if (identical(_cachedPersonsFuture, load)) {
+        _cachedPersonsFuture = null;
+      }
+      rethrow;
     }
-    return _cachedPersonsFuture!;
   }
 
   Future<List<PersonEntity>> _fetchAndCachePersons(int generation) async {
