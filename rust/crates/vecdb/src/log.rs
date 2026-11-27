@@ -1658,6 +1658,10 @@ mod tests {
         let path = dir.path().join("log");
         let created = Log::create(&path, 8, StorageKind::F32, None).unwrap();
         let _inherited = created.file.try_clone().unwrap();
+        assert!(matches!(
+            open_writer_file(&path, false),
+            Err(VecDbError::Locked(_))
+        ));
         drop(created);
         assert!(open_writer_file(&path, false).is_ok());
     }

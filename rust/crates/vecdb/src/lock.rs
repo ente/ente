@@ -141,6 +141,10 @@ mod tests {
         let log_path = dir.path().join("log");
         let holder = WriterLock::acquire(&log_path).unwrap();
         let _inherited = holder.file.try_clone().unwrap();
+        assert!(matches!(
+            WriterLock::acquire(&log_path),
+            Err(VecDbError::Locked(_))
+        ));
         drop(holder);
         assert!(WriterLock::acquire(&log_path).is_ok());
     }
