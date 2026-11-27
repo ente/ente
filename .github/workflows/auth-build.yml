@@ -111,7 +111,7 @@ jobs:
                   submodules: recursive
 
             - name: Setup JDK 17
-              uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+              uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
               with:
                   distribution: "temurin"
                   java-version: "17"
@@ -150,9 +150,10 @@ jobs:
                   SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD_AUTH }}
                   SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD_AUTH }}
 
-            - name: Build PlayStore AAB
+            - name: Build Play Store bundles
               run: |
                   flutter build appbundle --build-name="${RELEASE_VERSION}" --build-number="${BUILD_NUMBER}" --release --flavor playstore --dart-define=cronetHttpNoPlay=true
+                  android/gradlew -p wear :app:bundleRelease
               env:
                   SIGNING_KEY_PATH: ${{ runner.temp }}/ente_auth_key.jks
                   SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS_AUTH }}
@@ -170,7 +171,7 @@ jobs:
 
             - name: Mint nightly token
               id: nightly_token
-              uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+              uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
               with:
                   client-id: ${{ secrets.ENTE_CI_GH_CLIENT_ID }}
                   private-key: ${{ secrets.ENTE_CI_GH_APP_PRIVATE_KEY }}
@@ -213,6 +214,15 @@ jobs:
                   tracks: internal
                   whatsNewDirectory: mobile/apps/auth/whatsnew
                   mappingFile: mobile/apps/auth/build/app/outputs/mapping/playstoreRelease/mapping.txt
+
+            - name: Upload Wear OS AAB to internal testing
+              uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
+              with:
+                  serviceAccountJsonPlainText: ${{ secrets.SERVICE_ACCOUNT_JSON }}
+                  packageName: io.ente.auth
+                  releaseFiles: mobile/apps/auth/wear/app/build/outputs/bundle/release/app-release.aab
+                  tracks: wear:internal
+                  whatsNewDirectory: mobile/apps/auth/whatsnew
 
     build-linux:
         permissions:
@@ -335,7 +345,7 @@ jobs:
 
             - name: Mint nightly token
               id: nightly_token
-              uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+              uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
               with:
                   client-id: ${{ secrets.ENTE_CI_GH_CLIENT_ID }}
                   private-key: ${{ secrets.ENTE_CI_GH_APP_PRIVATE_KEY }}
@@ -525,7 +535,7 @@ jobs:
 
             - name: Mint nightly token
               id: nightly_token
-              uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+              uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
               with:
                   client-id: ${{ secrets.ENTE_CI_GH_CLIENT_ID }}
                   private-key: ${{ secrets.ENTE_CI_GH_APP_PRIVATE_KEY }}
@@ -677,7 +687,7 @@ jobs:
 
             - name: Mint nightly token
               id: nightly_token
-              uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+              uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
               with:
                   client-id: ${{ secrets.ENTE_CI_GH_CLIENT_ID }}
                   private-key: ${{ secrets.ENTE_CI_GH_APP_PRIVATE_KEY }}
@@ -776,7 +786,8 @@ jobs:
                       CODE_SIGN_STYLE=Manual \
                       CODE_SIGN_IDENTITY="Apple Distribution" \
                       DEVELOPMENT_TEAM="${APPLE_TEAM_ID}" \
-                      APP_STORE_PROFILE_SPECIFIER="Auth App Store"
+                      APP_STORE_PROFILE_SPECIFIER="Auth App Store" \
+                      AUTH_WATCH_PROFILE_SPECIFIER="Auth Watch App Store"
 
                   xcodebuild -exportArchive \
                       -archivePath build/ios/archive/Runner.xcarchive \
@@ -822,7 +833,7 @@ jobs:
 
             - name: Mint nightly token
               id: nightly_token
-              uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+              uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
               with:
                   client-id: ${{ secrets.ENTE_CI_GH_CLIENT_ID }}
                   private-key: ${{ secrets.ENTE_CI_GH_APP_PRIVATE_KEY }}

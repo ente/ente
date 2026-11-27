@@ -1,0 +1,47 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'org.jetbrains.kotlin.plugin.compose'
+}
+
+def authVersion = (file('../../pubspec.yaml').text =~ /(?m)^version: ([^+]+)\+(\d+)$/)
+assert authVersion.find(): 'Auth pubspec must contain a version and build number'
+def phoneBuild = authVersion.group(2).toInteger()
+assert phoneBuild > 0 && phoneBuild < 1000000000
+def keystoreProperties = new Properties()
+def keystoreFile = file('../../android/key.properties')
+if (keystoreFile.exists()) keystoreFile.withInputStream { keystoreProperties.load(it) }
+def localKeyPath = keystoreProperties.getProperty('storeFile')
+
+android {
+    namespace 'io.ente.auth.watch.app'
+    buildFeatures {
+        compose true
+    }
+    defaultConfig {
+        applicationId 'io.ente.auth'
+        minSdk 30
+        versionCode 1000000000 + phoneBuild
+        versionName authVersion.group(1)
+    }
+    signingConfigs {
+        release {
+            storeFile localKeyPath ? (new File(localKeyPath).isAbsolute() ? file(localKeyPath) : file('../../android/app/' + localKeyPath)) :
+                System.getenv('SIGNING_KEY_PATH') ? file(System.getenv('SIGNING_KEY_PATH')) : null
+            keyAlias keystoreProperties['keyAlias'] ?: System.getenv('SIGNING_KEY_ALIAS')
+            keyPassword keystoreProperties['keyPassword'] ?: System.getenv('SIGNING_KEY_PASSWORD')
+            storePassword keystoreProperties['storePassword'] ?: System.getenv('SIGNING_STORE_PASSWORD')
+        }
+    }
+    buildTypes {
+        debug { applicationIdSuffix '.debug' }
+        release { signingConfig signingConfigs.release }
+    }
+}
+
+dependencies {
+    implementation project(':auth-core')
+    implementation 'com.google.android.gms:play-services-wearable:20.0.1'
+    implementation 'androidx.activity:activity-compose:1.10.1'
+    implementation 'androidx.wear.compose:compose-material3:1.5.6'
+}

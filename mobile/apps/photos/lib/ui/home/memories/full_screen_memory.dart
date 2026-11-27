@@ -801,6 +801,8 @@ class _FullScreenMemoryState extends State<FullScreenMemory> {
                         child: FileWidget(
                           currentFile,
                           isActive: _isMediaPlaybackActive,
+                          isSelectedViewerPage: widget.isActive,
+                          jpegPreviewScale: MemoriesZoomWidget.maxScale,
                           itemIndex: safeIndex,
                           activeItemIndexListenable:
                               inheritedData.indexNotifier,
@@ -1446,6 +1448,8 @@ class _MemoryBlur extends StatelessWidget {
 }
 
 class MemoriesZoomWidget extends StatefulWidget {
+  static const maxScale = 1.15;
+
   final Widget child;
   final bool isVideo;
   final void Function(AnimationController)? scaleController;
@@ -1485,8 +1489,8 @@ class _MemoriesZoomWidgetState extends State<MemoriesZoomWidget>
       animationBehavior: AnimationBehavior.preserve,
     );
 
-    final startScale = widget.zoomIn ? 1.05 : 1.15;
-    final endScale = widget.zoomIn ? 1.15 : 1.05;
+    final startScale = widget.zoomIn ? 1.05 : MemoriesZoomWidget.maxScale;
+    final endScale = widget.zoomIn ? MemoriesZoomWidget.maxScale : 1.05;
 
     final startX = (random.nextDouble() - 0.5) * 0.1;
     final startY = (random.nextDouble() - 0.5) * 0.1;

@@ -1,11 +1,14 @@
 mod format;
 mod grammar;
+mod special;
 
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
 pub(super) use format::Format;
+pub(super) use grammar::grammar;
+pub(crate) use special::Specials;
 
 pub const MAX_TOOL_CALLS: u8 = 4;
 pub(crate) const MAX_TEXT_ARGUMENT_CHARS: usize = 128;
@@ -38,6 +41,8 @@ pub enum ParameterKind {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ToolRequest {
     pub tools: Vec<ToolSpec>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub allowed: Option<Vec<String>>,
     #[serde(default)]
     pub quote_source: String,
     pub max_calls: u8,
@@ -90,7 +95,20 @@ impl ToolRequest {
                 }
             }
         }
+        if self
+            .allowed
+            .as_ref()
+            .is_some_and(|allowed| allowed.iter().any(|name| !names.contains(name.as_str())))
+        {
+            return invalid("Allowed tools must be declared");
+        }
         Ok(())
+    }
+
+    pub(super) fn allows(&self, name: &str) -> bool {
+        self.allowed
+            .as_ref()
+            .is_none_or(|allowed| allowed.iter().any(|candidate| candidate == name))
     }
 
     pub(super) fn max_calls(&self) -> usize {
@@ -146,70 +164,10 @@ impl ToolCall {
 pub struct ToolOutcome {
     pub calls: Vec<ToolCall>,
     pub call_probability: Option<f32>,
-}
-
-#[derive(Debug)]
-pub struct ToolExchange {
-    request: ToolRequest,
-    outcome: std::sync::Mutex<Option<ToolOutcome>>,
-    pub(crate) continuation: Option<std::sync::Arc<dyn ToolContinuation>>,
-}
-
-pub(crate) trait ToolContinuation: std::fmt::Debug + Send + Sync {
-    fn follow_up(
-        &self,
-        request: &super::ChatRequest,
-        outcome: &ToolOutcome,
-    ) -> Option<super::ChatRequest>;
-
-    fn can_finish(&self, outcome: &ToolOutcome, now_ms: i64) -> bool;
-}
-
-impl ToolExchange {
-    pub fn new(request: ToolRequest) -> Self {
-        Self {
-            request,
-            outcome: std::sync::Mutex::new(None),
-            continuation: None,
-        }
-    }
-
-    pub(crate) fn with_continuation(
-        mut self,
-        continuation: impl ToolContinuation + 'static,
-    ) -> Self {
-        self.continuation = Some(std::sync::Arc::new(continuation));
-        self
-    }
-
-    pub fn request(&self) -> &ToolRequest {
-        &self.request
-    }
-
-    pub(crate) fn record(&self, outcome: Option<ToolOutcome>) {
-        *self
-            .outcome
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner) = outcome;
-    }
-
-    pub fn outcome(&self) -> Option<ToolOutcome> {
-        self.outcome
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .clone()
-    }
-}
-
-pub(crate) fn single_token(
-    model: &llama_cpp_2::model::LlamaModel,
-    text: &str,
-) -> Option<llama_cpp_2::token::LlamaToken> {
-    let vocab = model.vocab();
-    match vocab.tokenize(text.as_bytes(), false, true).as_slice() {
-        [token] if vocab.token_to_piece(*token, true, None) == text.as_bytes() => Some(*token),
-        _ => None,
-    }
+    #[serde(default)]
+    pub abstained: bool,
+    #[serde(default)]
+    pub rejected_steps: u32,
 }
 
 pub(crate) fn finished_calls(
@@ -229,14 +187,32 @@ pub(crate) fn finished_calls(
         })
 }
 
-pub(crate) fn grammar(
+pub(super) fn calls_before_abstention(
     format: Format,
+    raw: &[u8],
     request: &ToolRequest,
-    model: &llama_cpp_2::model::LlamaModel,
-) -> Result<String, super::Error> {
-    grammar::grammar(format, request, &|text| {
-        single_token(model, text).map(|token| token.0)
-    })
+) -> Vec<ToolCall> {
+    let text = match std::str::from_utf8(raw) {
+        Ok(text) => text,
+        Err(error) => std::str::from_utf8(&raw[..error.valid_up_to()]).unwrap_or_default(),
+    };
+    format.completed_calls(text, request)
+}
+
+fn clean_text(text: &mut String, specials: &Specials) {
+    if let std::borrow::Cow::Owned(clean) = specials.plain(text) {
+        *text = clean;
+    }
+}
+
+fn clean_calls(calls: &mut [ToolCall], specials: &Specials) {
+    for call in calls {
+        for argument in call.arguments.values_mut() {
+            if let ToolValue::Text(text) = argument {
+                clean_text(text, specials);
+            }
+        }
+    }
 }
 
 pub(crate) fn adapt_messages(
@@ -244,15 +220,32 @@ pub(crate) fn adapt_messages(
     messages: Vec<super::ChatMessage>,
     tools: Option<&ToolRequest>,
     has_token: &dyn Fn(&str) -> bool,
+    specials: &Specials,
 ) -> Vec<super::ChatMessage> {
     let mut output = Vec::with_capacity(messages.len() + 1);
     if let (Some(format), Some(tools)) = (format, tools) {
-        let declarations = format.declarations(&tools.tools, &tools.examples, has_token);
+        let mut specs = tools.tools.clone();
+        for spec in &mut specs {
+            clean_text(&mut spec.description, specials);
+            for parameter in &mut spec.parameters {
+                clean_text(&mut parameter.description, specials);
+                if let ParameterKind::Choice { values } = &mut parameter.kind {
+                    for value in values {
+                        clean_text(value, specials);
+                    }
+                }
+            }
+        }
+        let mut examples = tools.examples.clone();
+        for example in &mut examples {
+            clean_calls(&mut example.calls, specials);
+        }
+        let declarations = format.declarations(&specs, &examples, has_token);
         let system = messages
             .first()
             .filter(|message| message.role == "system")
-            .map(|message| message.content.as_str());
-        let content = match (format, system) {
+            .map(|message| specials.plain(&message.content));
+        let content = match (format, system.as_deref()) {
             (_, None) | (_, Some("")) => declarations,
             (Format::Gemma, Some(system)) => format!("{}{declarations}", system.trim()),
             (Format::Lfm, Some(system)) => format!("{system}\n{declarations}"),
@@ -263,13 +256,17 @@ pub(crate) fn adapt_messages(
     let skip =
         usize::from(!output.is_empty() && messages.first().is_some_and(|m| m.role == "system"));
     let mut pending_calls = std::collections::VecDeque::new();
-    for message in messages.into_iter().skip(skip) {
+    for mut message in messages.into_iter().skip(skip) {
+        if message.role != "assistant" {
+            clean_text(&mut message.content, specials);
+        }
         if message.role == "assistant" && !message.tool_calls.is_empty() {
             pending_calls = message
                 .tool_calls
                 .iter()
                 .map(|call| call.name.clone())
                 .collect();
+            clean_calls(&mut message.tool_calls, specials);
             let content = match format {
                 None => message.content,
                 Some(Format::Qwen) if !message.content.trim().is_empty() => {

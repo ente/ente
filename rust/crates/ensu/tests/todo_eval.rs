@@ -2,15 +2,19 @@
 #![cfg(feature = "sqlite")]
 
 use std::sync::Arc;
-use std::time::Instant;
 
-use ente_ensu::conversation::{self, Effects, PrepareError};
-use ente_ensu::db::chat::{Confirm, ConversationSnapshot};
+use ente_ensu::conversation::{
+    self, GroundingCache, GroundingCandidates, PrepareError, Turn, TurnRequest,
+};
+use ente_ensu::db::chat::ConversationSnapshot;
 use ente_ensu::db::{ChatDb, Clock, RandomUuidGen, SqliteBackend};
-use ente_ensu::llm::{self, ChatMessage, ChatRequest, Context, ContextParams, ToolCall};
+use ente_ensu::llm::{self, ChatMessage, ChatRequest, ToolCall, ToolRequest};
 use ente_ensu::todo;
+use ente_ensu::tools::turn::{self as tool_turn, Confirm, FinishedReply};
 use serde::Deserialize;
 use serde_json::{Value, json};
+
+mod support;
 
 #[derive(Deserialize)]
 struct Case {
@@ -341,10 +345,18 @@ struct Recorded {
     call_probability: Option<f32>,
     calls: Vec<ToolCall>,
     unsure: bool,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    abstained: bool,
+    #[serde(default, skip_serializing_if = "is_default")]
+    rejected_steps: u32,
     text: String,
     #[serde(default, skip_serializing_if = "String::is_empty")]
     reply: String,
     state: StateResult,
+}
+
+fn is_default<T: Default + PartialEq>(value: &T) -> bool {
+    *value == T::default()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, Deserialize)]
@@ -396,7 +408,7 @@ struct EvalClock;
 
 impl Clock for EvalClock {
     fn now_us(&self) -> i64 {
-        todo::timing::local_millis(now(), &chrono::Local).unwrap() * 1000
+        todo::timing::local_millis(now(), &support::zone()).unwrap() * 1000
     }
 }
 
@@ -419,7 +431,7 @@ impl ConversationCase {
                 let due_at = task.due_at.as_ref().map(|at| {
                     let local =
                         chrono::NaiveDateTime::parse_from_str(at, "%Y-%m-%d %H:%M").unwrap();
-                    todo::timing::local_millis(local, &chrono::Local).unwrap()
+                    todo::timing::local_millis(local, &support::zone()).unwrap()
                 });
                 let stored = db.create_todo(&task.title, due_at).unwrap();
                 if task.completed {
@@ -450,14 +462,17 @@ impl ConversationCase {
                     )
                     .unwrap(),
                 "assistant" => {
-                    db.finish_reply(
+                    tool_turn::finish_reply(
+                        &db,
                         &db.conversation_snapshot(session.uuid, &path).unwrap(),
                         &message.content,
                         vec![],
                         Some(&llm::ToolOutcome {
                             calls: message.tool_calls.clone(),
                             call_probability: Some(1.0),
+                            ..Default::default()
                         }),
+                        &support::zone(),
                     )
                     .unwrap()
                     .message
@@ -468,7 +483,7 @@ impl ConversationCase {
             path.push(message.uuid);
         }
         if case.undo {
-            db.undo_tool_turn(*path.last().unwrap()).unwrap();
+            tool_turn::undo(&db, *path.last().unwrap()).unwrap();
         }
         let user = db
             .insert_message(
@@ -492,8 +507,7 @@ impl ConversationCase {
             .rev()
             .nth(1)
             .and_then(|message| {
-                self.db
-                    .tool_history(std::slice::from_ref(message))
+                tool_turn::history(&self.db, std::slice::from_ref(message))
                     .unwrap()
                     .remove(&message.uuid)
             })
@@ -509,71 +523,37 @@ impl ConversationCase {
         CompletionContext::capture(self.db.list_todos().unwrap(), &shown)
     }
 
-    fn request(&self, case: &Case, system: &str, context: &Context) -> ChatRequest {
-        let mut effects = EvalEffects(context);
-        let mut prepared = conversation::prepare_turn(
-            conversation::TurnInput {
-                session: self.snapshot.session_uuid(),
-                messages: self.snapshot.messages().to_vec(),
-                expected_user_text: case.user.clone(),
-                system: system.to_owned(),
-                current: case.user.clone(),
-                history_query: None,
-                context: 4096,
-                output: Some(160),
-                state: None,
-                candidates: conversation::GroundingCandidates {
-                    referenced: Vec::new(),
-                    searched: Vec::new(),
-                    max_utf8_bytes: 0,
-                },
-                tools: self.db.turn_tools(&self.snapshot, &case.user).unwrap(),
-            },
-            &mut effects,
+    fn finish(&self, case: &Case, outcome: &llm::ToolOutcome, reply: &str) -> Recorded {
+        let before = self.db.list_todos().unwrap();
+        let finished = tool_turn::finish_reply(
+            &self.db,
+            &self.snapshot,
+            reply,
+            vec![],
+            Some(outcome),
+            &support::zone(),
         )
         .unwrap();
-        ChatRequest {
-            messages: prepared.preparation.run(&mut effects).unwrap().messages,
-            tools: prepared.tools,
-            temperature: Some(0.0),
-            max_tokens: Some(160),
-            ..Default::default()
-        }
+        let changed = self.db.list_todos().unwrap() != before;
+        self.record(case, outcome, reply, finished, changed)
     }
 
-    fn finish(&self, case: &Case, outcome: &llm::ToolOutcome, reply: &str) -> Recorded {
-        self.finish_with_exchange(case, outcome, reply, None)
-    }
-
-    fn finish_with_exchange(
+    fn record(
         &self,
         case: &Case,
         outcome: &llm::ToolOutcome,
         reply: &str,
-        exchange: Option<&llm::ToolExchange>,
+        finished: FinishedReply,
+        changed: bool,
     ) -> Recorded {
-        let before = self.db.list_todos().unwrap();
-        let finished = match exchange {
-            Some(exchange) => {
-                self.db
-                    .finish_exchange(&self.snapshot, reply, vec![], Some(exchange))
-            }
-            None => self
-                .db
-                .finish_reply(&self.snapshot, reply, vec![], Some(outcome)),
-        }
-        .unwrap();
-        let changed = self.db.list_todos().unwrap() != before;
         let confirmation = finished
             .tool_turn
             .is_some_and(|turn| turn.confirm == Confirm::Offered);
         if confirmation && case.expects_change() {
-            self.db.confirm_tool_turn(finished.message.uuid).unwrap();
+            tool_turn::confirm(&self.db, finished.message.uuid).unwrap();
         }
-        let history = self
-            .db
-            .tool_history(std::slice::from_ref(&finished.message))
-            .unwrap();
+        let history =
+            tool_turn::history(&self.db, std::slice::from_ref(&finished.message)).unwrap();
         let calls = history
             .get(&finished.message.uuid)
             .map(|turn| turn.calls.clone())
@@ -595,6 +575,8 @@ impl ConversationCase {
             call_probability: outcome.call_probability,
             calls,
             unsure: confirmation,
+            abstained: outcome.abstained,
+            rejected_steps: outcome.rejected_steps,
             text: finished.message.text,
             reply: reply.to_owned(),
             state: StateResult {
@@ -606,7 +588,7 @@ impl ConversationCase {
                     .map(|task| TaskState {
                         completed: !task.is_open(),
                         due_at: task.due_at_ms.map(|at| {
-                            todo::timing::local_time(at, &chrono::Local)
+                            todo::timing::local_time(at, &support::zone())
                                 .unwrap()
                                 .format("%Y-%m-%d %H:%M")
                                 .to_string()
@@ -623,63 +605,174 @@ impl ConversationCase {
     }
 }
 
-struct EvalEffects<'a>(&'a Context);
+#[derive(Default)]
+struct Tally {
+    route_ok: usize,
+    calls_ok: usize,
+    false_changes: usize,
+    misses: usize,
+    raw_calls_ok: usize,
+    false_by_tool: std::collections::BTreeMap<&'static str, usize>,
+    failures: Vec<Value>,
+    probabilities: Vec<(Option<bool>, f32)>,
+    state_ok: usize,
+    state_ok_unconfirmed: usize,
+    unsafe_state_changes: usize,
+    state_failures: Vec<Value>,
+    correct_changes: usize,
+    unnecessary_confirmations: usize,
+    offers: usize,
+    wrong_offers: usize,
+    applied_false_changes: usize,
+    offered_false_changes: usize,
+    forced_turns: usize,
+    abstained_turns: usize,
+    abstained_changes: usize,
+    abstained_unexpected_changes: usize,
+}
 
-impl Effects for EvalEffects<'_> {
-    fn check_current(&mut self) -> Result<(), PrepareError> {
-        Ok(())
-    }
-
-    fn measure(
+impl Tally {
+    fn add(
         &mut self,
-        messages: &[ChatMessage],
-        tools: Option<&llm::ToolRequest>,
-    ) -> Result<usize, PrepareError> {
-        self.0
-            .measure_text_chat_prompt(&ChatRequest {
-                messages: messages.to_vec(),
-                tools: tools.cloned(),
-                ..Default::default()
-            })
-            .map_err(|error| PrepareError::Backend(error.to_string()))
+        case: &Case,
+        outcome: &llm::ToolOutcome,
+        record: &Recorded,
+        completion: &CompletionContext,
+    ) -> bool {
+        self.forced_turns += usize::from(record.rejected_steps > 0);
+        self.abstained_turns += usize::from(record.abstained);
+        if record.abstained && (record.unsure || record.state.changed) {
+            self.abstained_changes += 1;
+            if !outcome
+                .calls
+                .iter()
+                .any(|call| CHANGES.contains(&call.name.as_str()))
+            {
+                self.abstained_unexpected_changes += 1;
+            }
+        }
+        self.probabilities.push((
+            (case.expect != "safe").then_some(case.expect == "tool"),
+            outcome.call_probability.unwrap_or_default(),
+        ));
+        let called = !outcome.calls.is_empty();
+        let scored = case.expect != "safe";
+        let routed = scored && called == (case.expect == "tool");
+        self.route_ok += usize::from(routed);
+        let expected_changes = case.expects_change();
+        if scored
+            && outcome
+                .calls
+                .iter()
+                .any(|call| CHANGES.contains(&call.name.as_str()))
+            && !expected_changes
+        {
+            self.false_changes += 1;
+        }
+        if case.expect == "reply" {
+            for name in [todo::SAVE_TOOL, todo::COMPLETE_TOOL, todo::LIST_TOOL] {
+                if outcome.calls.iter().any(|call| call.name == name) {
+                    *self.false_by_tool.entry(name).or_insert(0) += 1;
+                }
+            }
+        }
+        if case.expect == "tool" && !called {
+            self.misses += 1;
+        }
+        self.unsafe_state_changes += usize::from(!expected_changes && record.state.changed);
+        let state_matches = record.state.matches(case);
+        if case.state.is_some() {
+            if state_matches {
+                self.state_ok += 1;
+                self.state_ok_unconfirmed += usize::from(!(expected_changes && record.unsure));
+            } else {
+                self.state_failures
+                    .push(json!({"id": case.id, "expected": case.state, "listed": case.listed, "confirmation": case.confirmation, "actual": record.state}));
+            }
+        }
+        let refined = &record.calls;
+        let matches = |calls: &[ToolCall]| {
+            routed
+                && calls_match_with_context(
+                    &case.calls,
+                    calls,
+                    Some(completion.clone()),
+                    &record.state.listed,
+                )
+        };
+        self.raw_calls_ok += usize::from(matches(&outcome.calls));
+        let matched = matches(refined);
+        self.calls_ok += usize::from(matched);
+        let right = matched && case.state.as_ref().is_none_or(|_| state_matches);
+        self.correct_changes += usize::from(expected_changes && right);
+        self.unnecessary_confirmations += usize::from(expected_changes && right && record.unsure);
+        self.offers += usize::from(record.unsure);
+        self.wrong_offers += usize::from(record.unsure && !(expected_changes && right));
+        self.applied_false_changes +=
+            usize::from(scored && !expected_changes && record.state.changed);
+        self.offered_false_changes += usize::from(scored && !expected_changes && record.unsure);
+        if scored && !matched {
+            self.failures.push(json!({
+                "id": case.id,
+                "user": case.user,
+                "expected": case.expect,
+                "calls": refined,
+                "raw_calls": outcome.calls,
+                "reply": record.reply,
+                "call_probability": outcome.call_probability,
+            }));
+        }
+        matched
     }
 
-    fn summarize(
-        &mut self,
-        _: Vec<ChatMessage>,
-        _: usize,
-    ) -> Result<(String, llm::FinishReason), PrepareError> {
-        panic!("eval history must fit without summarization")
-    }
-
-    fn checkpoint(&mut self, _: &conversation::ConversationState) -> Result<(), PrepareError> {
-        panic!("eval history must fit without checkpoints")
+    fn report(&self, cases: &[Case]) -> Value {
+        let route_cases = cases.iter().filter(|case| case.expect != "safe").count();
+        let state_cases = cases.iter().filter(|case| case.state.is_some()).count();
+        let reply_cases = cases.iter().filter(|case| case.expect == "reply").count();
+        let tool_cases = (route_cases - reply_cases).max(1) as f64;
+        let reply_cases = reply_cases.max(1) as f64;
+        let non_mutating = non_mutating_cases(cases);
+        json!({
+            "cases": cases.len(),
+            "route_cases": route_cases,
+            "route_accuracy": self.route_ok as f64 / route_cases.max(1) as f64,
+            "call_accuracy": self.calls_ok as f64 / route_cases.max(1) as f64,
+            "raw_call_accuracy": self.raw_calls_ok as f64 / route_cases.max(1) as f64,
+            "state_cases": state_cases,
+            "state_accuracy": self.state_ok as f64 / state_cases.max(1) as f64,
+            "state_accuracy_unconfirmed": self.state_ok_unconfirmed as f64 / state_cases.max(1) as f64,
+            "state_failures": self.state_failures,
+            "unsafe_state_changes": self.unsafe_state_changes,
+            "non_mutating_cases": non_mutating,
+            "false_change_call_rate": self.false_changes as f64 / non_mutating.max(1) as f64,
+            "false_change_applied_rate": self.applied_false_changes as f64 / non_mutating.max(1) as f64,
+            "false_change_offered_rate": self.offered_false_changes as f64 / non_mutating.max(1) as f64,
+            "unnecessary_confirmation_rate": self.unnecessary_confirmations as f64 / self.correct_changes.max(1) as f64,
+            "wrong_offer_rate": self.wrong_offers as f64 / cases.len().max(1) as f64,
+            "offers": self.offers,
+            "wrong_offers": self.wrong_offers,
+            "forced_turns": self.forced_turns,
+            "abstained_turns": self.abstained_turns,
+            "abstained_changes": self.abstained_changes,
+            "abstained_unexpected_changes": self.abstained_unexpected_changes,
+            "false_call_rate_by_tool": self.false_by_tool
+                .iter()
+                .map(|(name, count)| ((*name).to_owned(), json!(*count as f64 / reply_cases)))
+                .collect::<serde_json::Map<_, _>>(),
+            "missed_tool_rate": self.misses as f64 / tool_cases,
+            "call_probability": self.probabilities
+                .iter()
+                .map(|(tool, p)| json!({"expected_tool": tool, "p": p}))
+                .collect::<Vec<Value>>(),
+            "failures": self.failures,
+        })
     }
 }
 
 #[test]
 #[ignore = "requires ENSU_TEST_MODEL"]
 fn todo_tool_calls_meet_accuracy_targets() {
-    if let Ok(directory) = std::env::var("ENSU_TEST_BACKEND_DIR") {
-        llm::init_backend_from_directory(&directory).unwrap();
-    }
-    let model = llm::Model::load(llm::ModelLoadParams {
-        model_path: std::env::var("ENSU_TEST_MODEL").unwrap(),
-        n_gpu_layers: Some(99),
-        use_mmap: None,
-        use_mlock: None,
-    })
-    .unwrap();
-    let context = Context::new(
-        &model,
-        ContextParams {
-            context_size: Some(4096),
-            n_threads: Some(4),
-            n_threads_generation: None,
-            n_batch: Some(256),
-        },
-    )
-    .unwrap();
+    let context = support::model_context(4096);
     let path = std::env::var("ENSU_EVAL_CASES").unwrap_or_else(|_| {
         concat!(env!("CARGO_MANIFEST_DIR"), "/tests/data/todo_eval.jsonl").into()
     });
@@ -689,94 +782,45 @@ fn todo_tool_calls_meet_accuracy_targets() {
         .filter(|line| !line.trim().is_empty())
         .map(|line| serde_json::from_str(line).unwrap_or_else(|err| panic!("{err}: {line}")))
         .collect();
-    let defaults = ente_ensu::config::defaults();
-    let system = defaults
-        .mobile_system_prompt_body
-        .replace(&defaults.system_prompt_date_placeholder, "2026-11-12");
+    let system = support::system_prompt();
     let probability = std::env::var("ENSU_EVAL_CALL_PROBABILITY")
         .ok()
         .map(|value| value.parse::<f32>().unwrap());
 
-    let (mut route_ok, mut calls_ok, mut false_changes, mut misses) = (0, 0, 0, 0);
-    let mut raw_calls_ok = 0;
-    let mut false_by_tool = std::collections::BTreeMap::<&str, usize>::new();
+    let mut tally = Tally::default();
     let (mut prompt_tokens, mut elapsed_ms) = (0_i64, 0_u128);
-    let mut failures = Vec::new();
     let mut recorded = Vec::new();
-    let mut probabilities = Vec::new();
-    let mut state_ok = 0;
-    let mut unsafe_state_changes = 0;
-    let mut state_failures = Vec::new();
     let mut guard_results = Vec::new();
     for case in &cases {
         let conversation = ConversationCase::new(case);
         let completion_context = conversation.completion_context();
-        let mut request = conversation.request(case, &system, &context);
-        if let Some(probability) = probability
-            && let Some(tools) = request.tools.as_mut()
-        {
-            tools.min_call_probability = probability;
-        }
-        let started = Instant::now();
-        let mut reply = String::new();
-        let exchange = request
-            .tools
-            .clone()
-            .map(|tools| conversation.db.tool_exchange(&conversation.snapshot, tools));
-        let summary = context
-            .generate_with_tools(request, exchange.as_ref(), &mut |event| {
-                if let llm::GenerationEvent::Text { text, .. } = event {
-                    reply.push_str(&text);
+        let before = conversation.db.list_todos().unwrap();
+        let run = support::run_turn(
+            &conversation.db,
+            &context,
+            &Arc::<GroundingCache>::default(),
+            &conversation.snapshot,
+            &system,
+            160,
+            |tools| {
+                if let Some(probability) = probability {
+                    tools.min_call_probability = probability;
                 }
-            })
-            .unwrap_or_else(|err| panic!("{}: {err}", case.id));
-        elapsed_ms += started.elapsed().as_millis();
-        prompt_tokens += i64::from(summary.prompt_tokens.unwrap_or_default());
-        let outcome = summary.tools.unwrap_or_default();
-        probabilities.push((
-            (case.expect != "safe").then_some(case.expect == "tool"),
-            outcome.call_probability.unwrap_or_default(),
-        ));
-        let called = !outcome.calls.is_empty();
-        let scored = case.expect != "safe";
-        let routed = scored && called == (case.expect == "tool");
-        route_ok += usize::from(routed);
-        let expected_changes = case.expects_change();
-        if scored
-            && outcome
-                .calls
-                .iter()
-                .any(|call| CHANGES.contains(&call.name.as_str()))
-            && !expected_changes
-        {
-            false_changes += 1;
-        }
-        if case.expect == "reply" {
-            for name in [todo::SAVE_TOOL, todo::COMPLETE_TOOL, todo::LIST_TOOL] {
-                if outcome.calls.iter().any(|call| call.name == name) {
-                    *false_by_tool.entry(name).or_insert(0) += 1;
-                }
-            }
-        }
-        if case.expect == "tool" && !called {
-            misses += 1;
-        }
-        let record = conversation.finish_with_exchange(case, &outcome, &reply, exchange.as_ref());
-        unsafe_state_changes += usize::from(!case.expects_change() && record.state.changed);
-        if case.state.is_some() {
-            if record.state.matches(case) {
-                state_ok += 1;
-            } else {
-                state_failures
-                    .push(json!({"id": case.id, "expected": case.state, "listed": case.listed, "confirmation": case.confirmation, "actual": record.state}));
-            }
-        }
+            },
+        );
+        elapsed_ms += run.events.last().unwrap().0.as_millis();
+        prompt_tokens += i64::from(run.summary.prompt_tokens.unwrap_or_default());
+        let outcome = run.summary.tools.unwrap_or_default();
+        let changed = conversation.db.list_todos().unwrap() != before;
+        let record = conversation.record(case, &outcome, &run.reply, run.finished, changed);
+        tally.add(case, &outcome, &record, &completion_context);
         if !case.probe.is_empty() {
             let probe = ConversationCase::new(case).finish(
                 case,
                 &llm::ToolOutcome {
                     calls: case.probe.clone(),
                     call_probability: Some(1.0),
+                    ..Default::default()
                 },
                 "",
             );
@@ -784,71 +828,24 @@ fn todo_tool_calls_meet_accuracy_targets() {
             guard_results
                 .push(json!({"id": case.id, "passed": state.matches(case), "actual": state}));
         }
-        let refined = &record.calls;
-        let matches = |calls: &[ToolCall]| {
-            routed
-                && calls_match_with_context(
-                    &case.calls,
-                    calls,
-                    Some(completion_context.clone()),
-                    &record.state.listed,
-                )
-        };
-        raw_calls_ok += usize::from(matches(&outcome.calls));
-        let matched = matches(refined);
-        calls_ok += usize::from(matched);
-        if scored && !matched {
-            failures.push(json!({
-                "id": case.id,
-                "user": case.user,
-                "expected": case.expect,
-                "calls": refined,
-                "raw_calls": outcome.calls,
-                "reply": reply,
-                "call_probability": outcome.call_probability,
-            }));
-        }
         recorded.push(record);
     }
-    let n = cases.len() as f64;
-    let route_cases = cases.iter().filter(|case| case.expect != "safe").count();
-    let state_cases = cases.iter().filter(|case| case.state.is_some()).count();
     let guard_ok = guard_results
         .iter()
         .filter(|result| result["passed"] == true)
         .count();
-    let reply_cases = cases.iter().filter(|case| case.expect == "reply").count();
-    let tool_cases = (route_cases - reply_cases).max(1) as f64;
-    let reply_cases = reply_cases.max(1) as f64;
-    let report = json!({
-        "model": std::env::var("ENSU_TEST_MODEL").unwrap(),
-        "cases": cases.len(),
-        "route_cases": route_cases,
-        "route_accuracy": route_ok as f64 / route_cases.max(1) as f64,
-        "call_accuracy": calls_ok as f64 / route_cases.max(1) as f64,
-        "raw_call_accuracy": raw_calls_ok as f64 / route_cases.max(1) as f64,
-        "state_cases": state_cases,
-        "state_accuracy": state_ok as f64 / state_cases.max(1) as f64,
-        "state_failures": state_failures,
-        "unsafe_state_changes": unsafe_state_changes,
-        "guard_cases": guard_results.len(),
-        "guard_accuracy": guard_ok as f64 / guard_results.len().max(1) as f64,
-        "guard_results": guard_results,
-        "non_mutating_cases": non_mutating_cases(&cases),
-        "false_change_call_rate": false_changes as f64 / non_mutating_cases(&cases).max(1) as f64,
-        "false_call_rate_by_tool": false_by_tool
-            .iter()
-            .map(|(name, count)| ((*name).to_owned(), json!(*count as f64 / reply_cases)))
-            .collect::<serde_json::Map<_, _>>(),
-        "missed_tool_rate": misses as f64 / tool_cases,
-        "mean_prompt_tokens": prompt_tokens as f64 / n,
-        "mean_latency_ms": elapsed_ms as f64 / n,
-        "call_probability": probabilities
-            .iter()
-            .map(|(tool, p)| json!({"expected_tool": tool, "p": p}))
-            .collect::<Vec<Value>>(),
-        "failures": failures,
-    });
+    let n = cases.len() as f64;
+    let mut report = tally.report(&cases);
+    report["model"] = json!(std::env::var("ENSU_TEST_MODEL").unwrap());
+    report["mean_prompt_tokens"] = json!(prompt_tokens as f64 / n);
+    report["mean_latency_ms"] = json!(elapsed_ms as f64 / n);
+    report["guard_cases"] = json!(guard_results.len());
+    report["guard_accuracy"] = json!(guard_ok as f64 / guard_results.len().max(1) as f64);
+    report["guard_results"] = json!(guard_results);
+    report["partial_prompt_reuse"] = json!(context.supports_partial_prompt_reuse());
+    report["supports_tools"] = json!(context.supports_tools());
+    let state_cases = cases.iter().filter(|case| case.state.is_some()).count();
+    let state_ok = tally.state_ok;
     if let Ok(out) = std::env::var("ENSU_EVAL_RECORD") {
         let lines: Vec<String> = recorded
             .iter()
@@ -872,7 +869,7 @@ fn todo_tool_calls_meet_accuracy_targets() {
     for failure in report["failures"].as_array().unwrap() {
         println!("FAIL {failure}");
     }
-    for failure in &state_failures {
+    for failure in &tally.state_failures {
         println!("STATE FAIL {failure}");
     }
     println!(
@@ -885,6 +882,12 @@ fn todo_tool_calls_meet_accuracy_targets() {
         threshold("ENSU_EVAL_MIN_CALL", MIN_CALL_ACCURACY),
         threshold("ENSU_EVAL_MAX_FALSE_CHANGE", MAX_FALSE_CHANGE_RATE),
     );
+    if tally.abstained_unexpected_changes != 0 {
+        failures.push(format!(
+            "changes without a completed mutation before abstention: {}",
+            tally.abstained_unexpected_changes
+        ));
+    }
     if state_ok != state_cases {
         failures.push(format!("persisted state: {state_ok}/{state_cases}"));
     }
@@ -1108,6 +1111,52 @@ fn accuracy_targets_reject_routing_argument_and_false_change_regressions() {
 }
 
 #[test]
+fn offers_and_applied_changes_are_tallied_apart() {
+    let change: Case = serde_json::from_value(json!({
+        "id": "correct_offer",
+        "user": "Add Buy milk to my to-do list",
+        "expect": "tool",
+        "calls": [{"name": "save_to_do", "title": ["buy milk"]}],
+        "initial": [],
+        "state": [{"title": "Buy milk", "completed": false}]
+    }))
+    .unwrap();
+    let reply: Case = serde_json::from_value(json!({
+        "id": "false_change",
+        "user": "Add Buy milk to my to-do list",
+        "expect": "reply",
+        "initial": []
+    }))
+    .unwrap();
+    let mut tally = Tally::default();
+    for (case, probability) in [(&change, 0.6), (&reply, 0.6), (&reply, 1.0)] {
+        let conversation = ConversationCase::new(case);
+        let completion = conversation.completion_context();
+        let outcome = llm::ToolOutcome {
+            calls: serde_json::from_value(json!([
+                {"name": "save_to_do", "arguments": {"title": "Buy milk"}}
+            ]))
+            .unwrap(),
+            call_probability: Some(probability),
+            ..Default::default()
+        };
+        let record = conversation.finish(case, &outcome, "");
+        assert_eq!(
+            tally.add(case, &outcome, &record, &completion),
+            case.expects_change()
+        );
+    }
+    assert_eq!(tally.state_ok, 1);
+    assert_eq!(tally.state_ok_unconfirmed, 0);
+    assert_eq!(tally.correct_changes, 1);
+    assert_eq!(tally.unnecessary_confirmations, 1);
+    assert_eq!(tally.offers, 2);
+    assert_eq!(tally.wrong_offers, 1);
+    assert_eq!(tally.applied_false_changes, 1);
+    assert_eq!(tally.offered_false_changes, 1);
+}
+
+#[test]
 fn labelled_cases_parse_and_their_deadlines_resolve() {
     let cases: Vec<Case> = [
         include_str!("data/todo_eval.jsonl"),
@@ -1133,6 +1182,9 @@ fn labelled_cases_parse_and_their_deadlines_resolve() {
             case.id
         );
         assert_eq!(case.expect == "tool", !case.calls.is_empty(), "{}", case.id);
+        if case.expects_change() {
+            assert!(case.confirmation.is_none(), "{}", case.id);
+        }
         if case.listed.is_some() || case.confirmation.is_some() {
             assert!(case.state.is_some(), "{}", case.id);
         }
@@ -1149,6 +1201,7 @@ fn labelled_cases_parse_and_their_deadlines_resolve() {
                 &llm::ToolOutcome {
                     calls: case.probe.clone(),
                     call_probability: Some(1.0),
+                    ..Default::default()
                 },
                 "",
             );
@@ -1173,6 +1226,77 @@ fn labelled_cases_parse_and_their_deadlines_resolve() {
     }
 }
 
+struct ReplayEffects;
+
+impl conversation::Effects for ReplayEffects {
+    fn check_current(&mut self) -> Result<(), PrepareError> {
+        Ok(())
+    }
+
+    fn measure(
+        &mut self,
+        messages: &[ChatMessage],
+        _: Option<&ToolRequest>,
+    ) -> Result<usize, PrepareError> {
+        Ok(messages.iter().map(|message| message.content.len()).sum())
+    }
+
+    fn summarize(
+        &mut self,
+        _: Vec<ChatMessage>,
+        _: usize,
+    ) -> Result<(String, llm::FinishReason), PrepareError> {
+        panic!("replay history must fit without summarization")
+    }
+
+    fn checkpoint(&mut self, _: &conversation::ConversationState) -> Result<(), PrepareError> {
+        panic!("replay history must fit without checkpoints")
+    }
+}
+
+struct Replay<'a>(Option<(llm::ToolOutcome, &'a str)>);
+
+impl conversation::PassRunner for Replay<'_> {
+    fn context_size(&self) -> usize {
+        4096
+    }
+
+    fn measure(&mut self, request: &ChatRequest) -> Result<usize, llm::Error> {
+        Ok(request
+            .messages
+            .iter()
+            .map(|message| message.content.len())
+            .sum())
+    }
+
+    fn pass(
+        &mut self,
+        _: ChatRequest,
+        sink: &mut dyn llm::EventSink,
+    ) -> Result<llm::GenerationSummary, llm::Error> {
+        let (outcome, reply) = self.0.take().unzip();
+        if let Some(reply) = reply.filter(|text| !text.is_empty()) {
+            sink.add(llm::GenerationEvent::Text {
+                job_id: 1,
+                text: reply.into(),
+                token_id: None,
+            });
+        }
+        Ok(llm::GenerationSummary {
+            job_id: 1,
+            prompt_tokens: None,
+            generated_tokens: Some(0),
+            total_time_ms: None,
+            finish_reason: llm::FinishReason::Eog,
+            tools: outcome,
+        })
+    }
+
+    fn cancelled(&self) -> bool {
+        false
+    }
+}
+
 #[test]
 fn recorded_model_calls_plan_the_same() {
     let cases: std::collections::BTreeMap<String, Case> = include_str!("data/todo_eval.jsonl")
@@ -1182,6 +1306,7 @@ fn recorded_model_calls_plan_the_same() {
         .map(|case| (case.id.clone(), case))
         .collect();
     let mut replayed = std::collections::BTreeSet::new();
+    let mut tally = Tally::default();
     for line in include_str!("data/todo_replay.jsonl")
         .lines()
         .filter(|line| !line.trim().is_empty())
@@ -1193,14 +1318,54 @@ fn recorded_model_calls_plan_the_same() {
             record.id
         );
         let case = &cases[&record.id];
-        let result = ConversationCase::new(case).finish(
-            case,
-            &llm::ToolOutcome {
-                calls: record.raw_calls.clone(),
-                call_probability: record.call_probability,
+        let conversation = ConversationCase::new(case);
+        let completion = conversation.completion_context();
+        let outcome = llm::ToolOutcome {
+            calls: record.raw_calls.clone(),
+            call_probability: record.call_probability,
+            abstained: record.abstained,
+            rejected_steps: record.rejected_steps,
+        };
+        let db = &conversation.db;
+        let snapshot = &conversation.snapshot;
+        let before = db.list_todos().unwrap();
+        let turn = Turn::begin(
+            db,
+            snapshot,
+            TurnRequest {
+                session: snapshot.session_uuid(),
+                system: support::system_prompt(),
+                current: case.user.clone(),
+                expected_user_text: case.user.clone(),
+                history_query: None,
+                context: 4096,
+                output: Some(160),
+                candidates: GroundingCandidates::new(vec![], vec![], 0).unwrap(),
             },
-            &record.reply,
-        );
+            &support::zone(),
+        )
+        .unwrap()
+        .prepare(None, &mut ReplayEffects)
+        .unwrap();
+        let request = ChatRequest {
+            messages: turn.messages(),
+            max_tokens: Some(160),
+            ..Default::default()
+        };
+        turn.generate(
+            &mut Replay(Some((outcome.clone(), &record.reply))),
+            request,
+            &mut |_| {},
+            &support::zone(),
+        )
+        .unwrap();
+        let finished = turn
+            .finish(db, snapshot, &record.reply, vec![], &support::zone())
+            .unwrap()
+            .reply;
+        let changed = db.list_todos().unwrap() != before;
+        let result = conversation.record(case, &outcome, &record.reply, finished, changed);
+        tally.add(case, &outcome, &result, &completion);
         assert_eq!(
             (result.calls, result.unsure, result.text, result.state),
             (record.calls, record.unsure, record.text, record.state),
@@ -1210,4 +1375,9 @@ fn recorded_model_calls_plan_the_same() {
         );
     }
     assert_eq!(replayed, cases.keys().cloned().collect());
+    assert_eq!(tally.offers, 2);
+    assert_eq!(tally.applied_false_changes, 0);
+    assert_eq!(tally.offered_false_changes, 0);
+    assert_eq!(tally.unnecessary_confirmations, 1);
+    assert_eq!(tally.wrong_offers, 1);
 }

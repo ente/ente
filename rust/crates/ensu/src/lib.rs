@@ -7,6 +7,7 @@ pub mod model;
 pub mod notes;
 pub mod retrieval;
 pub mod todo;
+pub mod tools;
 
 #[cfg(target_os = "android")]
 mod platform;

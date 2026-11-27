@@ -41,7 +41,7 @@ jobs:
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
             - name: Setup go
-              uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+              uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
               with:
                   go-version-file: server/go.mod
                   cache: false
@@ -277,14 +277,15 @@ jobs:
                   path: |
                       web/apps/photos/.next/cache
                       web/apps/*/*.tsbuildinfo
+                      web/e2e/*.tsbuildinfo
                       web/packages/*/*.tsbuildinfo
                       web/packages/wasm/*/*.tsbuildinfo
 
             - run: npm ci
 
-            - run: _ENTE_IS_DESKTOP=1 npm run build:photos
-
             - run: npm run build:wasm
+
+            - run: _ENTE_IS_DESKTOP=1 npm exec --workspace photos -- next build --webpack
 
             - run: cargo build --locked --manifest-path ../rust/Cargo.toml -p ente-test-support --bin with-museum
 
@@ -314,7 +315,7 @@ jobs:
                   node-version: 24
 
             - name: Setup JDK 17
-              uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+              uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
               with:
                   distribution: "temurin"
                   java-version: "17"
@@ -426,7 +427,7 @@ jobs:
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
             - name: Setup go
-              uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+              uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
               with:
                   go-version-file: server/go.mod
                   cache-dependency-path: server/go.sum

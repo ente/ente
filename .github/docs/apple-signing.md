@@ -160,6 +160,7 @@ Photos:
 Auth:
 
 - `io.ente.auth` -> `Auth App Store`
+- `io.ente.auth.watchkitapp` -> `Auth Watch App Store`
 
 Locker:
 

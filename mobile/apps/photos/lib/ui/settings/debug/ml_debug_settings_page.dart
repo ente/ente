@@ -12,7 +12,7 @@ import "package:photos/models/ml/face/person.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/machine_learning/face_ml/face_clustering/face_clustering_service.dart";
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
-import "package:photos/services/machine_learning/ml_indexing_isolate.dart";
+import "package:photos/services/machine_learning/ml_indexing_runtime.dart";
 import "package:photos/services/machine_learning/ml_model_download_service.dart";
 import "package:photos/services/machine_learning/ml_process_lock.dart";
 import "package:photos/services/machine_learning/ml_run_control.dart";
@@ -715,7 +715,7 @@ class _MLDebugSettingsPageState extends State<MLDebugSettingsPage> {
       logger.info('ML consent turned ${mlConsent ? 'on' : 'off'}');
       if (!mlConsent) {
         MLService.instance.stopActiveRun(MlStopReason.manual);
-        unawaited(MLIndexingIsolate.instance.cleanupLocalIndexingModels());
+        unawaited(MLIndexingRuntime.instance.releaseRustRuntime());
       } else {
         await MLService.instance.init();
         await SemanticSearchService.instance.init();
@@ -755,7 +755,7 @@ class _MLDebugSettingsPageState extends State<MLDebugSettingsPage> {
       unawaited(MLService.instance.runAllML(force: true));
     } else {
       MLService.instance.stopActiveRun(MlStopReason.manual);
-      unawaited(MLIndexingIsolate.instance.cleanupLocalIndexingModels());
+      unawaited(MLIndexingRuntime.instance.releaseRustRuntime());
     }
     if (mounted) {
       setState(() {});
@@ -805,7 +805,7 @@ class _MLDebugSettingsPageState extends State<MLDebugSettingsPage> {
       await localSettings.togglePetRecognition();
       // Invalidate cached runtime args so pet model paths are rebuilt
       // with the new toggle state on the next indexing run.
-      await MLIndexingIsolate.instance.releaseRustRuntime();
+      await MLIndexingRuntime.instance.releaseRustRuntime();
       MLModelDownloadService.instance.invalidateModelDownloadCache();
       logger.info(
         'Pet recognition is turned ${localSettings.petRecognitionEnabled ? 'on' : 'off'}',

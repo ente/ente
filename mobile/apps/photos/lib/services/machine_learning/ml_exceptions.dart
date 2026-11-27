@@ -24,3 +24,30 @@ class ThumbnailRetrievalException implements Exception {
 class CouldNotRetrieveAnyFileData implements Exception, LocallyHandledError {}
 
 class RepeatedFileDecryptionError implements Exception, LocallyHandledError {}
+
+class RustCorruptModelException implements Exception {
+  const RustCorruptModelException(this.modelPath);
+
+  final String modelPath;
+
+  @override
+  String toString() => "RustCorruptModelException: $modelPath";
+}
+
+class InvalidImageFormatException implements Exception {
+  const InvalidImageFormatException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => "InvalidImageFormatException: $message";
+}
+
+class FileTooLargeForMLException implements Exception {
+  const FileTooLargeForMLException(this.fileSize);
+
+  final int fileSize;
+
+  @override
+  String toString() => "FileTooLargeForMLException: size is $fileSize";
+}

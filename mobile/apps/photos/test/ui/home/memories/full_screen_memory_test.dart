@@ -7,6 +7,7 @@ import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
+import "package:image/image.dart" as img;
 import "package:package_info_plus/package_info_plus.dart";
 import "package:photos/core/cache/image_cache.dart";
 import "package:photos/core/cache/thumbnail_in_memory_cache.dart";
@@ -26,6 +27,8 @@ import "package:photos/ui/home/memories/full_screen_memory.dart";
 import "package:photos/ui/home/memories/memory_music_session.dart";
 import "package:photos/ui/notification/update/change_log_page.dart";
 import "package:photos/ui/viewer/file/file_widget.dart";
+import "package:photos/ui/viewer/file/image_zoom/image_zoom_viewer.dart";
+import "package:photos/ui/viewer/file/image_zoom/viewer_jpeg_image.dart";
 import "package:shared_preferences/shared_preferences.dart";
 
 void main() {
@@ -100,7 +103,7 @@ void main() {
     FileLruCache.clearAll();
   });
 
-  Future<void> openMemory(WidgetTester tester) async {
+  Future<void> openMemory(WidgetTester tester, {bool isActive = true}) async {
     await tester.pumpWidget(
       MaterialApp(
         theme: lightThemeData,
@@ -118,11 +121,11 @@ void main() {
             removeCurrentMemory: () {},
             preloadThumbnail: (_) {},
             preloadVideos: (_) {},
-            child: const FullScreenMemory(
+            child: FullScreenMemory(
               "Memory",
               0,
               memoryID: "memory",
-              isActive: true,
+              isActive: isActive,
             ),
           ),
         ),
@@ -150,6 +153,97 @@ void main() {
 
   FileWidget media(WidgetTester tester) =>
       tester.widget<FileWidget>(find.byType(FileWidget));
+
+  testWidgets("a held memory pinch sharpens until the last finger lifts", (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 2;
+    tester.view.physicalSize = const Size(720, 1440);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    final jpeg = File("${directory.path}/portrait.jpg")
+      ..writeAsBytesSync(img.encodeJpg(img.Image(width: 1200, height: 1600)));
+    file.title = "portrait.jpg";
+    FileLruCache.put("${file.tag}falsefalse", jpeg);
+    final fit = ViewerJpegImage.fit(jpeg, const Size(720, 1440) * 1.15);
+    final detail = FileImage(jpeg);
+    final viewerFinder = find.byType(ImageZoomViewer);
+    ImageZoomViewer viewer() => tester.widget<ImageZoomViewer>(viewerFinder);
+    Future<void> waitFor(ImageProvider expected) async {
+      final image = find.descendant(
+        of: viewerFinder,
+        matching: find.image(expected),
+      );
+      for (var i = 0; i < 100 && image.evaluate().isEmpty; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 10)),
+        );
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      expect(image, findsOneWidget);
+    }
+
+    await openMemory(tester, isActive: false);
+    await waitFor(MemoryImage(imageBytes));
+    expect(imageCache.statusForKey(fit).untracked, isTrue);
+    expect(imageCache.statusForKey(detail).untracked, isTrue);
+    await openMemory(tester);
+    await waitFor(fit);
+    final preview = viewer().imageProvider;
+    final startZoom = zoom(tester);
+    await tester.pump(const Duration(seconds: 2));
+    expect(zoom(tester), isNot(startZoom));
+    expect(viewer().imageProvider, same(preview));
+    expect(imageCache.statusForKey(detail).untracked, isTrue);
+
+    final center = tester.getCenter(viewerFinder);
+    const radius = Offset(35, 0);
+    final quickLeft = await tester.startGesture(center - radius);
+    final quickRight = await tester.startGesture(center + radius);
+    await quickRight.moveBy(radius);
+    await tester.pump(const Duration(milliseconds: 50));
+    await quickLeft.up();
+    await quickRight.up();
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    expect(viewer().controller!.isZoomed, isFalse);
+    expect(imageCache.statusForKey(detail).untracked, isTrue);
+
+    final left = await tester.startGesture(center - radius);
+    final right = await tester.startGesture(center + radius);
+    await left.moveTo(center - radius * 2);
+    await right.moveTo(center + radius * 2);
+    await tester.pump();
+    expect(viewer().controller!.isZoomed, isTrue);
+    final pausedProgress = progress(tester);
+    for (var i = 0; i < 12; i++) {
+      await right.moveBy(const Offset(3, 0));
+      await tester.pump(const Duration(milliseconds: 30));
+    }
+    expect(imageCache.statusForKey(detail).untracked, isTrue);
+    for (var i = 0; i < 3; i++) {
+      await right.moveBy(const Offset(0.3, 1));
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    await left.up();
+    await tester.pump(const Duration(milliseconds: 110));
+    expect(imageCache.statusForKey(detail).untracked, isFalse);
+    final extraFinger = await tester.startGesture(center - radius);
+    await right.moveBy(radius);
+    await tester.pump();
+    await waitFor(detail);
+    await extraFinger.up();
+    expect(progress(tester), pausedProgress);
+    expect(viewer().controller!.isZoomed, isTrue);
+    await right.up();
+    await tester.pump();
+    await tester.pump(viewer().animationDuration);
+    expect(viewer().controller!.isZoomed, isFalse);
+    expect(progress(tester), greaterThan(pausedProgress));
+    await waitFor(fit);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 50));
+  });
 
   testWidgets("What's New pauses memories and resumes from the same point", (
     tester,

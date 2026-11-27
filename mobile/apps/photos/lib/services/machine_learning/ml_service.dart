@@ -29,14 +29,13 @@ import "package:photos/services/machine_learning/face_ml/face_clustering/face_cl
 import "package:photos/services/machine_learning/face_ml/face_clustering/face_clustering_service.dart";
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
 import "package:photos/services/machine_learning/ml_exceptions.dart";
-import "package:photos/services/machine_learning/ml_indexing_isolate.dart";
+import "package:photos/services/machine_learning/ml_indexing_runtime.dart";
 import "package:photos/services/machine_learning/ml_model_download_service.dart";
 import "package:photos/services/machine_learning/ml_process_lock.dart";
 import "package:photos/services/machine_learning/ml_result.dart";
 import "package:photos/services/machine_learning/ml_run_control.dart";
 import "package:photos/services/search_service.dart";
 import "package:photos/services/video_preview_service.dart";
-import "package:photos/utils/isolate/isolate_operations.dart";
 import "package:photos/utils/ml_util.dart";
 import "package:photos/utils/network_util.dart";
 import "package:photos/utils/ram_check_util.dart";
@@ -600,18 +599,18 @@ class MLService {
   void _installRunControl(MlRunControl control) {
     _activeRunControl = control;
     control.attachOnStop(() {
-      MLIndexingIsolate.instance.shouldPauseIndexingAndClustering = true;
+      MLIndexingRuntime.instance.shouldPauseIndexingAndClustering = true;
     });
   }
 
-  // The isolate stop flag is cleared here, from the outer run cleanup, and
+  // The indexing stop flag is cleared here, from the outer run cleanup, and
   // nowhere else: a durable stop must survive stage-level finally blocks.
   void _clearRunControl(MlRunControl control) {
     control.detachOnStop();
     if (identical(_activeRunControl, control)) {
       _activeRunControl = null;
     }
-    MLIndexingIsolate.instance.shouldPauseIndexingAndClustering = false;
+    MLIndexingRuntime.instance.shouldPauseIndexingAndClustering = false;
   }
 
   void triggerML() {
@@ -672,7 +671,7 @@ class MLService {
           control,
           beforeClustering: () async {
             if (!rustRuntimePrepared) return;
-            await MLIndexingIsolate.instance.releaseRustRuntime();
+            await MLIndexingRuntime.instance.releaseRustRuntime();
             rustRuntimePrepared = false;
           },
         );
@@ -697,7 +696,7 @@ class MLService {
           break;
         }
         if (!allowImageIndexing || !localSettings.isMLLocalIndexingEnabled) {
-          await MLIndexingIsolate.instance.releaseRustRuntime();
+          await MLIndexingRuntime.instance.releaseRustRuntime();
           rustRuntimePrepared = false;
           continue;
         } else if (!(isLocalGalleryMode || await canUseHighBandwidth())) {
@@ -714,7 +713,7 @@ class MLService {
             onlyIndexingModels: true,
           );
           if (!rustRuntimePrepared) {
-            await MLIndexingIsolate.instance.prepareRustRuntime();
+            await MLIndexingRuntime.instance.prepareRustRuntime();
             rustRuntimePrepared = true;
           }
         }
@@ -769,7 +768,7 @@ class MLService {
     } catch (e, s) {
       _logger.severe("indexAllImages failed", e, s);
     } finally {
-      await MLIndexingIsolate.instance.releaseRustRuntime();
+      await MLIndexingRuntime.instance.releaseRustRuntime();
       MLModelDownloadService.instance.invalidateModelDownloadCache();
     }
   }
@@ -883,13 +882,13 @@ class MLService {
         pathToDeleteAfterMLProcessing = filePath;
       }
 
-      final MLResult? result = await MLIndexingIsolate.instance.analyzeImage(
+      final MLResult? result = await MLIndexingRuntime.instance.analyzeImage(
         instruction,
         filePath,
       );
       if (result == null) {
         if (!(_activeRunControl?.stopRequested ?? false) &&
-            !MLIndexingIsolate.instance.shouldPauseIndexingAndClustering) {
+            !MLIndexingRuntime.instance.shouldPauseIndexingAndClustering) {
           _logger.severe(
             "Failed to analyze image with fileID: ${instruction.fileKey}",
           );

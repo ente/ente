@@ -10,6 +10,7 @@ class AuthSettingsPageScaffold extends StatelessWidget {
     required this.children,
     this.subtitle,
     this.backButton,
+    this.bottomNavigationBar,
     this.actions = const [],
   });
 
@@ -18,6 +19,7 @@ class AuthSettingsPageScaffold extends StatelessWidget {
   final String title;
   final String? subtitle;
   final Widget? backButton;
+  final Widget? bottomNavigationBar;
   final List<Widget> actions;
   final List<Widget> children;
 
@@ -34,6 +36,7 @@ class AuthSettingsPageScaffold extends StatelessWidget {
           title: title,
           subtitle: subtitle,
           backButton: backButton,
+          bottomNavigationBar: bottomNavigationBar,
           actions: actions,
           padding: EdgeInsets.fromLTRB(Spacing.lg, 0, rightPadding, Spacing.lg),
           children: children,

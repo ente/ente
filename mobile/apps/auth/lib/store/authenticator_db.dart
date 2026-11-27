@@ -100,16 +100,24 @@ class AuthenticatorDB extends EnteBaseDatabase {
   }
 
   Future<void> insertOrReplace(List<AuthEntity> authEntities) async {
-    final db = await instance.database;
+    final db = await database;
     final batch = db.batch();
-    for (AuthEntity authEntity in authEntities) {
-      final insertRow = authEntity.toMap();
-      insertRow.remove('isDeleted');
-      insertRow.putIfAbsent('shouldSync', () => 0);
-      batch.insert(
-        entityTable,
-        insertRow,
-        conflictAlgorithm: ConflictAlgorithm.replace,
+    for (final entity in authEntities) {
+      batch.rawInsert(
+        '''
+        INSERT OR REPLACE INTO $entityTable
+          (_generatedID, id, encryptedData, header, createdAt, updatedAt, shouldSync)
+        VALUES ((SELECT _generatedID FROM $entityTable WHERE id = ?),
+                ?, ?, ?, ?, ?, 0)
+      ''',
+        [
+          entity.id,
+          entity.id,
+          entity.encryptedData,
+          entity.header,
+          entity.createdAt,
+          entity.updatedAt,
+        ],
       );
     }
     await batch.commit(noResult: true);

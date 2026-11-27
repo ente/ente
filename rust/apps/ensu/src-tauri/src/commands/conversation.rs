@@ -9,7 +9,6 @@ use ente_ensu::{
     conversation::{self, Effects, PrepareError},
     db::{ChatDb, SqliteBackend, chat::ConversationSnapshot},
     llm,
-    retrieval::{GroundedSource, IncludedPassage},
 };
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, State as TauriState, WebviewWindow, async_runtime};
@@ -23,18 +22,14 @@ struct Slot {
     token: String,
     snapshot: ConversationSnapshot,
     db: Arc<ChatDb<SqliteBackend>>,
-    sources: Vec<GroundedSource>,
-    passages: Vec<IncludedPassage>,
-    tools: Option<Arc<llm::ToolExchange>>,
+    turn: Arc<conversation::Turn>,
     model_epoch: u64,
     cancel_epoch: u64,
 }
 
 pub(crate) struct Answer {
     pub(crate) snapshot: ConversationSnapshot,
-    pub(crate) sources: Vec<GroundedSource>,
-    pub(crate) passages: Vec<IncludedPassage>,
-    pub(crate) tools: Option<Arc<llm::ToolExchange>>,
+    pub(crate) turn: Arc<conversation::Turn>,
 }
 
 impl State {
@@ -45,7 +40,7 @@ impl State {
         token: &str,
         model_epoch: u64,
         cancel_epoch: u64,
-    ) -> Result<Option<Arc<llm::ToolExchange>>, ApiError> {
+    ) -> Result<Arc<conversation::Turn>, ApiError> {
         let slots = self
             .slots
             .lock()
@@ -68,7 +63,7 @@ impl State {
         if !Arc::ptr_eq(&slot.db, &app.state::<ChatDbState>().database()?) {
             return Err(error("Conversation database changed; retry the reply"));
         }
-        Ok(slot.tools.clone())
+        Ok(slot.turn.clone())
     }
     pub(crate) fn take_answer(
         &self,
@@ -91,9 +86,7 @@ impl State {
             .remove(window)
             .map(|slot| Answer {
                 snapshot: slot.snapshot,
-                sources: slot.sources,
-                passages: slot.passages,
-                tools: slot.tools,
+                turn: slot.turn,
             })
             .ok_or_else(|| error("Preparation has expired"))
     }
@@ -143,6 +136,10 @@ struct NativeEffects<'a> {
     expected_epoch: u64,
 }
 impl Effects for NativeEffects<'_> {
+    fn supports_partial_prompt_reuse(&self) -> bool {
+        self.context.supports_partial_prompt_reuse()
+    }
+
     fn supports_tools(&self) -> bool {
         self.context.supports_tools()
     }
@@ -256,7 +253,7 @@ pub async fn conversation_prepare(
         return Err(error("Invalid preparation request"));
     }
     let _lifecycle = llm_state.lifecycle().lock().await;
-    let context = llm_state.context_ref()?;
+    let (context, grounding_cache) = llm_state.conversation_context()?;
     let db = db_state.database()?;
     let epoch = llm_state.retrieval_epoch();
     let expected_epoch = epoch.load(Ordering::Relaxed);
@@ -294,22 +291,16 @@ pub async fn conversation_prepare(
                 .map_err(preparation_error)?,
         };
         candidates.validate().map_err(|e| error(e.to_string()))?;
-        let turn_tools = db
-            .turn_tools(&snapshot, &input.expected_user_text)
-            .map_err(ApiError::from)?;
-        let turn = conversation::TurnInput {
+        let draft = conversation::Turn::begin(&db, &snapshot, conversation::TurnRequest {
             session: input.session_uuid,
-            messages: snapshot.messages().to_vec(),
             expected_user_text: input.expected_user_text,
             system: input.system,
             current: input.current,
             history_query: input.history_query,
             context: context.context_size() as usize,
             output: Some(input.max_tokens),
-            state: snapshot.state().cloned(),
             candidates,
-            tools: turn_tools,
-        };
+        }, &conversation::LocalTimeZone).map_err(ApiError::from)?;
         let mut effects = NativeEffects {
             app,
             window: work_window,
@@ -320,32 +311,23 @@ pub async fn conversation_prepare(
             epoch,
             expected_epoch,
         };
-        let mut prepared = conversation::prepare_turn(turn, &mut effects)
-            .map_err(preparation_error)?;
+        let turn = Arc::new(draft.prepare(Some(grounding_cache), &mut effects).map_err(preparation_error)?);
+        let budget = turn.budget();
+        let grounding = turn.grounding();
         crate::logging::log("Conversation", format!(
             "generation budget context={} output={} input={} source_repacked={} evidence_tokens={}",
-            prepared.budget.context, prepared.budget.output, prepared.budget.input,
-            prepared.grounding.repacked, prepared.grounding.evidence_tokens,
+            budget.context, budget.output, budget.input, grounding.repacked, grounding.evidence_tokens,
         ));
-        let result = prepared.preparation.run(&mut effects).map_err(preparation_error)?;
-        effects.check_current().map_err(preparation_error)?;
-        let (sources, passages) = prepared.grounding.context
-            .map(|context| (context.sources, context.included_passages))
-            .unwrap_or_default();
         Ok((
             Response {
                 preparation_token: token.clone(),
-                messages: result.messages,
+                messages: turn.messages(),
             },
             Slot {
                 token,
                 snapshot,
                 db,
-                sources,
-                passages,
-                tools: prepared
-                    .tools
-                    .map(|tools| Arc::new(llm::ToolExchange::new(tools))),
+                turn,
                 model_epoch,
                 cancel_epoch: expected_epoch,
             },

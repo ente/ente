@@ -1,0 +1,1 @@
+DROP INDEX CONCURRENTLY IF EXISTS collection_files_collection_id_updation_time_idx;
