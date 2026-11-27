@@ -1322,13 +1322,12 @@ fn compact(shared: &Shared, half: &mut WriterHalf) -> Result<(), VecDbError> {
         return Err(error);
     }
     let compacted_checkpoint = temp_log.checkpoint();
-    let temp_file = temp_log.into_file();
-    if let Err(source) = temp_file.sync_all() {
-        drop(temp_file);
+    if let Err(error) = temp_log.sync_all() {
+        drop(temp_log);
         let _ = std::fs::remove_file(&temp_path);
-        return Err(VecDbError::io(&temp_path, source));
+        return Err(error);
     }
-    drop(temp_file);
+    drop(temp_log);
     let WriterState {
         lock,
         log,
@@ -4751,18 +4750,10 @@ mod tests {
     fn promote_compacted_log_replaces_the_log_durably() {
         let dir = TempDir::new().unwrap();
         let path = dir.path().join("db");
-        drop(
-            Log::create(&path, DIMS, StorageKind::F32, None)
-                .unwrap()
-                .into_file(),
-        );
+        drop(Log::create(&path, DIMS, StorageKind::F32, None).unwrap());
         let old_generation = generation_of(&path);
         let temp = temp_sibling(&path);
-        drop(
-            Log::create(&temp, DIMS, StorageKind::F32, None)
-                .unwrap()
-                .into_file(),
-        );
+        drop(Log::create(&temp, DIMS, StorageKind::F32, None).unwrap());
         let new_generation = generation_of(&temp);
         promote_compacted_log(&temp, &path).unwrap();
         assert!(!temp.exists());
@@ -5195,11 +5186,7 @@ mod tests {
         let old_checkpoint = log.checkpoint();
         drop(log);
         remove_data_files(&path).unwrap();
-        drop(
-            Log::create(&path, DIMS, StorageKind::F32, None)
-                .unwrap()
-                .into_file(),
-        );
+        drop(Log::create(&path, DIMS, StorageKind::F32, None).unwrap());
         {
             let mut half = db.shared.writer_half();
             recover_after_failed_reset(&db.shared, &mut half, lock, old_checkpoint, 5);

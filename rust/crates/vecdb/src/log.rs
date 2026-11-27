@@ -494,8 +494,17 @@ impl Log {
         &self.path
     }
 
-    pub(crate) fn into_file(self) -> File {
+    pub(crate) fn sync_all(&self) -> Result<(), VecDbError> {
         self.file
+            .sync_all()
+            .map_err(|source| VecDbError::io(&self.path, source))
+    }
+}
+
+#[cfg(unix)]
+impl Drop for Log {
+    fn drop(&mut self) {
+        _ = self.file.unlock();
     }
 }
 
@@ -1607,7 +1616,7 @@ mod tests {
         let generation = created.generation();
         assert_eq!(created.current_end_offset(), HEADER_LEN as u64);
         assert_eq!(created.path(), path.as_path());
-        drop(created.into_file());
+        drop(created);
         let reopened = reopen(&path, 512, StorageKind::F32);
         assert_eq!(reopened.generation(), generation);
         assert_eq!(reopened.current_end_offset(), HEADER_LEN as u64);
@@ -1615,7 +1624,7 @@ mod tests {
 
     #[cfg(any(unix, windows))]
     #[test]
-    fn writer_exclusion_lasts_until_the_file_is_closed() {
+    fn writer_exclusion_lasts_until_the_log_is_dropped() {
         let dir = TempDir::new().unwrap();
         let path = dir.path().join("log");
         let alias = dir.path().join("alias");
@@ -1628,18 +1637,28 @@ mod tests {
             Err(VecDbError::Locked(_))
         ));
         drop(reader);
-        let file = created.into_file();
         assert!(matches!(
             open_writer_file(&alias, false),
             Err(VecDbError::Locked(_))
         ));
-        drop(file);
+        drop(created);
         let reopened = reopen(&alias, 8, StorageKind::F32);
         assert!(matches!(
             open_writer_file(&path, false),
             Err(VecDbError::Locked(_))
         ));
         drop(reopened);
+        assert!(open_writer_file(&path, false).is_ok());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn dropping_a_log_releases_a_lock_whose_file_is_still_shared() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("log");
+        let created = Log::create(&path, 8, StorageKind::F32, None).unwrap();
+        let _inherited = created.file.try_clone().unwrap();
+        drop(created);
         assert!(open_writer_file(&path, false).is_ok());
     }
 
@@ -1776,11 +1795,7 @@ mod tests {
     fn open_rejects_invalid_dimensions() {
         let dir = TempDir::new().unwrap();
         let path = dir.path().join("log");
-        drop(
-            Log::create(&path, 8, StorageKind::F32, None)
-                .unwrap()
-                .into_file(),
-        );
+        drop(Log::create(&path, 8, StorageKind::F32, None).unwrap());
         let file = File::options().read(true).write(true).open(&path).unwrap();
         assert!(matches!(
             Log::open(file, &path, 12, StorageKind::F32, None),
@@ -2249,7 +2264,8 @@ mod tests {
             staged.append_unsynced_for_staging(batch).unwrap();
         }
         assert_eq!(staged.current_end_offset(), synced.current_end_offset());
-        staged.into_file().sync_all().unwrap();
+        staged.sync_all().unwrap();
+        drop(staged);
         drop(synced);
         let synced_bytes = std::fs::read(&synced_path).unwrap();
         let staged_bytes = std::fs::read(&staged_path).unwrap();
@@ -3293,12 +3309,8 @@ mod tests {
         let created = Log::create(&i8_path, 32, StorageKind::I8, None).unwrap();
         assert_eq!(created.storage(), StorageKind::I8);
         let generation = created.generation();
-        drop(created.into_file());
-        drop(
-            Log::create(&f32_path, 32, StorageKind::F32, None)
-                .unwrap()
-                .into_file(),
-        );
+        drop(created);
+        drop(Log::create(&f32_path, 32, StorageKind::F32, None).unwrap());
         let open = |path: &Path, requested: StorageKind| {
             let file = File::options().read(true).write(true).open(path).unwrap();
             Log::open(file, path, 32, requested, None)
