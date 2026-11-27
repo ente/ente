@@ -124,7 +124,13 @@
             self.phone = phone
             self.reload()
           }
-        }, errorHandler: nil)
+        },
+        errorHandler: { @Sendable _ in
+          Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(5))
+            self?.requestPhoneContext()
+          }
+        })
     }
 
     nonisolated public func sessionReachabilityDidChange(_ session: WCSession) {
