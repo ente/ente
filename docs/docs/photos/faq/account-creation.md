@@ -101,7 +101,7 @@ If a new language translation is complete but is still not available in the app,
 After creating your account on one device, you can log in to Ente Photos on all your other devices:
 
 1. Install Ente Photos on the device (see installation guides above)
-2. Open the app and select "Existing user"
+2. Open the app and select **Log in**
 3. Enter your email address and password
 4. You may be asked to verify your email with a 6-digit code
 5. Once logged in, your photos will begin syncing automatically
