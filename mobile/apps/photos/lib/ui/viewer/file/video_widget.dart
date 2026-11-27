@@ -21,6 +21,7 @@ import "package:photos/services/video_preview_service.dart";
 import "package:photos/states/detail_page_state.dart";
 import "package:photos/theme/colors.dart";
 import "package:photos/ui/notification/toast.dart";
+import "package:photos/ui/viewer/file/pip/pip_action.dart";
 import "package:photos/ui/viewer/file/video_stream_change.dart";
 import "package:photos/ui/viewer/file/video_widget_media_kit.dart";
 import "package:photos/ui/viewer/file/video_widget_native.dart";
@@ -38,6 +39,7 @@ class VideoWidget extends StatefulWidget {
   final bool? isAudioMutedOverride;
   final ValueNotifier<double>? playbackSpeed;
   final VideoStreamChangeController? streamChangeController;
+  final VideoPipController? pipController;
 
   const VideoWidget(
     this.file, {
@@ -52,6 +54,7 @@ class VideoWidget extends StatefulWidget {
     this.isAudioMutedOverride,
     this.playbackSpeed,
     this.streamChangeController,
+    this.pipController,
     super.key,
   });
 
@@ -260,6 +263,7 @@ class _VideoWidgetState extends State<VideoWidget> {
               isActive: _isActive,
               isAudioMutedOverride: widget.isAudioMutedOverride,
               onFinalFileLoad: widget.onFinalFileLoad,
+              pipController: widget.pipController,
             )
           : VideoWidgetMediaKit(
               widget.file,
@@ -274,6 +278,7 @@ class _VideoWidgetState extends State<VideoWidget> {
               isActive: _isActive,
               isAudioMutedOverride: widget.isAudioMutedOverride,
               onFinalFileLoad: widget.onFinalFileLoad,
+              pipController: widget.pipController,
             );
     }
 

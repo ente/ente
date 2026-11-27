@@ -204,6 +204,9 @@ class _AppLockState extends State<AppLock> with WidgetsBindingObserver {
     }
   }
 
+  // Includes the time before the lock screen appears.
+  bool get isLocked => this._isLocked;
+
   void setEnabled(bool enabled) {
     if (enabled) {
       this.enable();

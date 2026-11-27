@@ -68,6 +68,8 @@ dependencies:
     path: rust_builder
   ente_photos_platform:
     path: plugins/ente_photos_platform
+  ente_pip:
+    path: plugins/ente_pip
   ente_pure_utils:
     path: ../../packages/ente_pure_utils
   ente_qr:
