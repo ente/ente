@@ -43,6 +43,7 @@ import (
 	"github.com/ente/museum/pkg/controller/usercache"
 
 	"github.com/dlmiddlecote/sqlstats"
+	"github.com/ente/museum/ente"
 	"github.com/ente/museum/ente/jwt"
 	"github.com/ente/museum/pkg/api"
 	"github.com/ente/museum/pkg/controller"
@@ -59,6 +60,7 @@ import (
 	"github.com/ente/museum/pkg/controller/storagebonus"
 	"github.com/ente/museum/pkg/controller/user"
 	userEntityCtrl "github.com/ente/museum/pkg/controller/userentity"
+	"github.com/ente/museum/pkg/external/postmark"
 	"github.com/ente/museum/pkg/middleware"
 	"github.com/ente/museum/pkg/repo"
 	authenticatorRepo "github.com/ente/museum/pkg/repo/authenticator"
@@ -75,6 +77,7 @@ import (
 	userEntityRepo "github.com/ente/museum/pkg/repo/userentity"
 	"github.com/ente/museum/pkg/utils/billing"
 	"github.com/ente/museum/pkg/utils/config"
+	emailUtil "github.com/ente/museum/pkg/utils/email"
 	"github.com/ente/museum/pkg/utils/s3config"
 	timeUtil "github.com/ente/museum/pkg/utils/time"
 	spaceapi "github.com/ente/museum/space/api"
@@ -234,6 +237,27 @@ func main() {
 	rateLimiter := middleware.NewRateLimitMiddleware(discordController, 1000, 1000, 1*time.Second)
 	defer rateLimiter.Stop()
 
+	emailSubscriptions := &repo.EmailSubscriptionRepository{DB: db}
+	unsubscribeLinks, err := emailUtil.NewUnsubscribeLinks(
+		viper.GetString("email-subscriptions.public-url"),
+		viper.GetStringSlice("email-subscriptions.unsubscribe-signing-keys"),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	subscriptionSender := &email.SubscriptionSender{
+		Subscriptions:       emailSubscriptions,
+		Users:               userRepo,
+		NotificationHistory: notificationHistoryRepo,
+		Links:               unsubscribeLinks,
+		Postmark: postmark.Client{
+			ServerToken: viper.GetString("postmark.server-token"),
+		},
+		From: strings.TrimSpace(viper.GetString("postmark.from")),
+		Streams: map[ente.EmailType]string{
+			ente.ProductMailsEmailType: viper.GetString("postmark.product-mails-stream"),
+		},
+	}
 	emailNotificationCtrl := &email.EmailNotificationController{
 		UserRepo:                userRepo,
 		UsageRepo:               usageRepo,
@@ -242,6 +266,7 @@ func main() {
 		DiscordController:       discordController,
 		LockController:          lockController,
 		NotificationHistoryRepo: notificationHistoryRepo,
+		SubscriptionSender:      subscriptionSender,
 	}
 	fileCountInitializer := controller.NewFileCountInitializer(usageRepo, trashRepo, lockController)
 	usageRepo.QueueFileCountInitialization = fileCountInitializer.Enqueue
@@ -745,6 +770,10 @@ func main() {
 	publicAPI.POST("/users/recover-account/validate", userHandler.ValidateSelfAccountRecovery)
 	publicAPI.POST("/users/recover-account", userHandler.RecoverSelfAccount)
 
+	mailHandler := &api.EmailSubscriptionsHandler{Repo: emailSubscriptions, Links: unsubscribeLinks}
+	publicAPI.GET("/email/unsubscribe", mailHandler.Unsubscribe)
+	publicAPI.POST("/email/unsubscribe", mailHandler.Unsubscribe)
+
 	accountsJwtAuthAPI := server.Group("/")
 	accountsJwtAuthAPI.Use(authMiddleware.TokenAuthMiddleware(jwt.ACCOUNTS.Ptr()), rateLimiter.APIRateLimitForUserMiddleware(urlSanitizer))
 	passkeysHandler := &api.PasskeyHandler{
@@ -973,6 +1002,7 @@ func main() {
 
 	adminHandler := &api.AdminHandler{
 		UserRepo:               userRepo,
+		EmailSubscriptionRepo:  emailSubscriptions,
 		CollectionRepo:         collectionRepo,
 		AuthenticatorRepo:      authRepo,
 		UserAuthRepo:           userAuthRepo,
@@ -994,6 +1024,7 @@ func main() {
 	adminAPI.POST("/mail", adminHandler.SendMail)
 	adminAPI.POST("/mail/subscribe", adminHandler.SubscribeMail)
 	adminAPI.POST("/mail/unsubscribe", adminHandler.UnsubscribeMail)
+	adminAPI.POST("/email-subscriptions/backfill-from-listmonk", adminHandler.BackfillEmailSubscriptionsFromListmonk)
 	adminAPI.GET("/listmonk/missing-subscribers/count", adminHandler.GetListmonkMissingSubscribersCount)
 	adminAPI.GET("/users", adminHandler.GetUsers)
 	adminAPI.GET("/user", adminHandler.GetUser)
@@ -1473,6 +1504,10 @@ func setupAndStartCrons(userAuthRepo *repo.UserAuthRepository, collectionLinkRep
 
 	scheduleAndRun(c, "@every 24h", func() {
 		emailNotificationCtrl.SayHelloToCustomers()
+	})
+
+	scheduleAndRun(c, "@every 24h", func() {
+		emailNotificationCtrl.SendLockerIntroMails(timeUtil.Microseconds())
 	})
 
 	scheduleAndRun(c, "@every 24h", func() {

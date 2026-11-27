@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	stdtime "time"
 
 	"github.com/avct/uasurfer"
 	"github.com/ente/museum/ente"
@@ -14,6 +15,7 @@ import (
 	"github.com/ente/museum/pkg/utils/email"
 	"github.com/ente/museum/pkg/utils/time"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 type UserAccessResetter interface {
@@ -56,7 +58,14 @@ const (
 	FamilyNudgeTemplate   = "family_nudge.html"
 	FamilyNudgeSubject    = "Share your Ente Subscription with your Family!"
 	FamilyNudgeTemplateID = "family_nudge"
+
+	LockerIntroMailLock   = "locker_intro_mail"
+	LockerIntroTemplate   = "locker_intro.html"
+	LockerIntroSubject    = "Let Ente take care of your documents"
+	LockerIntroTemplateID = "locker_intro"
 )
+
+var lockerIntroRolloutTime = stdtime.Date(2026, stdtime.November, 1, 0, 0, 0, 0, stdtime.UTC).UnixMicro()
 
 type EmailNotificationController struct {
 	UserRepo                           *repo.UserRepository
@@ -67,6 +76,7 @@ type EmailNotificationController struct {
 	LockController                     *lock.LockController
 	NotificationHistoryRepo            *repo.NotificationHistoryRepository
 	UserAccessResetter                 UserAccessResetter
+	SubscriptionSender                 *SubscriptionSender
 	isSendingStorageLimitExceededMails bool
 }
 
@@ -303,4 +313,24 @@ func (c *EmailNotificationController) NudgePaidSubscriberForFamily() {
 		}
 		c.NotificationHistoryRepo.SetLastNotificationTimeToNow(u.ID, FamilyNudgeTemplateID)
 	}
+}
+
+func (c *EmailNotificationController) SendLockerIntroMails(now int64) {
+	if viper.GetBool("internal.silent") || !c.SubscriptionSender.Configured(ente.ProductMailsEmailType) {
+		return
+	}
+	log.Info("Running SendLockerIntroMails")
+	if !c.LockController.TryLock(LockerIntroMailLock, time.MicrosecondsAfterHours(24)) {
+		log.Error("Could not acquire lock to send Locker intro mails")
+		return
+	}
+	defer c.LockController.ReleaseLock(LockerIntroMailLock)
+
+	userIDs, err := c.NotificationHistoryRepo.GetLockerIntroCandidates(lockerIntroRolloutTime, now, LockerIntroTemplateID)
+	if err != nil {
+		log.WithError(err).Error("Could not fetch Locker intro candidates")
+		return
+	}
+	c.SubscriptionSender.Send(context.Background(), userIDs, ente.ProductMailsEmailType,
+		LockerIntroTemplateID, LockerIntroSubject, LockerIntroTemplate)
 }

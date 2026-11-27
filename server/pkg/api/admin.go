@@ -39,6 +39,7 @@ import (
 
 type AdminHandler struct {
 	UserRepo               *repo.UserRepository
+	EmailSubscriptionRepo  *repo.EmailSubscriptionRepository
 	CollectionRepo         *repo.CollectionRepository
 	AuthenticatorRepo      *authenticator.Repository
 	UserAuthRepo           *repo.UserAuthRepository

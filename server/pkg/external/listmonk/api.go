@@ -27,7 +27,15 @@ var ErrSubscriberNotFound = errors.New("subscriber not found")
 
 type Subscriber struct {
 	Email   string
+	Status  string
 	ListIDs []int
+	Lists   []SubscriberList
+}
+
+type SubscriberList struct {
+	ID     int    `json:"id"`
+	Status string `json:"subscription_status"`
+	OptIn  string `json:"optin"`
 }
 
 type SubscribersPage struct {
@@ -171,26 +179,31 @@ func parseSubscriber(data map[string]json.RawMessage) (Subscriber, error) {
 	if err := json.Unmarshal(emailRaw, &email); err != nil {
 		return Subscriber{}, stacktrace.Propagate(err, "failed to parse listmonk subscriber email")
 	}
+	subscriber := Subscriber{Email: email}
+	if statusRaw, ok := data["status"]; ok {
+		if err := json.Unmarshal(statusRaw, &subscriber.Status); err != nil {
+			return Subscriber{}, stacktrace.Propagate(err, "failed to parse listmonk subscriber status")
+		}
+	}
 
-	var listIDs []int
 	if listsRaw, ok := data["lists"]; ok {
 		ids, err := decodeListIDs(listsRaw)
 		if err != nil {
 			return Subscriber{}, stacktrace.Propagate(err, "failed to parse listmonk subscriber lists")
 		}
-		listIDs = ids
+		subscriber.ListIDs = ids
+		if err := json.Unmarshal(listsRaw, &subscriber.Lists); err != nil {
+			subscriber.Lists = nil
+		}
 	} else if listIDsRaw, ok := data["list_ids"]; ok {
 		ids, err := decodeListIDs(listIDsRaw)
 		if err != nil {
 			return Subscriber{}, stacktrace.Propagate(err, "failed to parse listmonk subscriber list_ids")
 		}
-		listIDs = ids
+		subscriber.ListIDs = ids
 	}
 
-	return Subscriber{
-		Email:   email,
-		ListIDs: listIDs,
-	}, nil
+	return subscriber, nil
 }
 
 func decodeListIDs(raw json.RawMessage) ([]int, error) {

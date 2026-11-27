@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"testing"
 
+	"github.com/ente/museum/ente"
 	"github.com/ente/museum/internal/testutil"
 	"github.com/ente/museum/pkg/utils/crypto"
 )
@@ -64,6 +65,10 @@ func TestDeleteTableDataDeletesContactsAndAttachmentsForUser(t *testing.T) {
 		256,
 		"b2-eu-cen",
 	)
+	mustExecCleanupTest(t, db,
+		`INSERT INTO email_subscriptions (user_id, email_type, subscribed) VALUES ($1, $3, TRUE), ($2, $3, FALSE)`,
+		targetUserID, otherUserID, ente.ProductMailsEmailType,
+	)
 
 	repo := &Repository{DB: db}
 	if err := repo.DeleteTableData(t.Context(), targetUserID); err != nil {
@@ -74,6 +79,8 @@ func TestDeleteTableDataDeletesContactsAndAttachmentsForUser(t *testing.T) {
 	assertCleanupRowCount(t, db, `SELECT COUNT(*) FROM user_attachments WHERE user_id = $1`, targetUserID, 1)
 	assertCleanupRowCount(t, db, `SELECT COUNT(*) FROM contact_entity WHERE user_id = $1`, otherUserID, 1)
 	assertCleanupRowCount(t, db, `SELECT COUNT(*) FROM user_attachments WHERE user_id = $1`, otherUserID, 1)
+	assertCleanupRowCount(t, db, `SELECT COUNT(*) FROM email_subscriptions WHERE user_id = $1`, targetUserID, 0)
+	assertCleanupRowCount(t, db, `SELECT COUNT(*) FROM email_subscriptions WHERE user_id = $1`, otherUserID, 1)
 
 	var isDeleted, pendingSync bool
 	if err := db.QueryRow(
