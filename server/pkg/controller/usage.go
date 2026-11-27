@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"time"
 
 	"github.com/ente/museum/ente"
 	bonus "github.com/ente/museum/ente/storagebonus"
@@ -78,7 +79,9 @@ func (c *UsageController) canUploadFileWithCache(ctx context.Context, userID int
 		c.mu.Unlock()
 		if ok && canUpload {
 			go func() {
-				_ = c.checkAndUpdateCache(ctx, userID, size, app, checkPhotoFileLimit)
+				refreshCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+				defer cancel()
+				_ = c.checkAndUpdateCache(refreshCtx, userID, size, app, checkPhotoFileLimit)
 			}()
 			return nil
 		}

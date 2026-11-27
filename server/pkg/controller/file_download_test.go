@@ -64,6 +64,29 @@ func TestFileDownloadBucketSelection(t *testing.T) {
 	}
 }
 
+func TestFileDownloadHotStorageFailover(t *testing.T) {
+	for _, primary := range []string{fileBucketB2, fileBucketWasabi} {
+		secondary := fileBucketWasabi
+		if primary == secondary {
+			secondary = fileBucketB2
+		}
+		controller := &FileController{S3Config: fileDownloadS3Config(t, primary, secondary)}
+		require.True(t, controller.S3Config.FailoverHotStorage())
+		for _, userAgent := range []string{"ente", "go-resty/2.0"} {
+			for _, dcs := range [][]string{{primary}, {secondary}, {primary, secondary}} {
+				object := ente.S3ObjectKey{ObjectKey: "1/file"}
+				signedURL, err := controller.getSignedURLFromObjectAndDCs(fileDownloadContext(userAgent), object, dcs, ente.FILE)
+				require.NoError(t, err)
+				want := secondary
+				if len(dcs) == 1 {
+					want = dcs[0]
+				}
+				assertFileDownloadURL(t, signedURL, want, object.ObjectKey)
+			}
+		}
+	}
+}
+
 func TestFileDownloadRecordedLocations(t *testing.T) {
 	controller, file, db := setupFileDownloadTest(t)
 	b2, wasabi := controller.S3Config.GetHotBackblazeDC(), controller.S3Config.GetHotWasabiDC()

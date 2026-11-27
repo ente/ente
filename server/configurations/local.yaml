@@ -145,6 +145,9 @@ db:
 # to the region (eu-cen) or provider (b2, wasabi), but for historical reasons
 # the key names have to be one of those in the list below.
 s3:
+    # When both hot buckets are configured, switch B2/Wasabi until restart after
+    # two minutes without staged upload registrations in the primary bucket and
+    # 20 POST upload URL successes or storage initiation failures (no gap over 30s).
     # Override the primary and secondary hot storage. The commented out values
     # are the defaults.
     #
