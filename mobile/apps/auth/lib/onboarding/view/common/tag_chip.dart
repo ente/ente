@@ -84,7 +84,9 @@ class _TagChipState extends State<TagChip> {
         child: Semantics(
           button: widget.onTap != null,
           selected: isSelected,
-          label: sharedWithWatch ? context.strings.watchSharedTag : null,
+          label: sharedWithWatch
+              ? pendingTranslation("Used for watch sharing")
+              : null,
           child: Container(
             constraints: const BoxConstraints(minHeight: 40),
             decoration: BoxDecoration(

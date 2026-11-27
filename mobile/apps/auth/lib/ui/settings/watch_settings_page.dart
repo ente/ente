@@ -41,7 +41,6 @@ class _WatchSettingsPageState extends State<WatchSettingsPage> {
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: service,
     builder: (context, _) {
-      final l10n = context.strings;
       final state = service.state;
       final colors = context.componentColors;
       final warningColor = Theme.of(context).brightness == Brightness.light
@@ -58,20 +57,40 @@ class _WatchSettingsPageState extends State<WatchSettingsPage> {
       final statusText = switch (state.phase) {
         WatchPhase.unavailable =>
           Platform.isIOS
-              ? l10n.watchUnavailableApple
-              : l10n.watchUnavailableAndroid,
-        WatchPhase.setup => l10n.watchSetupInstructions,
+              ? pendingTranslation(
+                  "Requires iOS 17 or later and watchOS 10 or later. Pair your Apple Watch and install Ente Auth on it.",
+                )
+              : pendingTranslation(
+                  "Wear OS sync needs Android 8 or later, Wear OS 3 or later, the Google Play version of Ente Auth, and Google Play services on both devices.",
+                ),
+        WatchPhase.setup => pendingTranslation(
+          "Open Ente Auth on your watch and select Set up watch.",
+        ),
         WatchPhase.approval => null,
-        WatchPhase.pending => l10n.watchPending,
-        WatchPhase.synced => l10n.watchSynced,
-        WatchPhase.retiring => l10n.watchRetiring,
-        WatchPhase.disabled => l10n.watchDisabled,
-        WatchPhase.failed => l10n.watchSyncFailed,
-        WatchPhase.replacement => l10n.watchReplacement,
-        WatchPhase.ambiguous => l10n.watchAmbiguous,
+        WatchPhase.pending => pendingTranslation(
+          "Changes are waiting for your watch. Open Ente Auth on it to sync.",
+        ),
+        WatchPhase.synced => pendingTranslation(
+          "Your watch has the latest shared accounts.",
+        ),
+        WatchPhase.retiring => pendingTranslation(
+          "Removal is waiting for your watch. Open Ente Auth on it to finish.",
+        ),
+        WatchPhase.disabled => pendingTranslation(
+          "Watch sharing is off. Set up the watch again to share codes.",
+        ),
+        WatchPhase.failed => pendingTranslation(
+          "Could not update the watch. Keep both apps open and try again.",
+        ),
+        WatchPhase.replacement => pendingTranslation(
+          "A new watch setup is waiting. Stop sharing with the previous watch, then approve the new setup.",
+        ),
+        WatchPhase.ambiguous => pendingTranslation(
+          "More than one watch is requesting setup. Connect only the watch you want to set up, then try again.",
+        ),
       };
       return AuthSettingsPageScaffold(
-        title: l10n.watch,
+        title: pendingTranslation("Watch"),
         children: [
           MenuGroupComponent(
             items: [
@@ -86,11 +105,13 @@ class _WatchSettingsPageState extends State<WatchSettingsPage> {
                 ),
               if (state.canPublish)
                 SettingsItem(
-                  title: l10n.watchSharing,
+                  title: pendingTranslation("Accounts on watch"),
                   subtitle: switch (service.sharing?.mode) {
-                    WatchSharingMode.all => l10n.watchAllAccounts,
-                    WatchSharingMode.tags => l10n.watchSelectedTags,
-                    null => l10n.watchChooseSharing,
+                    WatchSharingMode.all => pendingTranslation("All accounts"),
+                    WatchSharingMode.tags => pendingTranslation(
+                      "Selected tags",
+                    ),
+                    null => pendingTranslation("Choose what to share"),
                   },
                   onTap: busy
                       ? null
@@ -114,14 +135,14 @@ class _WatchSettingsPageState extends State<WatchSettingsPage> {
           if (service.omittedCount > 0) ...[
             const SizedBox(height: Spacing.md),
             Text(
-              l10n.watchOmittedAccounts(count: service.omittedCount),
+              _watchOmittedAccounts(service.omittedCount),
               style: TextStyles.body.copyWith(color: colors.textLight),
             ),
           ],
           if (state.phase == WatchPhase.approval) ...[
             const SizedBox(height: Spacing.lg),
             ButtonComponent(
-              label: l10n.watchApprove,
+              label: pendingTranslation("Set up sharing"),
               isDisabled: busy,
               shouldShowSuccessState: false,
               onTap: () => pushAuthSettingsPage(
@@ -133,7 +154,7 @@ class _WatchSettingsPageState extends State<WatchSettingsPage> {
           if (canRefresh) ...[
             const SizedBox(height: Spacing.lg),
             ButtonComponent(
-              label: l10n.watchCheckAgain,
+              label: pendingTranslation("Check again"),
               variant: ButtonComponentVariant.secondary,
               isDisabled: busy && activeAction != _WatchAction.refresh,
               shouldShowSuccessState: false,
@@ -145,7 +166,7 @@ class _WatchSettingsPageState extends State<WatchSettingsPage> {
             MenuGroupComponent(
               items: [
                 MenuComponent(
-                  title: l10n.watchDisable,
+                  title: pendingTranslation("Stop sharing with this watch"),
                   titleColor: warningColor,
                   showOnlyLoadingState: true,
                   onTap: busy && activeAction != _WatchAction.disable
@@ -237,7 +258,7 @@ class _WatchSharingPageState extends State<_WatchSharingPage> {
           ) ??
           false;
       return AuthSettingsPageScaffold(
-        title: l10n.watchSharing,
+        title: pendingTranslation("Accounts on watch"),
         bottomNavigationBar: SafeArea(
           top: false,
           child: Padding(
@@ -247,7 +268,7 @@ class _WatchSharingPageState extends State<_WatchSharingPage> {
               children: [
                 if (mode != null && count != null && !snapshot.hasError) ...[
                   Text(
-                    l10n.watchAccountCount(count: count),
+                    _watchAccountCount(count),
                     style: TextStyles.body,
                     textAlign: TextAlign.center,
                   ),
@@ -269,7 +290,7 @@ class _WatchSharingPageState extends State<_WatchSharingPage> {
         ),
         children: [
           Text(
-            l10n.watchOfflineDescription,
+            pendingTranslation("Copies two-factor secrets to your watch."),
             style: TextStyles.body.copyWith(color: colors.textLight),
           ),
           const SizedBox(height: Spacing.lg),
@@ -277,20 +298,23 @@ class _WatchSharingPageState extends State<_WatchSharingPage> {
             items: [
               _modeRow(
                 WatchSharingMode.all,
-                l10n.watchAllAccounts,
-                l10n.watchAllAccountsDescription,
+                pendingTranslation("All accounts"),
+                pendingTranslation("Includes future accounts."),
               ),
               _modeRow(
                 WatchSharingMode.tags,
-                l10n.watchSelectedTags,
-                l10n.watchSelectedTagsDescription,
+                pendingTranslation("Selected tags"),
+                pendingTranslation("Includes future matches."),
               ),
             ],
           ),
           if (mode == WatchSharingMode.tags) ...[
             const SizedBox(height: Spacing.lg),
             if (tags.isEmpty && snapshot.hasData)
-              Text(l10n.watchNoTags, style: TextStyles.body)
+              Text(
+                pendingTranslation("Add tags to your accounts first."),
+                style: TextStyles.body,
+              )
             else
               MenuGroupComponent(
                 items: [
@@ -308,7 +332,12 @@ class _WatchSharingPageState extends State<_WatchSharingPage> {
           ],
           if (snapshot.hasError) ...[
             const SizedBox(height: Spacing.lg),
-            Text(l10n.watchSyncFailed, style: TextStyles.body),
+            Text(
+              pendingTranslation(
+                "Could not update the watch. Keep both apps open and try again.",
+              ),
+              style: TextStyles.body,
+            ),
           ] else if (!snapshot.hasData) ...[
             const SizedBox(height: Spacing.lg),
             const Center(child: CircularProgressIndicator()),
@@ -316,7 +345,9 @@ class _WatchSharingPageState extends State<_WatchSharingPage> {
           if (hasUnsupportedCodes) ...[
             const SizedBox(height: Spacing.md),
             Text(
-              l10n.watchUnsupportedAccounts,
+              pendingTranslation(
+                "Counter-based (HOTP) codes aren’t supported.",
+              ),
               style: TextStyles.mini.copyWith(color: colors.textLight),
             ),
           ],
@@ -347,7 +378,7 @@ class _WatchSharingPageState extends State<_WatchSharingPage> {
     });
     return _choiceRow(
       title: tag,
-      description: context.strings.watchAccountCount(count: count),
+      description: _watchAccountCount(count),
       selected: selected,
       onTap: toggle,
       control: CheckboxComponent(
@@ -413,12 +444,19 @@ Future<bool> _authenticate(BuildContext context) async {
   final supported = await auth.isLocalAuthSupportedOnDevice();
   if (!context.mounted) return false;
   if (!supported && !LockScreenSettings.instance.getIsAppLockSet()) {
-    showToast(context, context.strings.watchAuthenticationRequired);
+    showToast(
+      context,
+      pendingTranslation(
+        "Set up a device passcode or an Ente app PIN or password first.",
+      ),
+    );
     return false;
   }
   return auth.requestLocalAuthentication(
     context,
-    context.strings.watchAuthenticationReason,
+    pendingTranslation(
+      "Authenticate to change what you share with your watch.",
+    ),
     useDebugAuthCache: false,
   );
 }
@@ -427,8 +465,28 @@ String _errorCode(Object error) =>
     error is PlatformException ? error.code : 'watchUnavailable';
 
 String _errorMessage(BuildContext context, String code) => switch (code) {
-  'payloadTooLarge' => context.strings.watchPayloadTooLarge,
-  'wrongEnrollment' || 'staleVault' => context.strings.watchSelectionChanged,
-  'phoneLocked' => context.strings.watchPhoneLocked,
-  _ => context.strings.watchSyncFailed,
+  'payloadTooLarge' => pendingTranslation(
+    "These accounts exceed the watch transfer limit. Use Selected tags in Watch settings and choose fewer tags.",
+  ),
+  'wrongEnrollment' || 'staleVault' => pendingTranslation(
+    "The account or watch changed. Open this page again.",
+  ),
+  'phoneLocked' => pendingTranslation("Unlock Ente Auth, then try again."),
+  _ => pendingTranslation(
+    "Could not update the watch. Keep both apps open and try again.",
+  ),
 };
+
+String _watchAccountCount(int count) => switch (count) {
+  0 => pendingTranslation("No matches"),
+  1 => pendingTranslation("1 account"),
+  _ => pendingTranslation("$count accounts"),
+};
+
+String _watchOmittedAccounts(int count) => count == 1
+    ? pendingTranslation(
+        "One account could not be sent. Check its OTP settings.",
+      )
+    : pendingTranslation(
+        "$count accounts could not be sent. Check their OTP settings.",
+      );

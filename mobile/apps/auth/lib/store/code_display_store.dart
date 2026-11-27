@@ -106,7 +106,7 @@ class CodeDisplayStore {
       context,
       title: l10n.deleteTagTitle,
       body: WatchService.sharedTags.contains(tag)
-          ? '${l10n.deleteTagMessage}\n\n${l10n.watchDeleteTagNotice}'
+          ? '${l10n.deleteTagMessage}\n\n${pendingTranslation("Accounts with this tag will stop syncing to your watch.")}'
           : l10n.deleteTagMessage,
       firstButtonLabel: l10n.delete,
       isCritical: true,
@@ -158,7 +158,9 @@ class CodeDisplayStore {
           await showChoiceActionSheet(
             context,
             title: context.strings.editTag,
-            body: context.strings.watchRenameIntoSharedTagNotice,
+            body: pendingTranslation(
+              "Accounts with either tag will be shared with your watch.",
+            ),
             firstButtonLabel: context.strings.save,
             firstButtonOnTap: () => editTag(tag, updatedTag),
           );
