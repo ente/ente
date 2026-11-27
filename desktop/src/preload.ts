@@ -10,6 +10,7 @@ import { contextBridge, ipcRenderer, webUtils } from "electron/renderer";
 import type { IpcRendererEvent } from "electron";
 import type {
     AppUpdate,
+    CloseAction,
     CollectionMapping,
     FFmpegCommand,
     FolderWatch,
@@ -75,6 +76,11 @@ const setLastShownChangelogVersion = (version: number) =>
 const isAutoLaunchEnabled = () => ipcRenderer.invoke("isAutoLaunchEnabled");
 
 const toggleAutoLaunch = () => ipcRenderer.invoke("toggleAutoLaunch");
+
+const closeAction = () => ipcRenderer.invoke("closeAction");
+
+const setCloseAction = (action: CloseAction) =>
+    ipcRenderer.invoke("setCloseAction", action);
 
 const getNativeDeviceLockCapability = (): Promise<NativeDeviceLockCapability> =>
     ipcRenderer.invoke("getNativeDeviceLockCapability");
@@ -296,6 +302,8 @@ contextBridge.exposeInMainWorld("electron", {
     setLastShownChangelogVersion,
     isAutoLaunchEnabled,
     toggleAutoLaunch,
+    closeAction,
+    setCloseAction,
     getNativeDeviceLockCapability,
     promptDeviceLock,
     onMainWindowFocus,

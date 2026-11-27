@@ -3,6 +3,12 @@ export type UtilityProcessType = "ml";
 
 export type ThemeMode = "light" | "dark" | "system";
 
+/** "ask" shows the no-tray close prompt each time. */
+export type CloseAction = "ask" | "quit" | "background";
+
+/** A close action the user chose to remember. */
+export type SavedCloseAction = Exclude<CloseAction, "ask">;
+
 export interface AppUpdate {
     autoUpdatable: boolean;
     version: string;

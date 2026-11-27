@@ -24,11 +24,18 @@ import { createApplicationMenu, createTrayContextMenu } from "./main/menu";
 import { registerRendererProtocol, rendererURL } from "./main/renderer";
 import { setupAutoUpdater } from "./main/services/app-update";
 import autoLauncher from "./main/services/auto-launcher";
-import { shouldHideDockIcon } from "./main/services/store";
+import { showNoTrayCloseDialog } from "./main/services/close-prompt";
+import {
+    savedCloseAction,
+    setSavedCloseAction,
+    shouldHideDockIcon,
+} from "./main/services/store";
+import { detectTrayHost } from "./main/services/tray-host";
 import { createWatcher } from "./main/services/watch";
 import { userPreferences } from "./main/stores/user-preferences";
 import { registerStreamProtocol } from "./main/stream";
 import { isDev } from "./main/utils/electron";
+import type { SavedCloseAction } from "./types/ipc";
 
 // Closing normally hides the window so exports and folder watches keep running.
 // Quit paths set this flag to close it for real.
@@ -199,6 +206,10 @@ const createMainWindow = () => {
     window.on("close", (event) => {
         if (!shouldAllowWindowClose) {
             event.preventDefault();
+            if (process.platform == "linux") {
+                void handleLinuxWindowClose(window);
+                return false;
+            }
             // macOS also emits "hide" for occlusion, so change the Dock here only.
             if (shouldHideDockIcon()) {
                 app.dock?.hide();
@@ -299,6 +310,54 @@ const allowExternalLinks = (webContents: WebContents) =>
             return { action: "allow" };
         }
     });
+
+let isHandlingLinuxWindowClose = false;
+
+/**
+ * Hide to the tray when there is one. Without a tray (e.g. stock GNOME) a
+ * hidden window leaves an invisible, unreachable app, so ask instead.
+ */
+const handleLinuxWindowClose = async (window: BrowserWindow) => {
+    // Repeated close clicks must not stack D-Bus checks or dialogs.
+    if (isHandlingLinuxWindowClose) return;
+    isHandlingLinuxWindowClose = true;
+    try {
+        const savedAction = savedCloseAction();
+        if (savedAction) {
+            applyCloseAction(window, savedAction);
+            return;
+        }
+
+        const trayHost = await detectTrayHost();
+        if (trayHost != "absent") {
+            if (trayHost == "unknown") {
+                log.warn("Tray host unknown; hiding window on close");
+            }
+            window.hide();
+            return;
+        }
+
+        const { action, remember } = await showNoTrayCloseDialog(window);
+        if (action == "cancel") return;
+        if (remember) setSavedCloseAction(action);
+        applyCloseAction(window, action);
+    } catch (e) {
+        log.error("Failed to handle window close", e);
+        window.hide();
+    } finally {
+        isHandlingLinuxWindowClose = false;
+    }
+};
+
+const applyCloseAction = (window: BrowserWindow, action: SavedCloseAction) => {
+    if (action == "quit") {
+        log.info("Quitting on window close");
+        // before-quit saves window bounds and allows the window to close.
+        app.quit();
+    } else {
+        window.hide();
+    }
+};
 
 // Electron hides Stripe's beforeunload dialog, leaving an invisible modal that
 // wedges navigation and quit. Recreate the browser prompt ourselves.

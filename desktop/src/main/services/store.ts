@@ -1,5 +1,5 @@
 import { safeStorage } from "electron/main";
-import type { PersistedAppLockConfig } from "../../types/ipc";
+import type { PersistedAppLockConfig, SavedCloseAction } from "../../types/ipc";
 import { safeStorageStore } from "../stores/safe-storage";
 import { uploadStatusStore } from "../stores/upload-status";
 import { userPreferences } from "../stores/user-preferences";
@@ -97,3 +97,14 @@ export const shouldHideDockIcon = (): boolean =>
 
 export const setShouldHideDockIcon = (hide: boolean) =>
     userPreferences.set("hideDockIcon", hide);
+
+/**
+ * What closing the window should do on Linux when there is no tray icon, if
+ * the user chose "Remember my choice". `undefined` means ask each time.
+ */
+export const savedCloseAction = () => userPreferences.get("closeAction");
+
+export const setSavedCloseAction = (action: SavedCloseAction | undefined) =>
+    action
+        ? userPreferences.set("closeAction", action)
+        : userPreferences.delete("closeAction");

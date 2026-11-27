@@ -1,0 +1,1 @@
+- On Linux desktops without a system tray, closing the window now asks whether to quit Ente or keep it running in the background.

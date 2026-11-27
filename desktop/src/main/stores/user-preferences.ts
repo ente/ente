@@ -1,5 +1,5 @@
 import Store, { Schema } from "electron-store";
-import type { ThemeMode } from "../../types/ipc";
+import type { SavedCloseAction, ThemeMode } from "../../types/ipc";
 
 interface UserPreferences {
     hideDockIcon?: boolean;
@@ -9,6 +9,7 @@ interface UserPreferences {
     windowBounds?: { x: number; y: number; width: number; height: number };
     isWindowMaximized?: boolean;
     themeMode?: ThemeMode;
+    closeAction?: SavedCloseAction;
 }
 
 const userPreferencesSchema: Schema<UserPreferences> = {
@@ -26,6 +27,7 @@ const userPreferencesSchema: Schema<UserPreferences> = {
     },
     isWindowMaximized: { type: "boolean" },
     themeMode: { type: "string", enum: ["light", "dark", "system"] },
+    closeAction: { type: "string", enum: ["quit", "background"] },
 };
 
 export const userPreferences = new Store({
