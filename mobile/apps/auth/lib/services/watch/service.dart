@@ -188,7 +188,8 @@ class WatchService extends ChangeNotifier with WidgetsBindingObserver {
       }
       sortAuthCodes(codes, PreferenceService.instance.codeSortKey());
       final hideCodes = PreferenceService.instance.shouldHideCodes();
-      final supported = codes.where(WatchSnapshot.supports).toList();
+      final active = codes.where((code) => !code.hasError && !code.isTrashed);
+      final supported = active.where(WatchSnapshot.supports).toList();
       var count = supported.length;
       while (true) {
         final snapshot = WatchSnapshot.fromCodes(
@@ -203,13 +204,14 @@ class WatchService extends ChangeNotifier with WidgetsBindingObserver {
               'snapshot': snapshot.data,
             }),
           );
-          omittedCount = snapshot.omittedCount;
+          omittedCount =
+              snapshot.omittedCount + active.length - supported.length;
           heldCount = count;
           totalCount = supported.length;
           break;
         } on PlatformException catch (error) {
-          if (error.code != 'payloadTooLarge' || count < 10) rethrow;
-          count = count * 9 ~/ 10;
+          if (error.code != 'payloadTooLarge' || count <= 1) rethrow;
+          count = count * 19 ~/ 20;
         }
       }
       errorCode = null;

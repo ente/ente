@@ -212,9 +212,6 @@ Future<bool> _authenticate(BuildContext context) async {
 }
 
 String _errorMessage(String code) => switch (code) {
-  'wrongEnrollment' || 'staleVault' => pendingTranslation(
-    "Your account or watch changed. Open this page again.",
-  ),
   'phoneLocked' => pendingTranslation("Unlock Ente Auth, then try again."),
   _ => pendingTranslation(
     "Couldn't update your watch. Open Ente Auth on both devices and try again.",
