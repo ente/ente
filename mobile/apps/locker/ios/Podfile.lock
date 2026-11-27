@@ -227,7 +227,7 @@ SPEC CHECKSUMS:
   listen_sharing_intent: fe0b9a59913cc124dd6cbd55cd9f881de5f75759
   local_auth_darwin: c3ee6cce0a8d56be34c8ccb66ba31f7f180aaebb
   package_info_plus: af8e2ca6888548050f16fa2f1938db7b5a5df499
-  rive_native: a57df296c558867395bfe82fafe857ec67640f58
+  rive_native: c8fbe631855835dc84f7d59befcdb43de3ac48d4
   SDWebImage: e9c98383c7572d713c1a0d7dd2783b10599b9838
   Sentry: 2cbbe3592f30050c60e916c63c7f5a2fa584005e
   sentry_flutter: 9b1e3e6934cb7040ffb71383c95a35f73523180c
