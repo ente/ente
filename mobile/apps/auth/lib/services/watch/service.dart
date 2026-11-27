@@ -3,11 +3,9 @@ import 'dart:io';
 
 import 'package:ente_auth/core/configuration.dart';
 import 'package:ente_auth/events/codes_updated_event.dart';
-import 'package:ente_auth/models/code.dart';
 import 'package:ente_auth/models/watch/snapshot.dart';
 import 'package:ente_auth/models/watch/state.dart';
 import 'package:ente_auth/services/preference_service.dart';
-import 'package:ente_auth/services/watch/selection.dart';
 import 'package:ente_auth/store/code_store.dart';
 import 'package:ente_auth/utils/code_sort.dart';
 import 'package:ente_events/event_bus.dart';
@@ -19,7 +17,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class WatchService extends ChangeNotifier with WidgetsBindingObserver {
   WatchService._(this._preferences);
 
-  static const _preferenceKey = 'watchSelection';
+  static const _preferenceKey = 'watchScope';
   static const _channel = MethodChannel('io.ente.auth/watch');
   static const _events = EventChannel('io.ente.auth/watch/state');
   static WatchService? _instance;
@@ -36,22 +34,6 @@ class WatchService extends ChangeNotifier with WidgetsBindingObserver {
   static void appLockChanged(bool locked) => _instance?._setLocked(locked);
 
   static void scheduleRefresh() => _instance?._schedule();
-
-  static Future<void> onTagRenamed(String previousTag, String updatedTag) =>
-      _instance?._reconcileTagChange(
-        (tags) => tags.contains(previousTag)
-            ? ({...tags}
-                ..remove(previousTag)
-                ..add(updatedTag))
-            : null,
-      ) ??
-      Future.value();
-
-  static Future<void> onTagDeleted(String tag) =>
-      _instance?._reconcileTagChange(
-        (tags) => tags.contains(tag) ? ({...tags}..remove(tag)) : null,
-      ) ??
-      Future.value();
 
   static Future<void> clearBeforeLogout() async {
     if (_instance == null && !Platform.isIOS && !Platform.isAndroid) return;
@@ -79,7 +61,8 @@ class WatchService extends ChangeNotifier with WidgetsBindingObserver {
   WatchState state = const WatchState();
   String? errorCode;
   int omittedCount = 0;
-  WatchSelection? _selection;
+  int heldCount = 0;
+  int totalCount = 0;
   bool _available = false;
   bool get isPlatformSupported => _available;
   bool _locked = true;
@@ -89,36 +72,6 @@ class WatchService extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> _tail = Future.value();
   Timer? _debounce;
   Completer<void>? _resumed;
-
-  WatchSelection? get _currentSelection =>
-      _selection?.scope == vaultScope() && _selection?.epoch == state.vaultEpoch
-      ? _selection
-      : null;
-
-  WatchSharing? get sharing => _currentSelection?.watches[state.enrollmentID];
-
-  static Set<String> get sharedTags =>
-      _instance?._currentSelection?.watches.values
-          .where((sharing) => sharing.mode == WatchSharingMode.tags)
-          .expand((sharing) => sharing.tags)
-          .toSet() ??
-      const {};
-
-  static bool tagRenameExpandsSharing(
-    String previousTag,
-    String updatedTag, {
-    required bool destinationExists,
-  }) =>
-      _instance?._currentSelection?.watches.values.any(
-        (sharing) =>
-            sharing.mode == WatchSharingMode.tags &&
-            ((!sharing.tags.contains(previousTag) &&
-                    sharing.tags.contains(updatedTag)) ||
-                (destinationExists &&
-                    sharing.tags.contains(previousTag) &&
-                    !sharing.tags.contains(updatedTag))),
-      ) ??
-      false;
 
   Future<void> _start() async {
     _foreground =
@@ -209,11 +162,7 @@ class WatchService extends ChangeNotifier with WidgetsBindingObserver {
         await _clear();
         _pendingClear = false;
         _available = true;
-        if (state.vaultEpoch != null) {
-          await _save(
-            WatchSelection(scope: vaultScope(), epoch: state.vaultEpoch!),
-          );
-        }
+        await _saveScope(vaultScope());
         return;
       }
       _accept(await _call('state'));
@@ -228,33 +177,41 @@ class WatchService extends ChangeNotifier with WidgetsBindingObserver {
       }
       final id = state.enrollmentID!;
       final epoch = state.vaultEpoch!;
-      final sharing = this.sharing;
-      final codes = sharing == null
-          ? <Code>[]
-          : await CodeStore.instance.getAllCodes(requireCompleteRead: true);
-      if (sharing != null) await _preferences.reload();
+      final codes = await CodeStore.instance.getAllCodes(
+        requireCompleteRead: true,
+      );
+      await _preferences.reload();
       if (!_current(generation, scope) ||
           state.enrollmentID != id ||
           state.vaultEpoch != epoch) {
         return;
       }
-      var hideCodes = false;
-      if (sharing != null) {
-        sortAuthCodes(codes, PreferenceService.instance.codeSortKey());
-        hideCodes = PreferenceService.instance.shouldHideCodes();
+      sortAuthCodes(codes, PreferenceService.instance.codeSortKey());
+      final hideCodes = PreferenceService.instance.shouldHideCodes();
+      final supported = codes.where(WatchSnapshot.supports).toList();
+      var count = supported.length;
+      while (true) {
+        final snapshot = WatchSnapshot.fromCodes(
+          supported.take(count),
+          hideCodes: hideCodes,
+        );
+        try {
+          _accept(
+            await _call('publish', {
+              'enrollmentID': id,
+              'vaultEpoch': epoch,
+              'snapshot': snapshot.data,
+            }),
+          );
+          omittedCount = snapshot.omittedCount;
+          heldCount = count;
+          totalCount = supported.length;
+          break;
+        } on PlatformException catch (error) {
+          if (error.code != 'payloadTooLarge' || count < 10) rethrow;
+          count = count * 9 ~/ 10;
+        }
       }
-      final snapshot = WatchSnapshot.fromCodes(
-        sharing == null ? const [] : codes.where(sharing.includes),
-        hideCodes: hideCodes,
-      );
-      _accept(
-        await _call('publish', {
-          'enrollmentID': id,
-          'vaultEpoch': epoch,
-          'snapshot': snapshot.data,
-        }),
-      );
-      omittedCount = snapshot.omittedCount;
       errorCode = null;
       notifyListeners();
     } on PlatformException catch (error) {
@@ -270,36 +227,25 @@ class WatchService extends ChangeNotifier with WidgetsBindingObserver {
       generation == _generation &&
       scope == vaultScope();
 
-  Future<void> _save(WatchSelection selection) async {
-    if (!await _preferences.setString(_preferenceKey, selection.encode())) {
-      throw StateError('Could not save watch selection.');
+  Future<void> _saveScope(String scope) async {
+    if (!await _preferences.setString(_preferenceKey, scope)) {
+      throw StateError('Could not save watch scope.');
     }
-    _selection = selection;
-    notifyListeners();
   }
 
   Future<void> _reconcile() async {
     await _preferences.reload();
     final scope = vaultScope();
-    final stored = WatchSelection.decode(
-      _preferences.getString(_preferenceKey),
-    );
-    if (stored == null || stored.scope != scope) {
-      await _clear();
-      await _save(WatchSelection(scope: scope, epoch: state.vaultEpoch!));
-    } else if (stored.epoch != state.vaultEpoch) {
-      await _save(WatchSelection(scope: scope, epoch: state.vaultEpoch!));
-    } else {
-      _selection = stored;
-      notifyListeners();
-    }
+    if (_preferences.getString(_preferenceKey) == scope) return;
+    await _clear();
+    await _saveScope(scope);
   }
 
   static Future<WatchState> _clearNative(SharedPreferences preferences) async {
     Object? preferenceError;
     try {
       if (!await preferences.remove(_preferenceKey)) {
-        preferenceError = StateError('Could not clear watch selection.');
+        preferenceError = StateError('Could not clear watch scope.');
       }
     } on Object catch (error) {
       preferenceError = error;
@@ -310,8 +256,9 @@ class WatchService extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> _clear() async {
-    _selection = null;
     omittedCount = 0;
+    heldCount = 0;
+    totalCount = 0;
     _accept(await _clearNative(_preferences));
   }
 
@@ -329,85 +276,18 @@ class WatchService extends ChangeNotifier with WidgetsBindingObserver {
     });
   }
 
-  Future<void> share(WatchState target, String scope, WatchSharing sharing) =>
-      _enqueue(() async {
-        await _prepareChange(target, scope);
-        final enrollmentID = state.phase == WatchPhase.approval
-            ? state.requestID
-            : state.enrollmentID;
-        if (enrollmentID == null) {
-          throw PlatformException(code: 'wrongEnrollment');
-        }
-        if (state.phase == WatchPhase.approval) {
-          _accept(await _call('approve', {'enrollmentID': enrollmentID}));
-        }
-        if (scope != vaultScope() ||
-            target.vaultEpoch != state.vaultEpoch ||
-            !state.canPublish ||
-            state.enrollmentID != enrollmentID) {
-          throw PlatformException(code: 'wrongEnrollment');
-        }
-        if (_locked || !_foreground) {
-          throw PlatformException(code: 'phoneLocked');
-        }
-        await _save(
-          WatchSelection(
-            scope: _selection!.scope,
-            epoch: _selection!.epoch,
-            watches: {..._selection!.watches, enrollmentID: sharing},
-          ),
-        );
-        _schedule();
-      });
+  Future<void> approve(WatchState target, String scope) => _enqueue(() async {
+    await _prepareChange(target, scope);
+    if (state.phase != WatchPhase.approval) {
+      throw PlatformException(code: 'wrongEnrollment');
+    }
+    _accept(await _call('approve', {'enrollmentID': state.requestID}));
+    _schedule();
+  });
 
   Future<void> disable(WatchState target, String scope) => _enqueue(() async {
     await _prepareChange(target, scope);
     _accept(await _call('disable', {'enrollmentID': target.enrollmentID}));
-    await _save(
-      WatchSelection(
-        scope: _selection!.scope,
-        epoch: _selection!.epoch,
-        watches: {..._selection!.watches}..remove(target.enrollmentID),
-      ),
-    );
-  });
-
-  Future<void> _reconcileTagChange(
-    Set<String>? Function(Set<String> tags) updateTags,
-  ) => _enqueue(() async {
-    await _preferences.reload();
-    final scope = vaultScope();
-    final stored = WatchSelection.decode(
-      _preferences.getString(_preferenceKey),
-    );
-    final current = stored ?? _selection;
-    if (current == null || current.scope != scope) return;
-    if (state.vaultEpoch != null && current.epoch != state.vaultEpoch) return;
-    var changed = false;
-    final watches = <String, WatchSharing>{};
-    current.watches.forEach((watch, sharing) {
-      if (sharing.mode == WatchSharingMode.tags) {
-        final nextTags = updateTags(sharing.tags);
-        if (nextTags != null) {
-          changed = true;
-          watches[watch] = WatchSharing(
-            mode: WatchSharingMode.tags,
-            tags: nextTags,
-          );
-          return;
-        }
-      }
-      watches[watch] = sharing;
-    });
-    if (!changed) return;
-    await _save(
-      WatchSelection(
-        scope: current.scope,
-        epoch: current.epoch,
-        watches: watches,
-      ),
-    );
-    _schedule();
   });
 
   Future<void> _prepareChange(WatchState target, String scope) async {

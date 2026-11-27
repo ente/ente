@@ -1,8 +1,8 @@
 <resources>
     <string name="app_name">Ente Auth</string>
-    <string name="setup_instructions">Choose Set up watch, then approve this watch on your phone.</string>
-    <string name="approve_phone">Open Ente Auth → Settings → General → Watch on your phone to approve this watch.</string>
-    <string name="select_accounts">No shared accounts yet. Open Watch settings in Auth on your phone.</string>
+    <string name="setup_instructions">Tap Set up watch, then tap Share codes on your phone.</string>
+    <string name="approve_phone">On your phone, open Ente Auth → Settings → General → Watch and tap Share codes.</string>
+    <string name="no_accounts">No accounts yet. Add one in Ente Auth on your phone.</string>
     <string name="offline">Offline. Open both apps to sync changes.</string>
     <string name="unlock_watch">Set a watch screen lock. Lock and unlock your watch, then open this app again.</string>
     <string name="storage_failed">Cannot open watch storage. Erase watch data and set up again.</string>

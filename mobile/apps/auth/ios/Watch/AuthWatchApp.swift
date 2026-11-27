@@ -14,13 +14,14 @@ struct AuthWatchApp: App {
 private enum WatchStyle {
   static let accent = Color(red: 150 / 255, green: 16 / 255, blue: 214 / 255)
   static let warning = Color(red: 245 / 255, green: 158 / 255, blue: 11 / 255)
+  static let track = Color(white: 62 / 255)
 }
 
 private struct WatchHome: View {
   @ObservedObject var companion: WatchCompanion
   @Environment(\.scenePhase) private var scenePhase
   @Environment(\.isLuminanceReduced) private var dimmed
-  @State private var selectedTag: String?
+  @AppStorage("selectedTag") private var selectedTag: String?
   @State private var searchText = ""
 
   private var visible: Bool { scenePhase == .active && !dimmed }
@@ -60,9 +61,9 @@ private struct WatchHome: View {
               Text("Open Auth on your iPhone to start.").foregroundStyle(.secondary)
             }
           } else if !companion.status.active {
-            Text("On your iPhone, open Ente Auth → Settings → General → Watch to approve.")
+            Text("On your iPhone, open Ente Auth → Settings → General → Watch and tap Share codes.")
           } else if companion.entries.isEmpty {
-            Text("No shared accounts yet. Open Watch settings in Auth on your iPhone.")
+            Text("No accounts yet. Add one in Ente Auth on your iPhone.")
           }
           if !availableTags.isEmpty {
             TagFilterBar(tags: availableTags, selectedTag: $selectedTag)
@@ -195,9 +196,14 @@ private struct EntryRowLink: View {
             .foregroundStyle(isWarning ? WatchStyle.warning : .primary)
             .environment(\.layoutDirection, .leftToRight)
             .privacySensitive()
-          ProgressView(value: Double(remaining), total: Double(entry.period))
-            .tint(isWarning ? WatchStyle.warning : WatchStyle.accent)
-            .accessibilityHidden(true)
+            .padding(.bottom, 8)
+            .overlay(alignment: .bottom) {
+              Countdown(
+                shape: BarLine(), progress: Double(remaining) / Double(entry.period),
+                tint: isWarning ? WatchStyle.warning : WatchStyle.accent
+              )
+              .frame(height: 4)
+            }
         }
       }
     }
@@ -227,7 +233,7 @@ private struct WatchManagement: View {
         dismiss()
       }
     } message: {
-      Text("Your phone keeps its accounts. You must approve this watch again to sync codes.")
+      Text("Your phone keeps its accounts. Set up this watch again to get your codes back.")
     }
   }
 }
@@ -236,17 +242,10 @@ private struct CodeDetail: View {
   let entry: Entry
 
   var body: some View {
-    ScrollView {
-      if !entry.account.isEmpty {
-        Text(entry.account).font(.caption).foregroundStyle(.secondary)
-          .lineLimit(1).truncationMode(.middle)
-          .padding(.horizontal)
-      }
-      TimelineView(
-        .periodic(from: Date(timeIntervalSince1970: floor(Date().timeIntervalSince1970)), by: 1)
-      ) { timeline in
-        CodeDetailContent(entry: entry, date: timeline.date)
-      }
+    TimelineView(
+      .periodic(from: Date(timeIntervalSince1970: floor(Date().timeIntervalSince1970)), by: 1)
+    ) { timeline in
+      CodeDetailContent(entry: entry, date: timeline.date)
     }
     .navigationTitle(entry.issuer.isEmpty ? "Code" : entry.issuer)
     .privacySensitive()
@@ -262,36 +261,83 @@ private struct CodeDetailContent: View {
     let remaining = entry.period - seconds % entry.period
     let isWarning = remaining <= 5
     let code = (try? entry.code(at: date)) ?? "—"
+    let nextCode = (try? entry.code(at: date.addingTimeInterval(TimeInterval(entry.period)))) ?? "—"
 
-    VStack(spacing: 10) {
-      Text(formatCode(code))
-        .font(.system(.title2, design: .monospaced).bold())
-        .foregroundStyle(isWarning ? WatchStyle.warning : .primary)
-        .minimumScaleFactor(0.6).lineLimit(1)
-        .environment(\.layoutDirection, .leftToRight)
-        .privacySensitive()
-        .accessibilityLabel("Code")
-        .accessibilityValue(code.map(String.init).joined(separator: " "))
-      ProgressView(value: Double(remaining), total: Double(entry.period))
-        .tint(isWarning ? WatchStyle.warning : WatchStyle.accent)
-        .accessibilityHidden(true)
-      Text(remaining == 1 ? "1 second" : "\(remaining) seconds")
-        .font(.caption).foregroundStyle(.secondary)
-      if isWarning {
-        let nextCode =
-          (try? entry.code(at: date.addingTimeInterval(TimeInterval(entry.period)))) ?? "—"
-        Text("Next: \(formatCode(nextCode))")
-          .font(.caption.monospacedDigit())
-          .foregroundStyle(.secondary)
-          .environment(\.layoutDirection, .leftToRight)
-          .privacySensitive()
-          .accessibilityLabel("Next code \(nextCode.map(String.init).joined(separator: " "))")
+    GeometryReader { proxy in
+      ScrollView {
+        VStack(spacing: 8) {
+          if !entry.account.isEmpty {
+            Text(entry.account).font(.caption).foregroundStyle(.secondary)
+              .lineLimit(1).truncationMode(.middle)
+          }
+          Text(formatCode(code))
+            .font(.system(.title, design: .monospaced).bold())
+            .foregroundStyle(isWarning ? WatchStyle.warning : .primary)
+            .minimumScaleFactor(0.5).lineLimit(1)
+            .environment(\.layoutDirection, .leftToRight)
+            .privacySensitive()
+            .accessibilityLabel("Code")
+            .accessibilityValue(
+              "\(code.map(String.init).joined(separator: " ")), \(remaining == 1 ? "1 second" : "\(remaining) seconds")"
+            )
+          Text("Next: \(formatCode(nextCode))")
+            .font(.caption.monospacedDigit())
+            .foregroundStyle(isWarning ? .primary : .secondary)
+            .environment(\.layoutDirection, .leftToRight)
+            .privacySensitive()
+            .accessibilityLabel("Next code \(nextCode.map(String.init).joined(separator: " "))")
+        }
+        .padding(.horizontal)
+        .frame(maxWidth: .infinity, minHeight: proxy.size.height)
       }
     }
-    .padding(.horizontal)
-    .padding(.bottom, 16)
+    .containerBackground(for: .navigation) {
+      Countdown(
+        shape: ScreenEdge(), progress: Double(remaining) / Double(entry.period),
+        tint: isWarning ? WatchStyle.warning : WatchStyle.accent)
+    }
     .onChange(of: bucket) { _, _ in
       WKInterfaceDevice.current().play(.click)
     }
+  }
+}
+
+private struct Countdown<S: Shape>: View {
+  let shape: S
+  let progress: Double
+  let tint: Color
+
+  var body: some View {
+    let style = StrokeStyle(lineWidth: 4, lineCap: .round)
+    ZStack {
+      shape.stroke(WatchStyle.track, style: style)
+      shape.trim(from: 0, to: progress).stroke(tint, style: style)
+    }
+    .accessibilityHidden(true)
+  }
+}
+
+private struct BarLine: Shape {
+  func path(in rect: CGRect) -> Path {
+    Path { path in
+      path.move(to: CGPoint(x: rect.minX + 2, y: rect.midY))
+      path.addLine(to: CGPoint(x: rect.maxX - 2, y: rect.midY))
+    }
+  }
+}
+
+private struct ScreenEdge: Shape {
+  private static let cornerRadii: [Int: CGFloat] = [
+    162: 28.6, 176: 38.4, 184: 34.4, 187: 45.4, 198: 41.4, 205: 55.2, 208: 51.6, 211: 58,
+  ]
+  private static let inset: CGFloat = 3
+
+  func path(in rect: CGRect) -> Path {
+    let radius = (Self.cornerRadii[Int(rect.width)] ?? rect.width / 4) - Self.inset
+    let edge = RoundedRectangle(cornerRadius: radius, style: .continuous)
+      .path(in: rect.insetBy(dx: Self.inset, dy: Self.inset))
+    var path = edge.trimmedPath(from: 0.75, to: 1)
+    path.addPath(edge.trimmedPath(from: 0, to: 0.75))
+    return path
   }
 }

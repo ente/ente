@@ -1,6 +1,5 @@
 import 'package:ente_auth/models/code.dart';
 import 'package:ente_auth/services/authenticator_service.dart';
-import 'package:ente_auth/services/watch/service.dart';
 import 'package:ente_auth/store/code_store.dart';
 import 'package:ente_auth/utils/dialog_util.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
@@ -105,9 +104,7 @@ class CodeDisplayStore {
     await showChoiceActionSheet(
       context,
       title: l10n.deleteTagTitle,
-      body: WatchService.sharedTags.contains(tag)
-          ? '${l10n.deleteTagMessage}\n\n${pendingTranslation("Accounts with this tag will stop syncing to your watch.")}'
-          : l10n.deleteTagMessage,
+      body: l10n.deleteTagMessage,
       firstButtonLabel: l10n.delete,
       isCritical: true,
       firstButtonOnTap: () async {
@@ -127,7 +124,6 @@ class CodeDisplayStore {
         }
 
         final results = await Future.wait(tasks);
-        await WatchService.onTagDeleted(tag);
         if (results.any((r) => r != AddResult.duplicate) &&
             AuthenticatorService.instance.getAccountMode() ==
                 AccountMode.online) {
@@ -148,24 +144,6 @@ class CodeDisplayStore {
       onSubmit: (value) async {
         final updatedTag = value.trim();
         if (updatedTag.isEmpty || updatedTag == tag) return;
-        final destinationExists = (await getAllTags()).contains(updatedTag);
-        if (!context.mounted) return;
-        if (WatchService.tagRenameExpandsSharing(
-          tag,
-          updatedTag,
-          destinationExists: destinationExists,
-        )) {
-          await showChoiceActionSheet(
-            context,
-            title: context.strings.editTag,
-            body: pendingTranslation(
-              "Accounts with either tag will be shared with your watch.",
-            ),
-            firstButtonLabel: context.strings.save,
-            firstButtonOnTap: () => editTag(tag, updatedTag),
-          );
-          return;
-        }
         await editTag(tag, updatedTag);
       },
     );
@@ -198,7 +176,6 @@ class CodeDisplayStore {
     }
 
     final results = await Future.wait(tasks);
-    await WatchService.onTagRenamed(previousTag, updatedTag);
     if (results.any((r) => r != AddResult.duplicate) &&
         AuthenticatorService.instance.getAccountMode() == AccountMode.online) {
       AuthenticatorService.instance.onlineSync().ignore();
