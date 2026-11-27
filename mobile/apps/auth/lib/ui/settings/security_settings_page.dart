@@ -1,8 +1,8 @@
+import 'package:ente_account_settings/account_settings.dart';
 import 'package:ente_accounts/models/user_details.dart';
 import 'package:ente_accounts/pages/request_pwd_verification_page.dart';
 import 'package:ente_accounts/services/passkey_service.dart';
 import 'package:ente_accounts/services/user_service.dart';
-import 'package:ente_active_sessions/active_sessions.dart';
 import 'package:ente_auth/core/configuration.dart';
 import 'package:ente_auth/ui/settings/components/auth_settings_page_scaffold.dart';
 import 'package:ente_auth/utils/dialog_util.dart';

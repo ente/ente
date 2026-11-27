@@ -1,9 +1,9 @@
 import 'dart:async';
 
-import 'package:ente_account_deletion/src/account_deletion_settings.dart';
-import 'package:ente_account_deletion/src/ui/delete_account_bottom_actions.dart';
-import 'package:ente_account_deletion/src/ui/delete_account_confirmation_step.dart';
-import 'package:ente_account_deletion/src/ui/delete_account_reason_step.dart';
+import 'package:ente_account_settings/src/account_deletion_settings.dart';
+import 'package:ente_account_settings/src/ui/delete_account_bottom_actions.dart';
+import 'package:ente_account_settings/src/ui/delete_account_confirmation_step.dart';
+import 'package:ente_account_settings/src/ui/delete_account_reason_step.dart';
 import 'package:ente_components/ente_components.dart';
 import 'package:ente_frb/account_deletion.dart';
 import 'package:ente_strings/ente_strings.dart';

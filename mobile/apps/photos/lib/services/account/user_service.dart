@@ -2,7 +2,6 @@ import 'dart:async';
 import "dart:io";
 
 import 'package:dio/dio.dart';
-import "package:ente_active_sessions/active_sessions.dart";
 import "package:ente_base/models/accounts.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
@@ -42,7 +41,7 @@ import 'package:photos/utils/dialog_util.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import "package:uuid/uuid.dart";
 
-class UserService implements ActiveSessionsHost {
+class UserService {
   static const keyHasEnabledTwoFactor = "has_enabled_two_factor";
   static const keyUserDetails = "user_details";
   static const kReferralSource = "referral_source";
@@ -276,27 +275,6 @@ class UserService implements ActiveSessionsHost {
     return userDetails;
   }
 
-  @override
-  Future<List<ActiveSession>> listActiveSessions() async {
-    final response = await _gateway.getActiveSessions();
-    final token = _config.getToken();
-    return [
-      for (final session in response.sessions)
-        ActiveSession(
-          id: session.token,
-          isCurrent: session.isCurrentSession(token),
-          createdAt: session.creationTime,
-          lastUsedAt: session.lastUsedTime,
-          ip: session.ip,
-          userAgent: session.ua,
-          prettyUserAgent: session.prettyUA,
-        ),
-    ];
-  }
-
-  @override
-  Future<void> revokeActiveSession(String id) => _gateway.terminateSession(id);
-
   Future<void> leaveFamilyPlan() async {
     try {
       await _gateway.leaveFamilyPlan();
@@ -306,7 +284,6 @@ class UserService implements ActiveSessionsHost {
     }
   }
 
-  @override
   Future<void> logout(BuildContext context) async {
     try {
       await _gateway.logout();

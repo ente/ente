@@ -1,4 +1,4 @@
-import "package:ente_active_sessions/src/active_session.dart";
+import "package:ente_frb/active_sessions.dart";
 import "package:flutter/widgets.dart";
 
 abstract class ActiveSessionsHost {
@@ -6,5 +6,5 @@ abstract class ActiveSessionsHost {
 
   Future<void> revokeActiveSession(String id);
 
-  Future<void> logout(BuildContext context);
+  Future<void> logoutThisDevice(BuildContext context);
 }

@@ -12,8 +12,6 @@ dependencies:
   dio: 5.11.1
   dots_indicator: 4.0.1
   email_validator: 3.0.0
-  ente_active_sessions:
-    path: ../active_sessions
   ente_base:
     path: ../base
   ente_components:

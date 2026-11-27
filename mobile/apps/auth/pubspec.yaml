@@ -21,12 +21,10 @@ dependencies:
   dots_indicator: 4.0.1
   dotted_border: 3.1.0
   email_validator: 3.0.0
-  ente_account_deletion:
-    path: ../../packages/account_deletion
+  ente_account_settings:
+    path: ../../packages/account_settings
   ente_accounts:
     path: ../../packages/accounts
-  ente_active_sessions:
-    path: ../../packages/active_sessions
   ente_auth_frb:
     path: rust_builder
   ente_base:

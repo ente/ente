@@ -1,6 +1,5 @@
 import "package:dio/dio.dart";
 import "package:photos/core/network/endpoint_config.dart";
-import "package:photos/gateways/users/models/sessions.dart";
 import "package:photos/gateways/users/models/set_recovery_key_request.dart";
 import "package:photos/models/user_details.dart";
 
@@ -53,15 +52,6 @@ class UsersGateway {
       queryParameters: {"memoryCount": memoryCount},
     );
     return UserDetails.fromMap(response.data);
-  }
-
-  Future<Sessions> getActiveSessions() async {
-    final response = await _enteDio.get("/users/sessions");
-    return Sessions.fromMap(response.data);
-  }
-
-  Future<void> terminateSession(String token) async {
-    await _enteDio.delete("/users/session", queryParameters: {"token": token});
   }
 
   Future<void> logout() async {

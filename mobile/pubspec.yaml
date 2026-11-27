@@ -25,8 +25,7 @@ workspace:
   - apps/photos/plugins/ffmpeg
   - apps/photos/plugins/media_extension
   - packages/accounts
-  - packages/account_deletion
-  - packages/active_sessions
+  - packages/account_settings
   - packages/backup_exclusion
   - packages/base
   - packages/configuration

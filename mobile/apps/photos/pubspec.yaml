@@ -34,10 +34,8 @@ dependencies:
   dotted_border: 3.1.0
   email_validator: 3.0.0
   encrypt: 5.0.3
-  ente_account_deletion:
-    path: ../../packages/account_deletion
-  ente_active_sessions:
-    path: ../../packages/active_sessions
+  ente_account_settings:
+    path: ../../packages/account_settings
   ente_background_manager:
     path: plugins/ente_background_manager
   ente_base:

@@ -1,9 +1,9 @@
 import "dart:async";
 
-import "package:ente_active_sessions/src/active_session.dart";
-import "package:ente_active_sessions/src/active_sessions_host.dart";
-import "package:ente_active_sessions/src/active_sessions_settings.dart";
+import "package:ente_account_settings/src/active_sessions_host.dart";
+import "package:ente_account_settings/src/active_sessions_settings.dart";
 import "package:ente_components/ente_components.dart";
+import "package:ente_frb/active_sessions.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/material.dart";
@@ -163,7 +163,7 @@ class _ActiveSessionsPageState extends State<ActiveSessionsPage> {
               onTap: () async {
                 Navigator.of(sheetContext).pop();
                 if (session.isCurrent) {
-                  await _host.logout(context);
+                  await _host.logoutThisDevice(context);
                 } else {
                   await _terminateSession(session);
                 }

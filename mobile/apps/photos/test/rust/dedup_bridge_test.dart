@@ -5,7 +5,8 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:photos/src/rust/api/dedup_api.dart';
 import 'package:photos/src/rust/frb_generated.dart';
-import 'package:photos/src/rust/third_party/ente_frb_lib/session.dart';
+
+import 'rust_test_helpers.dart';
 
 void main() {
   final library = Platform.environment['ENTE_PHOTOS_FRB_LIBRARY'] ?? '';
@@ -52,7 +53,7 @@ void main() {
       expect(group.items.map((item) => item.fileIndex.toInt()), [0, 2]);
       expect(group.items.first.collectionIds.map((id) => id.toInt()), [11, 12]);
 
-      final session = _openTestSession(server.port);
+      final session = openTestSession(server.port);
       addTearDown(session.dispose);
       final events = await executeDuplicateRemoval(
         session: session,
@@ -121,21 +122,3 @@ void main() {
         : false,
   );
 }
-
-Session _openTestSession(int port) => openSession(
-  input: OpenSessionInput(
-    baseUrl: 'http://127.0.0.1:$port',
-    authToken: 'test-token',
-    userId: 1,
-    masterKey: Uint8List(32),
-    keyAttributes: const SessionKeyAttributes(
-      publicKey: 'pOCSkrZRwni5dyxWn1+puxPZBrRqtoyd+dwrRAn4ogk=',
-      encryptedSecretKey:
-          '+X2V/HMj8w3AXsDR/40cCYKhGG+xIjoYEY1fhrVki/8lsbbYnoppV9livaNsC7WX',
-      secretKeyDecryptionNonce: 'AgICAgICAgICAgICAgICAgICAgICAgIC',
-      recoveryKeyEncryptedWithMasterKey:
-          'jok1oUB0jgsas9Ske6QuwF0e3qieBz+U7/ls4H+8IvoAiqgtr2AGgrqU4SSFwV4F',
-      recoveryKeyDecryptionNonce: 'BAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE',
-    ),
-  ),
-);

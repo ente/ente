@@ -1,21 +1,25 @@
-import 'package:ente_account_deletion/account_deletion.dart';
+import 'package:ente_account_settings/account_settings.dart';
+import 'package:ente_accounts/services/user_service.dart';
 import 'package:ente_base/models/database.dart';
 import 'package:ente_configuration/base_configuration.dart';
 import 'package:ente_lock_screen/lock_screen_host.dart';
 import 'package:ente_lock_screen/lock_screen_settings.dart';
+import 'package:flutter/widgets.dart';
 import 'package:locker/services/authenticated_session.dart';
 import 'package:locker/services/collections/collections_service.dart';
 import 'package:locker/services/favorites_service.dart';
 import 'package:locker/services/files/offline/offline_file_storage.dart';
 import 'package:locker/src/rust/third_party/ente_frb_lib/account_deletion.dart'
     as account_deletion;
+import 'package:locker/src/rust/third_party/ente_frb_lib/active_sessions.dart'
+    as active_sessions;
 import 'package:locker/src/rust/third_party/ente_frb_lib/recovery.dart'
     as recovery;
 import 'package:logging/logging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Configuration extends BaseConfiguration
-    implements LockScreenHost, AccountDeletionHost {
+    implements LockScreenHost, AccountDeletionHost, ActiveSessionsHost {
   Configuration._privateConstructor();
 
   static final Configuration instance = Configuration._privateConstructor();
@@ -69,6 +73,18 @@ class Configuration extends BaseConfiguration
     reason: reason,
     feedback: feedback,
   );
+
+  @override
+  Future<List<ActiveSession>> listActiveSessions() =>
+      active_sessions.listActiveSessions(session: authenticatedSession());
+
+  @override
+  Future<void> revokeActiveSession(String id) => active_sessions
+      .revokeActiveSession(session: authenticatedSession(), id: id);
+
+  @override
+  Future<void> logoutThisDevice(BuildContext context) =>
+      UserService.instance.logout(context);
 
   @override
   String recoveryKeyToMnemonic(String recoveryKeyHex) =>

@@ -15,12 +15,10 @@ dependencies:
   dio: 5.11.1
   dots_indicator: 4.0.1
   dotted_border: 3.1.0
-  ente_account_deletion:
-    path: ../../packages/account_deletion
+  ente_account_settings:
+    path: ../../packages/account_settings
   ente_accounts:
     path: ../../packages/accounts
-  ente_active_sessions:
-    path: ../../packages/active_sessions
   ente_base:
     path: ../../packages/base
   ente_components:

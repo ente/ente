@@ -3,7 +3,6 @@ import "dart:io";
 
 import 'package:dio/dio.dart';
 import 'package:ente_accounts/models/errors.dart';
-import 'package:ente_accounts/models/sessions.dart';
 import 'package:ente_accounts/models/set_recovery_key_request.dart';
 import 'package:ente_accounts/models/user_details.dart';
 import 'package:ente_accounts/pages/login_page.dart';
@@ -15,7 +14,6 @@ import 'package:ente_accounts/pages/recovery_page.dart';
 import 'package:ente_accounts/pages/two_factor_authentication_page.dart';
 import 'package:ente_accounts/pages/two_factor_recovery_page.dart';
 import 'package:ente_accounts/services/install_source_handler.dart';
-import 'package:ente_active_sessions/active_sessions.dart';
 import 'package:ente_base/models/accounts.dart';
 import 'package:ente_base/models/key_attributes.dart';
 import 'package:ente_configuration/base_configuration.dart';
@@ -34,7 +32,7 @@ import 'package:logging/logging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import "package:uuid/uuid.dart";
 
-class UserService implements ActiveSessionsHost {
+class UserService {
   static const keyHasEnabledTwoFactor = "has_enabled_two_factor";
   static const keyUserDetails = "user_details";
   static const kReferralSource = "referral_source";
@@ -212,29 +210,6 @@ class UserService implements ActiveSessionsHost {
     return null;
   }
 
-  @override
-  Future<List<ActiveSession>> listActiveSessions() async {
-    final response = await _enteDio.get("/users/sessions");
-    final token = _config.getToken();
-    return [
-      for (final session in Sessions.fromMap(response.data).sessions)
-        ActiveSession(
-          id: session.token,
-          isCurrent: session.isCurrentSession(token),
-          createdAt: session.creationTime,
-          lastUsedAt: session.lastUsedTime,
-          ip: session.ip,
-          userAgent: session.ua,
-          prettyUserAgent: session.prettyUA,
-        ),
-    ];
-  }
-
-  @override
-  Future<void> revokeActiveSession(String id) async {
-    await _enteDio.delete("/users/session", queryParameters: {"token": id});
-  }
-
   Future<void> leaveFamilyPlan() async {
     try {
       await _enteDio.delete("/family/leave");
@@ -244,7 +219,6 @@ class UserService implements ActiveSessionsHost {
     }
   }
 
-  @override
   Future<void> logout(BuildContext context) async {
     try {
       final response = await _enteDio.post("/users/logout");

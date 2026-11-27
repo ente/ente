@@ -2,10 +2,9 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:adaptive_theme/adaptive_theme.dart';
-import 'package:ente_account_deletion/account_deletion.dart';
+import 'package:ente_account_settings/account_settings.dart';
 import 'package:ente_accounts/services/install_source_handler.dart';
 import 'package:ente_accounts/services/user_service.dart';
-import 'package:ente_active_sessions/active_sessions.dart';
 import 'package:ente_components/ente_components.dart' as components;
 import 'package:ente_crypto_api/ente_crypto_api.dart';
 import 'package:ente_crypto_dart_adapter/ente_crypto_dart_adapter.dart';
@@ -205,7 +204,7 @@ Future<void> _init(bool bool, {String? via}) async {
       hideAppContentDefault: true,
     );
     AccountDeletionSettings.instance.init(host: Configuration.instance);
-    ActiveSessionsSettings.instance.init(host: UserService.instance);
+    ActiveSessionsSettings.instance.init(host: Configuration.instance);
     await CollectionApiClient.instance.init();
     await CollectionService.instance.init(preferences);
     await FavoritesService.instance.init();

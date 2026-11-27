@@ -1,7 +1,7 @@
 import "dart:async";
 import "dart:typed_data";
 
-import "package:ente_active_sessions/active_sessions.dart";
+import "package:ente_account_settings/account_settings.dart";
 import "package:ente_components/ente_components.dart";
 import "package:ente_components/hugeicons.dart";
 import "package:ente_crypto/ente_crypto.dart";

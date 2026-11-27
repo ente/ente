@@ -1,4 +1,4 @@
-import 'package:ente_account_deletion/src/account_deletion_host.dart';
+import 'package:ente_account_settings/src/account_deletion_host.dart';
 
 class AccountDeletionSettings {
   AccountDeletionSettings._privateConstructor();

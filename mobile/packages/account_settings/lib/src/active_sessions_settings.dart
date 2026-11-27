@@ -1,4 +1,4 @@
-import "package:ente_active_sessions/src/active_sessions_host.dart";
+import "package:ente_account_settings/src/active_sessions_host.dart";
 
 class ActiveSessionsSettings {
   ActiveSessionsSettings._privateConstructor();
