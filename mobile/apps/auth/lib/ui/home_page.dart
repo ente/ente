@@ -115,6 +115,7 @@ class _HomePageState extends State<HomePage> {
   _multiSelectActionSubscription;
   String selectedTag = PreferenceService.instance.lastSelectedTag;
   final _tagChipKeys = <String?, GlobalKey>{};
+  double _swipeDistance = 0;
   bool _isTrashOpen = false;
   bool hasTrashedCodes = false;
   bool hasNonTrashedCodes = false;
@@ -1357,15 +1358,18 @@ class _HomePageState extends State<HomePage> {
 
   void _swipeTag(DragEndDetails details) {
     final velocity = details.primaryVelocity ?? 0;
-    if (velocity.abs() < 300 || _codeDisplayStore.isSelectionModeActive.value) {
-      return;
-    }
+    final motion = velocity.abs() >= 300
+        ? velocity
+        : _swipeDistance.abs() >= MediaQuery.sizeOf(context).width / 4
+        ? _swipeDistance
+        : 0.0;
+    if (motion == 0 || _codeDisplayStore.isSelectionModeActive.value) return;
     final filters = <String?>["", ...tags, if (hasTrashedCodes) null];
     final current = _isTrashOpen
         ? filters.length - 1
         : filters.indexOf(selectedTag);
     final forward =
-        (velocity < 0) != (Directionality.of(context) == TextDirection.rtl);
+        (motion < 0) != (Directionality.of(context) == TextDirection.rtl);
     final next = current + (forward ? 1 : -1);
     if (next < 0 || next >= filters.length) return;
     final filter = filters[next];
@@ -1848,6 +1852,12 @@ class _HomePageState extends State<HomePage> {
               child: GestureDetector(
                 behavior: HitTestBehavior.translucent,
                 supportedDevices: const {PointerDeviceKind.touch},
+                onHorizontalDragStart: showTagBar
+                    ? (_) => _swipeDistance = 0
+                    : null,
+                onHorizontalDragUpdate: showTagBar
+                    ? (details) => _swipeDistance += details.primaryDelta ?? 0
+                    : null,
                 onHorizontalDragEnd: showTagBar ? _swipeTag : null,
                 child: Builder(
                   builder: (context) {
