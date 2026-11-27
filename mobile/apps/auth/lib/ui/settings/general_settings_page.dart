@@ -42,7 +42,7 @@ class GeneralSettingsPage extends StatelessWidget {
           ),
           const SizedBox(height: Spacing.sm),
           SettingsItem(
-            title: l10n.watch,
+            title: pendingTranslation("Watch"),
             icon: HugeIcons.strokeRoundedWatch01,
             onTap: () =>
                 pushAuthSettingsPage(context, const WatchSettingsPage()),
