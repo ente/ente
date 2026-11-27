@@ -64,6 +64,7 @@ import 'package:ente_ui/components/buttons/models/button_type.dart';
 import 'package:ente_ui/components/loading_widget.dart';
 import 'package:ente_ui/pages/base_home_page.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart' as widgets;
@@ -113,6 +114,7 @@ class _HomePageState extends State<HomePage> {
   StreamSubscription<MultiSelectActionRequestedEvent>?
   _multiSelectActionSubscription;
   String selectedTag = PreferenceService.instance.lastSelectedTag;
+  final _tagChipKeys = <String?, GlobalKey>{};
   bool _isTrashOpen = false;
   bool hasTrashedCodes = false;
   bool hasNonTrashedCodes = false;
@@ -1350,6 +1352,40 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  GlobalKey _tagChipKey(String? filter) =>
+      _tagChipKeys.putIfAbsent(filter, GlobalKey.new);
+
+  void _swipeTag(DragEndDetails details) {
+    final velocity = details.primaryVelocity ?? 0;
+    if (velocity.abs() < 300 || _codeDisplayStore.isSelectionModeActive.value) {
+      return;
+    }
+    final filters = <String?>["", ...tags, if (hasTrashedCodes) null];
+    final current = _isTrashOpen
+        ? filters.length - 1
+        : filters.indexOf(selectedTag);
+    final forward =
+        (velocity < 0) != (Directionality.of(context) == TextDirection.rtl);
+    final next = current + (forward ? 1 : -1);
+    if (next < 0 || next >= filters.length) return;
+    final filter = filters[next];
+    setState(() {
+      selectedTag = filter ?? "";
+      _isTrashOpen = filter == null;
+    });
+    _applyFilteringAndRefresh();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final chip = _tagChipKeys[filter]?.currentContext;
+      if (chip != null) {
+        Scrollable.ensureVisible(
+          chip,
+          alignment: 0.5,
+          duration: Motion.standard,
+        );
+      }
+    });
+  }
+
   Future<void> _openEditTags() async {
     await Navigator.of(
       context,
@@ -1732,6 +1768,7 @@ class _HomePageState extends State<HomePage> {
         final chips = [
           if (showAllChip)
             Semantics(
+              key: _tagChipKey(""),
               identifier: 'auth_filter_all',
               child: TagChip(
                 label: l10n.all,
@@ -1747,6 +1784,7 @@ class _HomePageState extends State<HomePage> {
             ),
           for (final tag in tags)
             TagChip(
+              key: _tagChipKey(tag),
               label: tag,
               selected: selectedTag == tag,
               onTap: () {
@@ -1760,6 +1798,7 @@ class _HomePageState extends State<HomePage> {
             ),
           if (showTrashChip)
             Semantics(
+              key: _tagChipKey(null),
               identifier: 'auth_filter_trash',
               child: TagChip(
                 label: l10n.trash,
@@ -1787,13 +1826,14 @@ class _HomePageState extends State<HomePage> {
             ),
         ];
 
+        final showTagBar =
+            (tags.isNotEmpty || hasTrashedCodes) &&
+            (!anyCodeHasError || selectedTag.isNotEmpty || _isTrashOpen);
+
         final list = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if ((tags.isNotEmpty || hasTrashedCodes) &&
-                (!anyCodeHasError ||
-                    selectedTag.isNotEmpty ||
-                    _isTrashOpen)) ...[
+            if (showTagBar) ...[
               HorizontalScrollArea(
                 builder: (context, scrollController) => SingleChildScrollView(
                   controller: scrollController,
@@ -1805,77 +1845,84 @@ class _HomePageState extends State<HomePage> {
               const SizedBox(height: 8),
             ],
             Expanded(
-              child: Builder(
-                builder: (context) {
-                  if (showAllEmptyHint) {
-                    final textStyle =
-                        Theme.of(context).textTheme.bodyLarge ??
-                        Theme.of(context).textTheme.bodyMedium ??
-                        const TextStyle();
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 64.0),
-                      child: Center(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                          child: Text(
-                            l10n.allTabEmptyHint,
-                            textAlign: TextAlign.center,
-                            style: textStyle,
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                supportedDevices: const {PointerDeviceKind.touch},
+                onHorizontalDragEnd: showTagBar ? _swipeTag : null,
+                child: Builder(
+                  builder: (context) {
+                    if (showAllEmptyHint) {
+                      final textStyle =
+                          Theme.of(context).textTheme.bodyLarge ??
+                          Theme.of(context).textTheme.bodyMedium ??
+                          const TextStyle();
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 64.0),
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24.0,
+                            ),
+                            child: Text(
+                              l10n.allTabEmptyHint,
+                              textAlign: TextAlign.center,
+                              style: textStyle,
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  }
-                  final gridView = AlignedGridView.count(
-                    crossAxisCount: crossAxisCount,
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: EdgeInsets.only(bottom: gridBottomPadding),
-                    itemBuilder: ((context, index) {
-                      if (index == 0 && anyCodeHasError) {
-                        return CodeErrorWidget(
-                          errors:
-                              _allCodes
-                                  ?.where((element) => element.hasError)
-                                  .toList() ??
-                              [],
-                        );
-                      }
-                      final newIndex = index - indexOffset;
-
-                      final code = _filteredCodes[newIndex];
-
-                      return CodeWidget(
-                        key: ValueKey(
-                          '${code.hashCode}_${newIndex}_$_codeSortKey',
-                        ),
-                        code,
-                        isCompactMode: isCompactMode,
-                        sortKey: _codeSortKey,
-                        enableDesktopContextActions:
-                            PlatformDetector.isDesktop(),
-                        selectedCodesBuilder: _selectedCodesForContextMenu,
                       );
-                    }),
-                    itemCount: _filteredCodes.length + indexOffset,
-                  );
-
-                  if (PlatformDetector.isDesktop() && crossAxisCount > 1) {
-                    return GestureDetector(
-                      behavior: HitTestBehavior.translucent,
-                      onTapUp: (_) {
-                        if (_codeDisplayStore
-                            .selectedCodeIds
-                            .value
-                            .isNotEmpty) {
-                          _codeDisplayStore.clearSelection();
+                    }
+                    final gridView = AlignedGridView.count(
+                      crossAxisCount: crossAxisCount,
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: EdgeInsets.only(bottom: gridBottomPadding),
+                      itemBuilder: ((context, index) {
+                        if (index == 0 && anyCodeHasError) {
+                          return CodeErrorWidget(
+                            errors:
+                                _allCodes
+                                    ?.where((element) => element.hasError)
+                                    .toList() ??
+                                [],
+                          );
                         }
-                      },
-                      child: gridView,
-                    );
-                  }
+                        final newIndex = index - indexOffset;
 
-                  return gridView;
-                },
+                        final code = _filteredCodes[newIndex];
+
+                        return CodeWidget(
+                          key: ValueKey(
+                            '${code.hashCode}_${newIndex}_$_codeSortKey',
+                          ),
+                          code,
+                          isCompactMode: isCompactMode,
+                          sortKey: _codeSortKey,
+                          enableDesktopContextActions:
+                              PlatformDetector.isDesktop(),
+                          selectedCodesBuilder: _selectedCodesForContextMenu,
+                        );
+                      }),
+                      itemCount: _filteredCodes.length + indexOffset,
+                    );
+
+                    if (PlatformDetector.isDesktop() && crossAxisCount > 1) {
+                      return GestureDetector(
+                        behavior: HitTestBehavior.translucent,
+                        onTapUp: (_) {
+                          if (_codeDisplayStore
+                              .selectedCodeIds
+                              .value
+                              .isNotEmpty) {
+                            _codeDisplayStore.clearSelection();
+                          }
+                        },
+                        child: gridView,
+                      );
+                    }
+
+                    return gridView;
+                  },
+                ),
               ),
             ),
           ],

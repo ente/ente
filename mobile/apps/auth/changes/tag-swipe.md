@@ -1,0 +1,1 @@
+- Added swiping left or right on the code list to switch between tags.
