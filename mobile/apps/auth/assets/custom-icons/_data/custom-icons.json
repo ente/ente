@@ -1321,6 +1321,7 @@
     },
     {
       "title": "InstantOn",
+      "hex": "FFFFFF",
       "altNames": [
         "Aruba InstantOn",
         "HPE InstantOn"
@@ -2340,7 +2341,8 @@
       "hex": "488aec"
     },
     {
-      "title": "Rebrandly"
+      "title": "Rebrandly",
+      "hex": "FFFFFF"
     },
     {
       "title": "Recruit",
