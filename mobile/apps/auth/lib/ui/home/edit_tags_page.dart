@@ -42,7 +42,7 @@ class _EditTagsPageState extends State<EditTagsPage> {
     final counts = <String, int>{};
     for (final code in codes) {
       if (code.hasError || code.isTrashed) continue;
-      for (final tag in code.display.tags) {
+      for (final tag in code.display.tags.toSet()) {
         counts[tag] = (counts[tag] ?? 0) + 1;
       }
     }
