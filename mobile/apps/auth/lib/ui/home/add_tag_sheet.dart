@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:ente_auth/models/code.dart';
-import 'package:ente_auth/onboarding/model/tag_enums.dart';
 import 'package:ente_auth/onboarding/view/common/tag_chip.dart';
 import 'package:ente_auth/services/authenticator_service.dart';
 import 'package:ente_auth/store/code_display_store.dart';
@@ -190,10 +189,7 @@ class _AddTagSheetState extends State<AddTagSheet> {
                             );
                             return TagChip(
                               label: tag,
-                              action: TagChipAction.check,
-                              state: isSelected
-                                  ? TagChipState.selected
-                                  : TagChipState.unselected,
+                              selected: isSelected,
                               onTap: () {
                                 setState(() {
                                   if (isSelected) {
@@ -207,8 +203,7 @@ class _AddTagSheetState extends State<AddTagSheet> {
                           }),
                           TagChip(
                             label: context.strings.addNew,
-                            iconData: Icons.add,
-                            state: TagChipState.unselected,
+                            leading: const Icon(Icons.add),
                             onTap: _showCreateTagDialog,
                           ),
                         ],

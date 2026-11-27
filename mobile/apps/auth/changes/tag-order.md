@@ -1,0 +1,1 @@
+- Added an Edit tags page to reorder, rename and delete tags.

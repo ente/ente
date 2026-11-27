@@ -84,11 +84,13 @@ class TagChipComponent extends StatelessWidget {
     }
 
     children.add(
-      Text(
-        label,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyles.body.copyWith(color: color),
+      Flexible(
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyles.body.copyWith(color: color),
+        ),
       ),
     );
 
