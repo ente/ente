@@ -93,7 +93,7 @@ class CodeDisplayStore {
     for (final code in codes) {
       if (code.hasError) continue;
       if (code.isTrashed) continue;
-      tags.addAll(code.display.tags.where((tag) => tag.isNotEmpty));
+      tags.addAll(code.display.tags);
     }
     return orderTags(tags, PreferenceService.instance.tagOrder());
   }

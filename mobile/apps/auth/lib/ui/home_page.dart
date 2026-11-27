@@ -114,7 +114,7 @@ class _HomePageState extends State<HomePage> {
   StreamSubscription<MultiSelectActionRequestedEvent>?
   _multiSelectActionSubscription;
   String selectedTag = PreferenceService.instance.lastSelectedTag;
-  final _tagChipKeys = <String?, GlobalKey>{};
+  final _tagChipKeys = <Object, GlobalKey>{};
   double _swipeDistance = 0;
   bool _isTrashOpen = false;
   bool hasTrashedCodes = false;
@@ -1353,7 +1353,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  GlobalKey _tagChipKey(String? filter) =>
+  GlobalKey _tagChipKey(Object filter) =>
       _tagChipKeys.putIfAbsent(filter, GlobalKey.new);
 
   void _swipeTag(DragEndDetails details) {
@@ -1364,9 +1364,15 @@ class _HomePageState extends State<HomePage> {
         ? _swipeDistance
         : 0.0;
     if (motion == 0 || _codeDisplayStore.isSelectionModeActive.value) return;
-    final filters = <String?>["", ...tags, if (hasTrashedCodes) null];
+    final filters = <Object>[
+      #all,
+      ...tags.where((tag) => tag.isNotEmpty),
+      if (hasTrashedCodes) #trash,
+    ];
     final current = _isTrashOpen
         ? filters.length - 1
+        : selectedTag.isEmpty
+        ? 0
         : filters.indexOf(selectedTag);
     final forward =
         (motion < 0) != (Directionality.of(context) == TextDirection.rtl);
@@ -1374,8 +1380,8 @@ class _HomePageState extends State<HomePage> {
     if (next < 0 || next >= filters.length) return;
     final filter = filters[next];
     setState(() {
-      selectedTag = filter ?? "";
-      _isTrashOpen = filter == null;
+      selectedTag = filter is String ? filter : "";
+      _isTrashOpen = filter == #trash;
     });
     _applyFilteringAndRefresh();
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1772,7 +1778,7 @@ class _HomePageState extends State<HomePage> {
         final chips = [
           if (showAllChip)
             Semantics(
-              key: _tagChipKey(""),
+              key: _tagChipKey(#all),
               identifier: 'auth_filter_all',
               child: TagChip(
                 label: l10n.all,
@@ -1802,7 +1808,7 @@ class _HomePageState extends State<HomePage> {
             ),
           if (showTrashChip)
             Semantics(
-              key: _tagChipKey(null),
+              key: _tagChipKey(#trash),
               identifier: 'auth_filter_trash',
               child: TagChip(
                 label: l10n.trash,
