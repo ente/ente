@@ -50,10 +50,10 @@ class _WatchSettingsPageState extends State<WatchSettingsPage> {
         WatchPhase.unavailable =>
           Platform.isIOS
               ? pendingTranslation(
-                  "Needs iOS 17 and watchOS 10 or later, with Ente Auth installed on your Apple Watch.",
+                  "Needs iOS 17, watchOS 10 and Ente Auth on your Apple Watch.",
                 )
               : pendingTranslation(
-                  "Needs Android 8 and Wear OS 3 or later, with Google Play services and Ente Auth from Google Play on both devices.",
+                  "Needs Android 8, Wear OS 3 and Ente Auth from Google Play on both devices.",
                 ),
         WatchPhase.setup ||
         WatchPhase.retiring ||
@@ -61,19 +61,19 @@ class _WatchSettingsPageState extends State<WatchSettingsPage> {
           "Open Ente Auth on your watch and tap Set up watch.",
         ),
         WatchPhase.approval => pendingTranslation(
-          "Your watch is ready. It will keep a copy of all your codes for offline use.",
+          "Your watch will keep a copy of all your codes for offline use.",
         ),
         WatchPhase.pending || WatchPhase.synced => pendingTranslation(
           "Your codes are shared with this watch.",
         ),
         WatchPhase.failed => pendingTranslation(
-          "Couldn't update your watch. Keep Ente Auth open on both devices and try again.",
+          "Couldn't update your watch. Open Ente Auth on both devices and try again.",
         ),
         WatchPhase.replacement => pendingTranslation(
           "Another watch wants your codes. Stop sharing with this watch first.",
         ),
         WatchPhase.ambiguous => pendingTranslation(
-          "More than one watch is asking for your codes. Keep only the one you want nearby and try again.",
+          "More than one watch is asking. Keep only one nearby and try again.",
         ),
       };
       return AuthSettingsPageScaffold(
@@ -111,10 +111,10 @@ class _WatchSettingsPageState extends State<WatchSettingsPage> {
             Text(
               service.omittedCount == 1
                   ? pendingTranslation(
-                      "1 account couldn't be added to your watch. Check its settings.",
+                      "1 account couldn't be added to your watch.",
                     )
                   : pendingTranslation(
-                      "${service.omittedCount} accounts couldn't be added to your watch. Check their settings.",
+                      "${service.omittedCount} accounts couldn't be added to your watch.",
                     ),
               style: TextStyles.body.copyWith(color: colors.textLight),
             ),
@@ -144,7 +144,7 @@ class _WatchSettingsPageState extends State<WatchSettingsPage> {
             MenuGroupComponent(
               items: [
                 MenuComponent(
-                  title: pendingTranslation("Stop sharing with this watch"),
+                  title: pendingTranslation("Stop sharing"),
                   titleColor: warningColor,
                   showOnlyLoadingState: true,
                   onTap: busy && activeAction != _WatchAction.disable
@@ -217,6 +217,6 @@ String _errorMessage(String code) => switch (code) {
   ),
   'phoneLocked' => pendingTranslation("Unlock Ente Auth, then try again."),
   _ => pendingTranslation(
-    "Couldn't update your watch. Keep Ente Auth open on both devices and try again.",
+    "Couldn't update your watch. Open Ente Auth on both devices and try again.",
   ),
 };

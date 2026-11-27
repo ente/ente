@@ -5,8 +5,8 @@
     <string name="no_accounts">No accounts yet. Add one in Ente Auth on your phone.</string>
     <string name="offline">Offline. Open both apps to sync changes.</string>
     <string name="unlock_watch">Set a watch screen lock. Lock and unlock your watch, then open this app again.</string>
-    <string name="storage_failed">Cannot open watch storage. Erase watch data and set up again.</string>
-    <string name="sync_failed">Could not apply an update. Your saved codes are still available.</string>
+    <string name="storage_failed">Can\'t open watch storage. Erase watch data and set up again.</string>
+    <string name="sync_failed">Couldn\'t sync. Your saved codes still work.</string>
     <string name="connect_phone">Connect your phone and open Ente Auth on both devices.</string>
     <string name="setup">Set up watch</string>
     <string name="sync">Check for changes</string>
@@ -22,10 +22,10 @@
     <string name="pinned">Pinned</string>
     <string name="erase">Erase watch data</string>
     <string name="erase_title">Erase watch data?</string>
-    <string name="erase_description">This removes the codes from this watch. Your phone accounts remain available.</string>
+    <string name="erase_description">Your phone keeps its accounts.</string>
     <string name="erase_action">Erase</string>
-    <string name="secure_storage_unavailable">This watch cannot provide the protected storage required for offline codes.</string>
-    <string name="setup_failed">Could not set up this watch. Keep both apps open and try again.</string>
+    <string name="secure_storage_unavailable">This watch can\'t store codes securely.</string>
+    <string name="setup_failed">Couldn\'t set up this watch. Open Ente Auth on both devices and try again.</string>
     <plurals name="seconds_remaining">
         <item quantity="one">%1$d second</item>
         <item quantity="other">%1$d seconds</item>

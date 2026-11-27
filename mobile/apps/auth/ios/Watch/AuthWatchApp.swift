@@ -53,12 +53,12 @@ private struct WatchHome: View {
             Text(message(for: issue)).foregroundStyle(.secondary)
           }
           if companion.status.enrollment == nil {
-            Text("Keep codes on this watch for offline use. A watch passcode is required.")
+            Text("Use your codes offline on this watch. Needs a watch passcode.")
             Button("Set up watch", action: companion.enroll)
               .tint(WatchStyle.accent)
               .disabled(!companion.canEnroll)
             if !companion.canEnroll {
-              Text("Open Auth on your iPhone to start.").foregroundStyle(.secondary)
+              Text("Open Ente Auth on your iPhone first.").foregroundStyle(.secondary)
             }
           } else if !companion.status.active {
             Text("On your iPhone, open Ente Auth → Settings → General → Watch and tap Share codes.")
@@ -122,7 +122,7 @@ private struct WatchHome: View {
     switch issue {
     case .passcodeRequired: return "Set a passcode in watch Settings, then try again."
     case .unlockWatch: return "Unlock your watch to show codes."
-    case .syncFailed: return "Could not sync. Open Auth on your iPhone and try again."
+    case .syncFailed: return "Couldn't sync. Open Ente Auth on your iPhone and try again."
     }
   }
 }
@@ -233,7 +233,7 @@ private struct WatchManagement: View {
         dismiss()
       }
     } message: {
-      Text("Your phone keeps its accounts. Set up this watch again to get your codes back.")
+      Text("Your phone keeps its accounts.")
     }
   }
 }
