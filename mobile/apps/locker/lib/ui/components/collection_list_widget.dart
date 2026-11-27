@@ -92,7 +92,9 @@ class CollectionListWidget extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  collection.displayName ?? 'Unnamed Collection',
+                  collection.type == CollectionType.uncategorized
+                      ? context.strings.uncategorized
+                      : collection.displayName ?? 'Unnamed Collection',
                   style: TextStyles.body,
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,

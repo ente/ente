@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 import "package:photos/models/file/file.dart";
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
@@ -7,14 +8,13 @@ import "package:photos/ui/rewind/theme/rewind_motion.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
 import "package:photos/ui/rewind/widgets/rewind_layer.dart";
-import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
 import "package:photos/ui/rewind/widgets/rewind_rive.dart";
 import "package:photos/ui/rewind/widgets/rewind_spread.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
 
 class TopPercentPage extends RewindPage {
-  const TopPercentPage({required this.percent, required this.count});
+  TopPercentPage({required this.percent, required this.count});
 
   static const pageKey = "top_percent";
 
@@ -24,6 +24,8 @@ class TopPercentPage extends RewindPage {
 
   final int percent;
   final int count;
+
+  late final _crowdRive = rewindRiveWarm(RewindAssets.topPercent);
 
   @override
   String get key => pageKey;
@@ -35,10 +37,19 @@ class TopPercentPage extends RewindPage {
   @override
   List<EnteFile> get reelThumbnails => const [];
 
-  ({String trigger, Rect heroes}) get _variant => switch (percent) {
-    1 => (trigger: "top1", heroes: const Rect.fromLTRB(134, 142, 260, 251)),
-    <= 10 => (trigger: "top10", heroes: const Rect.fromLTRB(68, 137, 314, 266)),
-    _ => (trigger: "top25", heroes: const Rect.fromLTRB(68, 100, 314, 267)),
+  @override
+  Future<bool> warmUp() async {
+    await _crowdRive.value;
+    return true;
+  }
+
+  @override
+  void release() => _crowdRive.release();
+
+  String get _trigger => switch (percent) {
+    1 => "top1",
+    <= 10 => "top10",
+    _ => "top25",
   };
 
   @override
@@ -47,8 +58,8 @@ class TopPercentPage extends RewindPage {
     double position, {
     required bool isActive,
   }) {
+    final copy = RewindCopy.of(context);
     final small = percent >= 10;
-    final variant = _variant;
     return RewindShareable(
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -65,17 +76,18 @@ class TopPercentPage extends RewindPage {
                     position: position,
                     child: RewindSpread(
                       mirror: wide
-                          ? const RewindDucky(
+                          ? RewindDucky(
                               RewindAssets.topPercent,
                               stateMachine: "Top",
+                              warm: _crowdRive,
                             )
                           : const SizedBox.shrink(),
                       child: RewindDucky(
                         RewindAssets.topPercent,
                         stateMachine: "Top",
-                        play: variant.trigger,
+                        play: _trigger,
                         active: isActive,
-                        tap: (trigger: "tap", area: variant.heroes),
+                        warm: _crowdRive,
                       ),
                     ),
                   ),
@@ -86,10 +98,10 @@ class TopPercentPage extends RewindPage {
                       preset: RewindPreset.line,
                       active: isActive,
                       delayMs: _textDelayMs,
-                      child: Center(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
                         child: RewindVoice(
-                          you: "ACROSS ENTE, YOU’RE IN THE",
-                          me: "ACROSS ENTE, I’M IN THE",
+                          copy.topPercentKicker,
                           builder: (text) => Text(
                             text,
                             style: RewindTextStyles.display(17, height: 1.05),
@@ -109,7 +121,7 @@ class TopPercentPage extends RewindPage {
                       child: RewindFitWidth(
                         width: 340,
                         child: RewindOutlinedText(
-                          "TOP $percent%",
+                          copy.topPercent(percent),
                           style: RewindTextStyles.display(
                             small ? 85 : 95.144,
                             color: const Color(0xFFFFD525),
@@ -129,8 +141,7 @@ class TopPercentPage extends RewindPage {
                       active: isActive,
                       delayMs: _textDelayMs + 500,
                       child: Text(
-                        "${rewindCounted(count, "memory", "memories")} saved, "
-                        "and counting!",
+                        copy.memoriesSaved(count),
                         style: RewindTextStyles.body(19, height: 1.32),
                       ),
                     ),

@@ -5,6 +5,7 @@ import "package:ente_components/ente_components.dart";
 import "package:ente_components/hugeicons.dart";
 import "package:ente_strings/ente_strings.dart";
 import "package:flutter/foundation.dart" show ValueListenable;
+import "package:flutter/gestures.dart" show Drag;
 import "package:flutter/material.dart";
 import "package:flutter/rendering.dart" show ScrollDirection;
 import "package:photos/ui/viewer/gallery/state/gallery_boundaries_provider.dart";
@@ -51,7 +52,7 @@ class SelectionActionSheet extends StatefulWidget {
 
 class _SelectionActionSheetState extends State<SelectionActionSheet> {
   final _sheetController = DraggableScrollableController();
-  final _railController = ScrollController();
+  final _railController = _RailController();
   InheritedGalleryBoundaries? _boundaries;
   ScrollController? _galleryController;
   ValueNotifier<bool>? _galleryScrolling;
@@ -59,11 +60,13 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
   ScrollController? _actionsController;
   double? _minHeight;
   double? _railStartOffset;
+  double _railPageExtent = 0;
+  int _railTileCount = 0;
   double _minExtent = 0;
   double _maxExtent = 1;
   bool _isCollapsing = false;
 
-  static const _duration = Duration(milliseconds: 360);
+  static const _duration = Motion.slow;
 
   double get _reveal =>
       const Interval(0.15, 1, curve: Curves.easeOutCubic).transform(_expansion);
@@ -178,6 +181,7 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
   void _onSheetChanged() {
     if (!_sheetController.isAttached ||
         _sheetController.size <= _minExtent + 0.001) {
+      if (_railStartOffset != null) _settleRail();
       _railStartOffset = null;
       return;
     }
@@ -194,6 +198,17 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
     _railController.jumpTo(
       math.min(math.max(0.0, _railController.offset), offset),
     );
+  }
+
+  void _settleRail() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _railStartOffset != null || !_railController.hasClients) {
+        return;
+      }
+      (_railController.position as _RailPosition).settle(
+        animate: !MediaQuery.disableAnimationsOf(context),
+      );
+    });
   }
 
   void _reportMinHeight(double? height) {
@@ -272,7 +287,14 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
             media.textScaler.scale(TextStyles.mini.fontSize!) /
             TextStyles.mini.fontSize!;
         final minTileWidth = 64 * tileScale;
-        final railTileWidth = 84 * tileScale;
+        final railExtent = sheetWidth - Spacing.md + Spacing.xs;
+        final railPageTiles = math.max(
+          1,
+          (railExtent / (84 * tileScale + Spacing.xs) - 0.5).round(),
+        );
+        final railStride = railExtent / (railPageTiles + 0.5);
+        final railTileWidth = railStride - Spacing.xs;
+        final railPageExtent = railStride * railPageTiles;
         final gridWidth = sheetWidth - Spacing.md * 2;
         final availableColumns =
             isLandscape &&
@@ -364,6 +386,12 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
           for (final action in [...grid, if (minHeight < maxHeight) ...rows])
             _SheetAction(action: action, height: railHeight),
         ];
+        if (_railPageExtent != railPageExtent ||
+            _railTileCount != railTiles.length) {
+          _railPageExtent = railPageExtent;
+          _railTileCount = railTiles.length;
+          _settleRail();
+        }
         final keyedRailTiles = [
           for (final action in grid)
             _SheetAction(key: action.key, action: action, height: railHeight),
@@ -391,7 +419,7 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
                     : null,
                 snapAnimationDuration: MediaQuery.disableAnimationsOf(context)
                     ? const Duration(milliseconds: 1)
-                    : _duration,
+                    : null,
                 builder: (context, scrollController) {
                   _actionsController = _minExtent == _maxExtent
                       ? null
@@ -471,11 +499,16 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
                                         children: [
                                           if (progress < 1)
                                             IgnorePointer(
+                                              key: const ValueKey("rail"),
                                               ignoring: !collapsed,
                                               child: SizedBox(
                                                 height: railHeight,
                                                 child: ListView.separated(
                                                   controller: _railController,
+                                                  physics: _RailPagePhysics(
+                                                    pageExtent: () =>
+                                                        _railPageExtent,
+                                                  ),
                                                   scrollDirection:
                                                       Axis.horizontal,
                                                   padding:
@@ -509,6 +542,7 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
                                             ),
                                           if (!collapsed)
                                             IgnorePointer(
+                                              key: const ValueKey("grid"),
                                               ignoring: progress < 1,
                                               child: gridView,
                                             ),
@@ -659,6 +693,112 @@ class _SelectionActionSheetState extends State<SelectionActionSheet> {
         );
       },
     );
+  }
+}
+
+class _RailPagePhysics extends ScrollPhysics {
+  const _RailPagePhysics({required this.pageExtent, super.parent});
+
+  final ValueGetter<double> pageExtent;
+
+  double target(ScrollMetrics position, double velocity) {
+    final tolerance = toleranceFor(position);
+    final pageExtent = this.pageExtent();
+    final page = (position.pixels / pageExtent).floor();
+    final lower = page * pageExtent;
+    final upper = math.min((page + 1) * pageExtent, position.maxScrollExtent);
+    return (velocity > tolerance.velocity
+            ? upper
+            : velocity < -tolerance.velocity
+            ? lower
+            : position.pixels - lower < upper - position.pixels
+            ? lower
+            : upper)
+        .clamp(position.minScrollExtent, position.maxScrollExtent);
+  }
+
+  @override
+  _RailPagePhysics applyTo(ScrollPhysics? ancestor) =>
+      _RailPagePhysics(pageExtent: pageExtent, parent: buildParent(ancestor));
+
+  @override
+  Simulation? createBallisticSimulation(
+    ScrollMetrics position,
+    double velocity,
+  ) {
+    if ((position is _RailPosition && !position.paging) ||
+        (velocity <= 0 && position.pixels <= position.minScrollExtent) ||
+        (velocity >= 0 && position.pixels >= position.maxScrollExtent)) {
+      return super.createBallisticSimulation(position, velocity);
+    }
+    final tolerance = toleranceFor(position);
+    final target = this.target(position, velocity);
+    final distance = target - position.pixels;
+    if (distance.abs() < tolerance.distance) return null;
+    final spring = SpringDescription.withDampingRatio(
+      mass: 0.5,
+      stiffness: 300,
+      ratio: 1,
+    );
+    // A faster start would carry the spring past the page edge.
+    final maxSpeed = math.sqrt(spring.stiffness / spring.mass) * distance;
+    return ScrollSpringSimulation(
+      spring,
+      position.pixels,
+      target,
+      distance > 0
+          ? math.min(velocity, maxSpeed)
+          : math.max(velocity, maxSpeed),
+      tolerance: tolerance,
+    );
+  }
+}
+
+class _RailController extends ScrollController {
+  @override
+  ScrollPosition createScrollPosition(
+    ScrollPhysics physics,
+    ScrollContext context,
+    ScrollPosition? oldPosition,
+  ) => _RailPosition(
+    physics: physics,
+    context: context,
+    oldPosition: oldPosition,
+  );
+}
+
+class _RailPosition extends ScrollPositionWithSingleContext {
+  _RailPosition({
+    required super.physics,
+    required super.context,
+    super.oldPosition,
+  });
+
+  bool paging = false;
+
+  void settle({required bool animate}) {
+    if (!animate) return jumpTo((physics as _RailPagePhysics).target(this, 0));
+    paging = true;
+    goBallistic(0);
+  }
+
+  @override
+  void absorb(ScrollPosition other) {
+    super.absorb(other);
+    if (other is _RailPosition) paging = other.paging;
+  }
+
+  @override
+  Drag drag(DragStartDetails details, VoidCallback dragCancelCallback) {
+    // Semantic scroll actions arrive as drags without a pointer kind.
+    paging = details.kind != null;
+    return super.drag(details, dragCancelCallback);
+  }
+
+  @override
+  void goIdle() {
+    paging = false;
+    super.goIdle();
   }
 }
 

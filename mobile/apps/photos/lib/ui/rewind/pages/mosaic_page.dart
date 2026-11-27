@@ -8,6 +8,7 @@ import "package:flutter/services.dart";
 import "package:flutter_svg/flutter_svg.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/services/rewind/rewind_edition.dart";
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
@@ -18,7 +19,6 @@ import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_backdrop.dart";
 import "package:photos/ui/rewind/widgets/rewind_elapsed.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
-import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
 import "package:photos/ui/rewind/widgets/rewind_pixels.dart";
 import "package:photos/ui/rewind/widgets/rewind_reveal_layer.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
@@ -44,16 +44,17 @@ class MosaicPage extends RewindPage {
     required this.files,
     this.subject,
     this.subjectName,
+    this.familiar = false,
     this.bytes = rewindThumbnailBytes,
   });
 
   static const pageKey = "mosaic";
   static const minimumTiles = 120;
-  static const familiarFace = "A FAMILIAR FACE";
 
   final List<EnteFile> files;
   final Uint8List? subject;
   final String? subjectName;
+  final bool familiar;
   final RewindBytes bytes;
 
   var _isOnScreen = false;
@@ -97,6 +98,7 @@ class MosaicPage extends RewindPage {
       warm: _tiling,
       builder: (context, tiling) {
         final card = _card(
+          RewindCopy.of(context),
           position,
           isActive,
           tiling,
@@ -125,8 +127,10 @@ class MosaicPage extends RewindPage {
     );
   }
 
-  String _subjectLine(String self) =>
-      "${subject == null ? "${RewindEdition.year}" : subjectName?.toUpperCase() ?? self},";
+  String _subjectLine(RewindCopy copy, String self) {
+    final name = familiar ? copy.familiarFace : subjectName?.toUpperCase();
+    return "${subject == null ? "${RewindEdition.year}" : name ?? self},";
+  }
 
   static Widget _titleLine(String text) => RewindFitWidth(
     width: 342,
@@ -142,14 +146,13 @@ class MosaicPage extends RewindPage {
   );
 
   Widget _card(
+    RewindCopy copy,
     double position,
     bool isActive,
     _Tiling? tiling, {
     required Listenable? tagTaps,
   }) {
-    final count = tiling == null
-        ? null
-        : "IN ${rewindCounted(tiling.photos, "MOMENT", "MOMENTS")}.";
+    final count = tiling == null ? null : copy.mosaicMoments(tiling.photos);
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -158,7 +161,9 @@ class MosaicPage extends RewindPage {
           pattern: RewindStripes(Color(0xFFFF7638)),
         ),
         Semantics(
-          label: count == null ? null : "${_subjectLine("YOU")} $count",
+          label: count == null
+              ? null
+              : "${_subjectLine(copy, copy.mosaicSelf.you)} $count",
           child: ExcludeSemantics(
             child: RewindStage(
               children: [
@@ -188,15 +193,10 @@ class MosaicPage extends RewindPage {
                     active: isActive,
                     preset: RewindPreset.twinkle,
                     delayMs: sparkle.delayMs,
-                    child: RewindIdleLoop(
-                      idle: RewindIdle.twinkle,
-                      active: isActive,
-                      delayMs: sparkle.delayMs + 700,
-                      child: SvgPicture.file(
-                        RewindAssets.file(sparkle.asset),
-                        width: sparkle.rect.width,
-                        height: sparkle.rect.height,
-                      ),
+                    child: SvgPicture.file(
+                      RewindAssets.file(sparkle.asset),
+                      width: sparkle.rect.width,
+                      height: sparkle.rect.height,
                     ),
                   ),
                 if (count != null)
@@ -212,11 +212,10 @@ class MosaicPage extends RewindPage {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        RewindVoice(
-                          you: _subjectLine("YOU"),
-                          me: _subjectLine("ME"),
-                          builder: _titleLine,
-                        ),
+                        RewindVoice((
+                          you: _subjectLine(copy, copy.mosaicSelf.you),
+                          me: _subjectLine(copy, copy.mosaicSelf.me),
+                        ), builder: _titleLine),
                         _titleLine(count),
                       ],
                     ),
@@ -287,12 +286,15 @@ class _ExploreTag extends StatelessWidget {
                       ),
                       child: Center(
                         widthFactor: 1,
-                        child: Text(
-                          "Tap or pinch to explore",
-                          style: RewindTextStyles.display(
-                            17.794,
-                            color: RewindColors.ink,
-                            height: 1.15,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            RewindCopy.of(context).mosaicHint,
+                            style: RewindTextStyles.display(
+                              17.794,
+                              color: RewindColors.ink,
+                              height: 1.15,
+                            ),
                           ),
                         ),
                       ),

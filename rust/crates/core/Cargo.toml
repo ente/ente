@@ -33,7 +33,7 @@ reqwest = { workspace = true, features = ["stream", "gzip", "brotli"] }
 tokio = { workspace = true, features = ["time"] }
 
 [target.'cfg(target_os = "ios")'.dependencies]
-rustls = { version = "0.23.45", default-features = false, features = ["ring", "std", "tls12"] }
+rustls = { version = "0.23.46", default-features = false, features = ["ring", "std", "tls12"] }
 rustls-platform-verifier = "0.7.0"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]

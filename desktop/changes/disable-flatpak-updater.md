@@ -1,0 +1,1 @@
+- Disabled the built-in update check in Flatpak builds, since Flathub handles updates (@RajatX24)

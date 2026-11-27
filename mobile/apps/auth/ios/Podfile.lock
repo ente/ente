@@ -1,6 +1,7 @@
 PODS:
   - app_links (6.4.1):
     - Flutter
+  - AuthCore (1.0.0)
   - backup_exclusion (1.0.0):
     - Flutter
   - connectivity_plus (0.0.1):
@@ -125,6 +126,7 @@ PODS:
 
 DEPENDENCIES:
   - app_links (from `.symlinks/plugins/app_links/ios`)
+  - AuthCore (from `AuthCore`)
   - backup_exclusion (from `.symlinks/plugins/backup_exclusion/ios`)
   - connectivity_plus (from `.symlinks/plugins/connectivity_plus/ios`)
   - device_info_plus (from `.symlinks/plugins/device_info_plus/ios`)
@@ -166,6 +168,8 @@ SPEC REPOS:
 EXTERNAL SOURCES:
   app_links:
     :path: ".symlinks/plugins/app_links/ios"
+  AuthCore:
+    :path: AuthCore
   backup_exclusion:
     :path: ".symlinks/plugins/backup_exclusion/ios"
   connectivity_plus:
@@ -225,6 +229,7 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   app_links: 3dbc685f76b1693c66a6d9dd1e9ab6f73d97dc0a
+  AuthCore: 1c187b8e0e80f2dadd20da0b787c7f8e3e7b9983
   backup_exclusion: 4d22d4efd0f5bc0190c41502ed47ffa84eca0edb
   connectivity_plus: cb623214f4e1f6ef8fe7403d580fdad517d2f7dd
   device_info_plus: 21fcca2080fbcd348be798aa36c3e5ed849eefbe
@@ -260,6 +265,6 @@ SPEC CHECKSUMS:
   ua_client_hints: 64dff09b3f846e425fc1a8d174f264a64c5b76c6
   url_launcher_ios: 7a95fa5b60cc718a708b8f2966718e93db0cef1b
 
-PODFILE CHECKSUM: a65747ad82de7c2358d8a738a8ac05e680f531aa
+PODFILE CHECKSUM: fe6b6a6efa9f53afbaf17a32d70040595a281fc4
 
 COCOAPODS: 1.17.0

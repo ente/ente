@@ -1,1 +1,0 @@
-- Fixed Similar Images missing matches between newly processed photos and older photos, including matches missed by earlier cached results.

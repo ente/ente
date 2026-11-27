@@ -1,1 +1,0 @@
-- Photo selection actions now move smoothly as you expand them into a grid.

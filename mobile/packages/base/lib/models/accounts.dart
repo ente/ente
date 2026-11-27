@@ -11,6 +11,7 @@ export 'package:ente_frb/accounts.dart'
         AccountsError_IncorrectTotp,
         AccountsError_SrpNotConfigured,
         AccountsError_SessionExpired,
+        AccountsError_SessionInvalid,
         AuthResponse,
         SignupKeys,
         SrpAttributes,

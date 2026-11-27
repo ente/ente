@@ -1,0 +1,1 @@
+apply from: "../../../gradle/ente-android.gradle"

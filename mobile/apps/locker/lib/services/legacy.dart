@@ -17,10 +17,12 @@ class LockerLegacyApi implements LegacyApi {
   @override
   Future<void> addContact({
     required String email,
+    required String publicKey,
     required int recoveryNoticeInDays,
   }) => contact.addContact(
     session: authenticatedSession(),
     email: email,
+    publicKey: publicKey,
     recoveryNoticeInDays: recoveryNoticeInDays,
   );
 

@@ -1,1 +1,0 @@
-- Fixed editing uploaded media when its local original is unavailable.

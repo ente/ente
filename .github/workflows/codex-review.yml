@@ -154,6 +154,7 @@ jobs:
                       git diff --no-ext-diff --no-textconv ${{ steps.review-context.outputs.review-base }} ${{ github.event.pull_request.head.sha }}
 
                       Flag assertions that only check that behavior removed by this PR stays absent. Cite the removal.
+                      Flag new platform-independent business logic in client code that could live in rust/crates/, and new user-facing capabilities in rust/crates/ unavailable through rust/apps/cli/, unless the PR explains why.
 
                       Read "${{ runner.temp }}/pr-metadata.json" for the PR title, description, previous reviews, and comments from the author and repository collaborators.
                       Avoid repeating previously reported findings, but report fixed issues that have been reintroduced.

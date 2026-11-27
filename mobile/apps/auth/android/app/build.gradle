@@ -37,6 +37,8 @@ android {
 
     sourceSets {
         main.java.srcDirs += 'src/main/kotlin'
+        fdroid.java.srcDirs += 'src/noPlay/kotlin'
+        independent.java.srcDirs += 'src/noPlay/kotlin'
     }
 
     lintOptions {
@@ -129,5 +131,6 @@ flutter {
 }
 
 dependencies {
+    playstoreImplementation project(":auth-core")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }

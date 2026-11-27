@@ -17,6 +17,9 @@ import "package:photos/ui/device_picker/device_picker_selection.dart";
 import "package:photos/ui/viewer/gallery/gallery.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_files_inherited_widget.dart";
 
+typedef DevicePickerFileLoader =
+    Future<Map<String, EnteFile>> Function(List<String> localIDs);
+
 class DevicePickerGallery extends StatefulWidget {
   const DevicePickerGallery({
     super.key,
@@ -24,12 +27,14 @@ class DevicePickerGallery extends StatefulWidget {
     required this.footer,
     this.header,
     this.selectedFiles,
+    this.loadFiles,
   });
 
   final DevicePickerController model;
   final Widget footer;
   final Widget? header;
   final SelectedFiles? selectedFiles;
+  final DevicePickerFileLoader? loadFiles;
 
   @override
   State<DevicePickerGallery> createState() => _DevicePickerGalleryState();
@@ -110,7 +115,8 @@ class _DevicePickerGalleryState extends State<DevicePickerGallery> {
         .map((item) => item.id)
         .where((id) => !_resolvedIDs.contains(id))
         .toList();
-    final files = await widget.model.library.files(ids).catchError((
+    final loadFiles = widget.loadFiles ?? widget.model.library.files;
+    final files = await loadFiles(ids).catchError((
       Object error,
       StackTrace stack,
     ) {
@@ -122,9 +128,9 @@ class _DevicePickerGalleryState extends State<DevicePickerGallery> {
     if (!mounted) return FileLoadResult([], false);
     if (!identical(snapshot, _snapshot)) return _loadFiles();
     _resolvedIDs.addAll(ids);
-    if (widget.selectedFiles == null) {
+    if (widget.selectedFiles == null || widget.loadFiles != null) {
       _files.addAll(files);
-      _readSelection();
+      if (widget.selectedFiles == null) _readSelection();
     } else {
       for (final entry in files.entries) {
         _files[entry.key] = devicePickerFileFromAsset(
@@ -231,7 +237,7 @@ class _DevicePickerGalleryState extends State<DevicePickerGallery> {
               inSelectionMode: true,
               limitSelectionToOne: widget.model.selectionLimit == 1,
               showSelectAll:
-                  widget.selectedFiles == null &&
+                  (widget.selectedFiles == null || widget.loadFiles != null) &&
                   widget.model.selectionLimit != 1,
               disableSelection: widget.model.confirming,
               disablePinnedGroupHeader: true,

@@ -197,7 +197,7 @@ class _GroupHeaderWidgetState extends State<GroupHeaderWidget> {
     final groupFiles = widget.filesInGroup
         .where((file) => file is! DummyFile)
         .toSet();
-    if (isActionBarSelection && !selectedFiles.files.containsAll(groupFiles)) {
+    if (isActionBarSelection && !selectedFiles.areAllSelected(groupFiles)) {
       final confirmed = await confirmIfLargeSelection(
         context,
         groupFiles.length,
@@ -239,11 +239,11 @@ class _GroupHeaderWidgetState extends State<GroupHeaderWidget> {
 
   bool _areAllFromGroupSelected() {
     if (widget.allSelectedOverride != null) return widget.allSelectedOverride!;
-    final selectedFiles = widget.selectedFiles?.files;
-    if (selectedFiles == null || selectedFiles.isEmpty) return false;
-    return widget.filesInGroup
-        .where((file) => file is! DummyFile)
-        .every(selectedFiles.contains);
+    final selectedFiles = widget.selectedFiles;
+    if (selectedFiles == null || selectedFiles.files.isEmpty) return false;
+    return selectedFiles.areAllSelected(
+      widget.filesInGroup.where((file) => file is! DummyFile),
+    );
   }
 
   void _showLayoutSettingsOverflowMenu(BuildContext context) {

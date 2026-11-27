@@ -2,7 +2,9 @@ import "dart:math";
 
 import "package:flutter/material.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
+import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
 import "package:photos/ui/rewind/theme/rewind_assets.dart";
 import "package:photos/ui/rewind/theme/rewind_colors.dart";
@@ -14,161 +16,6 @@ import "package:photos/ui/rewind/widgets/rewind_rive.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_svg.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
-
-typedef _BadgeCopy = ({String title, String pronunciation, String definition});
-
-_BadgeCopy _copyOf(rust.RewindBadge badge) => switch (badge) {
-  rust.RewindBadge.sunChaser => (
-    title: "SUN CHASER",
-    pronunciation: "/ˈsən ˌchā-sər/",
-    definition:
-        "Someone who drops everything the second the sky turns pink. Golden hour is their love language.",
-  ),
-  rust.RewindBadge.consistencyChamp => (
-    title: "CONSISTENCY\nCHAMP",
-    pronunciation: "/kən-ˈsis-tən-sē champ/",
-    definition:
-        "Someone who showed up for their camera roll every single month. Rain, shine or Tuesday.",
-  ),
-  rust.RewindBadge.unpaidPhotographer => (
-    title: "UNPAID\nPHOTOGRAPHER",
-    pronunciation: "/ən-ˈpād fə-ˈtä-grə-fər/",
-    definition:
-        "The reason the group chat has any photos at all. Shares albums, asks for nothing, deserves everything.",
-  ),
-  rust.RewindBadge.mainCharacter => (
-    title: "MAIN\nCHARACTER",
-    pronunciation: "/ˈmān ˈker-ik-tər/",
-    definition:
-        "The star of their own story, and what a story it was. Every scene was better with them in it.",
-  ),
-  rust.RewindBadge.earlyBird => (
-    title: "EARLY BIRD",
-    pronunciation: "/ˈər-lē ˈbərd/",
-    definition:
-        "Someone who’s caught a sunrise, a coffee and a whole adventure before anyone else’s alarm goes off.",
-  ),
-  rust.RewindBadge.nightOwl => (
-    title: "NIGHT OWL",
-    pronunciation: "/ˈnīt ˌau̇l/",
-    definition:
-        "Someone who comes alive after dark. Their camera roll has a nightlife, and it’s thriving.",
-  ),
-  rust.RewindBadge.weekendStar => (
-    title: "WEEKEND STAR",
-    pronunciation: "/ˈwēk-end ˈstär/",
-    definition:
-        "Someone who saves their best material for the weekend. Monday to Friday is just rehearsal.",
-  ),
-  rust.RewindBadge.pawparazzi => (
-    title: "PAWPARAZZI",
-    pronunciation: "/ˌpȯ-pə-ˈrät-sē/",
-    definition:
-        "Someone whose pet has had more photoshoots than most celebrities. Every yawn is a cover shot.",
-  ),
-  rust.RewindBadge.foodie => (
-    title: "FOODIE",
-    pronunciation: "/ˈfü-dē/",
-    definition:
-        "Someone whose phone always eats first. Every meal gets a photoshoot, and every meal deserves one.",
-  ),
-  rust.RewindBadge.plantParent => (
-    title: "PLANT PARENT",
-    pronunciation: "/ˈplant ˌper-ənt/",
-    definition:
-        "Someone who has never walked past a pretty flower without saying hi. Proud parent to every leaf they meet.",
-  ),
-  rust.RewindBadge.buildingBuff => (
-    title: "BUILDING BUFF",
-    pronunciation: "/ˈbil-diŋ ˈbəf/",
-    definition:
-        "Someone who looks up while everyone else looks down. Never met a cool doorway they didn’t photograph.",
-  ),
-  rust.RewindBadge.screenshotCollector => (
-    title: "SCREENSHOT\nCOLLECTOR",
-    pronunciation: "/ˈskrēn-ˌshät kə-ˈlek-tər/",
-    definition:
-        "The keeper of receipts, recipes and everything worth remembering. If it was on a screen, it’s safe with them.",
-  ),
-  rust.RewindBadge.hobbyHopper => (
-    title: "HOBBY HOPPER",
-    pronunciation: "/ˈhä-bē ˈhä-pər/",
-    definition:
-        "Someone with a new passion every season and the photos to prove it. Jack of all trades, master of fun.",
-  ),
-  rust.RewindBadge.indoorKid => (
-    title: "INDOOR KID",
-    pronunciation: "/ˈin-dȯr ˈkid/",
-    definition:
-        "Someone who has mastered the art of cozy. The best moments happen at home, with the best people.",
-  ),
-  rust.RewindBadge.outOfOffice => (
-    title: "OUT OF OFFICE",
-    pronunciation: "/ˈau̇t əv ˈȯ-fəs/",
-    definition:
-        "Someone whose auto-reply did a lot of work this year. Home is wherever the next adventure is.",
-  ),
-  rust.RewindBadge.fullThrottle => (
-    title: "FULL THROTTLE",
-    pronunciation: "/ˈfu̇l ˈthrä-tᵊl/",
-    definition:
-        "Someone who doesn’t do “sit still”. If there’s a game, a trail or a finish line, they’re in it.",
-  ),
-  rust.RewindBadge.eventHopper => (
-    title: "EVENT HOPPER",
-    pronunciation: "/i-ˈvent ˈhä-pər/",
-    definition:
-        "The friend with the best calendar. Concerts, parties, festivals. If it was happening, they were there.",
-  ),
-  rust.RewindBadge.alwaysRolling => (
-    title: "ALWAYS\nROLLING",
-    pronunciation: "/ˈȯl-wāz ˈrō-liŋ/",
-    definition:
-        "Someone who doesn’t take photos, they take scenes. Hits record first, asks questions later.",
-  ),
-  rust.RewindBadge.fitCheck => (
-    title: "FIT CHECK",
-    pronunciation: "/ˈfit ˌchek/",
-    definition:
-        "Someone who never wastes a good outfit. Every look gets documented, and every look deserves to be.",
-  ),
-  rust.RewindBadge.artLover => (
-    title: "ART LOVER",
-    pronunciation: "/ˈärt ˈlə-vər/",
-    definition:
-        "Someone who can’t walk past a mural without stopping. Turns every gallery and street corner into a date.",
-  ),
-  rust.RewindBadge.limitedEdition => (
-    title: "LIMITED\nEDITION",
-    pronunciation: "/ˈli-mə-təd i-ˈdi-shən/",
-    definition:
-        "Someone who doesn’t snap everything, just the good stuff. Rare, hand-picked and worth every frame.",
-  ),
-  rust.RewindBadge.happySnapper => (
-    title: "HAPPY SNAPPER",
-    pronunciation: "/ˈha-pē ˈsna-pər/",
-    definition:
-        "Someone who photographs everything, because everything is worth it. No theme, no rules, all joy.",
-  ),
-  rust.RewindBadge.openingCredits => (
-    title: "OPENING\nCREDITS",
-    pronunciation: "/ˈō-pə-niŋ ˈkre-dits/",
-    definition:
-        "Someone whose story is just getting started. If this is the opening scene, the rest is going to be epic.",
-  ),
-  rust.RewindBadge.guestStar => (
-    title: "GUEST STAR",
-    pronunciation: "/ˈgest ˌstär/",
-    definition:
-        "Someone who saves their camera for the big days, and then steals the show. Every appearance is an event.",
-  ),
-  rust.RewindBadge.mixedBag => (
-    title: "MIXED BAG",
-    pronunciation: "/ˈmikst ˈbag/",
-    definition:
-        "Someone who can’t be put in a box. A little bit of everything, a whole lot of personality.",
-  ),
-};
 
 class BadgeRevealPage extends RewindPage {
   const BadgeRevealPage(this.badge);
@@ -198,8 +45,9 @@ class BadgeRevealPage extends RewindPage {
     double position, {
     required bool isActive,
   }) {
-    final copy = _copyOf(badge.id);
-    final title = copy.title.replaceAll("\n", " ");
+    final copy = RewindCopy.of(context);
+    final entry = copy.badge(badge.id);
+    final title = entry.title.replaceAll("\n", " ");
     final trigger = badge.id.name.replaceAllMapped(
       RegExp("[A-Z]"),
       (match) => "_${match[0]!.toLowerCase()}",
@@ -261,9 +109,9 @@ class BadgeRevealPage extends RewindPage {
                   position: position,
                   centerY: _badgeCenter.dy,
                   child: Semantics(
-                    label: "$title badge",
+                    label: copy.badgeLabel(title),
                     button: true,
-                    hint: "Double tap to flip it again",
+                    hint: copy.badgeHint,
                     child: OverflowBox(
                       maxWidth: 547.4,
                       maxHeight: 608.2,
@@ -278,7 +126,9 @@ class BadgeRevealPage extends RewindPage {
                 width: 324,
                 child: Builder(
                   builder: (context) => Visibility(
-                    visible: RewindShareable.capturing(context),
+                    visible:
+                        RewindShareable.capturing(context) ||
+                        RewindPageScope.reelOf(context),
                     maintainState: true,
                     maintainAnimation: true,
                     maintainSize: true,
@@ -287,7 +137,7 @@ class BadgeRevealPage extends RewindPage {
                       centerY: 141,
                       child: Semantics(
                         header: true,
-                        label: "What my photos say about me",
+                        label: copy.badgeHeadingLabel,
                         child: ExcludeSemantics(
                           child: RewindEntrance(
                             preset: RewindPreset.rise,
@@ -296,7 +146,7 @@ class BadgeRevealPage extends RewindPage {
                               width: 324,
                               alignment: Alignment.topCenter,
                               child: Text(
-                                "WHAT MY PHOTOS\nSAY ABOUT ME",
+                                copy.badgeHeading,
                                 textAlign: TextAlign.center,
                                 style: RewindTextStyles.display(
                                   26,
@@ -320,15 +170,17 @@ class BadgeRevealPage extends RewindPage {
                   child: CustomSingleChildLayout(
                     delegate: _PlaqueLayout(bottom: 768 - max(0, inset - 12)),
                     child: Semantics(
-                      label: "$title. ${copy.definition}",
+                      label: "$title. ${entry.definition}",
                       child: ExcludeSemantics(
                         child: RewindEntrance(
                           preset: RewindPreset.slap,
                           active: isActive,
                           delayMs: 1350,
                           child: _Plaque(
-                            pronunciation: "${copy.pronunciation} · noun",
-                            definition: copy.definition,
+                            pronunciation: copy.badgePronunciation(
+                              entry.pronunciation,
+                            ),
+                            definition: entry.definition,
                           ),
                         ),
                       ),

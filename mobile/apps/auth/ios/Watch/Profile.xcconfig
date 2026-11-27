@@ -1,0 +1,2 @@
+#include? "../Pods/Target Support Files/Pods-AuthWatch/Pods-AuthWatch.profile.xcconfig"
+#include "Watch.xcconfig"

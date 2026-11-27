@@ -244,7 +244,9 @@ pub(super) fn command_clauses<'a>(text: &'a str, todos: &[Todo]) -> Vec<CommandC
             named.iter().any(|range| {
                 range.start < start
                     && range.end >= start + at + command.len()
-                    && (range.end >= end || content_words(&text[range.end..end]).is_empty())
+                    && (range.end >= end
+                        || (content_words(&text[range.end..end]).is_empty()
+                            && !super::timing::mentions_time(&text[range.end..end])))
             })
         });
         parsed.push(CommandClause {
@@ -426,6 +428,19 @@ mod tests {
         assert!(!has_search_words("To Dos"));
         assert!(has_search_words("dos"));
         assert!(has_search_words("dos libros"));
+    }
+
+    #[test]
+    fn time_qualifier_distinguishes_a_save_from_a_task_title() {
+        let mut task = todo("Research and save passwords");
+        task.completed_at_ms = Some(1);
+        for (suffix, in_title) in [("", true), (" please", true), (" today", false)] {
+            let input = format!("List research and save passwords{suffix}");
+            let clauses = command_clauses(&input, std::slice::from_ref(&task));
+            assert_eq!(clauses.len(), 2);
+            assert_eq!(clauses[1].text.trim(), format!("save passwords{suffix}"));
+            assert_eq!(clauses[1].in_title, in_title, "{input}");
+        }
     }
 
     #[test]

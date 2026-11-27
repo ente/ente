@@ -1,6 +1,7 @@
+use ente_ensu::tools::turn as tool_turn;
 use std::collections::HashMap;
 
-use ente_ensu::{db, todo};
+use ente_ensu::todo;
 
 use crate::db::{DbError, DbMessage, EnsuDb, parse_uuid};
 
@@ -56,9 +57,9 @@ pub struct ToolTurnStatus {
     pub can_retry: bool,
 }
 
-impl From<db::chat::ToolTurnState> for ToolTurnStatus {
-    fn from(state: db::chat::ToolTurnState) -> Self {
-        use db::chat::{Confirm, Undo};
+impl From<tool_turn::ToolTurnState> for ToolTurnStatus {
+    fn from(state: tool_turn::ToolTurnState) -> Self {
+        use tool_turn::{Confirm, Undo};
         Self {
             undo: match state.undo {
                 Undo::None => ToolTurnUndo::None,
@@ -127,20 +128,18 @@ impl EnsuDb {
     }
 
     pub fn confirm_tool_turn(&self, reply_id: String) -> Result<ToolTurnStatus, DbError> {
-        Ok(self.inner.confirm_tool_turn(parse_uuid(&reply_id)?)?.into())
+        Ok(tool_turn::confirm(&self.inner, parse_uuid(&reply_id)?)?.into())
     }
 
     pub fn undo_tool_turn(&self, reply_id: String) -> Result<ToolTurnStatus, DbError> {
-        Ok(self.inner.undo_tool_turn(parse_uuid(&reply_id)?)?.into())
+        Ok(tool_turn::undo(&self.inner, parse_uuid(&reply_id)?)?.into())
     }
 
     pub fn tool_turn_statuses(
         &self,
         session_id: String,
     ) -> Result<HashMap<String, ToolTurnStatus>, DbError> {
-        Ok(self
-            .inner
-            .tool_turn_states(parse_uuid(&session_id)?)?
+        Ok(tool_turn::states(&self.inner, parse_uuid(&session_id)?)?
             .into_iter()
             .map(|(reply, state)| (reply.to_string(), state.into()))
             .collect())

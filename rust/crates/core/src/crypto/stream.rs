@@ -229,15 +229,6 @@ impl<W: Write> StreamingEncryptor<W> {
     }
 }
 
-pub struct StreamingDecryptor<R: Read> {
-    decryptor: Decryptor,
-    reader: R,
-    buffer: Vec<u8>,
-    data_start: usize,
-    finished: bool,
-    seen_final: bool,
-}
-
 pub struct DecryptingWriter<W: Write> {
     decryptor: Decryptor,
     writer: W,
@@ -294,107 +285,6 @@ fn ensure_reader_exhausted<R: Read>(reader: &mut R) -> Result<()> {
             Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
             Err(e) => return Err(e.into()),
         }
-    }
-}
-
-impl<R: Read> StreamingDecryptor<R> {
-    pub fn new(key: &Key, mut reader: R) -> Result<Self> {
-        let mut header = [0u8; Header::BYTES];
-        reader.read_exact(&mut header)?;
-        let decryptor = Decryptor::new(&Header::from_bytes(header), key);
-        Ok(Self {
-            decryptor,
-            reader,
-            buffer: Vec::with_capacity(DECRYPTION_CHUNK_SIZE),
-            data_start: 0,
-            finished: false,
-            seen_final: false,
-        })
-    }
-
-    pub fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
-        // A final chunk may still have unread plaintext, so drain it before
-        // honoring `finished`.
-        let buffered_remaining = self.buffer.len() - self.data_start;
-        if buffered_remaining > 0 {
-            let to_copy = std::cmp::min(buf.len(), buffered_remaining);
-            buf[..to_copy]
-                .copy_from_slice(&self.buffer[self.data_start..self.data_start + to_copy]);
-            self.data_start += to_copy;
-
-            if self.data_start == self.buffer.len() {
-                self.buffer.clear();
-                self.data_start = 0;
-            }
-            return Ok(to_copy);
-        }
-
-        if self.finished {
-            return Ok(0);
-        }
-
-        self.buffer.clear();
-        self.buffer.resize(DECRYPTION_CHUNK_SIZE, 0);
-        let mut total_read = 0;
-
-        loop {
-            match self.reader.read(&mut self.buffer[total_read..]) {
-                Ok(0) => break,
-                Ok(n) => {
-                    total_read += n;
-                    if total_read >= DECRYPTION_CHUNK_SIZE {
-                        break;
-                    }
-                }
-                Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
-                Err(e) => return Err(e.into()),
-            }
-        }
-
-        if total_read == 0 {
-            self.buffer.clear();
-            if !self.seen_final {
-                return Err(Error::StreamTruncated);
-            }
-            self.finished = true;
-            return Ok(0);
-        }
-
-        self.buffer.truncate(total_read);
-        let is_final = self.decryptor.pull_in_place(&mut self.buffer)?;
-
-        if is_final {
-            self.seen_final = true;
-            ensure_reader_exhausted(&mut self.reader)?;
-            self.finished = true;
-        }
-
-        self.data_start = 0;
-        let plaintext_len = self.buffer.len();
-        let to_copy = std::cmp::min(buf.len(), plaintext_len);
-        buf[..to_copy].copy_from_slice(&self.buffer[..to_copy]);
-        self.data_start = to_copy;
-
-        if self.data_start == self.buffer.len() {
-            self.buffer.clear();
-            self.data_start = 0;
-        }
-
-        Ok(to_copy)
-    }
-
-    pub fn read_to_end(&mut self) -> Result<Vec<u8>> {
-        let mut result = Vec::new();
-        let mut buf = [0u8; 8192];
-
-        loop {
-            match self.read(&mut buf)? {
-                0 => break,
-                n => result.extend_from_slice(&buf[..n]),
-            }
-        }
-
-        Ok(result)
     }
 }
 
@@ -516,6 +406,12 @@ mod tests {
         Key::from_bytes([0x42u8; Key::BYTES])
     }
 
+    fn decrypt_stream_output(encrypted: &[u8], key: &Key) -> Vec<u8> {
+        let (header, ciphertext) = encrypted.split_at(Header::BYTES);
+        let header = Header::try_from_slice(header).unwrap();
+        decrypt_file_data(ciphertext, &header, key).unwrap()
+    }
+
     #[test]
     fn test_streaming_roundtrip() {
         let key = test_key();
@@ -529,67 +425,7 @@ mod tests {
             encryptor.finish().expect("finish failed");
         }
 
-        let reader = Cursor::new(&encrypted);
-        let mut decryptor =
-            StreamingDecryptor::new(&key, reader).expect("decryptor creation failed");
-        let decrypted = decryptor.read_to_end().expect("read_to_end failed");
-
-        assert_eq!(plaintext.as_slice(), decrypted.as_slice());
-    }
-
-    #[test]
-    fn test_truncation_detection_empty_stream() {
-        let key = test_key();
-
-        let encryptor = Encryptor::new(&key);
-        let truncated_data = encryptor.header().as_bytes().to_vec();
-
-        let reader = Cursor::new(&truncated_data);
-        let mut decryptor =
-            StreamingDecryptor::new(&key, reader).expect("decryptor creation failed");
-        let result = decryptor.read_to_end();
-
-        assert!(
-            matches!(result, Err(Error::StreamTruncated)),
-            "Expected StreamTruncated error, got {result:?}"
-        );
-    }
-
-    #[test]
-    fn test_truncation_detection_missing_final() {
-        let key = test_key();
-        let plaintext = b"Hello, world!";
-
-        let mut encryptor = Encryptor::new(&key);
-        let mut truncated_data = encryptor.header().as_bytes().to_vec();
-        let encrypted_chunk = encryptor.push(plaintext, false).expect("push failed");
-        truncated_data.extend_from_slice(&encrypted_chunk);
-
-        let reader = Cursor::new(&truncated_data);
-        let mut decryptor =
-            StreamingDecryptor::new(&key, reader).expect("decryptor creation failed");
-        let result = decryptor.read_to_end();
-
-        assert!(
-            matches!(result, Err(Error::StreamTruncated)),
-            "Expected StreamTruncated error, got {result:?}"
-        );
-    }
-
-    #[test]
-    fn test_valid_stream_with_final_tag() {
-        let key = test_key();
-        let plaintext = b"Hello, world!";
-
-        let mut encryptor = Encryptor::new(&key);
-        let mut data = encryptor.header().as_bytes().to_vec();
-        let encrypted_chunk = encryptor.push(plaintext, true).expect("push failed");
-        data.extend_from_slice(&encrypted_chunk);
-
-        let reader = Cursor::new(&data);
-        let mut decryptor =
-            StreamingDecryptor::new(&key, reader).expect("decryptor creation failed");
-        let decrypted = decryptor.read_to_end().expect("read_to_end failed");
+        let decrypted = decrypt_stream_output(&encrypted, &key);
 
         assert_eq!(plaintext.as_slice(), decrypted.as_slice());
     }
@@ -628,66 +464,6 @@ mod tests {
     }
 
     #[test]
-    fn test_small_buffer_reads_no_quadratic() {
-        let key = test_key();
-        let plaintext: Vec<u8> = (0..10000).map(|i| (i % 256) as u8).collect();
-
-        let mut encrypted = Vec::new();
-        {
-            let mut encryptor =
-                StreamingEncryptor::new(&key, &mut encrypted).expect("encryptor creation failed");
-            encryptor.write(&plaintext).expect("write failed");
-            encryptor.finish().expect("finish failed");
-        }
-
-        let reader = Cursor::new(&encrypted);
-        let mut decryptor =
-            StreamingDecryptor::new(&key, reader).expect("decryptor creation failed");
-
-        let mut decrypted = Vec::new();
-        let mut tiny_buf = [0u8; 1];
-        loop {
-            match decryptor.read(&mut tiny_buf).expect("read failed") {
-                0 => break,
-                n => decrypted.extend_from_slice(&tiny_buf[..n]),
-            }
-        }
-
-        assert_eq!(plaintext, decrypted);
-    }
-
-    #[test]
-    fn test_varied_buffer_sizes() {
-        let key = test_key();
-        let plaintext: Vec<u8> = (0..5000).map(|i| (i % 256) as u8).collect();
-
-        let mut encrypted = Vec::new();
-        {
-            let mut encryptor =
-                StreamingEncryptor::new(&key, &mut encrypted).expect("encryptor creation failed");
-            encryptor.write(&plaintext).expect("write failed");
-            encryptor.finish().expect("finish failed");
-        }
-
-        for buf_size in [1, 7, 13, 64, 100, 1000, 8192] {
-            let reader = Cursor::new(&encrypted);
-            let mut decryptor =
-                StreamingDecryptor::new(&key, reader).expect("decryptor creation failed");
-
-            let mut decrypted = Vec::new();
-            let mut buf = vec![0u8; buf_size];
-            loop {
-                match decryptor.read(&mut buf).expect("read failed") {
-                    0 => break,
-                    n => decrypted.extend_from_slice(&buf[..n]),
-                }
-            }
-
-            assert_eq!(plaintext, decrypted, "Mismatch with buffer size {buf_size}");
-        }
-    }
-
-    #[test]
     fn test_large_slice_write_no_quadratic() {
         let key = test_key();
 
@@ -702,10 +478,7 @@ mod tests {
             encryptor.finish().expect("finish failed");
         }
 
-        let reader = Cursor::new(&encrypted);
-        let mut decryptor =
-            StreamingDecryptor::new(&key, reader).expect("decryptor creation failed");
-        let decrypted = decryptor.read_to_end().expect("read_to_end failed");
+        let decrypted = decrypt_stream_output(&encrypted, &key);
 
         assert_eq!(plaintext.len(), decrypted.len());
         assert_eq!(plaintext, decrypted);
@@ -734,10 +507,7 @@ mod tests {
         }
 
         let total_plaintext_size = 1000 + ENCRYPTION_CHUNK_SIZE * 2 + 500;
-        let reader = Cursor::new(&encrypted);
-        let mut decryptor =
-            StreamingDecryptor::new(&key, reader).expect("decryptor creation failed");
-        let decrypted = decryptor.read_to_end().expect("read_to_end failed");
+        let decrypted = decrypt_stream_output(&encrypted, &key);
 
         assert_eq!(decrypted.len(), total_plaintext_size);
 
@@ -770,10 +540,7 @@ mod tests {
 
         assert_eq!(encrypted.len(), Header::BYTES + ABYTES);
 
-        let reader = Cursor::new(&encrypted);
-        let mut decryptor =
-            StreamingDecryptor::new(&key, reader).expect("decryptor creation failed");
-        let decrypted = decryptor.read_to_end().expect("read_to_end failed");
+        let decrypted = decrypt_stream_output(&encrypted, &key);
 
         assert!(decrypted.is_empty());
     }
@@ -1200,25 +967,51 @@ mod tests {
     }
 
     #[test]
-    fn test_streaming_decryptor_rejects_trailing_data_after_exact_final_chunk() {
+    fn decrypting_writer_requires_final_chunk() {
         let key = test_key();
-        let plaintext = vec![0x3C; ENCRYPTION_CHUNK_SIZE];
-
         let mut encryptor = Encryptor::new(&key);
-        let mut encrypted = encryptor.header().as_bytes().to_vec();
-        let mut ciphertext = encryptor.push(&plaintext, true).expect("push failed");
-        ciphertext.extend_from_slice(b"TRAILING");
-        encrypted.extend_from_slice(&ciphertext);
+        let mut writer = DecryptingWriter::new(encryptor.header(), &key, Vec::new());
+        writer
+            .write(&encryptor.push(b"first chunk", false).unwrap())
+            .unwrap();
+        assert!(matches!(writer.finish(), Err(Error::StreamTruncated)));
+    }
 
-        let reader = Cursor::new(&encrypted);
-        let mut decryptor =
-            StreamingDecryptor::new(&key, reader).expect("decryptor creation failed");
-        let result = decryptor.read_to_end();
+    #[test]
+    fn decrypting_writer_rejects_empty_ciphertext() {
+        let key = test_key();
+        let encryptor = Encryptor::new(&key);
+        let writer = DecryptingWriter::new(encryptor.header(), &key, Vec::new());
+        assert!(matches!(writer.finish(), Err(Error::StreamTruncated)));
+    }
 
-        assert!(
-            matches!(result, Err(Error::StreamTrailingData)),
-            "Expected StreamTrailingData from StreamingDecryptor, got {result:?}"
-        );
+    #[test]
+    fn decrypting_writer_rejects_trailing_data_after_short_final_chunk() {
+        let key = test_key();
+        let mut encryptor = Encryptor::new(&key);
+        let mut output = Vec::new();
+        let mut writer = DecryptingWriter::new(encryptor.header(), &key, &mut output);
+        writer
+            .write(&encryptor.push(b"last chunk", true).unwrap())
+            .unwrap();
+        writer.write(b"trailing").unwrap();
+        assert!(matches!(writer.finish(), Err(Error::StreamPullFailed)));
+        assert!(output.is_empty());
+    }
+
+    #[test]
+    fn decrypting_writer_rejects_trailing_data_after_final_chunk() {
+        let key = test_key();
+        let mut encryptor = Encryptor::new(&key);
+        let mut writer = DecryptingWriter::new(encryptor.header(), &key, Vec::new());
+        let final_chunk = encryptor
+            .push(&vec![0x3C; ENCRYPTION_CHUNK_SIZE], true)
+            .unwrap();
+        writer.write(&final_chunk).unwrap();
+        assert!(matches!(
+            writer.write(b"trailing"),
+            Err(Error::StreamTrailingData)
+        ));
     }
 
     #[test]

@@ -1559,3 +1559,6 @@ mod export;
 
 #[path = "duplicates_museum.rs"]
 mod duplicates;
+
+#[path = "people_museum.rs"]
+mod people;

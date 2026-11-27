@@ -20,6 +20,9 @@ pub struct ConversationSnapshot {
 }
 
 impl ConversationSnapshot {
+    pub(crate) fn todos(&self) -> &[crate::todo::Todo] {
+        &self.todos
+    }
     pub fn messages(&self) -> &[Message] {
         &self.messages
     }
@@ -74,7 +77,7 @@ impl<B: Backend> ChatDb<B> {
                     "Conversation history omits an existing ancestor".into(),
                 ));
             }
-            Ok((envelope, rows, turn_rows(tx, path)?, self.read_todos(tx)?))
+            Ok((envelope, rows, turn_rows(tx, path)?, self.todos(tx)?))
         })?;
         let messages = rows
             .iter()

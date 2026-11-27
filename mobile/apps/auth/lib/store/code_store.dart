@@ -69,11 +69,13 @@ class CodeStore {
   Future<List<Code>> getAllCodes({
     AccountMode? accountMode,
     bool sortCodes = true,
+    bool requireCompleteRead = false,
   }) async {
     _cacheCodes.clear();
     final mode = accountMode ?? _authenticatorService.getAccountMode();
     final List<EntityResult> entities = await _authenticatorService.getEntities(
       mode,
+      requireCompleteRead: requireCompleteRead,
     );
     final List<Code> codes = [];
 

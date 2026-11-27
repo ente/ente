@@ -1091,7 +1091,7 @@
     }
   },
   "freeUpDeviceSpace": "Atlaisvinti įrenginio vietą",
-  "freeUpDeviceSpaceDesc": "Pašalinkite sukurtas elementų atsargines kopijas.",
+  "freeUpDeviceSpaceDesc": "Pašalinkite elementus, kurių atsarginės kopijos sukurtos.",
   "freeUpDeviceSpaceDescICloud": "Failų debesyje „iCloud“ bendrintų albumų negalima ištrinti.",
   "@freeUpDeviceSpaceDescICloud": {
     "description": "Here 'cleared' means 'deleted' from the device"
@@ -1335,7 +1335,7 @@
     }
   },
   "legacyPageDesc": "Palikimas leidžia patikimiems kontaktams pasiekti jūsų paskyrą jums nesant.",
-  "legacyPageDesc2": "Patikimi kontaktai gali pradėti paskyros atkūrimą, o jei per 30 dienų paskyra neužblokuojama, iš naujo nustatyti slaptažodį ir pasiekti paskyrą.",
+  "legacyPageDesc2": "Patikimi kontaktai gali pradėti paskyros atkūrimą, o jei atkūrimas per 30 dienų neužblokuojamas, iš naujo nustatyti slaptažodį ir pasiekti paskyrą.",
   "lightTheme": "Šviesi",
   "like": "Patinka",
   "likeAll": "Patikti visas",
@@ -2550,7 +2550,7 @@
     "description": "Checkbox label for saving the selected delete action as the default choice."
   },
   "setBackupFolder": "Nustatyti atsarginių kopijų aplanką",
-  "setBackupPassword": "Nustatyti atsarginę slaptažodžio kopiją",
+  "setBackupPassword": "Nustatyti atsarginės kopijos slaptažodį",
   "setCover": "Nustatyti viršelį",
   "@setCover": {
     "description": "Text to set cover photo for an album"
@@ -2973,7 +2973,7 @@
   "unpinText": "Atsegti",
   "unselectAll": "Nesirinkti visų",
   "updateAvailable": "Yra naujinimas",
-  "updateBackupPassword": "Atnaujinti atsarginę slaptažodžio kopiją",
+  "updateBackupPassword": "Atnaujinti atsarginės kopijos slaptažodį",
   "updateTime": "Atnaujinti laiką",
   "@updateTime": {
     "description": "Button label to update the recovery time for a trusted contact"
@@ -3216,7 +3216,7 @@
   "@legacyKitSheetIntro": {
     "description": "Written in the voice of the account owner, addressed to the sheet holder"
   },
-  "legacyKitSheetHowToRecover": "Kaip atkurti savo paskyrą",
+  "legacyKitSheetHowToRecover": "Kaip atkurti mano paskyrą",
   "legacyKitSheetStepGetAnother": "Tai – {index} iš {total} lapų. Paprašykite {names} dėl jų – jums reikia dar vieno.",
   "@legacyKitSheetStepGetAnother": {
     "description": "First recovery step. {names} is a list of the other sheet holders, already joined and emphasised",

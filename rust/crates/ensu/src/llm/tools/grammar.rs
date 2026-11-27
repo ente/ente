@@ -207,6 +207,7 @@ impl Builder<'_> {
 pub(crate) fn grammar(
     format: Format,
     request: &ToolRequest,
+    narrowed: bool,
     token: &dyn Fn(&str) -> Option<i32>,
 ) -> Result<String, Error> {
     let token_rule = |text: &str| {
@@ -235,6 +236,9 @@ pub(crate) fn grammar(
     let [before_name, after_name, end] = syntax.call;
     let mut calls = Vec::new();
     for (index, tool) in request.tools.iter().enumerate() {
+        if narrowed && !request.allows(&tool.name) {
+            continue;
+        }
         let needs_quote = tool
             .parameters
             .iter()

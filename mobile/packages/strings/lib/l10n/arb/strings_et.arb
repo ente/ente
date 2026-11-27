@@ -696,7 +696,7 @@
   },
   "recoveryKeyVerified": "Taastevõti on kontrollitud",
   "recoveryKeyVerifyReason": "Sinu taastevõti on ainus viis oma fotodele ligipääsu taastamiseks olukorras, kus unustad oma salasõna. Taastevõti asub menüüs „Seadistused“ > „Kasutajakonto“.\n\nPalun sisesta siia oma taastevõti, et veenduda, et oled selle õigesti salvestanud.",
-  "recoveryReady": "Sa võid taastada ligipääsu oma {email} aadressiga seotud kasutajakontole, kuid seadistad uue salasõna.",
+  "recoveryReady": "Sa saad nüüd taastada kasutaja {email} kasutajakonto, seadistades uue salasõna.",
   "@recoveryReady": {
     "placeholders": {
       "email": {

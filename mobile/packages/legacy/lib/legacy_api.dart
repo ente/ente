@@ -5,6 +5,7 @@ abstract interface class LegacyApi {
 
   Future<void> addContact({
     required String email,
+    required String publicKey,
     required int recoveryNoticeInDays,
   });
 

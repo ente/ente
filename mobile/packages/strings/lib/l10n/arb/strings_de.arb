@@ -394,7 +394,7 @@
   "authToUpdateBackupPassword": "Authentifizieren, um Sicherungspasswort zu aktualisieren",
   "authToViewPasskey": "Bitte authentifizieren, um deinen Passkey zu sehen",
   "authToViewPasskeyGeneric": "Bitte authentifizieren, um Ihren Passkey zu sehen",
-  "authToViewSecrets": "Bitte authentifizieren, um Ihren Wiederherstellungscode anzuzeigen",
+  "authToViewSecrets": "Bitte authentifizieren, um Ihre Geheimnisse anzuzeigen",
   "@authToViewSecrets": {
     "description": "Message prompting authentication to view secrets"
   },
@@ -850,7 +850,7 @@
     }
   },
   "createKit": "Paket erstellen",
-  "createLegacyKit": "Veraltetes Paket erstellen",
+  "createLegacyKit": "Nachlass-Paket erstellen",
   "createNewTag": "Neuen Tag erstellen",
   "createPublicLink": "Öffentlichen Link erstellen",
   "createStream": "Stream erzeugen",
@@ -1043,7 +1043,7 @@
   "deleteSuggestions": "Vorschläge löschen",
   "deleteSuggestionsDesc": "Zur Löschung vorgeschlagene Elemente anzeigen",
   "deleteSuggestionSent": "Löschvorschlag gesendet",
-  "deleteTagMessage": "Sind Sie sicher, dass Sie diesen Code löschen wollen? Diese Aktion ist unumkehrbar.",
+  "deleteTagMessage": "Sind Sie sicher, dass Sie dieses Tag löschen wollen? Diese Aktion ist unumkehrbar.",
   "deleteTagTitle": "Tag löschen?",
   "deleteUnparseableCodeMessage": "Dadurch wird dieser Code dauerhaft aus Auth gelöscht. Er wird nicht in den Papierkorb verschoben.",
   "deleteUnparseableCodeTitle": "Nicht verarbeitbaren Code löschen?",
@@ -2058,9 +2058,9 @@
       }
     }
   },
-  "legacyKitMaxReached": "Sie können bis zu 5 veraltete Pakete erstellen.",
+  "legacyKitMaxReached": "Sie können bis zu 5 Nachlass-Pakete erstellen.",
   "legacyKitRecoveryAttemptInProgress": "Wiederherstellungsversuch läuft",
-  "legacyKitRecoveryAttemptMessage": "Eine Wiederherstellung wurde mit diesem veralteten Paket eingeleitet und der Kontozugriff erfolgt am {availableAt}.\n\nSie können die Wiederherstellung jederzeit davor ablehnen.",
+  "legacyKitRecoveryAttemptMessage": "Eine Wiederherstellung wurde mit diesem Nachlass-Paket eingeleitet und der Kontozugriff erfolgt am {availableAt}.\n\nSie können die Wiederherstellung jederzeit davor ablehnen.",
   "@legacyKitRecoveryAttemptMessage": {
     "placeholders": {
       "availableAt": {
@@ -2070,8 +2070,8 @@
     }
   },
   "legacyKitRecoveryInProgress": "Wiederherstellung läuft",
-  "legacyKitRecoveryWarning": "Jemand versucht, Ihr Konto mit einem veralteten Paket wiederherzustellen",
-  "legacyKits": "Veraltete Pakete",
+  "legacyKitRecoveryWarning": "Jemand versucht, Ihr Konto mit einem Nachlass-Paket wiederherzustellen",
+  "legacyKits": "Nachlass-Pakete",
   "legacyPageDesc": "Das digitale Erbe erlaubt vertrauenswürdigen Kontakten den Zugriff auf dein Konto in deiner Abwesenheit.",
   "legacyPageDesc2": "Vertrauenswürdige Kontakte können eine Kontowiederherstellung einleiten und, falls dies nicht innerhalb von 30 Tagen blockiert wird, Ihr Kennwort zurücksetzen und auf Ihr Konto zugreifen.",
   "letsTryThatAgain": "Versuchen wir es noch einmal",
@@ -3237,7 +3237,7 @@
   },
   "recoveryWaitTime": "Wiederherstellungs-Wartezeit",
   "recoveryWaitTimeChangeWarning": "Durch diese Änderung werden alle laufenden Versuche abgebrochen.",
-  "recoveryWaitTimeDescription": "Wie schnell ist eine Kontowiederherstellung möglich, nachdem das veraltete Paket eingelesen wurde?",
+  "recoveryWaitTimeDescription": "Wie schnell ist eine Kontowiederherstellung möglich, nachdem das Nachlass-Paket eingelesen wurde?",
   "recoveryWarning": "Ein vertrauenswürdiger Kontakt versucht, auf dein Konto zuzugreifen",
   "recoveryWarningBody": "{email} versucht, dein Konto wiederherzustellen.",
   "@recoveryWarningBody": {

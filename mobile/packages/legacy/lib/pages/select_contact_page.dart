@@ -64,6 +64,7 @@ class _AddContactSheetState extends State<AddContactSheet> {
   String selectedEmail = "";
   String _email = "";
   bool _emailIsValid = false;
+  final _recipientKeys = <String, String>{};
   int _selectedRecoveryDays = 14;
   late final Logger _logger = Logger("AddContactSheet");
 
@@ -335,6 +336,15 @@ class _AddContactSheetState extends State<AddContactSheet> {
     );
   }
 
+  Future<String?> _recipientKey(String email) async {
+    final address = email.trim().toLowerCase();
+    final existing = _recipientKeys[address];
+    if (existing != null) return existing;
+    final key = await UserService.instance.getPublicKey(address);
+    if (key == null) return null;
+    return _recipientKeys.putIfAbsent(address, () => key);
+  }
+
   Future<bool> _addContact(String email, int recoveryNoticeInDays) async {
     if (!isValidEmail(email)) {
       if (mounted) {
@@ -365,8 +375,15 @@ class _AddContactSheetState extends State<AddContactSheet> {
     await dialog?.show();
 
     try {
+      final key = await _recipientKey(email);
+      if (key == null) {
+        throw const LegacyError.contactNotOnEnte(
+          message: "Contact not on Ente",
+        );
+      }
       await widget.legacy.addContact(
         email: email,
+        publicKey: key,
         recoveryNoticeInDays: recoveryNoticeInDays,
       );
       await dialog?.hide();
@@ -448,6 +465,7 @@ class _AddContactSheetState extends State<AddContactSheet> {
       context,
       self: false,
       email: emailToAdd,
+      lookupPublicKey: _recipientKey,
       config: widget.config,
     );
   }

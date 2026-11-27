@@ -219,17 +219,36 @@ impl Format {
     }
 
     pub(crate) fn parse(self, raw: &str, request: &ToolRequest) -> Result<Vec<ToolCall>, Error> {
+        let mut calls = Vec::new();
+        self.read_calls(raw, request, &mut calls)?;
+        Ok(calls)
+    }
+
+    pub(super) fn completed_calls(self, raw: &str, request: &ToolRequest) -> Vec<ToolCall> {
+        let mut calls = Vec::new();
+        let _ = self.read_calls(raw, request, &mut calls);
+        calls
+    }
+
+    fn read_calls(
+        self,
+        raw: &str,
+        request: &ToolRequest,
+        calls: &mut Vec<ToolCall>,
+    ) -> Result<(), Error> {
         let syntax = self.syntax();
         let [before_key, after_key, after_value] = syntax.argument;
         let [before_name, after_name, end] = syntax.call;
         let mut reader = Reader(raw);
-        let mut calls = Vec::new();
         loop {
             reader.expect(syntax.open)?;
             if let Some([start, ..]) = syntax.list {
                 reader.expect(start)?;
             }
             loop {
+                if calls.len() == request.max_calls() {
+                    return Err(invalid());
+                }
                 reader.expect(before_name)?;
                 let name = reader.word()?;
                 reader.expect(after_name)?;
@@ -256,13 +275,23 @@ impl Format {
                     }
                     raw_args.push((key, value));
                 }
-                calls.push(typed_call(request, name, raw_args)?);
+                let call = typed_call(request, name, raw_args)?;
                 match syntax.list {
-                    Some([_, separator, end]) if !reader.take(end) => reader.expect(separator)?,
-                    _ => break,
+                    Some([_, separator, end]) => {
+                        calls.push(call);
+                        if reader.take(end) {
+                            reader.expect(syntax.close)?;
+                            break;
+                        }
+                        reader.expect(separator)?;
+                    }
+                    None => {
+                        reader.expect(syntax.close)?;
+                        calls.push(call);
+                        break;
+                    }
                 }
             }
-            reader.expect(syntax.close)?;
             if reader.0.is_empty() {
                 break;
             }
@@ -274,10 +303,7 @@ impl Format {
                 return Err(invalid());
             }
         }
-        if calls.len() > request.max_calls() {
-            return Err(invalid());
-        }
-        Ok(calls)
+        Ok(())
     }
 }
 
@@ -291,7 +317,10 @@ fn typed_call(
     name: &str,
     raw: Vec<(&str, RawValue)>,
 ) -> Result<ToolCall, Error> {
-    let spec = request.spec(name).ok_or_else(invalid)?;
+    let spec = request
+        .spec(name)
+        .filter(|_| request.allows(name))
+        .ok_or_else(invalid)?;
     let mut arguments = BTreeMap::new();
     for (key, value) in raw {
         let parameter = spec

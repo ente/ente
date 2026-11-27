@@ -64,7 +64,10 @@ class AuthenticatorService {
     });
   }
 
-  Future<List<EntityResult>> getEntities(AccountMode mode) async {
+  Future<List<EntityResult>> getEntities(
+    AccountMode mode, {
+    bool requireCompleteRead = false,
+  }) async {
     final List<LocalAuthEntity> result = mode.isOnline
         ? await _db.getAll()
         : await _offlineDb.getAll();
@@ -90,6 +93,7 @@ class AuthenticatorService {
           ),
         );
       } catch (e, s) {
+        if (requireCompleteRead) rethrow;
         _logger.severe(e, s);
       }
     }

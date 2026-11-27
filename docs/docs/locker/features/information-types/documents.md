@@ -63,6 +63,8 @@ Renaming a file here changes its name in Locker. The original file on your devic
 3. Review the files and choose the collections to save them to, or leave collections unselected to use **Uncategorized**
 4. Tap **Save**
 
+![Ente Locker in the Android share sheet, then Save highlighted on the Upload items review screen](https://docs-assets.ente.com/screenshots/locker-android-share-review-v1013.png){width=560px}
+
 Locker shows a warning if the same file was shared twice or a file cannot be opened. You can still upload the other files.
 
 ## Supported file formats
@@ -80,6 +82,8 @@ Check the app for the complete list of supported formats.
 ### Secure viewing
 
 Tap an uploaded image to open it directly in the Locker mobile app. Pinch or double-tap to zoom, and drag to move around a zoomed image.
+
+![Uploaded image open in the Ente Locker mobile viewer](https://docs-assets.ente.com/screenshots/locker-image-viewer-v1013.png){width=560px}
 
 If an image cannot be displayed, use the option to open it in another app. PDFs and other document types open in a compatible app on your device.
 
@@ -113,6 +117,8 @@ Share documents via public links:
 1. Long press on the document you want to share
 2. Tap the share button
 3. Tap **Share link**
+
+![Share link button highlighted on the share sheet for a document on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-document-share-link-callout-v1013.png){width=560px}
 
 To share documents with another Ente user, add them to a collection and share the collection.
 

@@ -1207,3 +1207,5 @@ mod mail;
 mod museum;
 
 mod paste;
+
+mod people;

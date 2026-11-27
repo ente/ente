@@ -8,6 +8,11 @@
         "lint": "prettier --check --log-level warn .",
         "lint:fix": "prettier --write --log-level warn ."
     },
+    "overrides": {
+        "vitepress": {
+            "vite": "6.4.6"
+        }
+    },
     "devDependencies": {
         "prettier": "3.8.3",
         "sitemap": "9.0.1",

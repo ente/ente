@@ -1388,6 +1388,10 @@
       ]
     },
     {
+      "title": "KeyHelp",
+      "slug": "keyhelp"
+    },
+    {
       "title": "Kick"
     },
     {
@@ -2738,6 +2742,15 @@
       "slug": "truth_social",
       "altNames": [
         "truthsocial.com"
+      ]
+    },
+    {
+      "title": "TU Dortmund",
+      "slug": "tu-dortmund",
+      "altNames": [
+        "Technische Universität Dortmund",
+        "Technical University Dortmund",
+        "TUDO"
       ]
     },
     {

@@ -24,6 +24,7 @@ import "package:photos/services/wake_lock_service.dart";
 import "package:photos/ui/actions/collection/collection_file_actions.dart";
 import "package:photos/ui/actions/collection/collection_sharing_actions.dart";
 import "package:photos/ui/notification/toast.dart";
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/reel/rewind_reel.dart";
 import "package:photos/ui/rewind/reel/rewind_video_job.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
@@ -59,6 +60,9 @@ Future<RewindVideoJob?> pregenerateRewindVideo(
   Future<bool> Function(List<RewindPage> pages)? loadMedia,
   MemoryMusicTrack? track,
 }) async {
+  if (!context.mounted) return null;
+  final key = _videoKeyOf(context, pages);
+  await _recallKeptVideo(pages, key);
   final cached = _videos[pages];
   if (cached != null && await cached.exists()) return null;
   if (!context.mounted) return null;
@@ -66,13 +70,58 @@ Future<RewindVideoJob?> pregenerateRewindVideo(
   if (!await _hasFrameHeadroom(refreshRate) || !context.mounted || !wanted()) {
     return null;
   }
-  final job = RewindVideoJob(
+  return _fullVideoJob(
     context,
     pages: pages,
+    videoKey: key,
     loadMedia: loadMedia,
     track: track,
   );
-  job.video.then((video) => _videos[pages] = video).ignore();
+}
+
+typedef _VideoKey = ({String fingerprint, int generation});
+
+_VideoKey? _videoKeyOf(BuildContext context, List<RewindPage> pages) {
+  final fingerprint = rewindService.videoFingerprint(
+    pages,
+    Localizations.maybeLocaleOf(context) ??
+        WidgetsBinding.instance.platformDispatcher.locale,
+  );
+  if (fingerprint == null) return null;
+  return (fingerprint: fingerprint, generation: rewindService.videoGeneration);
+}
+
+Future<void> _recallKeptVideo(List<RewindPage> pages, _VideoKey? key) async {
+  if (key == null || _videos[pages] != null) return;
+  _videos[pages] = await rewindService.keptVideo(key.fingerprint);
+}
+
+RewindVideoJob _fullVideoJob(
+  BuildContext context, {
+  required List<RewindPage> pages,
+  required _VideoKey? videoKey,
+  Future<bool> Function(List<RewindPage> pages)? loadMedia,
+  MemoryMusicTrack? track,
+  bool foreground = false,
+}) {
+  final job = RewindVideoJob(
+    context,
+    pages: pages,
+    directory: videoKey == null ? null : rewindService.videoDirectory,
+    loadMedia: loadMedia,
+    track: track,
+    foreground: foreground,
+  );
+  job.video.then((video) async {
+    _videos[pages] = video;
+    if (videoKey != null) {
+      await rewindService.keepVideo(
+        videoKey.fingerprint,
+        videoKey.generation,
+        video,
+      );
+    }
+  }).ignore();
   return job;
 }
 
@@ -143,7 +192,7 @@ Future<void> shareRewindClip(
 }) async {
   final video = await _export(
     context,
-    cacheKey: page,
+    cacheKey: page.clipKey,
     start: () => RewindVideoJob(
       context,
       pages: [?page.clipIntro, page],
@@ -184,7 +233,9 @@ Future<bool> saveRewindVideo(
       .getUncategorizedCollection()
       .timeout(_saveCheckTimeout);
   if (await _hasSavedVideo(uncategorized.id, tappedAt)) {
-    if (context.mounted) showShortToast(context, "Already saved");
+    if (context.mounted) {
+      showShortToast(context, RewindCopy.of(context).alreadySaved);
+    }
     return true;
   }
   if (!context.mounted) return false;
@@ -219,11 +270,10 @@ Future<bool> saveRewindVideo(
   _galleryAssets[video] = null;
   Bus.instance.fire(ForceReloadHomeGalleryEvent("rewindVideoSaved"));
   if (appContext.mounted) {
+    final copy = RewindCopy.of(appContext);
     showShortToast(
       appContext,
-      asset == null
-          ? "Backing up to Ente"
-          : "Saved to your gallery, backing up to Ente",
+      asset == null ? copy.backingUp : copy.savedAndBackingUp,
     );
   }
   return true;
@@ -362,18 +412,24 @@ Future<File?> _exportRewindVideo(
   Future<bool> Function(List<RewindPage> pages)? loadMedia,
   MemoryMusicTrack? track,
   RewindVideoJob? job,
-}) => _export(
-  context,
-  cacheKey: pages,
-  job: job,
-  start: () => RewindVideoJob(
+}) async {
+  final key = _videoKeyOf(context, pages);
+  await _recallKeptVideo(pages, key);
+  if (!context.mounted) return null;
+  return _export(
     context,
-    pages: pages,
-    loadMedia: loadMedia,
-    track: track,
-    foreground: true,
-  ),
-);
+    cacheKey: pages,
+    job: job,
+    start: () => _fullVideoJob(
+      context,
+      pages: pages,
+      videoKey: key,
+      loadMedia: loadMedia,
+      track: track,
+      foreground: true,
+    ),
+  );
+}
 
 Future<File?> _export(
   BuildContext context, {
@@ -440,14 +496,6 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage> {
   static const _frame = Rect.fromLTWH(77, 160, 236, 420);
   static const _ducky = Rect.fromLTWH(2, 498, 148, 186);
   static const _bar = Rect.fromLTWH(164, 648, 202, 24);
-  static const _quips = [
-    "Rewinding the tape",
-    "Picking your best angles",
-    "Teaching Ducky to edit",
-    "Adding the soundtrack",
-    "Polishing every frame",
-    "Rolling the credits",
-  ];
 
   final _cancellation = Completer<void>();
   final _lap = Stopwatch();
@@ -553,20 +601,26 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage> {
     }
   }
 
-  String _quip(RewindVideoProgress progress) => switch (progress.stage) {
-    RewindVideoStage.preparing => "Getting your photos ready",
-    RewindVideoStage.rendering =>
-      _quips[(progress.fraction * _quips.length).floor().clamp(
-        0,
-        _quips.length - 1,
-      )],
-    RewindVideoStage.finishing => _celebrates ? "That’s a wrap!" : _quips.last,
-  };
+  RewindCopy get _copy => RewindCopy.of(context);
+
+  String _quip(RewindVideoProgress progress) {
+    final quips = _copy.videoQuips;
+    return switch (progress.stage) {
+      RewindVideoStage.preparing => _copy.videoPreparing,
+      RewindVideoStage.rendering =>
+        quips[(progress.fraction * quips.length).floor().clamp(
+          0,
+          quips.length - 1,
+        )],
+      RewindVideoStage.finishing =>
+        _celebrates ? _copy.videoWrapped : quips.last,
+    };
+  }
 
   bool get _celebrates => !_job.isClip;
 
   String _timeLeft(RewindVideoProgress progress) {
-    if (progress.stage == RewindVideoStage.finishing) return "All done";
+    if (progress.stage == RewindVideoStage.finishing) return _copy.videoDone;
     if (progress.stage == RewindVideoStage.rendering &&
         _timedFrames >= _warmUpFrames) {
       final left =
@@ -574,9 +628,9 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage> {
           _timedFrames *
           (progress.frameCount - progress.frame) /
           1000;
-      if (left < 5) return "Almost there";
+      if (left < 5) return _copy.videoAlmostDone;
     }
-    return "Keep Ente open, this won’t take long";
+    return _copy.videoKeepOpen;
   }
 
   @override
@@ -604,16 +658,20 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage> {
                     right: 0,
                     top: 84,
                     child: Center(
-                      child: RewindOutlinedText(
-                        "MAKING YOUR VIDEO",
-                        style: RewindTextStyles.display(
-                          31,
-                          color: RewindColors.yellow,
-                          height: 1,
-                          letterSpacing: 0.4,
+                      child: RewindFitWidth(
+                        width: 350,
+                        alignment: Alignment.center,
+                        child: RewindOutlinedText(
+                          _copy.videoTitle,
+                          style: RewindTextStyles.display(
+                            31,
+                            color: RewindColors.yellow,
+                            height: 1,
+                            letterSpacing: 0.4,
+                          ),
+                          outline: 2.6,
+                          shadow: const Offset(2, 3),
                         ),
-                        outline: 2.6,
-                        shadow: const Offset(2, 3),
                       ),
                     ),
                   ),
@@ -708,7 +766,7 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage> {
       opacity: _stage == RewindVideoStage.finishing ? 0 : 1,
       child: Semantics(
         button: true,
-        label: "Cancel",
+        label: _copy.cancel,
         child: RewindPressable(
           onTap: _cancel,
           child: Container(
@@ -722,7 +780,7 @@ class _RewindVideoExportPageState extends State<RewindVideoExportPage> {
             ),
             child: ExcludeSemantics(
               child: Text(
-                "Cancel",
+                _copy.cancel,
                 style: RewindTextStyles.body(15, height: 1.2),
               ),
             ),

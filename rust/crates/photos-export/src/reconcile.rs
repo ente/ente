@@ -505,34 +505,42 @@ impl Run<'_> {
 
     fn json_changed(
         &self,
-        previous: Option<&JsonRecord>,
+        previous: Option<&mut JsonRecord>,
         location: &Location,
         json: &fs::Json,
     ) -> Result<bool> {
         let path = self.path(location)?;
-        let properties = Properties::optional(&path)?;
-        let owned = previous
-            .as_ref()
-            .is_some_and(|record| record.location.as_ref() == Some(location));
-        let renamed = previous
-            .as_ref()
-            .and_then(|record| record.location.as_ref())
-            .map(|source| {
-                self.path(source)
-                    .map(|source| names::same_path(&source, &path))
-            })
-            .transpose()?
-            .unwrap_or(false);
-        ensure!(
-            properties.is_none() || owned || renamed,
-            super::Conflict(format!("at {}: unrelated JSON", path.display()))
-        );
-        Ok(!previous.as_ref().is_some_and(|record| {
-            owned
-                && record.hash.as_ref() == Some(&json.hash)
-                && record.properties == properties
-                && properties.is_some()
-        }))
+        let Some(properties) = Properties::optional(&path)? else {
+            return Ok(true);
+        };
+        let record = match previous {
+            Some(record) if record.location.as_ref() == Some(location) => record,
+            other => {
+                let renamed = match other.and_then(|record| record.location.as_ref()) {
+                    Some(source) => names::same_path(&self.path(source)?, &path),
+                    None => false,
+                };
+                ensure!(
+                    renamed,
+                    super::Conflict(format!("at {}: unrelated JSON", path.display()))
+                );
+                return Ok(true);
+            }
+        };
+        if record.hash.as_ref() != Some(&json.hash) {
+            return Ok(true);
+        }
+        if record.properties.as_ref() == Some(&properties) {
+            return Ok(false);
+        }
+        // A network filesystem can report a different mtime once its cache expires.
+        let size = json.bytes.len() as u64;
+        if properties.size != size || !fs::matches(&path, size, &json.hash, self.cancel)? {
+            return Ok(true);
+        }
+        record.properties = Some(properties);
+        store::lock(self.store)?.save_json(record)?;
+        Ok(false)
     }
 
     fn write_json(
@@ -542,8 +550,8 @@ impl Run<'_> {
         location: Location,
         json: fs::Json,
     ) -> Result<bool> {
-        let previous = store::lock(self.store)?.json_record(&target.owner, role.as_ref())?;
-        if !self.json_changed(previous.as_ref(), &location, &json)? {
+        let mut previous = store::lock(self.store)?.json_record(&target.owner, role.as_ref())?;
+        if !self.json_changed(previous.as_mut(), &location, &json)? {
             return Ok(false);
         }
         self.replace_json(target, role, location, json, previous)?;
@@ -852,22 +860,13 @@ impl Run<'_> {
             && (retained || existing.name == name)
         {
             let pending = store::lock(self.store)?.pending(&existing.key)?;
-            let cached = store::lock(self.store)?.json_record(&existing.key, None)?;
+            let mut cached = store::lock(self.store)?.json_record(&existing.key, None)?;
             let location = Location {
                 folder: existing.key.clone(),
                 name: "metadata.json".into(),
             };
-            if pending.is_none()
-                && let Some(cached) = cached
-            {
-                let properties = Properties::optional(&self.path(&location)?)?;
-                if cached.location.as_ref() == Some(&location)
-                    && cached.hash.as_ref() == Some(&json.hash)
-                    && properties.is_some()
-                    && cached.properties == properties
-                {
-                    return Ok(existing.clone());
-                }
+            if pending.is_none() && !self.json_changed(cached.as_mut(), &location, &json)? {
+                return Ok(existing.clone());
             }
         }
         let mut target = self.album_target(album, name, retained)?;
@@ -1222,9 +1221,9 @@ impl Run<'_> {
                 name: format!("metadata/{}.json", component.path),
             };
             let json = fs::Json::new(value.clone())?;
-            let previous =
+            let mut previous =
                 store::lock(self.store)?.json_record(&target.owner, Some(&component.role))?;
-            let changed = self.json_changed(previous.as_ref(), &location, &json)?;
+            let changed = self.json_changed(previous.as_mut(), &location, &json)?;
             sidecars.push((location, json, changed, previous));
         }
         let intended_time = file.intended_time;

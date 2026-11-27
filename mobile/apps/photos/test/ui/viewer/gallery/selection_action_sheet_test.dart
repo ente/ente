@@ -152,6 +152,107 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets("pages the collapsed row and snaps the sheet quickly", (
+    tester,
+  ) async {
+    final gallery = ScrollController();
+    addTearDown(gallery.dispose);
+    await _pumpSheet(
+      tester,
+      gallery,
+      size: const Size(360, 667),
+      onTap: (_) {},
+    );
+    final sheet = tester.widget<DraggableScrollableSheet>(
+      find.byType(DraggableScrollableSheet),
+    );
+    final controller = sheet.controller!;
+    final rail = find.byWidgetPredicate(
+      (widget) =>
+          widget is ListView && widget.scrollDirection == Axis.horizontal,
+    );
+    final railRect = tester.getRect(rail);
+    Finder label(String text) =>
+        find.descendant(of: rail, matching: find.text(text));
+    Rect tile(String text) => tester.getRect(
+      find.ancestor(of: label(text), matching: find.byType(InkWell)),
+    );
+    void expectPage(String first, String peek) {
+      expect(tile(first).left, closeTo(railRect.left + 12, 0.01));
+      expect(
+        railRect.right - tile(peek).left,
+        greaterThan(tile(peek).width / 3),
+      );
+      expect(tile(peek).right, greaterThan(railRect.right));
+    }
+
+    expectPage("Share", "Add to album");
+    await tester.fling(rail, const Offset(-250, 0), 6000);
+    for (var i = 0; i < 30; i++) {
+      await tester.pump(const Duration(milliseconds: 8));
+      expect(tile("Add to album").left, greaterThan(railRect.left + 11.9));
+    }
+    await tester.pumpAndSettle();
+    expectPage("Add to album", "Add person");
+    await tester.fling(rail, const Offset(-60, 0), 1000);
+    await tester.pumpAndSettle();
+    expect(tile("Guest view").right, closeTo(railRect.right - 12, 0.01));
+    await tester.fling(rail, const Offset(60, 0), 1000);
+    await tester.pumpAndSettle();
+    expectPage("Add to album", "Add person");
+
+    await Scrollable.ensureVisible(
+      tester.element(
+        find.descendant(
+          of: rail,
+          matching: find.text("Edit time", skipOffstage: false),
+          skipOffstage: false,
+        ),
+      ),
+      alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+    );
+    await tester.pumpAndSettle();
+    expect(
+      tester.getRect(label("Edit time")).right,
+      closeTo(railRect.right, 0.01),
+    );
+    controller.jumpTo(
+      sheet.minChildSize + (sheet.maxChildSize - sheet.minChildSize) * 0.2,
+    );
+    await tester.pump();
+    controller.jumpTo(sheet.minChildSize);
+    await tester.pumpAndSettle();
+    expectPage("Share", "Add to album");
+
+    final gridTile = find
+        .descendant(
+          of: find.byKey(const ValueKey("grid")),
+          matching: find.byType(InkWell),
+        )
+        .first;
+    final halfway = (sheet.minChildSize + sheet.maxChildSize) / 2;
+    controller.jumpTo(halfway);
+    await tester.pump();
+    final gridElement = tester.element(gridTile);
+    for (final size in [sheet.maxChildSize, halfway]) {
+      controller.jumpTo(size);
+      await tester.pump();
+      expect(tester.element(gridTile), same(gridElement));
+    }
+
+    for (final (dy, size) in [
+      (-80.0, sheet.maxChildSize),
+      (80.0, sheet.minChildSize),
+    ]) {
+      await tester.fling(find.bySemanticsLabel("More"), Offset(0, dy), 3000);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 150));
+      expect(controller.size, size);
+      await tester.pumpAndSettle();
+    }
+    expect(tester.takeException(), isNull);
+  }, variant: TargetPlatformVariant.mobile());
+
   testWidgets("contains tablets, split view, and large text while resizing", (
     tester,
   ) async {
@@ -265,7 +366,7 @@ void main() {
       (widget) =>
           widget is ListView && widget.scrollDirection == Axis.horizontal,
     );
-    await tester.drag(rail, const Offset(-300, 0));
+    await tester.fling(rail, const Offset(-300, 0), 1000);
     await tester.pumpAndSettle();
     final action = find.descendant(
       of: rail,
@@ -290,6 +391,7 @@ void main() {
       tester,
       gallery,
       reduceMotion: true,
+      shareKey: GlobalKey(),
       onTap: (label) => tapped = label,
     );
     expect(find.text("Hidden action"), findsNothing);
@@ -298,6 +400,22 @@ void main() {
     final sheet = tester.widget<DraggableScrollableSheet>(
       find.byType(DraggableScrollableSheet),
     );
+    final rail = find.descendant(
+      of: find.byWidgetPredicate(
+        (widget) =>
+            widget is ListView && widget.scrollDirection == Axis.horizontal,
+      ),
+      matching: find.byType(Scrollable),
+    );
+    await tester.fling(rail, const Offset(-60, 0), 1000);
+    await tester.pumpAndSettle();
+    sheet.controller!.jumpTo(
+      sheet.minChildSize + (sheet.maxChildSize - sheet.minChildSize) * 0.2,
+    );
+    await tester.pump();
+    sheet.controller!.jumpTo(sheet.minChildSize);
+    await tester.pump();
+    expect(tester.state<ScrollableState>(rail).position.pixels, 0);
     await tester.tap(find.bySemanticsLabel("More"));
     await tester.pump();
     expect(sheet.controller!.size, sheet.maxChildSize);

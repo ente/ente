@@ -1,4 +1,5 @@
 import 'package:ente_auth/events/icons_changed_event.dart';
+import 'package:ente_auth/services/watch/service.dart';
 import 'package:ente_auth/utils/debug_build_flags.dart';
 import 'package:ente_events/event_bus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -53,13 +54,16 @@ class PreferenceService {
     }
   }
 
+  static const kCodeSortKey = "codeSortKey";
+
   CodeSortKey codeSortKey() {
-    return CodeSortKey.values[_prefs.getInt("codeSortKey") ??
+    return CodeSortKey.values[_prefs.getInt(kCodeSortKey) ??
         CodeSortKey.issuerName.index];
   }
 
   Future<void> setCodeSortKey(CodeSortKey key) async {
-    await _prefs.setInt("codeSortKey", key.index);
+    await _prefs.setInt(kCodeSortKey, key.index);
+    WatchService.scheduleRefresh();
   }
 
   Future<void> setHasShownCoachMark(bool value) {
@@ -79,9 +83,7 @@ class PreferenceService {
     Bus.instance.fire(IconsChangedEvent());
   }
 
-  bool shouldHideCodes() {
-    return _prefs.getBool(kShouldHideCodesKey) ?? false;
-  }
+  bool shouldHideCodes() => _prefs.getBool(kShouldHideCodesKey) ?? false;
 
   bool isCompactMode() {
     return _prefs.getBool(kCompactMode) ?? false;
@@ -94,6 +96,7 @@ class PreferenceService {
   Future<void> setHideCodes(bool value) async {
     await _prefs.setBool(kShouldHideCodesKey, value);
     Bus.instance.fire(IconsChangedEvent());
+    WatchService.scheduleRefresh();
   }
 
   bool shouldAutoFocusOnSearchBar() {

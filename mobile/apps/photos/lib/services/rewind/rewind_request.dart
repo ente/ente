@@ -12,10 +12,10 @@ import "package:photos/models/ml/face/person.dart";
 import "package:photos/models/social/reaction.dart";
 import "package:photos/service_locator.dart";
 import "package:photos/services/collections_service.dart";
-import "package:photos/services/favorites_service.dart";
 import "package:photos/services/machine_learning/face_ml/person/person_service.dart";
 import "package:photos/services/memories/memory_sources.dart";
 import "package:photos/services/rewind/rewind_edition.dart";
+import "package:photos/services/search_service.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
 import "package:photos/utils/contact_string_util.dart";
 
@@ -90,8 +90,10 @@ Future<List<rust.RewindCoverageFile>> buildRewindCoverageFiles() async {
   ];
 }
 
-Future<Map<int, EnteFile>> _localFilesByID() =>
-    getFilesAndMapForMemories(useLocalIntIds: true, requireLocalId: true);
+Future<Map<int, EnteFile>> _localFilesByID() {
+  SearchService.instance.invalidateFileCaches();
+  return getFilesAndMapForMemories(useLocalIntIds: true, requireLocalId: true);
+}
 
 Future<List<rust.RewindFile>> _localFiles() async {
   final files = await _localFilesByID();
@@ -102,7 +104,7 @@ Future<List<rust.RewindFile>> _localFiles() async {
         file,
         visibility: rust.RewindVisibility.visible,
         isFavourite: false,
-        isJunk: _isScreenshotName(file.deviceFolder),
+        isJunk: isJunkAlbumName(file.deviceFolder),
         isScreenshot: _isScreenshotName(file.deviceFolder),
         sharedAlbumIds: const [],
         likeCount: 0,
@@ -276,6 +278,7 @@ class _Albums {
     final collections = CollectionsService.instance;
     final hidden = collections.getHiddenCollectionIds();
     final archivedOrHidden = collections.archivedOrHiddenCollectionIds();
+    final activeCollections = collections.getActiveCollections();
     return _Albums(
       hidden: hidden,
       archived: archivedOrHidden.difference(hidden),
@@ -285,11 +288,16 @@ class _Albums {
           if (_isScreenshotName(collection.displayName)) collection.id,
       },
       shared: {
-        for (final collection in collections.getActiveCollections())
+        for (final collection in activeCollections)
           if (_isSharedAlbum(collection, userID)) collection.id,
       },
-      favourites:
-          (await FavoritesService.instance.getFavoritesCollection())?.id,
+      favourites: activeCollections
+          .firstWhereOrNull(
+            (collection) =>
+                collection.type == CollectionType.favorites &&
+                collection.isOwner(userID),
+          )
+          ?.id,
     );
   }
 

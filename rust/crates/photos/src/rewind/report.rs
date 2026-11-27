@@ -250,18 +250,14 @@ impl RewindReport {
         request: &RewindRequest,
         library: &Library<'_>,
         store: Option<&MlStore>,
-        ml_chapters: bool,
         new_faces_ready: bool,
         cities: Option<&dyn CityLookup>,
     ) -> Result<Self> {
         let people = store
             .map(|store| People::load(request, library, store))
             .transpose()?;
-        let ml_store = store.filter(|_| ml_chapters);
-        let clip = ml_store
-            .map(|store| Clip::load(library, store))
-            .transpose()?;
-        let vectors = ml_store.filter(|store| {
+        let clip = store.map(|store| Clip::load(library, store)).transpose()?;
+        let vectors = store.filter(|store| {
             store
                 .fill_state(Index::Clip)
                 .is_ok_and(|state| state == FillState::Filled)
@@ -270,7 +266,6 @@ impl RewindReport {
             people.as_ref(),
             vectors.map(|store| store as &dyn ClipVectors),
         );
-        let ml_people = people.as_ref().filter(|_| ml_chapters);
         let located_cities = cities.and_then(|cities| chapters::cities(library, cities));
         let year_photos = chapters::year_photos(library, &ranking);
         Ok(Self {
@@ -282,16 +277,18 @@ impl RewindReport {
                 .as_deref()
                 .and_then(|cities| chapters::places(cities, &ranking)),
             spots: chapters::spots(library, &ranking),
-            people_race: ml_people
+            people_race: people
+                .as_ref()
                 .and_then(|people| chapters::people_race(request, library, people, &ranking)),
             busiest_day: chapters::busiest_day(library, &ranking),
-            new_faces: ml_people
+            new_faces: people
+                .as_ref()
                 .filter(|_| new_faces_ready)
                 .and_then(|people| chapters::new_faces(request, library, people, &ranking)),
             favourites: chapters::favourites(library, &ranking),
             weekly_habit: chapters::weekly_habit(library, &ranking),
             crowd_favourite: chapters::crowd_favourite(library, &ranking),
-            badge: chapters::badge(request, library, ml_people, clip.as_ref()),
+            badge: chapters::badge(request, library, people.as_ref(), clip.as_ref()),
             scrapbook: chapters::scrapbook(library, &ranking),
             finale: chapters::finale(library, &ranking),
             tour: located_cities
@@ -301,7 +298,7 @@ impl RewindReport {
                 .as_deref()
                 .zip(cities)
                 .and_then(|(located, lookup)| chapters::globe(located, lookup, &ranking)),
-            mosaic: chapters::mosaic(request, library, ml_people, &ranking, &year_photos),
+            mosaic: chapters::mosaic(request, library, people.as_ref(), &ranking, &year_photos),
             warp: chapters::warp(library, &ranking, &year_photos),
         })
     }
@@ -407,20 +404,6 @@ impl RewindReport {
 
     pub(super) fn is_empty(&self) -> bool {
         *self == Self::default()
-    }
-
-    pub(super) fn shows_ml_chapters(&self) -> bool {
-        self.colour.is_some()
-            || self.people_race.is_some()
-            || self.new_faces.is_some()
-            || self
-                .badge
-                .is_some_and(|badge| chapters::badge_uses_ml(badge.id))
-            || self.mosaic.as_ref().is_some_and(|mosaic| {
-                mosaic.me_person_id.is_some()
-                    || mosaic.top_person_id.is_some()
-                    || mosaic.cluster_id.is_some()
-            })
     }
 }
 

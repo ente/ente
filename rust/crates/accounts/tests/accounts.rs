@@ -6,7 +6,8 @@ use ente_accounts::{
     SessionValidity, TwoFactorSetup,
     auth::{SrpSession, derive_kek, derive_srp_login_key},
     lifecycle::{
-        change_password, check_session_validity, passkey_management_url, recover_two_factor,
+        change_password, check_session_validity, enable_two_factor, passkey_management_url,
+        recover_two_factor,
     },
     login::{LoginFlow, LoginStep},
     models::TwoFactorType,
@@ -260,7 +261,8 @@ async fn run(museum: &Museum) -> TestResult {
         created.secrets.master_key
     );
 
-    let passkey_url = passkey_management_url(&recovered_client, &created.recovery_key).await?;
+    let recovery_key = hex::decode(&created.recovery_key)?;
+    let passkey_url = passkey_management_url(&recovered_client, &recovery_key).await?;
     assert!(passkey_url.contains("/passkeys?token="));
     assert!(
         recovered_client
@@ -352,6 +354,16 @@ async fn run_security_settings(museum: &Museum) -> TestResult {
 
     let setup =
         TwoFactorSetup::start(&client, &account.master_key, &account.key_attributes).await?;
+    assert!(matches!(
+        enable_two_factor(
+            &client,
+            &setup.secret_code,
+            &account.recovery_key,
+            "invalid"
+        )
+        .await,
+        Err(Error::IncorrectTotp)
+    ));
     setup
         .enable(&client, &current_totp(&setup.secret_code)?)
         .await?;
@@ -397,6 +409,16 @@ async fn run_security_settings(museum: &Museum) -> TestResult {
     assert_eq!(login.secrets.master_key, account.master_key);
 
     client.logout().await?;
+    assert!(matches!(
+        enable_two_factor(
+            &client,
+            &setup.secret_code,
+            &account.recovery_key,
+            "invalid"
+        )
+        .await,
+        Err(Error::SessionInvalid)
+    ));
     assert!(matches!(
         change_email(&session, &account.email, HARDCODED_OTT).await,
         Err(Error::SessionInvalid)

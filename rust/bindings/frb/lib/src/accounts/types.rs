@@ -25,6 +25,7 @@ pub enum AccountsError {
     IncorrectTotp,
     TotpRateLimited,
     SessionExpired,
+    SessionInvalid,
     TwoFactorRecoveryNotConfigured,
     KeyDerivation,
     Network { timeout: bool },
@@ -49,6 +50,7 @@ impl From<Error> for AccountsError {
             Error::IncorrectTotp => Self::IncorrectTotp,
             Error::TotpRateLimited => Self::TotpRateLimited,
             Error::SecondFactorSessionExpired => Self::SessionExpired,
+            Error::SessionInvalid => Self::SessionInvalid,
             Error::TwoFactorRecoveryNotConfigured => Self::TwoFactorRecoveryNotConfigured,
             Error::InsufficientMemory
             | Error::Crypto(ente_core::crypto::Error::KeyDerivationFailed)
@@ -279,9 +281,10 @@ impl AccountsClient {
         &self,
         token: String,
         secret: String,
-        recovery_key: String,
+        recovery_key: Vec<u8>,
         code: String,
     ) -> Result<(), AccountsError> {
+        let recovery_key = SecretVec::new(recovery_key);
         lifecycle::enable_two_factor(
             &self.0.with_auth_token(token),
             &secret,
@@ -295,8 +298,9 @@ impl AccountsClient {
     pub async fn passkey_management_url(
         &self,
         token: String,
-        recovery_key: String,
+        recovery_key: Vec<u8>,
     ) -> Result<String, AccountsError> {
+        let recovery_key = SecretVec::new(recovery_key);
         lifecycle::passkey_management_url(&self.0.with_auth_token(token), &recovery_key)
             .await
             .map_err(Into::into)
@@ -473,4 +477,21 @@ pub struct RecoveredAccount {
 pub struct _TwoFactorSecret {
     pub secret_code: String,
     pub qr_code: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn maps_two_factor_enable_errors_across_bridge() {
+        assert!(matches!(
+            AccountsError::from(Error::IncorrectTotp),
+            AccountsError::IncorrectTotp
+        ));
+        assert!(matches!(
+            AccountsError::from(Error::SessionInvalid),
+            AccountsError::SessionInvalid
+        ));
+    }
 }

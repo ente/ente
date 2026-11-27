@@ -12,8 +12,10 @@ try {
     mkdirSync(join(root, "web/checks/lint-exceptions"), { recursive: true });
     for (const source of [
         '// eslint-disable-next-line no-console -- Intentional diagnostic\nconsole.log("hello");',
+        '//eslint-disable-next-line no-console\nconsole.log("hello");',
         'console.log("hello"); // eslint-disable-line no-console',
         '/* eslint-disable "no-console" */\nconsole.log("hello");',
+        '/*eslint-disable no-console*/\nconsole.log("hello");',
         '/* eslint no-console: "off" */\nconsole.log("hello");',
         '{/* eslint-disable-next-line no-console */}\nconsole.log("hello");',
     ]) {

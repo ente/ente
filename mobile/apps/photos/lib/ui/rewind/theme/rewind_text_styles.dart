@@ -15,6 +15,7 @@ abstract final class RewindTextStyles {
     fontSize: size,
     height: height,
     letterSpacing: letterSpacing,
+    wordSpacing: letterSpacing < 0 ? -letterSpacing : 0,
     color: color,
     leadingDistribution: TextLeadingDistribution.even,
   );

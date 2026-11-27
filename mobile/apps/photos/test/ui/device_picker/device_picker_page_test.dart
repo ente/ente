@@ -14,6 +14,7 @@ import "package:path_provider_platform_interface/path_provider_platform_interfac
 import "package:photo_manager/photo_manager.dart";
 import "package:photos/app_mode.dart";
 import "package:photos/core/cache/image_cache.dart";
+import "package:photos/core/cache/thumbnail_in_memory_cache.dart";
 import "package:photos/core/configuration.dart";
 import "package:photos/core/constants.dart";
 import "package:photos/ente_theme_data.dart";
@@ -30,6 +31,7 @@ import "package:photos/ui/viewer/file/detail_page.dart";
 import "package:photos/ui/viewer/file/file_widget.dart";
 import "package:photos/ui/viewer/file/image_zoom/image_zoom_viewer.dart";
 import "package:photos/ui/viewer/gallery/component/gallery_file_widget.dart";
+import "package:photos/ui/viewer/gallery/gallery.dart";
 import "package:photos/ui/viewer/gallery/state/gallery_boundaries_provider.dart";
 import "package:shared_preferences/shared_preferences.dart";
 
@@ -95,7 +97,7 @@ void main() {
                   _assetData('2'),
                 ],
               },
-              'fetchEntityProperties' => _assetData(id!),
+              'fetchEntityProperties' when id != 'cloud' => _assetData(id!),
               'getMediaUrl' when id != '1' =>
                 'content://media/external/images/media/$id',
               'getThumb' || 'getOriginBytes' => bytes,
@@ -172,6 +174,18 @@ void main() {
     await tester.pump(const Duration(seconds: 5));
   }
 
+  List<MethodCall> capturePickerResults(WidgetTester tester) {
+    final paths = PathProviderPlatform.instance;
+    PathProviderPlatform.instance = _NoLocalDatabase();
+    addTearDown(() => PathProviderPlatform.instance = paths);
+    final calls = <MethodCall>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('media_extension'),
+      (call) async => calls.add(call),
+    );
+    return calls;
+  }
+
   tearDown(() async {
     await EasyLoading.dismiss(animation: false);
     FileLruCache.clearAll();
@@ -180,19 +194,12 @@ void main() {
   testWidgets(
     'local external picker shares selection across Photos and folders',
     (tester) async {
-      final paths = PathProviderPlatform.instance;
-      PathProviderPlatform.instance = _NoLocalDatabase();
-      addTearDown(() => PathProviderPlatform.instance = paths);
+      final calls = capturePickerResults(tester);
       tester.view.systemGestureInsets = const FakeViewPadding(left: 24);
       addTearDown(tester.view.resetSystemGestureInsets);
       final localFile = File('assets/memories.jpg').absolute;
       final file = fileFromAsset('', media('1'));
       FileLruCache.put('${file.tag}falsefalse', localFile);
-      final calls = <MethodCall>[];
-      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-        const MethodChannel('media_extension'),
-        (call) async => calls.add(call),
-      );
       for (final allowMultiple in [false, true]) {
         await mount(
           tester,
@@ -255,6 +262,82 @@ void main() {
       ]);
     },
   );
+
+  testWidgets('Device shares and submits the external picker selection', (
+    tester,
+  ) async {
+    final calls = capturePickerResults(tester);
+    await localSettings.setAppMode(AppMode.enteGallery);
+    final cloud = fileFromAsset('', media('cloud'))..uploadedFileID = 42;
+    final cached = File('assets/memories.jpg').absolute;
+    FileLruCache.put('${cloud.tag}falsefalse', cached);
+    final deviceFile = fileFromAsset('', media('2'));
+    FileLruCache.put('${deviceFile.tag}falsefalse', cached);
+    final bytes = cached.readAsBytesSync();
+    ThumbnailInMemoryLruCache.put(cloud, bytes, thumbnailSmallSize);
+    ThumbnailInMemoryLruCache.put(cloud, bytes);
+    addTearDown(() => ThumbnailInMemoryLruCache.clearCache(cloud));
+    await mount(
+      tester,
+      picker: const ExternalMediaPickerPage(
+        requestedType: MediaType.image,
+        allowMultiple: true,
+      ),
+    );
+    tester.widget<Gallery>(find.byType(Gallery)).selectedFiles!.selectAll({
+      cloud,
+    });
+    await tester.pump();
+    Future<void> tap(Finder target) async {
+      await tester.tap(target);
+      await _settleImages(tester);
+    }
+
+    await tap(find.text('Device'));
+    expect(find.widgetWithText(SelectionPreviewButton, '1'), findsOneWidget);
+    await tap(find.byType(GalleryFileWidget).last);
+    await tap(find.byTooltip('Back'));
+    expect(find.widgetWithText(SelectionPreviewButton, '2'), findsOneWidget);
+    await tap(find.text('Device'));
+    await tap(find.byTooltip('Preview'));
+    expect(find.text('2 selected'), findsOneWidget);
+    await tap(find.text('Add selected'));
+    expect(calls, [
+      isMethodCall(
+        'setResults',
+        arguments: {
+          'uris': [
+            cached.uri.toString(),
+            'content://media/external/images/media/2',
+          ],
+        },
+      ),
+    ]);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('Back cancels the local picker during a media refresh', (
+    tester,
+  ) async {
+    final calls = capturePickerResults(tester);
+    await mount(
+      tester,
+      picker: const ExternalMediaPickerPage(requestedType: MediaType.image),
+    );
+    final model = tester
+        .widget<DevicePickerGallery>(find.byType(DevicePickerGallery))
+        .model;
+    final back = await tester.startGesture(
+      tester.getCenter(find.byTooltip('Back')),
+    );
+    final refresh = model.refresh(requestPermission: true);
+    await back.up();
+    await refresh;
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+    expect(calls.single.method, 'cancelResult');
+  });
 
   testWidgets('editing can return an empty selection while closing cancels', (
     tester,

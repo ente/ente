@@ -181,7 +181,7 @@ pub(super) struct Fake {
     fragments: Vec<(usize, usize)>,
     large_summary_calls: Option<std::ops::Range<usize>>,
     tools: usize,
-    no_tools: bool,
+    pub(super) no_tools: bool,
 }
 impl Effects for Fake {
     fn supports_tools(&self) -> bool {

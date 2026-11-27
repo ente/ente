@@ -5,6 +5,7 @@ import {
     isOpen,
     listTodos,
     setTodoCompleted,
+    todoChanges,
     updateTodo,
     watchTodos,
     type Todo,
@@ -52,6 +53,7 @@ export const TodoDialog: React.FC<TodoDialogProps> = ({
     const [due, setDue] = useState("");
     const [editing, setEditing] = useState<Todo | null>(null);
 
+    const [changes] = useState(todoChanges);
     const reload = useRef<(() => void) | undefined>(undefined);
 
     useEffect(() => {
@@ -166,14 +168,14 @@ export const TodoDialog: React.FC<TodoDialogProps> = ({
                                 slotProps={{
                                     input: { "aria-label": todo.title },
                                 }}
-                                onChange={(event) =>
+                                onChange={(event) => {
+                                    const completed = event.target.checked;
                                     run(
-                                        setTodoCompleted(
-                                            todo,
-                                            event.target.checked,
+                                        changes.change(todo, (latest) =>
+                                            setTodoCompleted(latest, completed),
                                         ),
-                                    )
-                                }
+                                    );
+                                }}
                             />
                             <Box
                                 sx={{ flex: 1, cursor: "pointer" }}
@@ -205,7 +207,9 @@ export const TodoDialog: React.FC<TodoDialogProps> = ({
                             </Box>
                             <IconButton
                                 aria-label={`Delete ${todo.title}`}
-                                onClick={() => run(deleteTodo(todo))}
+                                onClick={() =>
+                                    run(changes.change(todo, deleteTodo))
+                                }
                             >
                                 <HugeiconsIcon icon={Delete01Icon} size={18} />
                             </IconButton>

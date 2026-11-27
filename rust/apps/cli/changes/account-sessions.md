@@ -1,1 +1,0 @@
-- Added `account session list` and `account session revoke` to review and log out an app's logins on other devices.

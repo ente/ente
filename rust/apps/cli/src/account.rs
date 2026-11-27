@@ -339,7 +339,7 @@ pub async fn totp(
             writeln!(std::io::stdout(), "{}", secret.as_str()).map_err(Into::into)
         };
     }
-    let setup = TwoFactorSetup::from_secret(secret.to_string(), &account.identity.recovery_key);
+    let setup = TwoFactorSetup::from_secret(secret.to_string(), &account.identity.recovery_key)?;
     let incorrect_code =
         "Code not accepted. Check the code and your computer's date and time, then try again.";
     if let Some(input) = input {

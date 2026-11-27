@@ -19,6 +19,7 @@ pub use key_gen::{
     generate_key_attributes_for_new_password_with_strength, generate_keys_with_strength,
 };
 
+pub(crate) use recovery::get_recovery_key_bytes;
 pub use recovery::{get_recovery_key, recovery_key_from_mnemonic_or_hex, recovery_key_to_mnemonic};
 
 pub use types::{KeyAttributes, KeyGenResult, PrivateKeyAttributes, SrpAttributes};

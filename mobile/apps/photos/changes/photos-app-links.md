@@ -1,1 +1,0 @@
-- Added support for opening Ente Photos from photos.ente.com/redirect/email links.

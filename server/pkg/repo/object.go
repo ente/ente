@@ -390,12 +390,30 @@ func convertRowsToObjectKeys(rows *sql.Rows) ([]ente.S3ObjectKey, error) {
 	return fileObjectKeys, nil
 }
 
-func (repo *ObjectRepository) DoesObjectExist(tx *sql.Tx, objectKey string) (bool, error) {
-	var exists bool
-	err := tx.QueryRow(
-		`SELECT EXISTS (SELECT 1 FROM object_keys WHERE object_key = $1)`,
-		objectKey).Scan(&exists)
-	return exists, stacktrace.Propagate(err, "")
+func (repo *ObjectRepository) GetExistingObjectKeysTx(tx *sql.Tx, objectKeys []string) (map[string]struct{}, error) {
+	existing := make(map[string]struct{})
+	if len(objectKeys) == 0 {
+		return existing, nil
+	}
+	rows, err := tx.Query(
+		`SELECT object_key FROM object_keys WHERE object_key = ANY($1::text[])`,
+		pq.Array(objectKeys),
+	)
+	if err != nil {
+		return nil, stacktrace.Propagate(err, "")
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var objectKey string
+		if err := rows.Scan(&objectKey); err != nil {
+			return nil, stacktrace.Propagate(err, "")
+		}
+		existing[objectKey] = struct{}{}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, stacktrace.Propagate(err, "")
+	}
+	return existing, nil
 }
 
 func (repo *ObjectRepository) DoesObjectOrTempObjectExist(objectKey string) (bool, error) {

@@ -44,6 +44,7 @@ import 'package:ente_auth/ui/settings_page.dart';
 import 'package:ente_auth/ui/share/code_share.dart';
 import 'package:ente_auth/ui/sort_option_menu.dart';
 import 'package:ente_auth/ui/utils/icon_utils.dart';
+import 'package:ente_auth/utils/code_sort.dart';
 import 'package:ente_auth/utils/debug_code_deep_link.dart';
 import 'package:ente_auth/utils/dialog_util.dart';
 import 'package:ente_auth/utils/gallery_import_util.dart';
@@ -1191,7 +1192,7 @@ class _HomePageState extends State<HomePage> {
           [];
     }
 
-    sortFilteredCodes(_filteredCodes, _codeSortKey);
+    sortAuthCodes(_filteredCodes, _codeSortKey);
 
     if (mounted) {
       setState(() {});
@@ -1212,49 +1213,6 @@ class _HomePageState extends State<HomePage> {
     _firstItemFocusNode.dispose();
 
     super.dispose();
-  }
-
-  void sortFilteredCodes(List<Code> codes, CodeSortKey sortKey) {
-    switch (sortKey) {
-      case CodeSortKey.issuerName:
-        codes.sort((a, b) => compareNames(a.issuer, b.issuer));
-        break;
-      case CodeSortKey.accountName:
-        codes.sort((a, b) => compareNames(a.account, b.account));
-        break;
-      case CodeSortKey.mostFrequentlyUsed:
-        codes.sort((a, b) => b.display.tapCount.compareTo(a.display.tapCount));
-        break;
-      case CodeSortKey.recentlyUsed:
-        codes.sort(
-          (a, b) => b.display.lastUsedAt.compareTo(a.display.lastUsedAt),
-        );
-        break;
-      case CodeSortKey.manual:
-        codes.sort((a, b) => a.display.position.compareTo(b.display.position));
-        break;
-      case CodeSortKey.newestFirst:
-        codes.sort(_compareNewestFirst);
-        break;
-    }
-    if (sortKey != CodeSortKey.manual) {
-      int insertIndex = 0;
-      for (int i = 0; i < codes.length; i++) {
-        if (codes[i].isPinned) {
-          final code = codes.removeAt(i);
-          codes.insert(insertIndex, code);
-          insertIndex++;
-        }
-      }
-    }
-  }
-
-  static int _compareNewestFirst(Code a, Code b) {
-    final byCreatedAt = b.createdAt!.compareTo(a.createdAt!);
-    if (byCreatedAt != 0) {
-      return byCreatedAt;
-    }
-    return b.generatedID!.compareTo(a.generatedID!);
   }
 
   bool get _shouldFocusAddedCode {

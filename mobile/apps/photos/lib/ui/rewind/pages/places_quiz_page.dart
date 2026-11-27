@@ -7,6 +7,7 @@ import "package:flutter/services.dart";
 import "package:flutter_svg/flutter_svg.dart";
 import "package:photos/models/file/file.dart";
 import "package:photos/src/rust/api/rewind_api.dart" as rust;
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
@@ -19,7 +20,6 @@ import "package:photos/ui/rewind/widgets/rewind_confetti.dart";
 import "package:photos/ui/rewind/widgets/rewind_count_up.dart";
 import "package:photos/ui/rewind/widgets/rewind_entrance.dart";
 import "package:photos/ui/rewind/widgets/rewind_keyframes.dart";
-import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo_frames.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo_gallery.dart";
@@ -136,6 +136,10 @@ class _PlacesQuiz extends StatefulWidget {
 }
 
 class _PlacesQuizState extends State<_PlacesQuiz> {
+  RewindCopy get _copy => RewindCopy.of(context);
+
+  String _cityOf(rust.RewindCity city) => _copy.city(city.name, city.country);
+
   static const _background = Color(0xFF123E97);
   static const _stripes = Color(0xFF0C3B9B);
   static const _revealMs = 1250;
@@ -324,7 +328,7 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
               child: Column(
                 children: [
                   Text(
-                    "WHERE DID YOU SHOOT MOST?",
+                    _copy.placesQuestion,
                     textAlign: TextAlign.center,
                     style: RewindTextStyles.display(
                       20,
@@ -335,7 +339,7 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
                   ),
                   const SizedBox(height: 7),
                   Text(
-                    "Tap a stamp to guess.",
+                    _copy.placesHint,
                     textAlign: TextAlign.center,
                     style: RewindTextStyles.body(17, height: 1.2),
                   ),
@@ -353,10 +357,10 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
           child: _leave(
             150,
             RewindSwapIn(
-              text: _stamps[picked].city.name,
+              text: _cityOf(_stamps[picked].city),
               alignment: Alignment.centerLeft,
               child: Text(
-                "${_stamps[picked].city.name}? Let’s check\nthe postmarks.",
+                _copy.placesPicked(_cityOf(_stamps[picked].city)),
                 style: RewindTextStyles.body(19, height: 1.15),
               ),
             ),
@@ -457,7 +461,7 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
                 placeholder: const Color(0xFFD9D9D9),
                 zoomable: _phase == _Phase.done && !_opensGallery(rank),
               ),
-        label: _stamps[rank].city.name,
+        label: _cityOf(_stamps[rank].city),
         portrait: slot.portrait,
         width: size.width,
         lift: lift * 139.6 / size.width,
@@ -526,13 +530,13 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
               ? const ColoredBox(color: Color(0xFFD9D9D9))
               : RewindPhoto(photo, placeholder: const Color(0xFFD9D9D9)),
           label: stamp.city.country.isEmpty
-              ? stamp.city.name
+              ? _cityOf(stamp.city)
               : stamp.city.country,
           width: width,
         ),
       ),
       headerSize: const Size(width, width * 93.9 / 139.6),
-      title: stamp.city.name,
+      title: _cityOf(stamp.city),
       photos: stamp.gallery,
     );
   }
@@ -618,7 +622,7 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
                 delayMs: delay,
                 durationMs: 700,
                 builder: (context, text) => Text(
-                  "$text ${count == 1 ? "photo" : "photos"}",
+                  _copy.photoTally(text, count),
                   style: RewindTextStyles.body(first ? 15.43 : 14, height: 1.2)
                       .copyWith(
                         fontFeatures: const [FontFeature.tabularFigures()],
@@ -684,8 +688,7 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
           110,
           swap(
             RewindVoice(
-              you: travelled ? "YOUR PHOTOS TRAVELED" : "YOUR TOP PLACE",
-              me: travelled ? "MY PHOTOS TRAVELED" : "MY TOP PLACE",
+              _copy.placesHeading(travelled: travelled),
               builder: (text) => Text(
                 text,
                 style: RewindTextStyles.display(17, letterSpacing: 0.3),
@@ -704,8 +707,8 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
               width: 330,
               child: RewindOutlinedText(
                 travelled
-                    ? "${rewindCount(places.distanceKm)} KM"
-                    : winner.name.toUpperCase(),
+                    ? _copy.distance(places.distanceKm)
+                    : _cityOf(winner).toUpperCase(),
                 style: RewindTextStyles.display(
                   71.872,
                   color: RewindColors.yellow,
@@ -734,23 +737,15 @@ class _PlacesQuizState extends State<_PlacesQuiz> {
     final guess = _guess ?? 0;
     final cities = [for (final stamp in _stamps) stamp.city];
     final winner = cities.first;
-    final winning = rewindCounted(winner.photoCount, "photo", "photos");
+    final won = _copy.placesWon(_cityOf(winner), winner.photoCount);
     if (guess == 0) {
-      final next = cities.skip(1).take(2).map((city) => city.name).toList();
-      return switch (next.length) {
-        0 => "${winner.name} won with $winning.",
-        1 => "${winner.name} won with $winning. ${next[0]} came next.",
-        _ =>
-          "${winner.name} won with $winning. "
-              "${next[0]} and ${next[1]} came next.",
-      };
+      final next = cities.skip(1).take(2).map(_cityOf).toList();
+      return next.isEmpty ? won : "$won ${_copy.placesNext(next)}";
     }
     final pick = cities[guess];
-    if (guess < 3) {
-      return "${pick.name} came ${guess == 1 ? "2nd" : "3rd"}. "
-          "${winner.name} won with $winning.";
-    }
-    return "${pick.name} had ${rewindCount(pick.photoCount)}. "
-        "${winner.name} won with $winning.";
+    final placing = guess < 3
+        ? _copy.placesPlaced(_cityOf(pick), guess + 1)
+        : _copy.placesHad(_cityOf(pick), pick.photoCount);
+    return "$placing $won";
   }
 }

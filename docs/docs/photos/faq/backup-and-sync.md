@@ -13,7 +13,7 @@ Once you select which albums to backup in your mobile app settings, Ente automat
 
 Each selected device folder or album backs up to a corresponding Ente album. Mobile automatic backup does not offer **Uncategorized** as a destination. You can browse local folders under **Albums > Device** and backed-up Ente albums under **Albums > Ente**.
 
-Mobile backup uploads photos stored on your phone. It doesn't import your Google Photos library. If only some of your photos appeared, see [Why didn't Ente bring over all my Google Photos on my phone?](/photos/faq/migration#google-photos-not-imported).
+Mobile backup uploads photos stored on your phone. On Android, Ente backs up directly from folders you select, such as **Camera**, so Google Photos is not required. On iPhone, Ente backs up from the Apple Photos albums you select. Once you confirm Ente is backing up the folders or albums you want, you can turn off backup in Google Photos if you only want to use Ente. Mobile backup doesn't import your Google Photos library. If only some of your photos appeared, see [Why didn't Ente bring over all my Google Photos on my phone?](/photos/faq/migration#google-photos-not-imported).
 
 **Key features:**
 

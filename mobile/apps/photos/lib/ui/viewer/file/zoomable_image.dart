@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:ffi' show Pointer, Uint8, Uint8Pointer;
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data' show Uint8List;
+import 'dart:ui' as ui;
 
 import 'package:ente_ui/components/loading_widget.dart';
+import 'package:flutter/foundation.dart' show SynchronousFuture;
 import 'package:flutter/material.dart';
 import "package:flutter_image_compress/flutter_image_compress.dart";
 import 'package:logging/logging.dart';
@@ -27,6 +30,7 @@ import "package:photos/states/detail_page_state.dart";
 import "package:photos/ui/actions/file/file_actions.dart";
 import "package:photos/ui/viewer/file/file_viewer_image_page_readiness.dart";
 import "package:photos/ui/viewer/file/image_zoom/image_zoom_viewer.dart";
+import "package:photos/ui/viewer/file/image_zoom/viewer_jpeg_image.dart";
 import 'package:photos/ui/viewer/file/thumbnail_widget.dart';
 import 'package:photos/ui/viewer/gallery/state/selection_state.dart';
 import 'package:photos/utils/dialog_util.dart';
@@ -42,6 +46,9 @@ class ZoomableImage extends StatefulWidget {
   final bool isGuestView;
   final bool isFromMemories;
   final bool enableVerticalSwipeActions;
+  // Null for views that don't use screen-sized JPEGs.
+  final bool? isSelectedViewerPage;
+  final double jpegPreviewScale;
   final Function({required int memoryDuration})? onFinalFileLoad;
   final ValueChanged<File>? onFinalImageLoaded;
   final FileViewerImagePageReadinessRegistration?
@@ -57,6 +64,8 @@ class ZoomableImage extends StatefulWidget {
     this.isGuestView = false,
     this.isFromMemories = false,
     this.enableVerticalSwipeActions = true,
+    this.isSelectedViewerPage,
+    this.jpegPreviewScale = 1,
     this.onFinalFileLoad,
     this.onFinalImageLoaded,
     this.onImagePageReadinessRegistration,
@@ -70,6 +79,14 @@ class _ZoomableImageState extends State<ZoomableImage> {
   late Logger _logger;
   late EnteFile _photo;
   ImageProvider? _imageProvider;
+  Size? _physicalViewport;
+  Size? _jpegSourceSize;
+  File? _jpegFile;
+  ViewerJpegImage? _jpegFit;
+  ImageProvider? _jpegDetail;
+  ImageProvider? _requestedJpegImage;
+  Timer? _pinchTimer;
+  double _pinchAnchorScale = 1;
   bool _loadedSmallThumbnail = false;
   bool _loadingLargeThumbnail = false;
   bool _loadedLargeThumbnail = false;
@@ -85,6 +102,9 @@ class _ZoomableImageState extends State<ZoomableImage> {
   // for the original.
   bool _firedOnReady = false;
   bool _interactionLocked = false;
+  bool _sheetOpen = false;
+  bool _ignoreDrag = false;
+  Offset? _downPosition;
   final _imageFrameReady = ValueNotifier(false);
   final _imageZoomController = ImageZoomController();
   late final StreamSubscription<ResetZoomOfPhotoView> _resetZoomSubscription;
@@ -158,6 +178,8 @@ class _ZoomableImageState extends State<ZoomableImage> {
 
   void _onZoomChanged() {
     if (!mounted) return;
+    _updateJpegRequest();
+    if (widget.isSelectedViewerPage == false) return;
     final transform = _imageZoomController.transform;
     final isZooming = _imageZoomController.isZoomed;
     final state = InheritedDetailPageState.maybeOf(context);
@@ -176,6 +198,12 @@ class _ZoomableImageState extends State<ZoomableImage> {
   @override
   void didUpdateWidget(covariant ZoomableImage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.isSelectedViewerPage == true &&
+        widget.isSelectedViewerPage == false &&
+        isViewerJpeg(_photo)) {
+      unawaited(_imageZoomController.reset(animated: false));
+      _updateJpegRequest();
+    }
     if (oldWidget.onImagePageReadinessRegistration !=
         widget.onImagePageReadinessRegistration) {
       oldWidget.onImagePageReadinessRegistration?.call(
@@ -191,12 +219,27 @@ class _ZoomableImageState extends State<ZoomableImage> {
     }
   }
 
+  void _onVerticalDragStart(DragStartDetails details) {
+    final size = MediaQuery.sizeOf(context);
+    final insets = MediaQuery.systemGestureInsetsOf(context);
+    final p = _downPosition ?? details.globalPosition;
+    _ignoreDrag =
+        p.dy > size.height - insets.bottom ||
+        p.dx < insets.left ||
+        p.dx > size.width - insets.right;
+  }
+
   void _onVerticalDragUpdate(DragUpdateDetails details) {
-    if (_imageZoomController.isZoomed) return;
+    if (_ignoreDrag || _imageZoomController.isZoomed) return;
     if (details.delta.dy > dragSensitivity) {
       unawaited(Navigator.maybePop(context));
     } else if (details.delta.dy < -dragSensitivity) {
-      showDetailsSheet(context, widget.photo);
+      if (_sheetOpen) return;
+      _sheetOpen = true;
+      showDetailsSheet(
+        context,
+        widget.photo,
+      ).whenComplete(() => _sheetOpen = false);
     }
   }
 
@@ -208,16 +251,36 @@ class _ZoomableImageState extends State<ZoomableImage> {
       isAttached: false,
     );
     _imageFrameReady.dispose();
+    _pinchTimer?.cancel();
     _imageZoomController
       ..removeListener(_onZoomChanged)
       ..dispose();
     _resetZoomSubscription.cancel();
     _retryFailedLoadSubscription.cancel();
+    final imageProvider = _imageProvider;
+    if (imageProvider is _RustRgbaImageProvider) {
+      imageProvider.dispose();
+    }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    if (widget.isSelectedViewerPage != null && isViewerJpeg(_photo)) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final pixelRatio = MediaQuery.devicePixelRatioOf(context);
+          _physicalViewport =
+              constraints.biggest * pixelRatio * widget.jpegPreviewScale;
+          _updateJpegRequest();
+          return _buildViewer(context);
+        },
+      );
+    }
+    return _buildViewer(context);
+  }
+
+  Widget _buildViewer(BuildContext context) {
     if (_photo.isRemoteOnlyFile) {
       _loadNetworkImage();
     } else {
@@ -226,6 +289,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
     final content = ImageZoomViewer(
       imageProvider: _imageProvider,
       controller: _imageZoomController,
+      sourceImageSize: _jpegSourceSize,
       imageSizeHint: _photo.width > 0 && _photo.height > 0
           ? Size(_photo.width.toDouble(), _photo.height.toDouble())
           : null,
@@ -260,9 +324,17 @@ class _ZoomableImageState extends State<ZoomableImage> {
             !widget.enableVerticalSwipeActions
         ? null
         : _onVerticalDragUpdate;
-    return GestureDetector(
-      onVerticalDragUpdate: verticalDragCallback,
-      child: content,
+    return Listener(
+      onPointerDown: verticalDragCallback == null
+          ? null
+          : (event) => _downPosition = event.position,
+      child: GestureDetector(
+        onVerticalDragStart: verticalDragCallback == null
+            ? null
+            : _onVerticalDragStart,
+        onVerticalDragUpdate: verticalDragCallback,
+        child: content,
+      ),
     );
   }
 
@@ -291,7 +363,7 @@ class _ZoomableImageState extends State<ZoomableImage> {
               if (mounted) {
                 precacheImage(imageProvider, context)
                     .then((value) {
-                      if (mounted) {
+                      if (mounted && !_loadedFinalImage) {
                         setState(() {
                           _imageProvider = imageProvider;
                           _loadedSmallThumbnail = true;
@@ -430,8 +502,14 @@ class _ZoomableImageState extends State<ZoomableImage> {
   }
 
   void _onFileLoaded(File file) {
+    if (widget.isSelectedViewerPage != null && isViewerJpeg(_photo)) {
+      if (!mounted) return;
+      _jpegFile = file;
+      _updateJpegRequest();
+      return;
+    }
     // Android's HEIC decoder can produce a glitched image without throwing.
-    if (_isAndroidHeic()) {
+    if (_isAndroidHeic(file)) {
       unawaited(_loadAndroidHeic(file));
       return;
     }
@@ -439,8 +517,117 @@ class _ZoomableImageState extends State<ZoomableImage> {
     _loadWithPlatformDecoder(file);
   }
 
+  void _updateJpegRequest() {
+    if (widget.isFromMemories && widget.isSelectedViewerPage == false) {
+      _pinchTimer?.cancel();
+      _pinchTimer = null;
+      _requestedJpegImage = null;
+      return;
+    }
+    final file = _jpegFile;
+    final viewport = _physicalViewport;
+    if (file == null ||
+        viewport == null ||
+        !viewport.isFinite ||
+        viewport.isEmpty) {
+      return;
+    }
+    final fit = _jpegFit;
+    if (fit == null ||
+        fit.width != viewport.width.ceil() ||
+        fit.height != viewport.height.ceil()) {
+      _jpegFit = ViewerJpegImage.fit(file, viewport);
+    }
+    final source = _jpegSourceSize;
+    final canUseDetail =
+        widget.isSelectedViewerPage == true &&
+        _imageZoomController.transform.scale > 1.001 &&
+        source != null &&
+        (source.width > _jpegFit!.width || source.height > _jpegFit!.height);
+    final detailRequested = _requestedJpegImage == _jpegDetail;
+    final pinchSteady = _isPinchSteady(
+      needsDetail: canUseDetail && !detailRequested,
+    );
+    final zoomSettled =
+        !widget.isFromMemories && !_imageZoomController.isZoomInProgress;
+    final wantsDetail =
+        canUseDetail && (detailRequested || pinchSteady || zoomSettled);
+    final desired = wantsDetail ? _jpegDetail! : _jpegFit!;
+    if (desired == _requestedJpegImage) return;
+    _requestedJpegImage = desired;
+    if (desired != _imageProvider) {
+      unawaited(_displayJpeg(desired, file));
+    }
+  }
+
+  bool _isPinchSteady({required bool needsDetail}) {
+    if (!needsDetail ||
+        !_imageZoomController.hasActivePointers ||
+        _imageZoomController.stage != ImageZoomStage.gesture) {
+      _pinchTimer?.cancel();
+      _pinchTimer = null;
+      return false;
+    }
+    final scale = _imageZoomController.transform.scale;
+    if (_pinchTimer == null || (scale / _pinchAnchorScale - 1).abs() > 0.05) {
+      _pinchAnchorScale = scale;
+      _pinchTimer?.cancel();
+      _pinchTimer = Timer(
+        const Duration(milliseconds: 250),
+        _updateJpegRequest,
+      );
+    }
+    return !_pinchTimer!.isActive;
+  }
+
+  Future<void> _displayJpeg(ImageProvider provider, File file) async {
+    Size? sourceSize;
+    try {
+      if (provider is ViewerJpegImage) {
+        sourceSize = await provider.prepare(
+          createLocalImageConfiguration(context),
+        );
+      } else {
+        final error = await _precacheImageError(provider);
+        if (error != null) throw error;
+      }
+    } catch (error, stack) {
+      if (!mounted || provider != _requestedJpegImage) return;
+      _logger.warning("Could not decode viewer JPEG", error, stack);
+      if (!_loadedFinalImage) {
+        _jpegFile = null;
+        unawaited(_loadInSupportedFormat(file, error));
+      }
+      return;
+    }
+    if (!mounted || provider != _requestedJpegImage) return;
+    if (sourceSize != null && _jpegSourceSize != sourceSize) {
+      _jpegSourceSize = sourceSize;
+      _jpegDetail = _jpegDetailProvider(file, sourceSize);
+    }
+    if (!_loadedFinalImage) {
+      await _updateViewWithFinalImage(provider, file);
+      if (mounted) _updateJpegRequest();
+    } else {
+      setState(() => _imageProvider = provider);
+    }
+  }
+
+  ImageProvider _jpegDetailProvider(File file, Size sourceSize) {
+    final pixels = sourceSize.width * sourceSize.height;
+    final original = FileImage(file);
+    if (pixels <= _maxImagePixels) return original;
+    final scale = sqrt(min(50000000, _maxImagePixels) / pixels);
+    return ResizeImage(
+      original,
+      width: max(1, (sourceSize.width * scale).floor()),
+      height: max(1, (sourceSize.height * scale).floor()),
+      policy: ResizeImagePolicy.fit,
+    );
+  }
+
   Future<void> _loadAndroidHeic(File file) async {
-    if (_shouldUseRustHeicDecoder()) {
+    if (_shouldUseRustHeicDecoder(file)) {
       await _loadHeicWithRust(file);
       return;
     }
@@ -563,29 +750,24 @@ class _ZoomableImageState extends State<ZoomableImage> {
 
   bool _isGIF() => _photo.displayName.toLowerCase().endsWith(".gif");
 
-  bool _isAndroidHeic() => Platform.isAndroid && _isHeic();
+  bool _isAndroidHeic(File file) => Platform.isAndroid && _isHeic(file);
 
-  bool _shouldUseRustHeicDecoder() =>
-      _isAndroidHeic() && flagService.useRustForHeicDecoder;
+  bool _shouldUseRustHeicDecoder(File file) =>
+      _isAndroidHeic(file) && flagService.useRustForHeicDecoder;
 
-  Future<ImageProvider<Object>?> _tryDecodeHeicWithRust(
-    File file, {
-    int? quality,
-  }) async {
-    if (!_shouldUseRustHeicDecoder()) {
+  Future<_RustRgbaImageProvider?> _tryDecodeHeicWithRust(File file) async {
+    if (!_shouldUseRustHeicDecoder(file)) {
       return null;
     }
 
     try {
       _logger.info("Using Rust HEIC decoder for ${_photo.generatedID}");
-      final Uint8List rustBytes = await rust_image.decodeToJpeg(
+      final rgbaImage = await rust_image.decodeToRgba(
         imagePath: file.path,
         maxSide: _rustDecodeMaxSide,
-        quality: quality,
       );
-      final MemoryImage imageProvider = MemoryImage(rustBytes);
       _logger.info("Rust HEIC decode succeeded for ${_photo.generatedID}");
-      return imageProvider;
+      return _RustRgbaImageProvider(rgbaImage);
     } on rust_image.RustImageDecodeError_TooLarge catch (e) {
       _logger.warning(
         "Rust HEIC decode refused ${_photo.generatedID} as too large: ${e.message}",
@@ -593,14 +775,11 @@ class _ZoomableImageState extends State<ZoomableImage> {
       return null;
     } catch (e) {
       _logger.warning("Rust HEIC decode failed for ${_photo.generatedID}: $e");
-      return _tryFullDecodeHeicWithRust(file, quality: quality);
+      return _tryFullDecodeHeicWithRust(file);
     }
   }
 
-  Future<ImageProvider<Object>?> _tryFullDecodeHeicWithRust(
-    File file, {
-    int? quality,
-  }) async {
+  Future<_RustRgbaImageProvider?> _tryFullDecodeHeicWithRust(File file) async {
     if (!mounted) return null;
     if (!_photo.hasDimensions || isTooLargeImage) {
       _logger.info(
@@ -611,12 +790,9 @@ class _ZoomableImageState extends State<ZoomableImage> {
 
     try {
       _logger.info("Using full Rust HEIC decoder for ${_photo.generatedID}");
-      final Uint8List rustBytes = await rust_image.decodeFullToJpeg(
-        imagePath: file.path,
-        quality: quality,
-      );
+      final rgbaImage = await rust_image.decodeFullToRgba(imagePath: file.path);
       _logger.info("Full Rust HEIC decode succeeded for ${_photo.generatedID}");
-      return MemoryImage(rustBytes);
+      return _RustRgbaImageProvider(rgbaImage);
     } catch (e) {
       _logger.warning(
         "Full Rust HEIC decode failed for ${_photo.generatedID}: $e",
@@ -627,10 +803,11 @@ class _ZoomableImageState extends State<ZoomableImage> {
 
   Future<bool> _tryDisplayRustDecodedImage(
     File file,
-    ImageProvider<Object> imageProvider, {
+    _RustRgbaImageProvider imageProvider, {
     required bool fallbackToSupportedFormatOnFailure,
   }) async {
     if (!mounted) {
+      imageProvider.dispose();
       return false;
     }
 
@@ -638,12 +815,15 @@ class _ZoomableImageState extends State<ZoomableImage> {
     if (displayError == null) {
       if (mounted && !_loadedFinalImage) {
         await _updateViewWithFinalImage(imageProvider, file);
+      } else {
+        imageProvider.dispose();
       }
       return true;
     }
+    imageProvider.dispose();
 
     _logger.warning(
-      "Flutter failed to decode Rust JPEG bytes for ${_photo.generatedID}: $displayError",
+      "Flutter failed to decode Rust RGBA pixels for ${_photo.generatedID}: $displayError",
     );
     if (fallbackToSupportedFormatOnFailure) {
       unawaited(
@@ -684,8 +864,8 @@ class _ZoomableImageState extends State<ZoomableImage> {
     _notifyReadyOnce();
   }
 
-  bool _isHeic() {
-    final ext = _photo.displayName.toLowerCase().split('.').last;
+  bool _isHeic(File file) {
+    final ext = file.path.toLowerCase().split('.').last;
     return ext == 'heic' || ext == 'heif';
   }
 
@@ -779,6 +959,73 @@ class _ZoomableImageState extends State<ZoomableImage> {
       return;
     }
     await _updateViewWithFinalImage(imageProvider, file);
+  }
+}
+
+class _RustRgbaImageProvider extends ImageProvider<_RustRgbaImageProvider> {
+  _RustRgbaImageProvider(this._rgbaImage);
+
+  rust_image.RustRgbaImage? _rgbaImage;
+  Future<ui.Image>? _image;
+
+  @override
+  Future<_RustRgbaImageProvider> obtainKey(ImageConfiguration configuration) {
+    return SynchronousFuture<_RustRgbaImageProvider>(this);
+  }
+
+  @override
+  ImageStreamCompleter loadImage(
+    _RustRgbaImageProvider key,
+    ImageDecoderCallback decode,
+  ) {
+    return OneFrameImageStreamCompleter(
+      (_image ??= _decode()).then((image) => ImageInfo(image: image.clone())),
+    );
+  }
+
+  void dispose() {
+    _rgbaImage?.dispose();
+    _rgbaImage = null;
+    _image?.then((image) => image.dispose()).ignore();
+    _image = null;
+  }
+
+  Future<ui.Image> _decode() async {
+    final rgbaImage = _rgbaImage;
+    if (rgbaImage == null) {
+      throw StateError("Rust RGBA image was disposed");
+    }
+    _rgbaImage = null;
+    final width = rgbaImage.width();
+    final height = rgbaImage.height();
+    final ui.ImmutableBuffer buffer;
+    try {
+      buffer = await ui.ImmutableBuffer.fromUint8List(
+        Pointer<Uint8>.fromAddress(
+          rgbaImage.pixelsAddress(),
+        ).asTypedList(width * height * 4),
+      );
+    } finally {
+      rgbaImage.dispose();
+    }
+    final descriptor = ui.ImageDescriptor.raw(
+      buffer,
+      width: width,
+      height: height,
+      pixelFormat: ui.PixelFormat.rgba8888,
+    );
+    buffer.dispose();
+    try {
+      final codec = await descriptor.instantiateCodec();
+      try {
+        final frame = await codec.getNextFrame();
+        return frame.image;
+      } finally {
+        codec.dispose();
+      }
+    } finally {
+      descriptor.dispose();
+    }
   }
 }
 

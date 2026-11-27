@@ -55,6 +55,8 @@ Find notes quickly using the search function. Search matches against the title o
 3. Make your changes
 4. Tap **Save**
 
+![Edit button highlighted on an open note on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-note-edit-callout-v1013.png){width=560px}
+
 ## Sharing notes
 
 Share individual notes via public links:
@@ -62,6 +64,8 @@ Share individual notes via public links:
 1. Long press on the note you want to share
 2. Tap the share button
 3. Tap **Share link**
+
+![Share link button highlighted on the share sheet for a note on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-note-share-link-callout-v1013.png){width=560px}
 
 To share notes with another Ente user, add them to a collection and share the collection.
 

@@ -1,4 +1,5 @@
 import "dart:async";
+import "dart:collection";
 import "dart:io";
 import "dart:ui" as ui;
 
@@ -53,6 +54,7 @@ class RewindVideoJob with WidgetsBindingObserver {
     required this.pages,
     this.reelOf = RewindReel.of,
     this.filePrefix = "ente-rewind-",
+    this.directory,
     this.format = RewindVideoFormat.fullHd,
     this.loadMedia,
     this.track,
@@ -72,11 +74,17 @@ class RewindVideoJob with WidgetsBindingObserver {
   static final _logger = Logger("RewindVideoJob");
   static const _musicTimeout = Duration(seconds: 10);
   static const _backgroundShare = 0.3;
+  static const _framesInFlight = 3;
+  static const _extendedRangeBlack = 384;
+  static const _extendedRangeSpan = 510;
+  static const _extendedRangePadding = 6;
+  static final _extendedRangeFrames = _readsExtendedRange();
   static var _running = 0;
 
   final List<RewindPage> pages;
   final RewindReel Function(List<RewindPage> pages) reelOf;
   final String filePrefix;
+  final Future<String> Function()? directory;
   final RewindVideoFormat format;
   final Future<bool> Function(List<RewindPage> pages)? loadMedia;
   final MemoryMusicTrack? track;
@@ -105,6 +113,7 @@ class RewindVideoJob with WidgetsBindingObserver {
   var _foregroundFrames = 0;
   var _failed = false;
   var _encodesWithFfmpeg = false;
+  var _extendedRange = false;
   RewindReel? _reel;
   OffscreenWidgetTree? _tree;
   File? _file;
@@ -187,7 +196,9 @@ class RewindVideoJob with WidgetsBindingObserver {
         throw const _Cancelled();
       }
       final reel = _reel = await _loadReel();
-      final directory = Configuration.instance.getTempDirectory();
+      final directory =
+          await this.directory?.call() ??
+          Configuration.instance.getTempDirectory();
       await _deleteOldVideos(directory);
       final output = File(
         "$directory$filePrefix${DateTime.now().millisecondsSinceEpoch}.mp4",
@@ -199,6 +210,7 @@ class RewindVideoJob with WidgetsBindingObserver {
         if (!native && !_foreground) throw const _Cancelled();
         _interrupted = false;
         _encodesWithFfmpeg = !native;
+        _extendedRange = native && await _extendedRangeFrames;
         sink = native
             ? RewindNativeVideoSink.open(
                 output: output,
@@ -265,12 +277,14 @@ class RewindVideoJob with WidgetsBindingObserver {
     _holdLastCard(null);
     var written = Future<void>.value();
     try {
+      if (_foreground) sink.prepareMusic();
       written = sink.add(await _cover(reel));
       _progress.value = RewindVideoProgress(
         RewindVideoStage.rendering,
         frameCount: reel.frameCount,
       );
       final tree = _mount(reel);
+      final writing = Queue.of([written]);
       try {
         for (var frame = 0; frame < reel.frameCount; frame++) {
           await _advance(reel, tree, reel.timeOf(frame));
@@ -282,14 +296,18 @@ class RewindVideoJob with WidgetsBindingObserver {
           if (frame == reel.storyEndFrame) _holdLastCard(image.clone());
           if (_foreground) {
             _foregroundFrames++;
+            sink.prepareMusic();
             if (frame <= reel.storyEndFrame) _showPreview(image.clone());
           }
-          final pixels = _read(image)..ignore();
+          final pixels = _read(image, extendedRange: _extendedRange)..ignore();
           if (!_foreground) await pixels;
           _cost = _busy.elapsed;
           final previous = written;
           written = previous.then((_) => pixels).then(sink.add)..ignore();
-          await _unlessCancelled(previous);
+          writing.add(written);
+          if (writing.length > _framesInFlight) {
+            await _unlessCancelled(writing.removeFirst());
+          }
           _progress.value = RewindVideoProgress(
             RewindVideoStage.rendering,
             frame: frame + 1,
@@ -480,11 +498,47 @@ class RewindVideoJob with WidgetsBindingObserver {
     }
   }
 
-  Future<ByteData> _read(ui.Image image) async {
+  Future<ByteData> _read(ui.Image image, {bool extendedRange = false}) async {
     try {
+      if (extendedRange) {
+        final data = await image.toByteData(
+          format: ui.ImageByteFormat.rawUnmodified,
+        );
+        if (data != null &&
+            data.lengthInBytes == image.width * image.height * 8) {
+          return data;
+        }
+      }
       final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
       if (data == null) throw StateError("Could not read a Rewind video frame");
       return data;
+    } finally {
+      image.dispose();
+    }
+  }
+
+  static Future<bool> _readsExtendedRange() async {
+    if (!Platform.isIOS) return false;
+    const color = Color(0xFF102030);
+    final recorder = ui.PictureRecorder();
+    Canvas(
+      recorder,
+    ).drawRect(const Rect.fromLTWH(0, 0, 1, 1), Paint()..color = color);
+    final image = await recorder.endRecording().toImage(1, 1);
+    try {
+      final data = await image.toByteData(
+        format: ui.ImageByteFormat.rawUnmodified,
+      );
+      if (data == null || data.lengthInBytes != 8) return false;
+      final expected = [
+        for (final channel in [color.b, color.g, color.r, color.a])
+          (_extendedRangeBlack + (channel * _extendedRangeSpan).round()) <<
+              _extendedRangePadding,
+      ];
+      final actual = [
+        for (var i = 0; i < 4; i++) data.getUint16(i * 2, Endian.little),
+      ];
+      return listEquals(actual, expected);
     } finally {
       image.dispose();
     }

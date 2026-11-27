@@ -7,6 +7,7 @@ import "package:flutter/material.dart";
 import "package:flutter/scheduler.dart";
 import "package:flutter/services.dart";
 import "package:photos/models/file/file.dart";
+import "package:photos/ui/rewind/copy/rewind_copy.dart";
 import "package:photos/ui/rewind/shell/rewind_page.dart";
 import "package:photos/ui/rewind/shell/rewind_page_scope.dart";
 import "package:photos/ui/rewind/shell/rewind_share.dart";
@@ -14,52 +15,11 @@ import "package:photos/ui/rewind/theme/rewind_colors.dart";
 import "package:photos/ui/rewind/theme/rewind_motion.dart";
 import "package:photos/ui/rewind/theme/rewind_text_styles.dart";
 import "package:photos/ui/rewind/widgets/rewind_hint.dart";
-import "package:photos/ui/rewind/widgets/rewind_numbers.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo.dart";
 import "package:photos/ui/rewind/widgets/rewind_photo_frames.dart";
 import "package:photos/ui/rewind/widgets/rewind_pixels.dart";
 import "package:photos/ui/rewind/widgets/rewind_stage.dart";
 import "package:photos/ui/rewind/widgets/rewind_text.dart";
-
-const _months = [
-  "JAN",
-  "FEB",
-  "MAR",
-  "APR",
-  "MAY",
-  "JUN",
-  "JUL",
-  "AUG",
-  "SEP",
-  "OCT",
-  "NOV",
-  "DEC",
-];
-
-const _monthNames = [
-  "JANUARY",
-  "FEBRUARY",
-  "MARCH",
-  "APRIL",
-  "MAY",
-  "JUNE",
-  "JULY",
-  "AUGUST",
-  "SEPTEMBER",
-  "OCTOBER",
-  "NOVEMBER",
-  "DECEMBER",
-];
-
-const _weekdays = [
-  "MONDAY",
-  "TUESDAY",
-  "WEDNESDAY",
-  "THURSDAY",
-  "FRIDAY",
-  "SATURDAY",
-  "SUNDAY",
-];
 
 class WarpPage extends RewindPage {
   WarpPage({
@@ -91,6 +51,14 @@ class WarpPage extends RewindPage {
     first,
   ], bytes);
 
+  late final RewindWarm<RewindDecoded> _closeUps = RewindWarm(() async {
+    final walls = await _walls.value;
+    if (walls == null) return null;
+    return RewindDecoded.available([
+      for (final panel in _Course.of(walls).closest) walls.files[panel],
+    ], bytes);
+  }, (closeUps) => closeUps.dispose());
+
   static final _wallClock = RegExp(r"^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}");
 
   static DateTime taken(EnteFile file) =>
@@ -101,9 +69,6 @@ class WarpPage extends RewindPage {
 
   static DateTime _instant(EnteFile file) =>
       DateTime.fromMicrosecondsSinceEpoch(file.creationTime ?? 0);
-
-  static String dated(DateTime day) =>
-      "${day.day} ${_months[day.month - 1]} ${day.year}";
 
   @override
   String get key => pageKey;
@@ -127,8 +92,9 @@ class WarpPage extends RewindPage {
   @override
   Future<bool> warmUp() async {
     final landing = _landing.value;
+    final closeUps = _closeUps.value;
     final walls = await _walls.value;
-    await landing;
+    await Future.wait([landing, closeUps]);
     return walls != null;
   }
 
@@ -136,6 +102,7 @@ class WarpPage extends RewindPage {
   void release() {
     _walls.release();
     _landing.release();
+    _closeUps.release();
   }
 
   @override
@@ -148,14 +115,18 @@ class WarpPage extends RewindPage {
       warm: _walls,
       builder: (context, walls) => RewindWarmBuilder<RewindDecoded>(
         warm: _landing,
-        builder: (context, landing) => _Flight(
-          key: ValueKey(walls),
-          walls: walls,
-          first: first,
-          landing: landing,
-          photo: photo,
-          active: isActive && !RewindPageScope.coveredOf(context),
-          position: position,
+        builder: (context, landing) => RewindWarmBuilder<RewindDecoded>(
+          warm: _closeUps,
+          builder: (context, closeUps) => _Flight(
+            key: ValueKey(walls),
+            walls: walls,
+            closeUps: closeUps,
+            first: first,
+            landing: landing,
+            photo: photo,
+            active: isActive && !RewindPageScope.coveredOf(context),
+            position: position,
+          ),
         ),
       ),
     );
@@ -165,6 +136,7 @@ class WarpPage extends RewindPage {
 class _Flight extends StatefulWidget {
   const _Flight({
     required this.walls,
+    required this.closeUps,
     required this.first,
     required this.landing,
     required this.photo,
@@ -174,6 +146,7 @@ class _Flight extends StatefulWidget {
   });
 
   final RewindAtlas? walls;
+  final RewindDecoded? closeUps;
   final EnteFile first;
   final RewindDecoded? landing;
   final RewindPhotoBuilder photo;
@@ -185,6 +158,10 @@ class _Flight extends StatefulWidget {
 }
 
 class _FlightState extends State<_Flight> with TickerProviderStateMixin {
+  RewindCopy get _copy => RewindCopy.of(context);
+
+  String _dated(DateTime day) => _copy.shortDate(day.day, day.month, day.year);
+
   static const _printWidth = 228.0;
   static const _coastMs = 450.0;
   static const _pixelsPerUnit = 68.0;
@@ -212,9 +189,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
     duration: const Duration(milliseconds: 380),
     reverseDuration: const Duration(milliseconds: 220),
   )..addStatusListener(_onPull);
-  late final _Course _course = _Course(
-    (widget.walls?.length ?? 0) ~/ _Course.sides,
-  );
+  late final _Course _course = _Course.of(widget.walls);
   late final ImageShader? _shader = switch (widget.walls) {
     final walls? => ImageShader(
       walls.image,
@@ -227,6 +202,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   };
   final _landingPhoto = GlobalKey<RewindPhotoState>();
   final _pickedPhoto = GlobalKey<RewindPhotoState>();
+  var _closeUps = <int, _CloseUp>{};
 
   var _last = Duration.zero;
   var _ms = 0.0;
@@ -262,6 +238,12 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   bool get _canPick => widget.walls != null && _piloted && !_landed;
 
   @override
+  void initState() {
+    super.initState();
+    _shadeCloseUps();
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _sync();
@@ -270,6 +252,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
   @override
   void didUpdateWidget(_Flight oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.closeUps != widget.closeUps) _shadeCloseUps();
     _sync();
   }
 
@@ -278,7 +261,40 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
     _ticker.dispose();
     _pull.dispose();
     _shader?.dispose();
+    _disposeCloseUps();
     super.dispose();
+  }
+
+  void _shadeCloseUps() {
+    _disposeCloseUps();
+    final walls = widget.walls;
+    final closeUps = widget.closeUps;
+    if (walls == null || closeUps == null) return;
+    _closeUps = {
+      for (final panel in _course.closest)
+        if (closeUps[walls.files[panel]] case final image?)
+          panel: (
+            shader: ImageShader(
+              image,
+              TileMode.clamp,
+              TileMode.clamp,
+              Matrix4.identity().storage,
+              filterQuality: FilterQuality.medium,
+            ),
+            tile: Rect.fromCenter(
+              center: Offset(image.width / 2, image.height / 2),
+              width: min(image.width, image.height).toDouble(),
+              height: min(image.width, image.height).toDouble(),
+            ),
+          ),
+    };
+  }
+
+  void _disposeCloseUps() {
+    for (final closeUp in _closeUps.values) {
+      closeUp.shader.dispose();
+    }
+    _closeUps = {};
   }
 
   void _sync() {
@@ -575,6 +591,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                         painter: _Tube(
                           walls: walls,
                           shader: _shader,
+                          closeUps: _closeUps,
                           course: course,
                           travelled: travelled,
                           roll: _roll,
@@ -622,7 +639,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                                       ),
                                     ),
                                 child: _Month(
-                                  _monthNames[passing.month - 1],
+                                  _copy.monthBanner(passing.month),
                                   key: ValueKey(passing.month),
                                 ),
                               ),
@@ -659,7 +676,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                                       decoded: widget.landing?[widget.first],
                                       key: _landingPhoto,
                                     ),
-                                    caption: WarpPage.dated(
+                                    caption: _dated(
                                       WarpPage.taken(widget.first),
                                     ),
                                   ),
@@ -698,7 +715,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                                         walls.files[picked],
                                         key: _pickedPhoto,
                                       ),
-                                      caption: WarpPage.dated(
+                                      caption: _dated(
                                         WarpPage.taken(walls.files[picked]),
                                       ),
                                     ),
@@ -758,9 +775,8 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
                             ? _Caption(
                                 key: const ValueKey("first"),
                                 eyebrow: _ago,
-                                title: "IT STARTED HERE",
-                                body: "Your first photo of the year.",
-                                myBody: "My first photo of the year.",
+                                title: _copy.tunnelStartTitle,
+                                body: _copy.tunnelStartBody,
                               )
                             : const SizedBox(
                                 key: ValueKey("flying"),
@@ -855,8 +871,8 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
     double window(double ms, double from, double to) =>
         ((ms - from) / 260).clamp(0.0, 1.0) * ((to - ms) / 420).clamp(0.0, 1.0);
     final texts = [
-      "TAP OR SWIPE UP TO GO ON",
-      if (!_hasFlown) "SWIPE DOWN TO FLY BACK",
+      _copy.tunnelGoOnHint,
+      if (!_hasFlown) _copy.tunnelFlyBackHint,
     ];
     final turnMs = _landingTipsMs / texts.length;
     final clock = sinceLanding - _landingHintMs;
@@ -876,11 +892,9 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
     final day = WarpPage.taken(file);
     return _Caption(
       key: ValueKey(file),
-      eyebrow:
-          "A ${_weekdays[day.weekday - 1]} IN ${_monthNames[day.month - 1]}",
-      title: "REMEMBER THIS?",
-      body: "One moment from your year.",
-      myBody: "One moment from my year.",
+      eyebrow: _copy.tunnelMomentEyebrow(day),
+      title: _copy.tunnelMomentTitle,
+      body: _copy.tunnelMomentBody,
     );
   }
 
@@ -888,9 +902,7 @@ class _FlightState extends State<_Flight> with TickerProviderStateMixin {
     final days = DateTime.now()
         .difference(WarpPage._instant(widget.first))
         .inDays;
-    return days < 1
-        ? "EARLIER TODAY"
-        : "${rewindCounted(days, "DAY", "DAYS")} AGO";
+    return _copy.tunnelAgo(days);
   }
 }
 
@@ -899,14 +911,12 @@ class _Caption extends StatelessWidget {
     required this.eyebrow,
     required this.title,
     required this.body,
-    required this.myBody,
     super.key,
   });
 
   final String eyebrow;
   final String title;
-  final String body;
-  final String myBody;
+  final RewindLines body;
 
   @override
   Widget build(BuildContext context) {
@@ -931,8 +941,7 @@ class _Caption extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           RewindVoice(
-            you: body,
-            me: myBody,
+            body,
             builder: (text) => Text(text, style: RewindTextStyles.body(17)),
           ),
         ],
@@ -974,7 +983,7 @@ class _Loading extends StatelessWidget {
         ],
       ),
       child: Text(
-        "LOADING THE TAPE",
+        RewindCopy.of(context).tunnelLoading,
         style: RewindTextStyles.display(15, height: 1.1),
       ),
     );
@@ -1005,7 +1014,10 @@ class _Again extends StatelessWidget {
             size: 20,
           ),
           const SizedBox(width: 4),
-          Text("FLY AGAIN", style: RewindTextStyles.display(15, height: 1.1)),
+          Text(
+            RewindCopy.of(context).tunnelFlyAgain,
+            style: RewindTextStyles.display(15, height: 1.1),
+          ),
         ],
       ),
     );
@@ -1044,6 +1056,8 @@ class _Print extends StatelessWidget {
 class _Course {
   _Course(this.rings) : _boxes = List.filled(rings * sides, null);
 
+  _Course.of(RewindAtlas? walls) : this((walls?.length ?? 0) ~/ sides);
+
   static const sides = 6;
   static const depth = 1.4;
   static const lead = 0.5;
@@ -1066,6 +1080,11 @@ class _Course {
   double get end => lead + rings * depth;
 
   double get length => max(1.0, end - landing);
+
+  List<int> get closest => [
+    if (rings > 0)
+      for (var side = 0; side < sides; side++) (rings - 1) * sides + side,
+  ];
 
   double start(int ring) => lead + ring * depth;
 
@@ -1227,10 +1246,13 @@ class _Course {
   }
 }
 
+typedef _CloseUp = ({ImageShader shader, Rect tile});
+
 class _Tube extends CustomPainter {
   _Tube({
     required this.walls,
     required this.shader,
+    required this.closeUps,
     required this.course,
     required this.travelled,
     required this.roll,
@@ -1260,6 +1282,7 @@ class _Tube extends CustomPainter {
 
   final RewindAtlas? walls;
   final ImageShader? shader;
+  final Map<int, _CloseUp> closeUps;
   final _Course course;
   final double travelled;
   final double roll;
@@ -1275,45 +1298,73 @@ class _Tube extends CustomPainter {
       _static(canvas);
       return;
     }
-    final positions = <double>[];
-    final pixels = <double>[];
-    final indices = <int>[];
+    final tiles = <(int, int, Rect)>[];
+    final layers = <(ui.Vertices, ImageShader)>[];
     for (var ring = course.rings - 1; ring >= 0; ring--) {
       for (var side = 0; side < _Course.sides; side++) {
-        course.mesh(
-          ring,
-          side,
-          travelled,
-          roll,
-          walls.source(ring * _Course.sides + side),
-          positions,
-          pixels,
-          indices,
-        );
+        final panel = ring * _Course.sides + side;
+        final closeUp = closeUps[panel];
+        if (closeUp == null) {
+          tiles.add((ring, side, walls.source(panel)));
+        } else if (_vertices([(ring, side, closeUp.tile)]) case final mesh?) {
+          layers.add((mesh, closeUp.shader));
+        }
       }
     }
-    if (indices.isNotEmpty) {
-      final tube = ui.Vertices.raw(
-        ui.VertexMode.triangles,
-        Float32List.fromList(positions),
-        textureCoordinates: Float32List.fromList(pixels),
-        indices: Uint16List.fromList(indices),
-      );
-      final paint = Paint()
-        ..shader = shader
-        ..colorFilter = _fade((1 - 0.42 * arrival) * (1 - 0.55 * dim));
-      canvas.drawVertices(tube, BlendMode.srcOver, paint);
-      _soften(canvas, tube, paint);
-      tube.dispose();
+    if (_vertices(tiles) case final tube?) layers.add((tube, shader));
+    if (layers.isNotEmpty) {
+      final fade = _fade((1 - 0.42 * arrival) * (1 - 0.55 * dim));
+      void draw() {
+        for (final (mesh, shader) in layers) {
+          canvas.drawVertices(
+            mesh,
+            BlendMode.srcOver,
+            Paint()
+              ..shader = shader
+              ..colorFilter = fade,
+          );
+        }
+      }
+
+      draw();
+      _soften(canvas, draw);
+      for (final (mesh, _) in layers) {
+        mesh.dispose();
+      }
     }
     _fog(canvas);
     _dusk(canvas);
   }
 
-  void _soften(Canvas canvas, ui.Vertices tube, Paint paint) {
+  ui.Vertices? _vertices(List<(int, int, Rect)> tiles) {
+    final positions = <double>[];
+    final pixels = <double>[];
+    final indices = <int>[];
+    for (final (ring, side, tile) in tiles) {
+      course.mesh(
+        ring,
+        side,
+        travelled,
+        roll,
+        tile,
+        positions,
+        pixels,
+        indices,
+      );
+    }
+    if (indices.isEmpty) return null;
+    return ui.Vertices.raw(
+      ui.VertexMode.triangles,
+      Float32List.fromList(positions),
+      textureCoordinates: Float32List.fromList(pixels),
+      indices: Uint16List.fromList(indices),
+    );
+  }
+
+  void _soften(Canvas canvas, void Function() draw) {
     canvas.saveLayer(_softBounds, Paint());
     canvas.saveLayer(_softBounds, _softBlur);
-    canvas.drawVertices(tube, BlendMode.srcOver, paint);
+    draw();
     canvas.restore();
     canvas.drawRect(_softBounds, _softMask);
     canvas.restore();
@@ -1400,6 +1451,7 @@ class _Tube extends CustomPainter {
   @override
   bool shouldRepaint(_Tube oldDelegate) =>
       oldDelegate.walls != walls ||
+      oldDelegate.closeUps != closeUps ||
       oldDelegate.travelled != travelled ||
       oldDelegate.roll != roll ||
       oldDelegate.arrival != arrival ||

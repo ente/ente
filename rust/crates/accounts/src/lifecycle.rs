@@ -1,5 +1,5 @@
 use ente_core::crypto::{self, SecretVec, secretbox};
-use ente_core::{b64, otp};
+use ente_core::{b64, http, otp};
 use serde::Serialize;
 use std::{
     fmt,
@@ -12,7 +12,7 @@ use crate::{
     AccountsClient, Error, Result,
     auth::{
         self, GeneratedSrpSetup, KeyDerivationStrength, generate_srp_setup_with_login_key,
-        get_recovery_key,
+        get_recovery_key_bytes,
     },
     models::{
         ConfigurePasskeyRecoveryRequest, EnableTwoFactorRequest, KeyAttributes,
@@ -87,16 +87,17 @@ impl fmt::Debug for RecoveryKeyResult {
 pub struct TwoFactorSetup {
     pub secret_code: String,
     pub qr_code: String,
-    pub recovery_key: String,
+    #[zeroize(skip)]
+    pub recovery_key: crypto::Key,
 }
 
 impl TwoFactorSetup {
-    pub fn from_secret(secret_code: String, recovery_key: &[u8]) -> Self {
-        Self {
+    pub fn from_secret(secret_code: String, recovery_key: &[u8]) -> Result<Self> {
+        Ok(Self {
             secret_code,
             qr_code: String::new(),
-            recovery_key: hex::encode(recovery_key),
-        }
+            recovery_key: crypto::Key::try_from_slice(recovery_key)?,
+        })
     }
 
     pub async fn start(
@@ -105,7 +106,7 @@ impl TwoFactorSetup {
         key_attributes: &KeyAttributes,
     ) -> Result<Self> {
         let master_key = crypto::Key::try_from_slice(master_key)?;
-        let recovery_key = get_recovery_key(&master_key, key_attributes)?;
+        let recovery_key = get_recovery_key_bytes(&master_key, key_attributes)?;
         let secret = client.setup_two_factor().await?;
         Ok(Self {
             secret_code: secret.secret_code,
@@ -280,24 +281,37 @@ pub async fn recover_two_factor(
 pub async fn enable_two_factor(
     client: &AccountsClient,
     secret: &str,
-    recovery_key: &str,
+    recovery_key: &[u8],
     code: &str,
 ) -> Result<()> {
-    let request = encrypt_two_factor_secret(secret, recovery_key, code)?;
-    match client.enable_two_factor(&request).await {
-        Err(Error::Http(error)) if error.status_code() == Some(401) => Err(Error::IncorrectTotp),
-        result => result,
-    }
+    let recovery_key = crypto::Key::try_from_slice(recovery_key)?;
+    let request = encrypt_two_factor_secret(secret, &recovery_key, code)?;
+    client
+        .enable_two_factor(&request)
+        .await
+        .map_err(|error| match error {
+            Error::Http(http::Error::Api {
+                status: 401,
+                ref code,
+                ..
+            }) if code == "INCORRECT_TOTP" => Error::IncorrectTotp,
+            Error::Http(error) if error.status_code() == Some(401) => Error::SessionInvalid,
+            error => error,
+        })
 }
 
-pub async fn passkey_management_url(client: &AccountsClient, recovery_key: &str) -> Result<String> {
+pub async fn passkey_management_url(
+    client: &AccountsClient,
+    recovery_key: &[u8],
+) -> Result<String> {
+    let recovery_key = crypto::Key::try_from_slice(recovery_key)?;
     if !client
         .get_two_factor_recovery_status()
         .await?
         .is_passkey_recovery_enabled
     {
         let secret = Zeroizing::new(b64::encode(crypto::Key::generate().as_bytes()));
-        configure_passkey_recovery(client, &secret, recovery_key).await?;
+        configure_passkey_recovery(client, &secret, recovery_key.as_bytes()).await?;
     }
     let response = client.get_accounts_token().await?;
     Ok(format!(
@@ -310,12 +324,11 @@ pub async fn passkey_management_url(client: &AccountsClient, recovery_key: &str)
 pub async fn configure_passkey_recovery(
     client: &AccountsClient,
     secret: &str,
-    recovery_key_mnemonic_or_hex: &str,
+    recovery_key: &[u8],
 ) -> Result<()> {
-    let recovery_key = auth::recovery_key_from_mnemonic_or_hex(recovery_key_mnemonic_or_hex)?;
     let encrypted = secretbox::encrypt(
         &b64::decode(secret)?,
-        &crypto::Key::try_from_slice(&recovery_key)?,
+        &crypto::Key::try_from_slice(recovery_key)?,
     );
     let request = ConfigurePasskeyRecoveryRequest {
         secret: secret.to_string(),
@@ -367,14 +380,10 @@ async fn complete_srp_update(
 
 fn encrypt_two_factor_secret(
     secret_code: &str,
-    recovery_key: &str,
+    recovery_key: &crypto::Key,
     code: &str,
 ) -> Result<EnableTwoFactorRequest> {
-    let recovery_key = auth::recovery_key_from_mnemonic_or_hex(recovery_key)?;
-    let encrypted = secretbox::encrypt(
-        &b64::decode(secret_code)?,
-        &crypto::Key::try_from_slice(&recovery_key)?,
-    );
+    let encrypted = secretbox::encrypt(&b64::decode(secret_code)?, recovery_key);
 
     Ok(EnableTwoFactorRequest {
         code: code.to_string(),

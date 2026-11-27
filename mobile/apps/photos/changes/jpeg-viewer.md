@@ -1,0 +1,1 @@
+- Large JPEG photos now open faster in the viewer.

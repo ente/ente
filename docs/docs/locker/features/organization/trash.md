@@ -72,6 +72,8 @@ The item is moved to Trash.
 3. Tap **Delete permanently**
 4. Confirm permanent deletion
 
+![Delete highlighted on the Trash selection toolbar, then the Permanently delete confirmation on Ente Locker mobile](https://docs-assets.ente.com/screenshots/locker-trash-delete-permanently-callout-v1013.png){width=560px}
+
 ## Storage and Trash
 
 Items in Trash **still count** against your storage quota until they are permanently deleted (either automatically after 30 days or when you manually delete them).

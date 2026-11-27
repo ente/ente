@@ -202,9 +202,10 @@ type ObjectState struct {
 type TempObjectCleanupState string
 
 const (
-	TempObjectUploading   TempObjectCleanupState = ""
-	TempObjectReleaseHold TempObjectCleanupState = "release_hold"
-	TempObjectDelete      TempObjectCleanupState = "delete"
+	TempObjectUploading    TempObjectCleanupState = ""
+	TempObjectDirectDelete TempObjectCleanupState = "direct_delete"
+	TempObjectReleaseHold  TempObjectCleanupState = "release_hold"
+	TempObjectDelete       TempObjectCleanupState = "delete"
 )
 
 type TempObject struct {

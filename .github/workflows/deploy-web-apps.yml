@@ -1,0 +1,92 @@
+name: Deploy web apps
+
+on:
+    workflow_call:
+        inputs:
+            apps:
+                description: Space-separated Pages app names, in deployment order
+                required: true
+                type: string
+
+permissions:
+    contents: read
+
+env:
+    APPS: ${{ inputs.apps }}
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+            - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+              with:
+                  node-version: 24
+                  cache: npm
+                  cache-dependency-path: web/package-lock.json
+            - name: Build static sites
+              working-directory: web
+              shell: bash
+              run: |
+                  npm ci
+                  npm audit --audit-level critical
+                  mkdir -p "$RUNNER_TEMP/sites"
+                  read -ra apps <<< "$APPS"
+                  for app in "${apps[@]}"; do
+                      workspace=$app
+                      output=out
+                      case "$app" in
+                          2of3) workspace=twoof3 ;;
+                          payments) output=dist ;;
+                      esac
+                      npm run "build:$workspace"
+                      mv "apps/$workspace/$output" "$RUNNER_TEMP/sites/$app"
+                  done
+            - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: web-sites
+                  path: ${{ runner.temp }}/sites
+                  include-hidden-files: true
+                  if-no-files-found: error
+                  retention-days: 7
+                  overwrite: true
+
+    publish:
+        needs: build
+        runs-on: ubuntu-latest
+        environment: production
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+                  sparse-checkout: infra/workers
+            - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+              with:
+                  node-version: 24
+                  package-manager-cache: false
+            - name: Install locked Wrangler
+              working-directory: infra/workers
+              run: npm ci --ignore-scripts
+            - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+              with:
+                  name: web-sites
+                  path: ${{ runner.temp }}/sites
+            - name: Publish static sites
+              env:
+                  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+                  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+              shell: bash
+              run: |
+                  read -ra apps <<< "$APPS"
+                  for app in "${apps[@]}"; do
+                      site="$RUNNER_TEMP/sites/$app"
+                      echo "Publishing $app to deploy/$app"
+                      if [[ -e "$site/_worker.js" ]]; then
+                          echo "::error::Expected a static site for $app, found _worker.js"
+                          exit 1
+                      fi
+                      infra/workers/node_modules/.bin/wrangler pages deploy "$site" \
+                          --project-name=ente --branch="deploy/$app" --commit-dirty=true
+                  done

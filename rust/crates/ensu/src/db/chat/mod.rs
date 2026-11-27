@@ -3,7 +3,6 @@ mod migrations;
 mod todo;
 mod tool_turn;
 pub use conversation::ConversationSnapshot;
-pub use tool_turn::{Confirm, FinishedReply, ToolTurnState, Undo};
 #[cfg(feature = "sqlite")]
 mod retired_storage;
 mod schema;
@@ -60,7 +59,26 @@ impl<B: Backend> ChatDb<B> {
         }
     }
 
-    pub(super) fn tools_changed(&self) {
+    pub(crate) fn transaction<T>(
+        &self,
+        f: impl for<'a> FnOnce(&B::Tx<'a>) -> Result<T>,
+    ) -> Result<T> {
+        self.backend.transaction(f)
+    }
+
+    pub(crate) fn reader(&self) -> &B {
+        &self.backend
+    }
+
+    pub(crate) fn now_us(&self) -> i64 {
+        self.clock.now_us()
+    }
+
+    pub(crate) fn new_uuid(&self) -> Uuid {
+        self.uuid_gen.new_uuid()
+    }
+
+    pub(crate) fn tools_changed(&self) {
         let observer = self.tools_observer.read().ok().and_then(|o| o.clone());
         if let Some(observer) = observer {
             observer();
@@ -231,7 +249,9 @@ impl<B: Backend> ChatDb<B> {
                 self.write_message(tx, &message)?;
                 self.touch_session(tx, session_uuid, message.created_at)?;
                 match (message.sender, parent) {
-                    (crate::db::Sender::Other, Some(parent)) => self.withdraw_offers(tx, parent),
+                    (crate::db::Sender::Other, Some(parent)) => {
+                        crate::tools::turn::withdraw_offers(self, tx, parent)
+                    }
                     _ => Ok(false),
                 }
             })?

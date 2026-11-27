@@ -31,17 +31,19 @@ pub enum RefusalReason {
     NothingChanged,
 }
 
-impl From<db::Refusal> for RefusalReason {
-    fn from(refusal: db::Refusal) -> Self {
+impl From<ente_ensu::todo::Refusal> for RefusalReason {
+    fn from(refusal: ente_ensu::todo::Refusal) -> Self {
         match refusal {
-            db::Refusal::TodoChanged => Self::TodoChanged,
-            db::Refusal::TitleMissing => Self::TitleMissing,
-            db::Refusal::TitleTooLong { max } => Self::TitleTooLong { max: max as u32 },
-            db::Refusal::UndoStale => Self::UndoStale,
-            db::Refusal::OfferStale => Self::OfferStale,
-            db::Refusal::EarlierReplyStands => Self::EarlierReplyStands,
-            db::Refusal::NothingOffered => Self::NothingOffered,
-            db::Refusal::NothingChanged => Self::NothingChanged,
+            ente_ensu::todo::Refusal::TodoChanged => Self::TodoChanged,
+            ente_ensu::todo::Refusal::TitleMissing => Self::TitleMissing,
+            ente_ensu::todo::Refusal::TitleTooLong { max } => {
+                Self::TitleTooLong { max: max as u32 }
+            }
+            ente_ensu::todo::Refusal::UndoStale => Self::UndoStale,
+            ente_ensu::todo::Refusal::OfferStale => Self::OfferStale,
+            ente_ensu::todo::Refusal::EarlierReplyStands => Self::EarlierReplyStands,
+            ente_ensu::todo::Refusal::NothingOffered => Self::NothingOffered,
+            ente_ensu::todo::Refusal::NothingChanged => Self::NothingChanged,
         }
     }
 }

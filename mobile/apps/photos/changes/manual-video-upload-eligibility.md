@@ -1,1 +1,0 @@
-- Fixed manually added videos not uploading when automatic video backup is turned off.

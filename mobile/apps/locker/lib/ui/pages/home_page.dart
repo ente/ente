@@ -66,6 +66,7 @@ class LockerHomeHeader extends StatelessWidget {
             children: [
               _LockerHeaderAction(
                 onTap: () => scaffoldKey.currentState!.openDrawer(),
+                label: MaterialLocalizations.of(context).openAppDrawerTooltip,
                 child: HugeIcon(
                   icon: HugeIcons.strokeRoundedMenu01,
                   color: colors.textBase,
@@ -127,15 +128,21 @@ class LockerHomeHeader extends StatelessWidget {
 }
 
 class _LockerHeaderAction extends StatelessWidget {
-  const _LockerHeaderAction({required this.onTap, required this.child});
+  const _LockerHeaderAction({
+    required this.onTap,
+    required this.child,
+    this.label,
+  });
 
   final VoidCallback onTap;
   final Widget child;
+  final String? label;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
+      label: label,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
