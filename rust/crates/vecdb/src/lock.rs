@@ -10,7 +10,13 @@ const CONTENTION_GRACE_STEP: Duration = Duration::from_millis(1);
 
 #[derive(Debug)]
 pub(crate) struct WriterLock {
-    _file: File,
+    file: File,
+}
+
+impl Drop for WriterLock {
+    fn drop(&mut self) {
+        _ = self.file.unlock();
+    }
 }
 
 impl WriterLock {
@@ -35,7 +41,7 @@ impl WriterLock {
             match file.try_lock() {
                 Ok(()) => {
                     if lock_is_on_the_linked_sidecar(&file, &sidecar)? {
-                        return Ok(Some(Self { _file: file }));
+                        return Ok(Some(Self { file }));
                     }
                 }
                 Err(TryLockError::WouldBlock) => return Ok(None),
@@ -127,6 +133,21 @@ mod tests {
         assert!(WriterLock::acquire(&log_path).is_ok());
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn dropping_the_guard_releases_a_lock_whose_file_is_still_shared() {
+        let dir = TempDir::new().unwrap();
+        let log_path = dir.path().join("log");
+        let holder = WriterLock::acquire(&log_path).unwrap();
+        let _inherited = holder.file.try_clone().unwrap();
+        assert!(matches!(
+            WriterLock::acquire(&log_path),
+            Err(VecDbError::Locked(_))
+        ));
+        drop(holder);
+        assert!(WriterLock::acquire(&log_path).is_ok());
+    }
+
     #[test]
     fn distinct_paths_lock_independently() {
         let dir = TempDir::new().unwrap();
@@ -142,9 +163,9 @@ mod tests {
         let sidecar = lock_path(&log_path);
         let orphaned = WriterLock::acquire(&log_path).unwrap();
         std::fs::remove_file(&sidecar).unwrap();
-        assert!(!lock_is_on_the_linked_sidecar(&orphaned._file, &sidecar).unwrap());
+        assert!(!lock_is_on_the_linked_sidecar(&orphaned.file, &sidecar).unwrap());
         let successor = WriterLock::acquire(&log_path).unwrap();
-        assert!(lock_is_on_the_linked_sidecar(&successor._file, &sidecar).unwrap());
+        assert!(lock_is_on_the_linked_sidecar(&successor.file, &sidecar).unwrap());
         let error = WriterLock::acquire(&log_path).unwrap_err();
         assert!(matches!(error, VecDbError::Locked(locked) if locked == log_path));
     }
