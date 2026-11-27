@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:photos/core/constants.dart';
+import 'package:photos/core/errors.dart';
 import 'package:photos/core/event_bus.dart';
 import 'package:photos/db/files_db.dart';
 import 'package:photos/events/collection_updated_event.dart';
@@ -24,6 +25,7 @@ import "package:photos/models/files_split.dart";
 import "package:photos/models/freeable_space_info.dart";
 import 'package:photos/models/selected_files.dart';
 import 'package:photos/module/download/file.dart';
+import 'package:photos/module/upload/service/file_uploader.dart';
 import "package:photos/service_locator.dart";
 import "package:photos/services/files_service.dart";
 import "package:photos/services/free_space/deletion_batch_runner.dart";
@@ -252,6 +254,23 @@ Future<List<EnteFile>> deleteFilesOnDeviceOnly(
   final removedIDs = deletedIDs.union(result.trashedIDs);
   final List<EnteFile> deletedFiles = [];
   final List<int> uploadedFileIDsToClear = [];
+  final confirmedDeletedLocalIDs = <String>{};
+  for (final file in files) {
+    if (removedIDs.contains(file.localID) ||
+        alreadyDeletedIDs.contains(file.localID)) {
+      if (file.localID != null) {
+        confirmedDeletedLocalIDs.add(file.localID!);
+      }
+    }
+  }
+  // Cancel pending uploads for confirmed-deleted files before any per-file
+  // database awaits, so no deleted file can start uploading between files.
+  if (confirmedDeletedLocalIDs.isNotEmpty) {
+    FileUploader.instance.removeFromQueueWhere(
+      (f) => f.localID != null && confirmedDeletedLocalIDs.contains(f.localID),
+      SilentlyCancelUploadsError(),
+    );
+  }
   for (final file in files) {
     if (removedIDs.contains(file.localID) ||
         alreadyDeletedIDs.contains(file.localID)) {
