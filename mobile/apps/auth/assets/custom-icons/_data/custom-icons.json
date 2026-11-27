@@ -1591,6 +1591,15 @@
       "title": "magento2"
     },
     {
+      "title": "Mail-in-a-Box",
+      "slug": "mailinabox",
+      "altNames": [
+        "Mail in a Box",
+        "Mailinabox",
+        "Mail-in-a-Box Control Panel"
+      ]
+    },
+    {
       "title": "MailCow",
       "slug": "mailcow",
       "altNames": [
