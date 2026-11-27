@@ -89,20 +89,6 @@ impl DecodedDynamicImage {
 }
 
 pub fn decode_image_from_path(image_path: &str) -> ImageResult<DecodedImage> {
-    let decoded_dynamic = decode_with_image_crate(image_path)?;
-    Ok(decoded_dynamic.into_oriented_rgb(|image, orientation| {
-        orient_decoded_image(image, image_path, orientation)
-    }))
-}
-
-pub fn decode_image_from_bytes(image_bytes: &[u8]) -> ImageResult<DecodedImage> {
-    let decoded_dynamic = decode_bytes_with_image_crate(image_bytes)?;
-    Ok(decoded_dynamic.into_oriented_rgb(|image, orientation| {
-        orient_decoded_image_from_bytes(image, image_bytes, orientation)
-    }))
-}
-
-fn decode_with_image_crate(image_path: &str) -> ImageResult<DecodedDynamicImage> {
     init_image_decoders();
 
     let reader = ImageReader::open(image_path)
@@ -111,7 +97,7 @@ fn decode_with_image_crate(image_path: &str) -> ImageResult<DecodedDynamicImage>
         .map_err(|e| ImageError::Decode(format!("failed to guess image format: {e}")))?;
     let guessed_format = reader.format();
 
-    match decode_reader_with_image_crate(reader) {
+    let decoded = match decode_reader_with_image_crate(reader) {
         Ok(decoded) => Ok(decoded),
         Err(primary_error) if should_attempt_tiff_fallback(guessed_format) => {
             log::warn!(
@@ -124,7 +110,18 @@ fn decode_with_image_crate(image_path: &str) -> ImageResult<DecodedDynamicImage>
             }
         }
         Err(other) => Err(other.into()),
-    }
+    }?;
+
+    Ok(decoded.into_oriented_rgb(|image, orientation| {
+        orient_decoded_image(image, image_path, guessed_format, orientation)
+    }))
+}
+
+pub fn decode_image_from_bytes(image_bytes: &[u8]) -> ImageResult<DecodedImage> {
+    let decoded_dynamic = decode_bytes_with_image_crate(image_bytes)?;
+    Ok(decoded_dynamic.into_oriented_rgb(|image, orientation| {
+        orient_decoded_image_from_bytes(image, image_bytes, orientation)
+    }))
 }
 
 fn decode_bytes_with_image_crate(image_bytes: &[u8]) -> ImageResult<DecodedDynamicImage> {
@@ -382,10 +379,11 @@ fn init_image_decoders() {
 fn orient_decoded_image(
     image: DynamicImage,
     image_path: &str,
+    format: Option<ImageFormat>,
     decoder_orientation: Option<Orientation>,
 ) -> DynamicImage {
     let path = Path::new(image_path);
-    if path_extension_is_heif(path) {
+    if format.is_none() && path_extension_is_heif(path) {
         return apply_heif_exif_orientation_hint(image, path);
     }
     if file_looks_like_jxl(path) {
@@ -900,6 +898,36 @@ mod tests {
         assert_eq!(decoded.dimensions.width, 1);
         assert_eq!(decoded.dimensions.height, 2);
         assert_eq!(decoded.rgb, vec![255, 0, 0, 0, 255, 0]);
+    }
+
+    #[test]
+    fn progressive_jpeg_orientation_is_preserved_with_a_heic_extension() {
+        let pixels = [[255, 0, 0].repeat(24 * 8), [0, 255, 0].repeat(24 * 8)].concat();
+        let mut encoded = Vec::new();
+        let mut encoder = jpeg_encoder::Encoder::new(&mut encoded, 90);
+        encoder.set_progressive(true);
+        encoder.add_exif_metadata(&exif_orientation(6)).unwrap();
+        encoder
+            .encode(&pixels, 24, 16, jpeg_encoder::ColorType::Rgb)
+            .unwrap();
+
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("image.heic");
+        std::fs::write(&path, &encoded).unwrap();
+        let path = path.to_str().unwrap();
+        assert!(matches!(
+            crate::decode_bounded(crate::ImageInput::Path(path), Default::default()),
+            Err(crate::ImageError::Decode(_))
+        ));
+
+        let expected = decode_image_from_bytes(&encoded).unwrap();
+        assert_eq!(
+            (expected.dimensions.width, expected.dimensions.height),
+            (16, 24)
+        );
+        let decoded = decode_image_from_path(path).unwrap();
+        assert_eq!(decoded.dimensions, expected.dimensions);
+        assert_eq!(decoded.rgb, expected.rgb);
     }
 
     #[test]
