@@ -1,13 +1,13 @@
 import "package:ente_components/ente_components.dart";
 import 'package:ente_components/hugeicons.dart';
+import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
 import 'package:flutter/material.dart';
 import "package:photos/service_locator.dart";
 import "package:photos/services/review_service.dart";
-import 'package:photos/ui/notification/toast.dart';
 import 'package:photos/ui/notification/update/change_log_entry.dart';
 import 'package:photos/ui/notification/update/change_log_strings.dart';
-import 'package:url_launcher/url_launcher_string.dart';
+import "package:photos/ui/tools/photo_review/review_old_photos_page.dart";
 
 Future<void> showChangeLogSheet(BuildContext context) async {
   await showBottomSheetComponent<void>(
@@ -56,53 +56,32 @@ class _ChangeLogPageState extends State<ChangeLogPage> {
       actionsTopSpacing: Spacing.lg,
       content: _getChangeLog(),
       actions: [
-        continueButton,
-        Theme(
-          data: Theme.of(context).copyWith(
-            extensions: [
-              ComponentColorTokens(
-                ComponentTheme.colorsForApp(
-                  ComponentApp.locker,
-                  brightness: Theme.of(context).brightness,
-                ),
-              ),
-            ],
-          ),
-          child: ButtonComponent(
-            variant: isLocalGallery
-                ? ButtonComponentVariant.secondary
-                : ButtonComponentVariant.primary,
+        if (!isLocalGallery)
+          ButtonComponent(
+            variant: ButtonComponentVariant.primary,
             size: ButtonComponentSize.large,
-            label: isLocalGallery ? l10n.rateUs : l10n.meetEnteLocker,
-            leading: isLocalGallery
-                ? Icon(Icons.favorite_rounded, color: colors.primary)
-                : const EnteAppIcon(app: ComponentApp.locker),
+            label: l10n.reviewOldPhotos,
+            leading: const HugeIcon(
+              icon: HugeIcons.strokeRoundedClean,
+              size: IconSizes.small,
+            ),
             shouldSurfaceExecutionStates: false,
             onTap: () async {
-              if (isLocalGallery) {
-                await ReviewService.launch();
-              } else {
-                final navigator = Navigator.of(context);
-                final route = ModalRoute.of(context);
-                bool launched;
-                try {
-                  launched = await launchUrlString(
-                    'https://ente.com/locker/get',
-                    mode: LaunchMode.externalApplication,
-                  );
-                } catch (_) {
-                  launched = false;
-                }
-                if (!context.mounted || route?.isCurrent != true) return;
-                if (launched) {
-                  navigator.pop();
-                } else {
-                  showShortToast(context, l10n.somethingWentWrong);
-                }
-              }
+              final navigator = Navigator.of(context);
+              navigator.pop();
+              await routeToPage(navigator.context, const ReviewOldPhotosPage());
             },
           ),
-        ),
+        continueButton,
+        if (isLocalGallery)
+          ButtonComponent(
+            variant: ButtonComponentVariant.secondary,
+            size: ButtonComponentSize.large,
+            label: l10n.rateUs,
+            leading: Icon(Icons.favorite_rounded, color: colors.primary),
+            shouldSurfaceExecutionStates: false,
+            onTap: ReviewService.launch,
+          ),
       ],
     );
   }
