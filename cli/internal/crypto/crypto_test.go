@@ -51,6 +51,20 @@ func TestDecryptChaCha20poly1305(t *testing.T) {
 	}
 }
 
+func TestNewDecryptorRequiresExactHeaderLength(t *testing.T) {
+	key := make([]byte, StreamKeyBytes)
+	decryptor, err := NewDecryptor(key, make([]byte, StreamHeaderBytes))
+	if err != nil || decryptor == nil {
+		t.Fatalf("valid header: got decryptor present=%t, err=%v", decryptor != nil, err)
+	}
+	for _, size := range []int{0, StreamHeaderBytes - 1, StreamHeaderBytes + 1} {
+		decryptor, err := NewDecryptor(key, make([]byte, size))
+		if decryptor != nil || err != invalidInput {
+			t.Errorf("header length %d: got decryptor present=%t, err=%v; want no decryptor and %v", size, decryptor != nil, err, invalidInput)
+		}
+	}
+}
+
 func TestSecretBoxOpenBase64(t *testing.T) {
 	sealedCipherText := "KHwRN+RzvTu+jC7mCdkMsqnTPSLvevtZILmcR2OYFbIRPqDyjAl+m8KxD9B5fiEo"
 	sealNonce := "jgfPDOsQh2VdIHWJVSBicMPF2sQW3HIY"

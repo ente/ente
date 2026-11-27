@@ -180,9 +180,10 @@ jobs:
               with:
                   github-token: ${{ steps.app.outputs.token }}
                   script: |
-                      const { readFileSync } = require("node:fs");
+                      const { readFileSync, statSync } = require("node:fs");
                       const { execFileSync } = require("node:child_process");
                       const git = (...args) => execFileSync("git", args, { stdio: "inherit" });
+                      const gitText = (...args) => execFileSync("git", args, { encoding: "utf8" }).trim();
                       const repo = context.repo;
                       const head = process.env.PR_HEAD;
                       const { data: pr } = await github.rest.pulls.get({ ...repo, pull_number: Number(process.env.PR_NUMBER) });
@@ -191,15 +192,41 @@ jobs:
                           !/^dependabot\/(cargo|github_actions)\//.test(pr.head.ref)) return;
                       const result = `${process.env.RUNNER_TEMP}/result`;
                       const report = readFileSync(`${result}/report.md`, "utf8").trim();
+                      const repoUrl = `${context.serverUrl}/${repo.owner}/${repo.repo}`;
+                      let commit = head;
+                      let changes = "";
                       if (process.env.REVIEW_ONLY === "false" && readFileSync(`${result}/changes.patch`).length) {
                           git("apply", "--index", `${result}/changes.patch`);
                           const { data: bot } = await github.rest.users.getByUsername({ username: "ente-agent[bot]" });
                           git("config", "user.name", bot.login);
                           git("config", "user.email", `${bot.id}+${bot.login}@users.noreply.github.com`);
                           git("commit", "-m", "Prepare dependency updates");
+                          commit = gitText("rev-parse", "HEAD");
+                          const diff = [
+                              "--no-ext-diff", "--no-textconv", `${commit}^`, commit, "--",
+                              ":(exclude,glob)**/Cargo.toml", ":(exclude,glob)**/Cargo.lock",
+                          ];
+                          const stat = gitText("diff", "--shortstat", ...diff);
+                          if (stat) {
+                              changes = `**Changes outside Cargo.toml and Cargo.lock** · ${stat}`;
+                              const preview = `${process.env.RUNNER_TEMP}/source.diff`;
+                              git("diff", `--output=${preview}`, ...diff);
+                              if (statSync(preview).size <= 4096) {
+                                  const patch = readFileSync(preview, "utf8").replace(/\n$/, "").replace(/^/gm, "    ");
+                                  changes += `\n\n<details><summary>Show changes</summary>\n\n${patch}\n\n</details>`;
+                              }
+                          }
                           git("push", `--force-with-lease=refs/heads/${pr.head.ref}:${head}`, "origin", `HEAD:refs/heads/${pr.head.ref}`);
                       }
-                      if (report) await github.rest.issues.createComment({
-                          ...repo, issue_number: pr.number,
-                          body: `## Dependency update\n\n[Agent run](${context.serverUrl}/${repo.owner}/${repo.repo}/actions/runs/${context.runId}) · Commit ${head.slice(0, 7)}\n\n${report}`,
-                      });
+                      if (changes || report) {
+                          const body = [
+                              "## Dependency update",
+                              changes,
+                              `[View commit diff (${commit.slice(0, 7)})](${repoUrl}/commit/${commit}) · [Agent run](${repoUrl}/actions/runs/${context.runId})`,
+                              report,
+                          ].filter(Boolean).join("\n\n");
+                          await github.rest.issues.createComment({
+                              ...repo, issue_number: pr.number,
+                              body: body.length <= 65536 ? body : body.slice(0, 65500) + "\n\n_Report truncated._",
+                          });
+                      }

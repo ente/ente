@@ -343,7 +343,7 @@ pub struct TwoFactorRecoveryResponse {
     pub secret_decryption_nonce: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RemoveTwoFactorRequest {
     #[serde(rename = "sessionID")]
@@ -353,6 +353,17 @@ pub struct RemoveTwoFactorRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub proof: Option<String>,
     pub two_factor_type: TwoFactorType,
+}
+
+impl fmt::Debug for RemoveTwoFactorRequest {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("RemoveTwoFactorRequest")
+            .field("session_id", &"[REDACTED]")
+            .field("secret", &self.secret.as_ref().map(|_| "[REDACTED]"))
+            .field("proof", &self.proof.as_ref().map(|_| "[REDACTED]"))
+            .field("two_factor_type", &self.two_factor_type)
+            .finish()
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -385,12 +396,22 @@ pub struct TwoFactorRecoveryStatusResponse {
     pub is_passkey_recovery_enabled: bool,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ConfigurePasskeyRecoveryRequest {
     pub secret: String,
     pub user_secret_cipher: String,
     pub user_secret_nonce: String,
+}
+
+impl fmt::Debug for ConfigurePasskeyRecoveryRequest {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ConfigurePasskeyRecoveryRequest")
+            .field("secret", &"[REDACTED]")
+            .field("user_secret_cipher", &"[REDACTED]")
+            .field("user_secret_nonce", &"[REDACTED]")
+            .finish()
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -402,7 +423,43 @@ pub struct AccountsTokenResponse {
 
 #[cfg(test)]
 mod tests {
-    use super::AuthResponse;
+    use super::{
+        AuthResponse, ConfigurePasskeyRecoveryRequest, RemoveTwoFactorRequest, TwoFactorType,
+    };
+
+    #[test]
+    fn recovery_requests_redact_authentication_material_in_debug_output() {
+        const SENSITIVE: &str = "test-only-sensitive-value";
+        let remove = RemoveTwoFactorRequest {
+            session_id: SENSITIVE.into(),
+            secret: Some(SENSITIVE.into()),
+            proof: Some(SENSITIVE.into()),
+            two_factor_type: TwoFactorType::Passkey,
+        };
+        let configure = ConfigurePasskeyRecoveryRequest {
+            secret: SENSITIVE.into(),
+            user_secret_cipher: SENSITIVE.into(),
+            user_secret_nonce: SENSITIVE.into(),
+        };
+        for output in [
+            format!("{remove:?}"),
+            format!("{remove:#?}"),
+            format!("{configure:?}"),
+            format!("{configure:#?}"),
+        ] {
+            assert!(!output.contains(SENSITIVE));
+            assert!(output.contains("[REDACTED]"));
+        }
+        assert!(format!("{remove:?}").contains("Passkey"));
+        let without_credentials = RemoveTwoFactorRequest {
+            secret: None,
+            proof: None,
+            ..remove
+        };
+        let output = format!("{without_credentials:?}");
+        assert!(output.contains("secret: None"));
+        assert!(output.contains("proof: None"));
+    }
 
     #[test]
     fn auth_response_requires_accounts_url_for_passkey() {

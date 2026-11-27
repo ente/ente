@@ -141,6 +141,10 @@ func (s *encryptor) Push(plain []byte, tag byte) ([]byte, error) {
 }
 
 func NewDecryptor(key, header []byte) (Decryptor, error) {
+	if len(header) != StreamHeaderBytes {
+		return nil, invalidInput
+	}
+
 	stream := &decryptor{}
 
 	k, err := chacha20.HChaCha20(key, header[:16])
