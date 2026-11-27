@@ -26,7 +26,11 @@ class WatchSnapshot {
   }) {
     final entries = <Map<String, Object>>[];
     var omitted = 0;
-    for (final code in codes.where(supports)) {
+    for (final code in codes.where((c) => !c.hasError && !c.isTrashed)) {
+      if (!supports(code)) {
+        omitted++;
+        continue;
+      }
       try {
         entries.add(_encodeEntry(code));
       } on FormatException {

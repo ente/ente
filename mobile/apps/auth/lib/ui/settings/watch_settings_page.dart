@@ -97,15 +97,6 @@ class _WatchSettingsPageState extends State<WatchSettingsPage> {
               style: TextStyles.body.copyWith(color: warningColor),
             ),
           ],
-          if (state.canPublish && service.heldCount < service.totalCount) ...[
-            const SizedBox(height: Spacing.md),
-            Text(
-              pendingTranslation(
-                "Your watch can hold ${service.heldCount} of your ${service.totalCount} codes.",
-              ),
-              style: TextStyles.body.copyWith(color: colors.textLight),
-            ),
-          ],
           if (service.omittedCount > 0) ...[
             const SizedBox(height: Spacing.md),
             Text(
@@ -212,6 +203,9 @@ Future<bool> _authenticate(BuildContext context) async {
 }
 
 String _errorMessage(String code) => switch (code) {
+  'payloadTooLarge' => pendingTranslation(
+    "You have too many accounts to sync to your watch.",
+  ),
   'phoneLocked' => pendingTranslation("Unlock Ente Auth, then try again."),
   _ => pendingTranslation(
     "Couldn't update your watch. Open Ente Auth on both devices and try again.",

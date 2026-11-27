@@ -61,8 +61,6 @@ class WatchService extends ChangeNotifier with WidgetsBindingObserver {
   WatchState state = const WatchState();
   String? errorCode;
   int omittedCount = 0;
-  int heldCount = 0;
-  int totalCount = 0;
   bool _available = false;
   bool get isPlatformSupported => _available;
   bool _locked = true;
@@ -187,33 +185,18 @@ class WatchService extends ChangeNotifier with WidgetsBindingObserver {
         return;
       }
       sortAuthCodes(codes, PreferenceService.instance.codeSortKey());
-      final hideCodes = PreferenceService.instance.shouldHideCodes();
-      final active = codes.where((code) => !code.hasError && !code.isTrashed);
-      final supported = active.where(WatchSnapshot.supports).toList();
-      var count = supported.length;
-      while (true) {
-        final snapshot = WatchSnapshot.fromCodes(
-          supported.take(count),
-          hideCodes: hideCodes,
-        );
-        try {
-          _accept(
-            await _call('publish', {
-              'enrollmentID': id,
-              'vaultEpoch': epoch,
-              'snapshot': snapshot.data,
-            }),
-          );
-          omittedCount =
-              snapshot.omittedCount + active.length - supported.length;
-          heldCount = count;
-          totalCount = supported.length;
-          break;
-        } on PlatformException catch (error) {
-          if (error.code != 'payloadTooLarge' || count <= 1) rethrow;
-          count = count * 19 ~/ 20;
-        }
-      }
+      final snapshot = WatchSnapshot.fromCodes(
+        codes,
+        hideCodes: PreferenceService.instance.shouldHideCodes(),
+      );
+      _accept(
+        await _call('publish', {
+          'enrollmentID': id,
+          'vaultEpoch': epoch,
+          'snapshot': snapshot.data,
+        }),
+      );
+      omittedCount = snapshot.omittedCount;
       errorCode = null;
       notifyListeners();
     } on PlatformException catch (error) {
@@ -259,8 +242,6 @@ class WatchService extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> _clear() async {
     omittedCount = 0;
-    heldCount = 0;
-    totalCount = 0;
     _accept(await _clearNative(_preferences));
   }
 
