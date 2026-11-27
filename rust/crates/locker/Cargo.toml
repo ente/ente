@@ -2,9 +2,20 @@
 name = "ente-locker"
 edition.workspace = true
 
+[features]
+museum = []
+
 [dependencies]
+ente-collections.workspace = true
 ente-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
 thiserror.workspace = true
+
+[dev-dependencies]
+ente-test-support.workspace = true
+mockito.workspace = true
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 
 [lints]
 workspace = true

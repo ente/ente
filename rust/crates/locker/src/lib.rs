@@ -1,3 +1,6 @@
+pub mod metadata;
+pub mod sync;
+
 use std::string::FromUtf8Error;
 
 use ente_core::{
@@ -65,9 +68,13 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error(transparent)]
+    Collections(#[from] ente_collections::Error),
+    #[error(transparent)]
     Decode(#[from] b64::DecodeError),
     #[error(transparent)]
     Crypto(#[from] crypto::Error),
+    #[error(transparent)]
+    Json(#[from] serde_json::Error),
     #[error(transparent)]
     Utf8(#[from] FromUtf8Error),
 }

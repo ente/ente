@@ -4,6 +4,14 @@ use ente_core::{
     Session, b64,
     crypto::{self, Key, Nonce, sealed, secretbox},
 };
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CollectionFileRef {
+    pub file_id: i64,
+    pub collection_id: i64,
+}
 
 pub fn open_collection_key(
     session: &Session,
@@ -45,6 +53,8 @@ pub enum Error {
     InvalidCollection { id: i64, reason: &'static str },
     #[error("file changes did not advance the cursor for collection {0}")]
     CursorDidNotAdvance(i64),
+    #[error("trash changes did not advance the cursor")]
+    TrashCursorDidNotAdvance,
     #[error("invalid source page: {0}")]
     InvalidPage(&'static str),
 }

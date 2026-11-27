@@ -2831,8 +2831,14 @@ dependencies = [
 name = "ente-locker"
 version = "0.0.0"
 dependencies = [
+ "ente-collections",
  "ente-core",
+ "ente-test-support",
+ "mockito",
+ "serde",
+ "serde_json",
  "thiserror 2.0.21",
+ "tokio",
 ]
 
 [[package]]

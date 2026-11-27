@@ -29,10 +29,19 @@ pub struct TestAccount {
 
 impl TestAccount {
     pub fn session(&self, endpoint: &str, user_agent: &str) -> TestResult<ente_core::Session> {
+        self.session_for_app(endpoint, "io.ente.photos", user_agent)
+    }
+
+    pub fn session_for_app(
+        &self,
+        endpoint: &str,
+        client_package: &str,
+        user_agent: &str,
+    ) -> TestResult<ente_core::Session> {
         Ok(ente_core::Session::new(
             ente_core::http::ApiConfig {
                 origin: endpoint.into(),
-                client_package: Some("io.ente.photos".into()),
+                client_package: Some(client_package.into()),
                 client_version: None,
                 user_agent: Some(user_agent.into()),
                 auth: Some(ente_core::http::Auth::User(self.auth_token.clone())),
@@ -46,12 +55,20 @@ impl TestAccount {
 }
 
 pub async fn create_account(endpoint: &str, email_prefix: &str) -> TestResult<TestAccount> {
+    create_account_for_app(endpoint, email_prefix, "io.ente.photos").await
+}
+
+pub async fn create_account_for_app(
+    endpoint: &str,
+    email_prefix: &str,
+    client_package: &str,
+) -> TestResult<TestAccount> {
     let email = format!(
         "{email_prefix}-{}{HARDCODED_OTT_EMAIL_SUFFIX}",
         Uuid::new_v4()
     );
     let client = AccountsClient::new(
-        AccountsClientConfig::new("io.ente.photos")
+        AccountsClientConfig::new(client_package)
             .with_origin(endpoint.to_string())
             .with_user_agent("ente-tests"),
     )?;

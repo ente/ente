@@ -233,6 +233,13 @@ fn preserves_unknown_types_roles_and_raw_metadata() -> std::result::Result<(), s
         "action": "FUTURE_ACTION"
     });
     let file: File = serde_json::from_value(raw_file.clone())?;
+    assert_eq!(
+        file.file_ref(),
+        CollectionFileRef {
+            file_id: 88,
+            collection_id: 55
+        }
+    );
     assert_eq!(file.extra["action"], json!("FUTURE_ACTION"));
     let encoded_file = serde_json::to_value(&file)?;
     assert_eq!(encoded_file["collectionID"], json!(55));
