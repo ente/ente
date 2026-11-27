@@ -1792,7 +1792,7 @@ class _HomePageState extends State<HomePage> {
                 },
               ),
             ),
-          for (final tag in tags)
+          for (final tag in tags.where((tag) => tag.isNotEmpty))
             TagChip(
               key: _tagChipKey(tag),
               label: tag,
