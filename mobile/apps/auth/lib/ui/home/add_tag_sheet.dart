@@ -1,16 +1,15 @@
 import 'dart:async';
 
 import 'package:ente_auth/models/code.dart';
-import 'package:ente_auth/onboarding/model/tag_enums.dart';
 import 'package:ente_auth/onboarding/view/common/tag_chip.dart';
 import 'package:ente_auth/services/authenticator_service.dart';
+import 'package:ente_auth/services/preference_service.dart';
 import 'package:ente_auth/store/code_display_store.dart';
 import 'package:ente_auth/store/code_store.dart';
 import 'package:ente_auth/ui/components/horizontal_scroll_area.dart';
 import 'package:ente_auth/ui/utils/icon_utils.dart';
 import 'package:ente_auth/utils/dialog_util.dart';
 import 'package:ente_components/ente_components.dart';
-import 'package:ente_pure_utils/ente_pure_utils.dart';
 import 'package:ente_strings/ente_strings.dart';
 import 'package:flutter/material.dart';
 
@@ -97,8 +96,10 @@ class _AddTagSheetState extends State<AddTagSheet> {
     if (newTag?.isNotEmpty == true) {
       setState(() {
         if (!_allTags.contains(newTag!)) {
-          _allTags.add(newTag!);
-          _allTags.sort(compareNames);
+          _allTags = orderTags({
+            ..._allTags,
+            newTag!,
+          }, PreferenceService.instance.tagOrder());
         }
         _selectedTagsInSheet.add(newTag!);
       });
@@ -190,10 +191,7 @@ class _AddTagSheetState extends State<AddTagSheet> {
                             );
                             return TagChip(
                               label: tag,
-                              action: TagChipAction.check,
-                              state: isSelected
-                                  ? TagChipState.selected
-                                  : TagChipState.unselected,
+                              selected: isSelected,
                               onTap: () {
                                 setState(() {
                                   if (isSelected) {
@@ -207,8 +205,7 @@ class _AddTagSheetState extends State<AddTagSheet> {
                           }),
                           TagChip(
                             label: context.strings.addNew,
-                            iconData: Icons.add,
-                            state: TagChipState.unselected,
+                            leading: const Icon(Icons.add),
                             onTap: _showCreateTagDialog,
                           ),
                         ],

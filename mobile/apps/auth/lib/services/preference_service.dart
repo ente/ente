@@ -43,6 +43,12 @@ class PreferenceService {
     }
   }
 
+  List<String> tagOrder() => _prefs.getStringList("tagOrder") ?? [];
+
+  Future<void> setTagOrder(List<String> order) async {
+    await _prefs.setStringList("tagOrder", order);
+  }
+
   bool hasShownCoachMark() {
     if (shouldSkipAuthGuidance) {
       return true;

@@ -11,7 +11,6 @@ import 'package:ente_auth/events/icons_changed_event.dart';
 import 'package:ente_auth/events/multi_select_action_requested_event.dart';
 import 'package:ente_auth/events/trigger_logout_event.dart';
 import 'package:ente_auth/models/code.dart';
-import 'package:ente_auth/onboarding/model/tag_enums.dart';
 import 'package:ente_auth/onboarding/view/common/tag_chip.dart';
 import 'package:ente_auth/onboarding/view/setup_enter_secret_key_page.dart';
 import 'package:ente_auth/services/authenticator_service.dart';
@@ -31,6 +30,7 @@ import 'package:ente_auth/ui/components/note_dialog.dart';
 import 'package:ente_auth/ui/custom_icon_page.dart';
 import 'package:ente_auth/ui/home/add_tag_sheet.dart';
 import 'package:ente_auth/ui/home/coach_mark_widget.dart';
+import 'package:ente_auth/ui/home/edit_tags_page.dart';
 import 'package:ente_auth/ui/home/home_empty_state.dart';
 import 'package:ente_auth/ui/home/shortcuts.dart';
 import 'package:ente_auth/ui/home/speed_dial_label_widget.dart';
@@ -1350,6 +1350,13 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Future<void> _openEditTags() async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (context) => const EditTagsPage()));
+    _loadCodes();
+  }
+
   Future<void> navigateToReorderPage(List<Code> allCodes) async {
     List<Code> sortCandidate = allCodes
         .where((element) => !element.hasError && !element.isTrashed)
@@ -1714,8 +1721,6 @@ class _HomePageState extends State<HomePage> {
         final indexOffset = anyCodeHasError ? 1 : 0;
         final bool showAllChip = hasNonTrashedCodes || hasTrashedCodes;
         final bool showTrashChip = hasTrashedCodes;
-        final int itemCount =
-            (showAllChip ? 1 : 0) + tags.length + (showTrashChip ? 1 : 0);
         final bool showAllEmptyHint =
             showAllChip &&
             selectedTag.isEmpty &&
@@ -1724,92 +1729,77 @@ class _HomePageState extends State<HomePage> {
             _searchText.isEmpty &&
             !hasNonTrashedCodes &&
             hasTrashedCodes;
+        final chips = [
+          if (showAllChip)
+            Semantics(
+              identifier: 'auth_filter_all',
+              child: TagChip(
+                label: l10n.all,
+                selected: selectedTag == "" && !_isTrashOpen,
+                onTap: () {
+                  _codeDisplayStore.clearSelection();
+                  selectedTag = "";
+                  _isTrashOpen = false;
+                  setState(() {});
+                  _applyFilteringAndRefresh();
+                },
+              ),
+            ),
+          for (final tag in tags)
+            TagChip(
+              label: tag,
+              selected: selectedTag == tag,
+              onTap: () {
+                _codeDisplayStore.clearSelection();
+                _isTrashOpen = false;
+                selectedTag = selectedTag == tag ? "" : tag;
+                setState(() {});
+                _applyFilteringAndRefresh();
+              },
+              onLongPress: () => showTagActions(context, tag),
+            ),
+          if (showTrashChip)
+            Semantics(
+              identifier: 'auth_filter_trash',
+              child: TagChip(
+                label: l10n.trash,
+                leading: const Icon(Icons.delete),
+                selected: _isTrashOpen,
+                onTap: () {
+                  _codeDisplayStore.clearSelection();
+                  selectedTag = "";
+                  _isTrashOpen = !_isTrashOpen;
+                  setState(() {});
+                  _applyFilteringAndRefresh();
+                },
+              ),
+            ),
+          if (tags.isNotEmpty)
+            Semantics(
+              identifier: 'auth_edit_tags',
+              child: IconButtonComponent(
+                icon: const Icon(Icons.edit_outlined),
+                size: 44,
+                tooltip: pendingTranslation("Edit tags"),
+                shouldSurfaceExecutionStates: false,
+                onTap: _openEditTags,
+              ),
+            ),
+        ];
 
         final list = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (!anyCodeHasError || selectedTag.isNotEmpty || _isTrashOpen) ...[
-              SizedBox(
-                height: 48,
-                child: HorizontalScrollArea(
-                  builder: (context, scrollController) => ListView.separated(
-                    controller: scrollController,
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 2,
-                    ),
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(width: 8),
-                    itemCount: itemCount,
-                    itemBuilder: (context, index) {
-                      if (showAllChip && index == 0) {
-                        return Semantics(
-                          button: true,
-                          identifier: 'auth_filter_all',
-                          child: TagChip(
-                            label: l10n.all,
-                            state: selectedTag == "" && _isTrashOpen == false
-                                ? TagChipState.selected
-                                : TagChipState.unselected,
-                            onTap: () {
-                              _codeDisplayStore.clearSelection();
-                              selectedTag = "";
-                              _isTrashOpen = false;
-
-                              setState(() {});
-                              _applyFilteringAndRefresh();
-                            },
-                          ),
-                        );
-                      }
-
-                      if (showTrashChip && index == itemCount - 1) {
-                        return Semantics(
-                          button: true,
-                          identifier: 'auth_filter_trash',
-                          child: TagChip(
-                            label: l10n.trash,
-                            state: _isTrashOpen
-                                ? TagChipState.selected
-                                : TagChipState.unselected,
-                            onTap: () {
-                              _codeDisplayStore.clearSelection();
-                              selectedTag = "";
-                              _isTrashOpen = !_isTrashOpen;
-                              setState(() {});
-                              _applyFilteringAndRefresh();
-                            },
-                            iconData: Icons.delete,
-                          ),
-                        );
-                      }
-                      final customTagIndex = index - (showAllChip ? 1 : 0);
-                      if (customTagIndex >= 0 && customTagIndex < tags.length) {
-                        return TagChip(
-                          label: tags[customTagIndex],
-                          action: TagChipAction.menu,
-                          state: selectedTag == tags[customTagIndex]
-                              ? TagChipState.selected
-                              : TagChipState.unselected,
-                          onTap: () {
-                            _codeDisplayStore.clearSelection();
-                            _isTrashOpen = false;
-                            if (selectedTag == tags[customTagIndex]) {
-                              selectedTag = "";
-                              setState(() {});
-                              _applyFilteringAndRefresh();
-                              return;
-                            }
-                            selectedTag = tags[customTagIndex];
-                            setState(() {});
-                            _applyFilteringAndRefresh();
-                          },
-                        );
-                      }
-                      return const SizedBox.shrink();
-                    },
-                  ),
+            if ((tags.isNotEmpty || hasTrashedCodes) &&
+                (!anyCodeHasError ||
+                    selectedTag.isNotEmpty ||
+                    _isTrashOpen)) ...[
+              HorizontalScrollArea(
+                builder: (context, scrollController) => SingleChildScrollView(
+                  controller: scrollController,
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(spacing: 8, children: chips),
                 ),
               ),
               const SizedBox(height: 8),

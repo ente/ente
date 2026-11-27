@@ -1,5 +1,6 @@
 import 'package:ente_auth/models/code.dart';
 import 'package:ente_auth/services/authenticator_service.dart';
+import 'package:ente_auth/services/preference_service.dart';
 import 'package:ente_auth/store/code_store.dart';
 import 'package:ente_auth/utils/dialog_util.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
@@ -94,7 +95,12 @@ class CodeDisplayStore {
       if (code.isTrashed) continue;
       tags.addAll(code.display.tags);
     }
-    return tags.toList()..sort(compareNames);
+    return orderTags(tags, PreferenceService.instance.tagOrder());
+  }
+
+  Future<void> saveTagOrder(List<String> shown) async {
+    final preferences = PreferenceService.instance;
+    await preferences.setTagOrder(mergeTagOrder(preferences.tagOrder(), shown));
   }
 
   Future<void> showDeleteTagDialog(BuildContext context, String tag) async {
@@ -108,6 +114,10 @@ class CodeDisplayStore {
       firstButtonLabel: l10n.delete,
       isCritical: true,
       firstButtonOnTap: () async {
+        final order = PreferenceService.instance.tagOrder();
+        if (order.remove(tag)) {
+          await PreferenceService.instance.setTagOrder(order);
+        }
         final relevantCodes = await _getCodesByTag(tag);
 
         final tasks = <Future<AddResult>>[];
@@ -159,6 +169,16 @@ class CodeDisplayStore {
   }
 
   Future<void> editTag(String previousTag, String updatedTag) async {
+    final order = PreferenceService.instance.tagOrder();
+    final index = order.indexOf(previousTag);
+    if (index != -1) {
+      if (order.contains(updatedTag)) {
+        order.removeAt(index);
+      } else {
+        order[index] = updatedTag;
+      }
+      await PreferenceService.instance.setTagOrder(order);
+    }
     final relevantCodes = await _getCodesByTag(previousTag);
 
     final tasks = <Future<AddResult>>[];
@@ -181,4 +201,19 @@ class CodeDisplayStore {
       AuthenticatorService.instance.onlineSync().ignore();
     }
   }
+}
+
+List<String> orderTags(Set<String> tags, List<String> saved) {
+  final ordered = saved.where(tags.contains).toList();
+  final rest = tags.difference(ordered.toSet()).toList()..sort(compareNames);
+  return [...ordered, ...rest];
+}
+
+List<String> mergeTagOrder(List<String> saved, List<String> shown) {
+  final visible = shown.toSet();
+  var next = 0;
+  final merged = [
+    for (final tag in saved) visible.contains(tag) ? shown[next++] : tag,
+  ];
+  return [...merged, ...shown.skip(next)];
 }
