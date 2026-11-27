@@ -1,1 +1,0 @@
-- Fixed People and Memories lookups staying stuck after a temporary error loading People data.
