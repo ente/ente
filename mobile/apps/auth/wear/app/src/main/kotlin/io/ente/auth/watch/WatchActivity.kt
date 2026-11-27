@@ -1,6 +1,7 @@
 package io.ente.auth.watch
 
 import android.app.KeyguardManager
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
@@ -57,6 +58,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.edit
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumn
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumnState
 import androidx.wear.compose.foundation.lazy.items
@@ -141,7 +143,8 @@ private fun AuthWatchRoot(
 ) {
     val context = LocalContext.current
     var selectedEntryId by rememberSaveable { mutableStateOf<String?>(null) }
-    var selectedTag by remember { mutableStateOf<String?>(null) }
+    val preferences = remember { context.getSharedPreferences("watch", Context.MODE_PRIVATE) }
+    var selectedTag by remember { mutableStateOf(preferences.getString("selectedTag", null)) }
     var pickingTag by rememberSaveable { mutableStateOf(false) }
     val accountsListState = rememberTransformingLazyColumnState()
     var seconds by remember { mutableLongStateOf(System.currentTimeMillis() / 1000) }
@@ -165,6 +168,10 @@ private fun AuthWatchRoot(
     }
     val currentTag = selectedTag?.takeIf { it in availableTags }
     val selectedEntry = state.entries.firstOrNull { it.id == selectedEntryId }
+
+    LaunchedEffect(selectedTag) {
+        preferences.edit { putString("selectedTag", selectedTag) }
+    }
 
     val isHidden = state.message == WatchCompanion.Message.hidden
     LaunchedEffect(isHidden, state.entries, availableTags) {
@@ -526,6 +533,7 @@ private fun CodeScreen(entry: Entry, seconds: Long) {
     val spoken = stringResource(R.string.code_spoken, codeValue.toCharArray().joinToString(" "))
     val remaining = (entry.period - seconds % entry.period).toInt()
     val isWarning = remaining <= 5
+    val spokenRemaining = pluralStringResource(R.plurals.seconds_remaining, remaining, remaining)
 
     ScreenScaffold(scrollState = scrollState) { contentPadding ->
         CountdownRing(
@@ -567,28 +575,21 @@ private fun CodeScreen(entry: Entry, seconds: Long) {
                     maxLines = 1,
                     softWrap = false,
                     autoSize = TextAutoSize.StepBased(minFontSize = 16.sp, maxFontSize = 34.sp),
-                    modifier = Modifier.semantics { contentDescription = spoken },
+                    modifier = Modifier.semantics { contentDescription = "$spoken, $spokenRemaining" },
                 )
             }
-            Text(
-                text = pluralStringResource(R.plurals.seconds_remaining, remaining, remaining),
-                style = MaterialTheme.typography.bodySmall,
-                color = WatchStyle.secondary,
+            val nextCodeValue = entry.code(seconds + entry.period)
+            val spokenNext = stringResource(
+                R.string.next_code_spoken, nextCodeValue.toCharArray().joinToString(" "),
             )
-            if (isWarning) {
-                val nextCodeValue = entry.code(seconds + entry.period)
-                val spokenNext = stringResource(
-                    R.string.next_code_spoken, nextCodeValue.toCharArray().joinToString(" "),
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                Text(
+                    text = stringResource(R.string.next_code, formatCode(nextCodeValue)),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (isWarning) Color.White else WatchStyle.secondary,
+                    maxLines = 1,
+                    modifier = Modifier.semantics { contentDescription = spokenNext },
                 )
-                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                    Text(
-                        text = stringResource(R.string.next_code, formatCode(nextCodeValue)),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = WatchStyle.secondary,
-                        maxLines = 1,
-                        modifier = Modifier.semantics { contentDescription = spokenNext },
-                    )
-                }
             }
         }
     }
@@ -649,7 +650,7 @@ private fun EraseConfirmation(visible: Boolean, onDismiss: () -> Unit, onErase: 
 private fun statusStringRes(message: WatchCompanion.Message): Int? = when (message) {
     WatchCompanion.Message.setup -> R.string.setup_instructions
     WatchCompanion.Message.approvePhone -> R.string.approve_phone
-    WatchCompanion.Message.selectAccounts -> R.string.select_accounts
+    WatchCompanion.Message.noAccounts -> R.string.no_accounts
     WatchCompanion.Message.offline -> R.string.offline
     WatchCompanion.Message.unlockWatch -> R.string.unlock_watch
     WatchCompanion.Message.storageFailed -> R.string.storage_failed

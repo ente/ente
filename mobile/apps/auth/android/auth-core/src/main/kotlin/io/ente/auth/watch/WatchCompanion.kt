@@ -9,7 +9,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.RejectedExecutionException
 
 class WatchCompanion(context: Context) {
-    enum class Message { connectPhone, hidden, setup, approvePhone, selectAccounts, offline, unlockWatch,
+    enum class Message { connectPhone, hidden, setup, approvePhone, noAccounts, offline, unlockWatch,
         storageFailed, secureStorageUnavailable, setupFailed, syncFailed, ready }
     data class State(val entries: List<Entry> = emptyList(), val message: Message = Message.hidden,
                      val canEnroll: Boolean = false, val canErase: Boolean = false,
@@ -97,7 +97,7 @@ class WatchCompanion(context: Context) {
             local.enrollment == null -> Message.connectPhone
             local.receipt == null -> Message.approvePhone
             !connected -> Message.offline
-            local.snapshot.entries.isEmpty() -> Message.selectAccounts
+            local.snapshot.entries.isEmpty() -> Message.noAccounts
             else -> Message.ready
         }
         emit(State(local.snapshot.entries, message, local.enrollment == null && suites.isNotEmpty(),

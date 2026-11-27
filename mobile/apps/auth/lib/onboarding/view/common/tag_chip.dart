@@ -1,5 +1,4 @@
 import "package:ente_auth/onboarding/model/tag_enums.dart";
-import 'package:ente_auth/services/watch/service.dart';
 import "package:ente_auth/store/code_display_store.dart";
 import "package:ente_auth/theme/ente_theme.dart";
 import 'package:ente_components/ente_components.dart';
@@ -34,28 +33,11 @@ class _TagChipState extends State<TagChip> {
 
   @override
   Widget build(BuildContext context) {
-    final watch = widget.action == TagChipAction.none
-        ? null
-        : WatchService.instanceOrNull;
-    return watch == null
-        ? _buildChip(context)
-        : AnimatedBuilder(
-            animation: watch,
-            builder: (context, _) => _buildChip(context),
-          );
-  }
-
-  Widget _buildChip(BuildContext context) {
     final colorScheme = getEnteColorScheme(context);
     final textTheme = getEnteTextTheme(context);
     final isSelected = widget.state == TagChipState.selected;
     final textColor = isSelected ? Colors.white : colorScheme.textBase;
     final focusBorderColor = isSelected ? Colors.white : colorScheme.primary700;
-    final sharedWithWatch =
-        widget.action != TagChipAction.none &&
-        WatchService.sharedTags.contains(widget.label);
-    final icon =
-        widget.iconData ?? (sharedWithWatch ? Icons.watch_outlined : null);
 
     return FocusableActionDetector(
       enabled: widget.onTap != null,
@@ -84,9 +66,6 @@ class _TagChipState extends State<TagChip> {
         child: Semantics(
           button: widget.onTap != null,
           selected: isSelected,
-          label: sharedWithWatch
-              ? pendingTranslation("Used for watch sharing")
-              : null,
           child: Container(
             constraints: const BoxConstraints(minHeight: 40),
             decoration: BoxDecoration(
@@ -111,13 +90,13 @@ class _TagChipState extends State<TagChip> {
                   ).copyWith(textScaler: const TextScaler.linear(1)),
                   child: Row(
                     children: [
-                      if (icon != null)
+                      if (widget.iconData != null)
                         Icon(
-                          icon,
+                          widget.iconData,
                           size: widget.label.isNotEmpty ? 16 : 20,
                           color: textColor,
                         ),
-                      if (icon != null && widget.label.isNotEmpty)
+                      if (widget.iconData != null && widget.label.isNotEmpty)
                         const SizedBox(width: 8),
                       if (widget.label.isNotEmpty)
                         Text(
