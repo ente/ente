@@ -1,15 +1,1 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Generator: Adobe Illustrator 27.0.1, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
-<svg version="1.1" id="Слой_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
-	 width="500px" height="500px" viewBox="0 0 500 500" style="enable-background:new 0 0 500 500;" xml:space="preserve">
-<style type="text/css">
-	.st0{fill:#6573FF;}
-	.st1{fill:#202945;}
-</style>
-<g>
-	<path class="st0" d="M500,47.2C500,20.9,478.6,0,452.9,0H47.7C21.4-0.5,0,20.9,0,47.2v43.9c0,0,186.4,180.6,250.5,180.6
-		C319.6,271.7,500,92.2,500,92.2S500,56.5,500,47.2z"/>
-	<path class="st1" d="M0,452.8C0,479.1,21.4,500,47.2,500h405.6c26.3,0,47.2-21.4,47.2-47.2V142.7c0,0-159.2,184.4-249.7,184.4
-		C160.8,327.1,0,178.4,0,178.4C0,236.6,0,395.2,0,452.8z"/>
-</g>
-</svg>
+<svg data-v-29ebd890="" viewBox="0 0 32 32" aria-hidden="true" title="StartMail"><path fill="#6573ff" d="M32 3.021a3.02 3.02 0 0 0-3.018-3.02H3.052C1.368-.036 0 1.334 0 3.02v2.81s11.93 11.557 16.035 11.557C20.455 17.388 32 5.902 32 5.902v-2.88z" class="flap"></path><path fill="#202945" d="M0 28.979a3.02 3.02 0 0 0 3.02 3.02h25.96a3.02 3.02 0 0 0 3.02-3.02V9.133S21.814 20.935 16.019 20.935C10.292 20.935 0 11.415 0 11.415z" class="back"></path></svg>
