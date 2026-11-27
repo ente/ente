@@ -8,11 +8,6 @@ interface BackgroundWorkSummary {
     pendingUploadCount: number;
 }
 
-/**
- * Background work the main process knows about without asking the renderer.
- *
- * Reads the raw store values; `pendingUploads()` would stat every path.
- */
 const backgroundWorkSummary = (): BackgroundWorkSummary => {
     const watchedFolderCount = watchStore.get("mappings")?.length ?? 0;
     const pendingUploadCount =
@@ -40,10 +35,6 @@ const backgroundWorkLines = ({
     return lines;
 };
 
-/**
- * Ask the user what closing the window should do when there is no tray icon
- * to get the window back from.
- */
 export const showNoTrayCloseDialog = async (
     window: BrowserWindow,
 ): Promise<{ action: SavedCloseAction | "cancel"; remember: boolean }> => {

@@ -1,7 +1,6 @@
 // Keep this bridge in sync with desktop/src/types/ipc.ts and desktop/src/preload.ts.
 type ThemeMode = "light" | "dark" | "system";
 
-/** "ask" shows the no-tray close prompt each time. */
 export type CloseAction = "ask" | "quit" | "background";
 
 type NativeDeviceLockProvider = "touchid" | "none";
@@ -53,11 +52,6 @@ export interface Electron {
     setLastShownChangelogVersion: (version: number) => Promise<void>;
     isAutoLaunchEnabled: () => Promise<boolean>;
     toggleAutoLaunch: () => Promise<void>;
-    /**
-     * What closing the window does on Linux desktops without a system tray.
-     *
-     * `undefined` on other platforms, where closing always hides to the tray.
-     */
     closeAction: () => Promise<CloseAction | undefined>;
     setCloseAction: (action: CloseAction) => Promise<void>;
     getNativeDeviceLockCapability: () => Promise<NativeDeviceLockCapability>;

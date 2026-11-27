@@ -313,10 +313,6 @@ const allowExternalLinks = (webContents: WebContents) =>
 
 let isHandlingLinuxWindowClose = false;
 
-/**
- * Hide to the tray when there is one. Without a tray (e.g. stock GNOME) a
- * hidden window leaves an invisible, unreachable app, so ask instead.
- */
 const handleLinuxWindowClose = async (window: BrowserWindow) => {
     // Repeated close clicks must not stack D-Bus checks or dialogs.
     if (isHandlingLinuxWindowClose) return;

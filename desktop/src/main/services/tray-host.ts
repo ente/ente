@@ -2,20 +2,6 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import log from "../log";
 
-/**
- * Whether the desktop session has a StatusNotifier host, i.e. somewhere for
- * our tray icon to appear.
- *
- * On Linux, Electron's tray icon is a StatusNotifierItem. GNOME without the
- * AppIndicator extension has no host, so the icon never shows. Desktops with
- * only a legacy XEmbed tray may still show one and are reported as absent;
- * they just see the close prompt. Hosts
- * (KDE Plasma, the GNOME AppIndicator extension, XFCE, Cinnamon, ...) own the
- * well-known `org.kde.StatusNotifierWatcher` name on the session bus.
- *
- * `"unknown"` means neither D-Bus CLI worked; callers keep the existing
- * hide-to-tray behaviour in that case.
- */
 export type TrayHostStatus = "present" | "absent" | "unknown";
 
 const watcherName = "org.kde.StatusNotifierWatcher";
@@ -50,10 +36,6 @@ const commands: [string, string[]][] = [
     ],
 ];
 
-/**
- * Parse the reply of a `NameHasOwner` call printed by either `gdbus` (e.g.
- * "(true,)") or `dbus-send --print-reply` (e.g. "... boolean true").
- */
 const parseNameHasOwnerOutput = (stdout: string): boolean | undefined => {
     const match = /\(\s*(true|false)\s*,\s*\)|\bboolean\s+(true|false)\b/.exec(
         stdout,
