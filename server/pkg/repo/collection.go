@@ -692,33 +692,33 @@ func (repo *CollectionRepository) UpdateShareeMetadata(
 	ownerUserID int64,
 	shareeUserID int64,
 	metadata ente.MagicMetadata,
-	updationTime int64) error {
+	updationTime int64) (expectedVersion int64, err error) {
 	context := context.Background()
 	tx, err := repo.DB.BeginTx(context, nil)
 	if err != nil {
-		return stacktrace.Propagate(err, "")
+		return 0, stacktrace.Propagate(err, "")
 	}
 	defer tx.Rollback()
-	sqlResult, err := tx.ExecContext(context, `UPDATE collection_shares SET magic_metadata = $1, updation_time = $2  WHERE collection_id = $3 AND from_user_id = $4 AND to_user_id = $5 AND is_deleted = $6`,
+	err = tx.QueryRowContext(context, `SELECT COALESCE((magic_metadata->>'version')::bigint, 1) FROM collection_shares
+		WHERE collection_id = $1 AND from_user_id = $2 AND to_user_id = $3 AND is_deleted = $4 FOR NO KEY UPDATE`,
+		collectionID, ownerUserID, shareeUserID, false).Scan(&expectedVersion)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, stacktrace.Propagate(fmt.Errorf("invalid number of rows affected %d", 0), "")
+	}
+	if err != nil {
+		return 0, stacktrace.Propagate(err, "")
+	}
+	_, err = tx.ExecContext(context, `UPDATE collection_shares SET magic_metadata = $1, updation_time = $2  WHERE collection_id = $3 AND from_user_id = $4 AND to_user_id = $5 AND is_deleted = $6`,
 		metadata, updationTime, collectionID, ownerUserID, shareeUserID, false)
 	if err != nil {
-		return stacktrace.Propagate(err, "")
-	}
-	affected, err := sqlResult.RowsAffected()
-	if err != nil {
-		return stacktrace.Propagate(err, "")
-	}
-	if affected != 1 {
-		err = fmt.Errorf("invalid number of rows affected %d", affected)
-		return stacktrace.Propagate(err, "")
+		return 0, stacktrace.Propagate(err, "")
 	}
 
 	_, err = tx.ExecContext(context, `UPDATE collections SET updation_time = $1 WHERE collection_id = $2`, updationTime, collectionID)
 	if err != nil {
-		return stacktrace.Propagate(err, "")
+		return 0, stacktrace.Propagate(err, "")
 	}
-	err = tx.Commit()
-	return stacktrace.Propagate(err, "")
+	return expectedVersion, stacktrace.Propagate(tx.Commit(), "")
 }
 
 func (repo *CollectionRepository) UnShare(collectionID int64, toUserID int64) error {
@@ -1325,22 +1325,27 @@ func (repo *CollectionRepository) UpdateMagicMetadata(ctx context.Context,
 	collectionID int64,
 	magicMetadata ente.MagicMetadata,
 	isPublicMetadata bool,
-) error {
-	updationTime := time.Microseconds()
-	magicMetadata.Version = magicMetadata.Version + 1
-	var err error
+) (expectedVersion int64, err error) {
+	column := "magic_metadata"
 	if isPublicMetadata {
-		_, err = repo.DB.ExecContext(ctx, `UPDATE collections
-    				SET pub_magic_metadata = $1,
-    				    updation_time=$2
-					WHERE collection_id = $3`,
-			magicMetadata, updationTime, collectionID)
-	} else {
-		_, err = repo.DB.ExecContext(ctx, `UPDATE collections 
-				SET magic_metadata = $1,
-					updation_time=$2
-				WHERE collection_id = $3`,
-			magicMetadata, updationTime, collectionID)
+		column = "pub_magic_metadata"
 	}
-	return stacktrace.Propagate(err, "")
+	tx, err := repo.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, stacktrace.Propagate(err, "")
+	}
+	defer tx.Rollback()
+	err = tx.QueryRowContext(ctx, `SELECT COALESCE((`+column+`->>'version')::bigint, 1)
+		FROM collections WHERE collection_id = $1 FOR NO KEY UPDATE`,
+		collectionID).Scan(&expectedVersion)
+	if err != nil {
+		return 0, stacktrace.Propagate(err, "")
+	}
+	magicMetadata.Version = magicMetadata.Version + 1
+	_, err = tx.ExecContext(ctx, `UPDATE collections SET `+column+` = $1, updation_time = $2 WHERE collection_id = $3`,
+		magicMetadata, time.Microseconds(), collectionID)
+	if err != nil {
+		return 0, stacktrace.Propagate(err, "")
+	}
+	return expectedVersion, stacktrace.Propagate(tx.Commit(), "")
 }

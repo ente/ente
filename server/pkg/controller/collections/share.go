@@ -568,10 +568,11 @@ func (c *CollectionController) UpdateShareeMagicMetadata(ctx *gin.Context, req e
 	if resp.Collection.Owner.ID == actorUserId {
 		return stacktrace.Propagate(ente.NewBadRequestWithMessage("owner can not update sharee magic metadata"), "")
 	}
-	err = c.CollectionRepo.UpdateShareeMetadata(req.ID, resp.Collection.Owner.ID, actorUserId, req.MagicMetadata, time.Microseconds())
+	expectedVersion, err := c.CollectionRepo.UpdateShareeMetadata(req.ID, resp.Collection.Owner.ID, actorUserId, req.MagicMetadata, time.Microseconds())
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to update sharee magic metadata")
 	}
+	countMagicMetadataVersion(ctx, "sharee", req.MagicMetadata.Version, expectedVersion)
 	return nil
 }
 
