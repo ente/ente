@@ -153,6 +153,12 @@
       "slug": "anycoindirect"
     },
     {
+      "title": "AppFolio",
+      "altNames": [
+        "FolioSpace"
+      ]
+    },
+    {
       "title": "AR24",
       "altNames": [
         "Docaposte AR24"
@@ -273,6 +279,9 @@
       "altNames": [
         "Bethesda Softworks"
       ]
+    },
+    {
+      "title": "Betterment"
     },
     {
       "title": "Binance",
@@ -427,6 +436,12 @@
       "slug": "bundesagentur_fur_arbeit",
       "altNames": [
         "Agentur für Arbeit"
+      ]
+    },
+    {
+      "title": "Businessolver",
+      "altNames": [
+        "benefitsolver"
       ]
     },
     {
@@ -612,6 +627,15 @@
     {
       "title": "Computershare",
       "slug": "computershare"
+    },
+    {
+      "title": "CommunityAmerica Credit Union",
+      "slug": "cacu",
+      "altNames": [
+        "CommunityAmerica",
+        "Community America",
+        "CACU"
+      ]
     },
     {
       "title": "ConfigCat"
@@ -1188,6 +1212,14 @@
       "title": "Hover"
     },
     {
+      "title": "HPE",
+      "altNames": [
+        "HP Enterprise",
+        "Hewlett Packard Enterprise",
+        "Hewlett-Packard Enterprise"
+      ]
+    },
+    {
       "title": "HRDocumentBox",
       "slug": "hrdocumentbox",
       "altNames": [
@@ -1209,6 +1241,9 @@
     },
     {
       "title": "HTX"
+    },
+    {
+      "title": "Hudu"
     },
     {
       "title": "Hueber",
@@ -1290,6 +1325,14 @@
     },
     {
       "title": "Instagram"
+    },
+    {
+      "title": "InstantOn",
+      "hex": "FFFFFF",
+      "altNames": [
+        "Aruba InstantOn",
+        "HPE InstantOn"
+      ]
     },
     {
       "title": "Instant Gaming",
@@ -1513,6 +1556,21 @@
       ]
     },
     {
+      "title": "Liaison International",
+      "slug": "liaison_edu",
+      "altNames": [
+        "GradCAS",
+        "MyLiaison",
+        "SlideRoom",
+        "Othot",
+        "TargetX",
+        "Outcomes",
+        "Time2Track",
+        "WebAdMIT",
+        "Living Profile"
+      ]
+    },
+    {
       "title": "Lightyear",
       "hex": "000000",
       "altNames": [
@@ -1709,6 +1767,10 @@
       "altNames": [
         "M01"
       ]
+    },
+    {
+      "title": "Monstercat",
+      "hex": "000000"
     },
     {
       "title": "Mozilla",
@@ -2116,6 +2178,11 @@
       "hex": "DEC685"
     },
     {
+      "title": "Pirate Ship",
+      "slug": "pirateship",
+      "hex": "000000"
+    },
+    {
       "title": "Poloniex"
     },
     {
@@ -2215,6 +2282,9 @@
       "slug": "pushover"
     },
     {
+      "title": "Quinncia"
+    },
+    {
       "title": "qiniuyun",
       "hex": "02A7E0",
       "altNames": [
@@ -2278,6 +2348,10 @@
       "title": "RealVNC",
       "slug": "realvnc",
       "hex": "488aec"
+    },
+    {
+      "title": "Rebrandly",
+      "hex": "FFFFFF"
     },
     {
       "title": "Recruit",
@@ -2824,6 +2898,9 @@
       "title": "UFile"
     },
     {
+      "title": "UltiMaker"
+    },
+    {
       "title": "unitedhealthgroup",
       "altNames": [
         "Unitedhealth Group",
@@ -2944,6 +3021,10 @@
         "voopesistemas.com.br",
         "voope.com.br"
       ]
+    },
+    {
+      "title": "Verkada",
+      "hex": "000000"
     },
     {
       "title": "WARGAMING.NET",
