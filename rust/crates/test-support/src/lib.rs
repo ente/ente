@@ -2,6 +2,7 @@ pub mod account_fixture;
 mod museum;
 mod net;
 mod object_store;
+pub mod photos_fixture;
 mod postgres;
 mod process;
 mod server;

@@ -77,11 +77,9 @@ pub async fn files_diff(session: &Session, collection_id: i64, since: i64) -> Re
             .await
     })
     .await?;
-    if response
-        .diff
-        .iter()
-        .any(|f| f.id <= 0 || f.owner_id <= 0 || f.updation_time < since)
-    {
+    if response.diff.iter().any(|f| {
+        f.id <= 0 || f.owner_id <= 0 || f.collection_id != collection_id || f.updation_time < since
+    }) {
         return Err(Error::InvalidPage("invalid file identity or timestamp"));
     }
     let cursor = response
@@ -98,6 +96,34 @@ pub async fn files_diff(session: &Session, collection_id: i64, since: i64) -> Re
         cursor,
         has_more: response.has_more,
     })
+}
+
+pub struct FilePages<'a> {
+    session: &'a Session,
+    collection_id: i64,
+    cursor: i64,
+    done: bool,
+}
+
+pub fn file_pages(session: &Session, collection_id: i64, since: i64) -> FilePages<'_> {
+    FilePages {
+        session,
+        collection_id,
+        cursor: since,
+        done: false,
+    }
+}
+
+impl FilePages<'_> {
+    pub async fn next(&mut self) -> Result<Option<FilePage>> {
+        if self.done {
+            return Ok(None);
+        }
+        let page = files_diff(self.session, self.collection_id, self.cursor).await?;
+        self.cursor = page.cursor;
+        self.done = !page.has_more;
+        Ok(Some(page))
+    }
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -122,6 +148,10 @@ pub struct Collection {
 }
 
 impl Collection {
+    pub fn is_deleted(&self) -> bool {
+        self.is_deleted == Some(true)
+    }
+
     pub fn open_key(&self, session: &Session) -> Result<Key> {
         open_collection_key(
             session,
@@ -168,6 +198,8 @@ pub struct Owner {
 #[serde(rename_all = "camelCase")]
 pub struct File {
     pub id: i64,
+    #[serde(rename = "collectionID")]
+    pub collection_id: i64,
     #[serde(rename = "ownerID")]
     pub owner_id: i64,
     pub encrypted_key: String,
@@ -223,3 +255,6 @@ impl EncryptedMetadata {
         )?)
     }
 }
+
+#[cfg(test)]
+mod tests;
