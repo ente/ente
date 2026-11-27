@@ -191,5 +191,13 @@
     ) {
       Task { @MainActor [weak self] in self?.refresh() }
     }
+
+    nonisolated public func session(
+      _ session: WCSession, didReceiveMessage message: [String: Any],
+      replyHandler: @escaping ([String: Any]) -> Void
+    ) {
+      replyHandler(session.applicationContext)
+      Task { @MainActor [weak self] in self?.refresh() }
+    }
   }
 #endif

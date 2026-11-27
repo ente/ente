@@ -73,6 +73,7 @@
         status = WatchStatus(enrollment: state.enrollment, receipt: state.receipt)
         do { try sendStatus() } catch { syncFailed = true }
         issue = syncFailed ? .syncFailed : nil
+        requestPhoneContext()
       } catch is KeychainError {
         entries = []
         hideCodes = false
@@ -110,6 +111,24 @@
       if !NSDictionary(dictionary: session.applicationContext).isEqual(to: context) {
         try session.updateApplicationContext(context)
       }
+    }
+
+    private func requestPhoneContext() {
+      guard phone == nil, session.activationState == .activated, session.isReachable else { return }
+      session.sendMessage(
+        ["version": 1],
+        replyHandler: { @Sendable reply in
+          guard let phone = try? PhoneContext(reply) else { return }
+          Task { @MainActor [weak self] in
+            guard let self, self.phone == nil else { return }
+            self.phone = phone
+            self.reload()
+          }
+        }, errorHandler: nil)
+    }
+
+    nonisolated public func sessionReachabilityDidChange(_ session: WCSession) {
+      Task { @MainActor [weak self] in self?.requestPhoneContext() }
     }
 
     nonisolated public func session(
