@@ -31,3 +31,14 @@ pub fn read_photo_metadata(path: impl AsRef<Path>) -> Result<PhotoMetadata, Erro
             .or_else(|| metadata.xmp_location()),
     })
 }
+
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) fn wall_clock_micros(date_time: &str) -> Option<i64> {
+    use ente_exif::DateTime;
+
+    DateTime {
+        offset_minutes: Some(0),
+        ..DateTime::parse(date_time)?
+    }
+    .unix_micros()
+}

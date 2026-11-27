@@ -1,8 +1,8 @@
-use ente_exif::DateTime;
 use ente_location::Coordinate;
 
 use super::calendar::{LocalDate, MICROS_PER_SECOND};
 use super::input::MemoryFile;
+use crate::metadata::wall_clock_micros;
 
 #[derive(Debug)]
 pub(super) struct Photo {
@@ -44,14 +44,6 @@ impl Photo {
             shared: file.shared,
         }
     }
-}
-
-fn wall_clock_micros(date_time: &str) -> Option<i64> {
-    DateTime {
-        offset_minutes: Some(0),
-        ..DateTime::parse(date_time)?
-    }
-    .unix_micros()
 }
 
 #[cfg(test)]
