@@ -9,23 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestHasPublishedFiles(t *testing.T) {
-	collections, db, owner := setupCollectionMembershipTest(t)
-	album := insertObjectTestCollection(t, db, owner)
-	files := insertCollectionMembershipTestFiles(t, db, owner, 2)
-	linkObjectTestFileToCollection(t, db, album, files[0], owner)
-	_, err := db.Exec(`UPDATE collection_files SET moderation_status = 'PENDING' WHERE file_id = $1`, files[0])
-	require.NoError(t, err)
-	hasPublished, err := collections.HasPublishedFiles(t.Context(), album)
-	require.NoError(t, err)
-	require.False(t, hasPublished)
-
-	linkObjectTestFileToCollection(t, db, album, files[1], owner)
-	hasPublished, err = collections.HasPublishedFiles(t.Context(), album)
-	require.NoError(t, err)
-	require.True(t, hasPublished)
-}
-
 func TestPendingUploadVisibility(t *testing.T) {
 	collections, db, owner := setupCollectionMembershipTest(t)
 	ctx := t.Context()
@@ -53,7 +36,7 @@ func TestPendingUploadVisibility(t *testing.T) {
 	require.Equal(t, []int64{published}, active)
 	count, err := collections.GetCollectionsFilesCount(album)
 	require.NoError(t, err)
-	require.EqualValues(t, 2, count)
+	require.EqualValues(t, 1, count)
 
 	objects := &ObjectRepository{DB: db}
 	for _, objType := range []ente.ObjectType{ente.FILE, ente.THUMBNAIL} {

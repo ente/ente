@@ -184,13 +184,14 @@ func (c *CollectionController) TrashV3(ctx *gin.Context, req ente.TrashCollectio
 	}
 
 	if *req.KeepFiles {
-		hasPublishedFiles, err := c.CollectionRepo.HasPublishedFiles(ctx, cID)
+		count, err := c.CollectionRepo.GetCollectionsFilesCount(cID)
 		if err != nil {
 			return stacktrace.Propagate(err, "")
 		}
-		if hasPublishedFiles {
-			return &ente.ErrCollectionNotEmpty
+		if count != 0 {
+			return stacktrace.Propagate(&ente.ErrCollectionNotEmpty, "Collection file count %d", count)
 		}
+
 	}
 	err = c.CollectionLinkCtrl.Disable(ctx, cID)
 	if err != nil {
