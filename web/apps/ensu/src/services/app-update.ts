@@ -4,6 +4,25 @@ import { buildEnvIsProductionBuild } from "ente-base/env";
 import log from "ente-base/log";
 
 const oneDay = 24 * 60 * 60 * 1000;
+const focusAfterUpdateKey = "ensu.focusAfterUpdate";
+
+const rememberUpdateFocus = () => {
+    try {
+        localStorage.setItem(focusAfterUpdateKey, "1");
+    } catch (e) {
+        log.warn("Could not remember Ensu update focus", e);
+    }
+};
+
+const consumeUpdateFocus = () => {
+    try {
+        const shouldFocus = localStorage.getItem(focusAfterUpdateKey) === "1";
+        localStorage.removeItem(focusAfterUpdateKey);
+        return shouldFocus;
+    } catch {
+        return false;
+    }
+};
 
 let intervalId: number | undefined;
 let inFlightUpdateCheck: Promise<AppUpdateCheckResult> | undefined;
@@ -64,8 +83,10 @@ const installAppUpdate = async (version: string) => {
         }
         await update.downloadAndInstall();
         log.info(`Installed Ensu update ${version}, relaunching`);
+        rememberUpdateFocus();
         await relaunch();
     } catch (e) {
+        consumeUpdateFocus();
         log.error(`Failed to install Ensu update ${version}`, e);
         throw e;
     }
@@ -126,6 +147,14 @@ export const handleManualAppUpdateCheck = async (
 export const setupAutoAppUpdates = (showMiniDialog: ShowMiniDialog) => {
     if (!isTauriRuntime() || !buildEnvIsProductionBuild || intervalId) {
         return () => undefined;
+    }
+
+    if (consumeUpdateFocus()) {
+        void import("@tauri-apps/api/window")
+            .then(({ getCurrentWindow }) => getCurrentWindow().setFocus())
+            .catch((e: unknown) =>
+                log.warn("Failed to focus Ensu after update", e),
+            );
     }
 
     void checkAndPromptForAppUpdates(showMiniDialog);
