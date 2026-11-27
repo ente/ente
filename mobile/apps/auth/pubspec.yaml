@@ -25,6 +25,8 @@ dependencies:
     path: ../../packages/account_deletion
   ente_accounts:
     path: ../../packages/accounts
+  ente_active_sessions:
+    path: ../../packages/active_sessions
   ente_auth_frb:
     path: rust_builder
   ente_base:

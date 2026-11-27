@@ -1,33 +1,42 @@
+import "dart:async";
+
+import "package:ente_active_sessions/src/active_session.dart";
+import "package:ente_active_sessions/src/active_sessions_host.dart";
+import "package:ente_active_sessions/src/active_sessions_settings.dart";
 import "package:ente_components/ente_components.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
-import 'package:ente_ui/components/loading_widget.dart';
-import 'package:flutter/material.dart';
-import 'package:logging/logging.dart';
-import 'package:photos/core/configuration.dart';
-import 'package:photos/gateways/users/models/sessions.dart';
-import 'package:photos/services/account/user_service.dart';
-import 'package:photos/ui/notification/toast.dart';
-import 'package:photos/utils/dialog_util.dart';
+import "package:flutter/material.dart";
+import "package:logging/logging.dart";
 
-class SessionsPage extends StatefulWidget {
-  const SessionsPage({super.key});
+class ActiveSessionsPage extends StatefulWidget {
+  const ActiveSessionsPage({super.key});
 
   @override
-  State<SessionsPage> createState() => _SessionsPageState();
+  State<ActiveSessionsPage> createState() => _ActiveSessionsPageState();
 }
 
-class _SessionsPageState extends State<SessionsPage> {
-  Sessions? _sessions;
-  final Logger _logger = Logger("SessionsPageState");
+class _ActiveSessionsPageState extends State<ActiveSessionsPage> {
+  final _logger = Logger("ActiveSessionsPage");
+  List<ActiveSession>? _sessions;
+
+  ActiveSessionsHost get _host => ActiveSessionsSettings.instance.host;
 
   @override
   void initState() {
-    _fetchActiveSessions().onError((error, stackTrace) {
-      if (!mounted) return;
-      showToast(context, context.strings.failedToFetchActiveSessions);
-    });
     super.initState();
+    _fetchActiveSessions().onError((e, s) {
+      _logger.severe("failed to fetch active sessions", e, s);
+      if (!mounted) return;
+      unawaited(
+        showErrorBottomSheetComponent<void>(
+          context: context,
+          title: context.strings.oops,
+          message: context.strings.failedToFetchActiveSessions,
+          illustration: Image.asset("assets/warning-grey.png"),
+        ),
+      );
+    });
   }
 
   @override
@@ -40,32 +49,29 @@ class _SessionsPageState extends State<SessionsPage> {
   }
 
   List<Widget> _getBodyChildren(BuildContext context) {
-    if (_sessions == null) {
+    final sessions = _sessions;
+    if (sessions == null) {
       return [
         SizedBox(
           height: MediaQuery.sizeOf(context).height / 2,
-          child: const Center(child: EnteLoadingWidget()),
+          child: const Center(child: LoadingComponent()),
         ),
       ];
     }
 
     return [
       const SizedBox(height: Spacing.xs),
-      for (final session in _sessions!.sessions) _getSessionWidget(session),
+      for (final session in sessions) _getSessionWidget(session),
     ];
   }
 
-  Widget _getSessionWidget(Session session) {
+  Widget _getSessionWidget(ActiveSession session) {
     final colors = context.componentColors;
-    final lastUsedTime = DateTime.fromMicrosecondsSinceEpoch(
-      session.lastUsedTime,
-    );
+    final lastUsedAt = DateTime.fromMicrosecondsSinceEpoch(session.lastUsedAt);
     return Column(
       children: [
         InkWell(
-          onTap: () async {
-            _showSessionTerminationDialog(session);
-          },
+          onTap: () => _showSessionTerminationDialog(session),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -87,7 +93,7 @@ class _SessionsPageState extends State<SessionsPage> {
                     const Padding(padding: EdgeInsets.all(8)),
                     Flexible(
                       child: Text(
-                        getFormattedTime(lastUsedTime, context: context),
+                        getFormattedTime(lastUsedAt, context: context),
                         style: TextStyles.mini.copyWith(
                           color: colors.textLight,
                         ),
@@ -104,51 +110,41 @@ class _SessionsPageState extends State<SessionsPage> {
     );
   }
 
-  Future<void> _terminateSession(Session session) async {
-    final dialog = createProgressDialog(context, context.strings.pleaseWait);
-    await dialog.show();
+  Future<void> _terminateSession(ActiveSession session) async {
+    final loading = showLoadingComponent(context, context.strings.pleaseWait);
     try {
-      await UserService.instance.terminateSession(session.token);
+      await _host.revokeActiveSession(session.id);
       await _fetchActiveSessions();
-      await dialog.hide();
-    } catch (e) {
-      await dialog.hide();
-      _logger.severe('failed to terminate');
+      await loading.hide();
+    } catch (e, s) {
+      await loading.hide();
+      _logger.severe("failed to terminate session", e, s);
       if (!mounted) return;
-      // ignore: unawaited_futures
-      showErrorBottomSheetComponent<void>(
-        context: context,
-        title: context.strings.oops,
-        message: context.strings.somethingWentWrongPleaseTryAgain,
-        illustration: Image.asset("assets/warning-grey.png"),
+      unawaited(
+        showErrorBottomSheetComponent<void>(
+          context: context,
+          title: context.strings.oops,
+          message: context.strings.somethingWentWrongPleaseTryAgain,
+          illustration: Image.asset("assets/warning-grey.png"),
+        ),
       );
     }
   }
 
   Future<void> _fetchActiveSessions() async {
-    _sessions = await UserService.instance.getActiveSessions().onError((e, s) {
-      _logger.severe("failed to fetch active sessions", e, s);
-      throw e!;
-    });
-    if (_sessions != null) {
-      _sessions!.sessions.sort((first, second) {
-        return second.lastUsedTime.compareTo(first.lastUsedTime);
-      });
-      if (mounted) {
-        setState(() {});
-      }
+    final sessions = await _host.listActiveSessions();
+    sessions.sort((a, b) => b.lastUsedAt.compareTo(a.lastUsedAt));
+    if (mounted) {
+      setState(() => _sessions = sessions);
     }
   }
 
-  void _showSessionTerminationDialog(Session session) {
+  void _showSessionTerminationDialog(ActiveSession session) {
     final l10n = context.strings;
-    final isLoggingOutFromThisDevice = session.isCurrentSession(
-      Configuration.instance.getToken(),
-    );
-    final displayedUserAgent = session.ua.length > 256
-        ? "${session.ua.substring(0, 253)}..."
-        : session.ua;
-    final message = isLoggingOutFromThisDevice
+    final displayedUserAgent = session.userAgent.length > 256
+        ? "${session.userAgent.substring(0, 253)}..."
+        : session.userAgent;
+    final message = session.isCurrent
         ? l10n.thisWillLogYouOutOfThisDevice
         : "${l10n.thisWillLogYouOutOfTheFollowingDevice}\n\n"
               "$displayedUserAgent";
@@ -166,8 +162,8 @@ class _SessionsPageState extends State<SessionsPage> {
               variant: ButtonComponentVariant.critical,
               onTap: () async {
                 Navigator.of(sheetContext).pop();
-                if (isLoggingOutFromThisDevice) {
-                  await UserService.instance.logout(context);
+                if (session.isCurrent) {
+                  await _host.logout(context);
                 } else {
                   await _terminateSession(session);
                 }
@@ -179,16 +175,16 @@ class _SessionsPageState extends State<SessionsPage> {
     );
   }
 
-  Widget _getUAWidget(Session session) {
+  Widget _getUAWidget(ActiveSession session) {
     final colors = context.componentColors;
-    if (session.isCurrentSession(Configuration.instance.getToken())) {
+    if (session.isCurrent) {
       return Text(
         context.strings.thisDevice,
         style: TextStyles.bodyBold.copyWith(color: colors.primary),
       );
     }
     return Text(
-      session.prettyUA,
+      session.prettyUserAgent,
       style: TextStyles.bodyBold.copyWith(color: colors.textBase),
     );
   }

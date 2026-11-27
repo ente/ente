@@ -26,6 +26,7 @@ workspace:
   - apps/photos/plugins/media_extension
   - packages/accounts
   - packages/account_deletion
+  - packages/active_sessions
   - packages/backup_exclusion
   - packages/base
   - packages/configuration

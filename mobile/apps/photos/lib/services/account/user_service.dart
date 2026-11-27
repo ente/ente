@@ -2,6 +2,7 @@ import 'dart:async';
 import "dart:io";
 
 import 'package:dio/dio.dart';
+import "package:ente_active_sessions/active_sessions.dart";
 import "package:ente_base/models/accounts.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
 import "package:ente_strings/ente_strings.dart";
@@ -15,7 +16,6 @@ import 'package:photos/events/signed_in_event.dart';
 import 'package:photos/events/user_details_changed_event.dart';
 import 'package:photos/events/user_logged_out_event.dart';
 import 'package:photos/gateways/users/models/key_attributes.dart';
-import 'package:photos/gateways/users/models/sessions.dart';
 import 'package:photos/gateways/users/models/set_recovery_key_request.dart';
 import "package:photos/gateways/users/users_gateway.dart";
 import "package:photos/models/api/collection/user.dart";
@@ -42,7 +42,7 @@ import 'package:photos/utils/dialog_util.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import "package:uuid/uuid.dart";
 
-class UserService {
+class UserService implements ActiveSessionsHost {
   static const keyHasEnabledTwoFactor = "has_enabled_two_factor";
   static const keyUserDetails = "user_details";
   static const kReferralSource = "referral_source";
@@ -276,13 +276,26 @@ class UserService {
     return userDetails;
   }
 
-  Future<Sessions> getActiveSessions() async {
-    return _gateway.getActiveSessions();
+  @override
+  Future<List<ActiveSession>> listActiveSessions() async {
+    final response = await _gateway.getActiveSessions();
+    final token = _config.getToken();
+    return [
+      for (final session in response.sessions)
+        ActiveSession(
+          id: session.token,
+          isCurrent: session.isCurrentSession(token),
+          createdAt: session.creationTime,
+          lastUsedAt: session.lastUsedTime,
+          ip: session.ip,
+          userAgent: session.ua,
+          prettyUserAgent: session.prettyUA,
+        ),
+    ];
   }
 
-  Future<void> terminateSession(String token) async {
-    await _gateway.terminateSession(token);
-  }
+  @override
+  Future<void> revokeActiveSession(String id) => _gateway.terminateSession(id);
 
   Future<void> leaveFamilyPlan() async {
     try {
@@ -293,6 +306,7 @@ class UserService {
     }
   }
 
+  @override
   Future<void> logout(BuildContext context) async {
     try {
       await _gateway.logout();

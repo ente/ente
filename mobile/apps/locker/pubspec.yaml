@@ -19,6 +19,8 @@ dependencies:
     path: ../../packages/account_deletion
   ente_accounts:
     path: ../../packages/accounts
+  ente_active_sessions:
+    path: ../../packages/active_sessions
   ente_base:
     path: ../../packages/base
   ente_components:

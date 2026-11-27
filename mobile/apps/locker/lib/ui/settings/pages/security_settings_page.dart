@@ -2,9 +2,9 @@ import "dart:typed_data";
 
 import "package:ente_accounts/models/user_details.dart";
 import "package:ente_accounts/pages/request_pwd_verification_page.dart";
-import "package:ente_accounts/pages/sessions_page.dart";
 import "package:ente_accounts/services/passkey_service.dart";
 import "package:ente_accounts/services/user_service.dart";
+import "package:ente_active_sessions/active_sessions.dart";
 import "package:ente_components/ente_components.dart";
 import "package:ente_components/hugeicons.dart";
 import "package:ente_crypto_api/ente_crypto_api.dart";
@@ -113,7 +113,7 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (BuildContext context) {
-              return SessionsPage(Configuration.instance);
+              return const ActiveSessionsPage();
             },
           ),
         );

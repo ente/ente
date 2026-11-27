@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:ente_account_deletion/account_deletion.dart';
 import 'package:ente_accounts/services/user_service.dart';
+import 'package:ente_active_sessions/active_sessions.dart';
 import 'package:ente_auth/app/view/app.dart';
 import 'package:ente_auth/core/configuration.dart';
 import 'package:ente_auth/core/constants.dart';
@@ -234,6 +235,7 @@ Future<void> _init() async {
     await LockScreenSettings.instance.setHideAppContent(false, persist: false);
   }
   AccountDeletionSettings.instance.init(host: Configuration.instance);
+  ActiveSessionsSettings.instance.init(host: UserService.instance);
   await LocalBackupService.instance.init(
     hasOptedForOfflineMode: Configuration.instance.hasOptedForOfflineMode(),
   );
