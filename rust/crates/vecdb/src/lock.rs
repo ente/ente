@@ -13,7 +13,6 @@ pub(crate) struct WriterLock {
     file: File,
 }
 
-// A spawning child shares the file until it execs, so closing alone can leave it locked.
 impl Drop for WriterLock {
     fn drop(&mut self) {
         _ = self.file.unlock();
