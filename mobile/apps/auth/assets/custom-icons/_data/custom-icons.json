@@ -630,7 +630,7 @@
     },
     {
       "title": "CommunityAmerica Credit Union",
-      "slug": "cacu"
+      "slug": "cacu",
       "altNames": [
         "CommunityAmerica",
         "Community America",
@@ -1205,7 +1205,7 @@
       "title": "Hover"
     },
     {
-      "title": "HPE"
+      "title": "HPE",
       "altNames": [
         "HP Enterprise",
         "Hewlett Packard Enterprise",
@@ -1320,7 +1320,7 @@
       "title": "Instagram"
     },
     {
-      "title": "InstantOn"
+      "title": "InstantOn",
       "altNames": [
         "Aruba InstantOn",
         "HPE InstantOn"
@@ -1548,8 +1548,8 @@
       ]
     },
     {
-      "title": "Liaison International"
-      "slug": "liaison_edu"
+      "title": "Liaison International",
+      "slug": "liaison_edu",
       "altNames": [
         "GradCAS",
         "MyLiaison",
@@ -2169,7 +2169,7 @@
       "hex": "DEC685"
     },
     {
-      "title": "Pirate Ship"
+      "title": "Pirate Ship",
       "slug": "pirateship"
     },
     {
