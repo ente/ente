@@ -1,0 +1,1 @@
+- Added a Review old photos button to What's new.
