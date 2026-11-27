@@ -1762,7 +1762,8 @@
       ]
     },
     {
-      "title": "Monstercat"
+      "title": "Monstercat",
+      "hex": "000000"
     },
     {
       "title": "Mozilla",
@@ -2171,7 +2172,8 @@
     },
     {
       "title": "Pirate Ship",
-      "slug": "pirateship"
+      "slug": "pirateship",
+      "hex": "000000"
     },
     {
       "title": "Poloniex"
@@ -3014,7 +3016,8 @@
       ]
     },
     {
-      "title": "Verkada"
+      "title": "Verkada",
+      "hex": "000000"
     },
     {
       "title": "WARGAMING.NET",
