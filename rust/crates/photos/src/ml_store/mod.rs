@@ -11,8 +11,10 @@ mod writes;
 use std::path::Path;
 use std::sync::{Arc, MutexGuard, PoisonError};
 
+use ente_core::crypto::Key;
 use ente_vecdb::{VecDb, VecDbError};
 
+use crate::db::{self, Connection};
 use crate::ml_db::MlDb;
 
 pub use clip_scan::{ClipQuery, ClipSimilarity};
@@ -50,13 +52,30 @@ pub struct MlStore {
 
 impl MlStore {
     pub fn open(db_path: impl AsRef<Path>) -> Result<Self> {
-        let db_path = db_path.as_ref();
+        Self::open_with_setup(db_path.as_ref(), |_| Ok(()), None)
+    }
+
+    pub fn open_encrypted(
+        db_path: impl AsRef<Path>,
+        setup: impl Fn(&Connection) -> db::Result<()>,
+        index_key: Key,
+    ) -> Result<Self> {
+        Self::open_with_setup(db_path.as_ref(), setup, Some(index_key))
+    }
+
+    fn open_with_setup(
+        db_path: &Path,
+        setup: impl Fn(&Connection) -> db::Result<()>,
+        index_key: Option<Key>,
+    ) -> Result<Self> {
         let db_stem = index::db_stem(db_path)?;
-        let db = MlDb::open(db_path)?;
+        let db = MlDb::open_with_setup(db_path, setup)?;
+        let index_key = index_key.map(Arc::new);
         Ok(Self {
             db,
             locks: lock::for_database(db_path),
-            indexes: Index::ALL.map(|index| index::Slot::new(index, db_path, &db_stem)),
+            indexes: Index::ALL
+                .map(|index| index::Slot::new(index, db_path, &db_stem, index_key.clone())),
         })
     }
 
