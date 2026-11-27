@@ -3,6 +3,10 @@ export type UtilityProcessType = "ml";
 
 export type ThemeMode = "light" | "dark" | "system";
 
+export type CloseAction = "ask" | "quit" | "background";
+
+export type SavedCloseAction = Exclude<CloseAction, "ask">;
+
 export interface AppUpdate {
     autoUpdatable: boolean;
     version: string;

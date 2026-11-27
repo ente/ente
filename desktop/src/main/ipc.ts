@@ -50,8 +50,10 @@ import {
     lastShownChangelogVersion,
     masterKeyFromSafeStorage,
     saveAppLockConfigInSafeStorage,
+    savedCloseAction,
     saveMasterKeyInSafeStorage,
     setLastShownChangelogVersion,
+    setSavedCloseAction,
 } from "./services/store";
 import {
     clearPendingUploads,
@@ -176,6 +178,21 @@ export const attachIPCHandlers = () => {
     handle("isAutoLaunchEnabled", () => autoLauncher.isEnabled());
 
     handle("toggleAutoLaunch", () => autoLauncher.toggleAutoLaunch());
+
+    // The no-tray close prompt only exists on Linux.
+    handle("closeAction", () =>
+        process.platform == "linux" ? (savedCloseAction() ?? "ask") : undefined,
+    );
+
+    handle("setCloseAction", (_, action: unknown) => {
+        if (action === "quit" || action === "background") {
+            setSavedCloseAction(action);
+        } else if (action === "ask") {
+            setSavedCloseAction(undefined);
+        } else {
+            throw new Error(`Invalid close action ${String(action)}`);
+        }
+    });
 
     handle("getNativeDeviceLockCapability", () =>
         getNativeDeviceLockCapability(),

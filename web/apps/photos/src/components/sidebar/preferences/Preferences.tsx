@@ -20,6 +20,7 @@ import {
 import {
     RowButtonEndActivityIndicator,
     RowButtonGroupHint,
+    RowButtonGroupTitle,
 } from "ente-base/components/RowButton";
 import {
     v2HelperSx,
@@ -41,6 +42,7 @@ import {
     type SupportedLocale,
 } from "ente-base/i18n";
 import log from "ente-base/log";
+import type { CloseAction } from "ente-base/types/ipc";
 import {
     isHLSGenerationSupported,
     toggleHLSGeneration,
@@ -686,6 +688,7 @@ const AdvancedSettings: React.FC<NestedSidebarDrawerVisibilityProps> = ({
 }) => {
     const { cfUploadProxyDisabled } = useSettingsSnapshot();
     const [isAutoLaunchEnabled, setIsAutoLaunchEnabled] = useState(false);
+    const [closeAction, setCloseAction] = useState<CloseAction | undefined>();
 
     const electron = globalThis.electron;
 
@@ -699,6 +702,16 @@ const AdvancedSettings: React.FC<NestedSidebarDrawerVisibilityProps> = ({
         () => void refreshAutoLaunchEnabled(),
         [refreshAutoLaunchEnabled],
     );
+
+    useEffect(() => {
+        void electron?.closeAction().then(setCloseAction);
+    }, [electron]);
+
+    const updateCloseAction = (action: CloseAction) =>
+        void electron
+            ?.setCloseAction(action)
+            .then(() => setCloseAction(action))
+            .catch((e: unknown) => log.error("Failed to set close action", e));
 
     const handleRootClose = () => {
         onClose();
@@ -755,7 +768,48 @@ const AdvancedSettings: React.FC<NestedSidebarDrawerVisibilityProps> = ({
                         }
                     />
                 )}
+                {closeAction && (
+                    <Stack>
+                        <RowButtonGroupTitle>
+                            {t("when_closing_window")}
+                        </RowButtonGroupTitle>
+                        <MenuGroupComponent>
+                            {closeActionOptions.map((option) => (
+                                <MenuComponent
+                                    key={option}
+                                    title={closeActionLabel(option)}
+                                    selected={option === closeAction}
+                                    onClick={() => updateCloseAction(option)}
+                                />
+                            ))}
+                        </MenuGroupComponent>
+                        <Typography
+                            variant="small"
+                            sx={{
+                                color: "text.faint",
+                                pl: 2,
+                                pr: 1,
+                                py: "6px",
+                            }}
+                        >
+                            {t("when_closing_window_description")}
+                        </Typography>
+                    </Stack>
+                )}
             </Stack>
         </TitledNestedSidebarDrawer>
     );
+};
+
+const closeActionOptions: CloseAction[] = ["ask", "quit", "background"];
+
+const closeActionLabel = (action: CloseAction) => {
+    switch (action) {
+        case "ask":
+            return t("close_action_ask");
+        case "quit":
+            return t("close_action_quit");
+        case "background":
+            return t("close_action_background");
+    }
 };

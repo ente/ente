@@ -1,6 +1,8 @@
 // Keep this bridge in sync with desktop/src/types/ipc.ts and desktop/src/preload.ts.
 type ThemeMode = "light" | "dark" | "system";
 
+export type CloseAction = "ask" | "quit" | "background";
+
 type NativeDeviceLockProvider = "touchid" | "none";
 
 export type NativeDeviceLockUnavailableReason =
@@ -50,6 +52,8 @@ export interface Electron {
     setLastShownChangelogVersion: (version: number) => Promise<void>;
     isAutoLaunchEnabled: () => Promise<boolean>;
     toggleAutoLaunch: () => Promise<void>;
+    closeAction: () => Promise<CloseAction | undefined>;
+    setCloseAction: (action: CloseAction) => Promise<void>;
     getNativeDeviceLockCapability: () => Promise<NativeDeviceLockCapability>;
     promptDeviceLock: (reason: string) => Promise<boolean>;
 
