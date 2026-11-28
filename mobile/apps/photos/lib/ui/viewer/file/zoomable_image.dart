@@ -116,12 +116,14 @@ class _ZoomableImageState extends State<ZoomableImage> {
   static const int _defaultMaxPixels = 100000000; // 100MP
   static const int _lowRamMaxPixels = 24000000; // 24MP
   static const int _rustDecodeMaxSideLimit = 6000;
+  static const int _lowRamRustDecodeMaxSideLimit = 4096;
 
   int get _maxImagePixels =>
       hasLessThan5GBRAM ? _lowRamMaxPixels : _defaultMaxPixels;
 
-  int get _rustDecodeMaxSide =>
-      min(_rustDecodeMaxSideLimit, sqrt(_maxImagePixels).floor());
+  int get _rustDecodeMaxSide => hasLessThan5GBRAM
+      ? _lowRamRustDecodeMaxSideLimit
+      : _rustDecodeMaxSideLimit;
 
   bool get isTooLargeImage => _photo.width * _photo.height > _maxImagePixels;
 
