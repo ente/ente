@@ -3,7 +3,7 @@ import 'dart:io';
 
 import "package:adaptive_theme/adaptive_theme.dart";
 import "package:computer/computer.dart";
-import "package:ente_account_deletion/account_deletion.dart";
+import "package:ente_account_settings/account_settings.dart";
 import "package:ente_components/ente_components.dart" as components;
 import 'package:ente_crypto/ente_crypto.dart';
 import "package:ente_crypto_api/ente_crypto_api.dart" show registerCryptoApi;
@@ -515,7 +515,7 @@ Future<void> _init(
       appLogoAsset: 'assets/ente-branding.svg',
       appLogoHeight: 18,
     );
-    AccountDeletionSettings.instance.init(host: Configuration.instance);
+    AccountSettings.instance.init(host: Configuration.instance);
 
     await MemoryShareService.instance.init();
 

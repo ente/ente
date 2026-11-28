@@ -1,6 +1,6 @@
+import 'package:ente_account_settings/account_settings.dart';
 import 'package:ente_accounts/models/user_details.dart';
 import 'package:ente_accounts/pages/request_pwd_verification_page.dart';
-import 'package:ente_accounts/pages/sessions_page.dart';
 import 'package:ente_accounts/services/passkey_service.dart';
 import 'package:ente_accounts/services/user_service.dart';
 import 'package:ente_auth/core/configuration.dart';
@@ -116,9 +116,9 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
           context.strings.authToViewYourActiveSessions,
         );
     if (!hasAuthenticated || !mounted) return;
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute(builder: (_) => SessionsPage(Configuration.instance)),
-    );
+    await Navigator.of(
+      context,
+    ).push<void>(MaterialPageRoute(builder: (_) => const ActiveSessionsPage()));
   }
 
   Future<void> _openAppLock() async {

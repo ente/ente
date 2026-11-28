@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:ente_account_deletion/account_deletion.dart';
+import 'package:ente_account_settings/account_settings.dart';
 import 'package:ente_accounts/services/user_service.dart';
 import 'package:ente_auth/app/view/app.dart';
 import 'package:ente_auth/core/configuration.dart';
@@ -233,7 +233,7 @@ Future<void> _init() async {
   if (shouldAllowAuthScreenCapture) {
     await LockScreenSettings.instance.setHideAppContent(false, persist: false);
   }
-  AccountDeletionSettings.instance.init(host: Configuration.instance);
+  AccountSettings.instance.init(host: Configuration.instance);
   await LocalBackupService.instance.init(
     hasOptedForOfflineMode: Configuration.instance.hasOptedForOfflineMode(),
   );

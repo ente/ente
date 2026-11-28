@@ -1,5 +1,5 @@
-name: ente_account_deletion
-description: A Flutter package for Ente account deletion flow UI and services.
+name: ente_account_settings
+description: A Flutter package for Ente account settings flows.
 version: 1.0.0
 publish_to: none
 
@@ -13,6 +13,8 @@ dependencies:
     path: ../ente_components
   ente_frb:
     path: ../frb
+  ente_pure_utils:
+    path: ../ente_pure_utils
   ente_strings:
     path: ../strings
   flutter:

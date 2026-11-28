@@ -1,6 +1,7 @@
 import "dart:async";
 import "dart:typed_data";
 
+import "package:ente_account_settings/account_settings.dart";
 import "package:ente_components/ente_components.dart";
 import "package:ente_components/hugeicons.dart";
 import "package:ente_crypto/ente_crypto.dart";
@@ -21,7 +22,6 @@ import "package:photos/service_locator.dart";
 import "package:photos/services/account/passkey_service.dart";
 import "package:photos/services/account/user_service.dart";
 import "package:photos/ui/account/request_pwd_verification_page.dart";
-import "package:photos/ui/account/sessions_page.dart";
 import "package:photos/ui/notification/toast.dart";
 import "package:photos/utils/dialog_util.dart";
 
@@ -309,7 +309,7 @@ class _SecuritySettingsPageState extends State<SecuritySettingsPage> {
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (BuildContext context) {
-              return const SessionsPage();
+              return const ActiveSessionsPage();
             },
           ),
         ),

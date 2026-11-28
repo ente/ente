@@ -183,7 +183,13 @@ fn generate_frb(target: FrbTarget) -> Result<(), DynError> {
             fs::remove_dir_all(&generated_dir)?;
         }
         generate_frb_package(&package_dir)?;
-        for name in ["account_deletion", "accounts", "contacts", "legacy"] {
+        for name in [
+            "account_deletion",
+            "accounts",
+            "active_sessions",
+            "contacts",
+            "legacy",
+        ] {
             if *app == "auth" && matches!(name, "contacts" | "legacy") {
                 continue;
             }

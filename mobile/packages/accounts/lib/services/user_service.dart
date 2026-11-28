@@ -3,7 +3,6 @@ import "dart:io";
 
 import 'package:dio/dio.dart';
 import 'package:ente_accounts/models/errors.dart';
-import 'package:ente_accounts/models/sessions.dart';
 import 'package:ente_accounts/models/set_recovery_key_request.dart';
 import 'package:ente_accounts/models/user_details.dart';
 import 'package:ente_accounts/pages/login_page.dart';
@@ -209,28 +208,6 @@ class UserService {
       return UserDetails.fromJson(_preferences.getString(keyUserDetails)!);
     }
     return null;
-  }
-
-  Future<Sessions> getActiveSessions() async {
-    try {
-      final response = await _enteDio.get("/users/sessions");
-      return Sessions.fromMap(response.data);
-    } on DioException catch (e) {
-      _logger.info(e);
-      rethrow;
-    }
-  }
-
-  Future<void> terminateSession(String token) async {
-    try {
-      await _enteDio.delete(
-        "/users/session",
-        queryParameters: {"token": token},
-      );
-    } on DioException catch (e) {
-      _logger.info(e);
-      rethrow;
-    }
   }
 
   Future<void> leaveFamilyPlan() async {

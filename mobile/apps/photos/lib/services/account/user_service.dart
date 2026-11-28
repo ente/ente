@@ -15,7 +15,6 @@ import 'package:photos/events/signed_in_event.dart';
 import 'package:photos/events/user_details_changed_event.dart';
 import 'package:photos/events/user_logged_out_event.dart';
 import 'package:photos/gateways/users/models/key_attributes.dart';
-import 'package:photos/gateways/users/models/sessions.dart';
 import 'package:photos/gateways/users/models/set_recovery_key_request.dart';
 import "package:photos/gateways/users/users_gateway.dart";
 import "package:photos/models/api/collection/user.dart";
@@ -274,14 +273,6 @@ class UserService {
       }
     }
     return userDetails;
-  }
-
-  Future<Sessions> getActiveSessions() async {
-    return _gateway.getActiveSessions();
-  }
-
-  Future<void> terminateSession(String token) async {
-    await _gateway.terminateSession(token);
   }
 
   Future<void> leaveFamilyPlan() async {

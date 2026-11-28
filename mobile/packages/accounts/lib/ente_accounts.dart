@@ -1,7 +1,6 @@
 export 'package:ente_base/models/accounts.dart';
 
 export 'models/bonus.dart';
-export 'models/sessions.dart';
 export 'models/set_recovery_key_request.dart';
 export 'models/subscription.dart';
 export 'models/user_details.dart';
@@ -17,7 +16,6 @@ export 'pages/password_reentry_page.dart';
 export 'pages/recovery_key_page.dart';
 export 'pages/recovery_page.dart';
 export 'pages/request_pwd_verification_page.dart';
-export 'pages/sessions_page.dart';
 export 'pages/two_factor_authentication_page.dart';
 export 'pages/two_factor_recovery_page.dart';
 

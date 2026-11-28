@@ -1,5 +1,6 @@
 pub mod account_deletion;
 pub mod accounts;
+pub mod active_sessions;
 #[cfg(feature = "contacts")]
 pub mod contacts;
 #[cfg(feature = "legacy")]

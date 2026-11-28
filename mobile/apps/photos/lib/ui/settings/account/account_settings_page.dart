@@ -1,6 +1,6 @@
 import "dart:async";
 
-import "package:ente_account_deletion/account_deletion.dart";
+import "package:ente_account_settings/account_settings.dart";
 import "package:ente_components/ente_components.dart";
 import "package:ente_components/hugeicons.dart";
 import "package:ente_crypto/ente_crypto.dart";

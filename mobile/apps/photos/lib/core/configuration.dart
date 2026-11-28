@@ -2,12 +2,13 @@ import "dart:async";
 import "dart:io";
 
 import 'package:backup_exclusion/backup_exclusion.dart';
-import 'package:ente_account_deletion/account_deletion.dart';
+import 'package:ente_account_settings/account_settings.dart';
 import 'package:ente_contacts/contacts.dart';
 import "package:ente_crypto/ente_crypto.dart";
 import 'package:ente_lock_screen/lock_screen_host.dart';
 import 'package:ente_pure_utils/ente_pure_utils.dart';
 import "package:flutter/services.dart";
+import "package:flutter/widgets.dart";
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:logging/logging.dart';
@@ -35,6 +36,7 @@ import 'package:photos/events/user_logged_out_event.dart';
 import 'package:photos/gateways/users/models/key_attributes.dart';
 import 'package:photos/module/upload/upload_artifact.dart';
 import 'package:photos/service_locator.dart';
+import 'package:photos/services/account/user_service.dart';
 import 'package:photos/services/authenticated_session.dart';
 import 'package:photos/services/collections_service.dart';
 import 'package:photos/services/favorites_service.dart';
@@ -53,10 +55,12 @@ import 'package:photos/services/sync/sync_service.dart';
 import 'package:photos/services/video_preview_service.dart';
 import 'package:photos/src/rust/third_party/ente_frb_lib/account_deletion.dart'
     as account_deletion;
+import 'package:photos/src/rust/third_party/ente_frb_lib/active_sessions.dart'
+    as active_sessions;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
-class Configuration implements LockScreenHost, AccountDeletionHost {
+class Configuration implements LockScreenHost, AccountSettingsHost {
   Configuration._privateConstructor();
 
   static final Configuration instance = Configuration._privateConstructor();
@@ -461,6 +465,21 @@ class Configuration implements LockScreenHost, AccountDeletionHost {
     reason: reason,
     feedback: feedback,
   );
+
+  @override
+  Future<void> logoutLocally() => logout();
+
+  @override
+  Future<List<ActiveSession>> listActiveSessions() =>
+      active_sessions.listActiveSessions(session: authenticatedSession());
+
+  @override
+  Future<void> revokeActiveSession(String id) => active_sessions
+      .revokeActiveSession(session: authenticatedSession(), id: id);
+
+  @override
+  Future<void> logoutThisDevice(BuildContext context) =>
+      UserService.instance.logout(context);
 
   Future<void> setKey(String? key) async {
     _key = key;
