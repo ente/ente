@@ -70,11 +70,11 @@ Ente scans your device for photos and videos and groups them by their native alb
 
 Create an Ente account at any time without losing your local data.
 
-**From the home gallery** -- A "Get started" banner appears at the top of the timeline. Tap it to begin sign-up.
-
 **From the Albums tab** -- An "Enable backup" prompt appears in the albums section.
 
 **From Settings** -- A sign-in card appears at the top of the Settings page.
+
+![Settings page in Ente Photos gallery mode with Get started highlighted on the sign-in card](https://docs-assets.ente.com/screenshots/phone-gallery-mode-settings-get-started-callout-v1370.png){width=320px}
 
 After signing up:
 

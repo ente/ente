@@ -5,11 +5,13 @@ description: Guide to signing up and creating a new account for Ente Photos
 
 # Create your account and log in
 
-When you open the installed Ente Photos app on any of your devices, the first screen will ask you to choose between "New to Ente" or "Existing user".
+When you open the installed Ente Photos app on any of your devices, the first screen will ask you to choose between "Create my account" or "Log in".
 
 ## Creating a new account
 
-If you're creating a new account, select "New to Ente".
+If you're creating a new account, select "Create my account".
+
+![Welcome screen on Ente Photos mobile with Create my account highlighted](https://docs-assets.ente.com/screenshots/phone-signup-create-account-callout-v1370.png){width=320px}
 
 ![Create an account form on Ente Photos mobile and web](https://docs-assets.ente.com/screenshots/duo-signup-create-account.png){width=900px}
 
@@ -85,10 +87,12 @@ After creating your account on one device, you can easily log in to Ente Photos 
 On any device where you want to use Ente Photos:
 
 1. [Install Ente Photos](/photos/getting-started/installation) if you haven't already
-2. Open the app and select **Existing user** (instead of "New to Ente")
+2. Open the app and select **Log in** (instead of "Create my account")
 3. Enter your email address and password
 4. Verify your email with a 6-digit code if prompted
 5. Once logged in, your existing photos from other devices will appear on this device
+
+![Welcome screen on Ente Photos mobile with Log in highlighted](https://docs-assets.ente.com/screenshots/phone-login-existing-user-callout-v1370.png){width=320px}
 
 **Next:** You'll need to [set up automatic backup](/photos/getting-started/daily-use) on this device to back up new photos from it. Each device needs its own backup configuration (which albums to back up on mobile, which folders to watch on desktop).
 
