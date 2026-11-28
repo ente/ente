@@ -74,7 +74,7 @@
         }
     },
     "dependencies": {
-        "@rive-app/canvas-lite": "2.51.0"
+        "@rive-app/canvas-lite": "2.52.0"
     },
     "devDependencies": {
         "@playwright/test": "1.65.1",
