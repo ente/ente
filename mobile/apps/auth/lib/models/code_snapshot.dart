@@ -5,8 +5,8 @@ import 'package:base32/base32.dart';
 import 'package:ente_auth/models/code.dart';
 import 'package:ente_auth/utils/totp_util.dart';
 
-class WatchSnapshot {
-  const WatchSnapshot._(this.data, this.omittedCount);
+class CodeSnapshot {
+  const CodeSnapshot._(this.data, this.omittedCount);
 
   final Uint8List data;
   final int omittedCount;
@@ -20,7 +20,7 @@ class WatchSnapshot {
       !code.isTrashed &&
       (_isSteam(code) || code.type == Type.totp);
 
-  factory WatchSnapshot.fromCodes(Iterable<Code> codes) {
+  factory CodeSnapshot.fromCodes(Iterable<Code> codes) {
     final entries = <Map<String, Object>>[];
     var omitted = 0;
     for (final code in codes.where((c) => !c.hasError && !c.isTrashed)) {
@@ -35,7 +35,7 @@ class WatchSnapshot {
       }
     }
     final payload = <String, Object>{'entries': entries};
-    return WatchSnapshot._(
+    return CodeSnapshot._(
       Uint8List.fromList(utf8.encode(jsonEncode(payload))),
       omitted,
     );
