@@ -22,6 +22,21 @@ Map<String, dynamic> mapRemoteToFaceDB(Face face) {
   };
 }
 
+Face mapRowToFace(Map<String, dynamic> row) {
+  return Face(
+    row[faceIDColumn] as String,
+    row[fileIDColumn] as int,
+    EVector.fromBuffer(row[embeddingColumn] as List<int>).values,
+    row[faceScore] as double,
+    Detection.fromJson(json.decode(row[faceDetectionColumn] as String)),
+    row[faceBlur] as double,
+    fileInfo: FileInfo(
+      imageWidth: row[imageWidth] as int,
+      imageHeight: row[imageHeight] as int,
+    ),
+  );
+}
+
 FaceWithoutEmbedding mapRowToFaceWithoutEmbedding(Map<String, dynamic> row) {
   return FaceWithoutEmbedding(
     row[faceIDColumn] as String,

@@ -25,6 +25,21 @@ rust.FaceRow toFaceRow(Face face) {
   );
 }
 
+Face toFace(rust.FaceRow row) {
+  return Face(
+    row.faceId,
+    row.fileId,
+    row.embedding,
+    row.score,
+    Detection.fromJson(json.decode(row.detectionJson) as Map<String, dynamic>),
+    row.blur,
+    fileInfo: FileInfo(
+      imageWidth: row.imageWidth,
+      imageHeight: row.imageHeight,
+    ),
+  );
+}
+
 FaceWithoutEmbedding toFaceWithoutEmbedding(rust.FaceWithoutEmbedding row) {
   return FaceWithoutEmbedding(
     row.faceId,
@@ -44,6 +59,14 @@ rust.ClipEmbedding toClipEmbeddingRow(ClipEmbedding embedding) {
     fileId: embedding.fileID,
     embedding: Float64List.fromList(embedding.embedding),
     version: embedding.version,
+  );
+}
+
+ClipEmbedding toClipEmbedding(rust.ClipEmbedding row) {
+  return ClipEmbedding(
+    fileID: row.fileId,
+    embedding: row.embedding,
+    version: row.version,
   );
 }
 

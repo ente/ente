@@ -681,6 +681,7 @@ class MLService {
           fetchEmbeddingsAndInstructions(
             fileDownloadMlLimit,
             mode: mode,
+            client: client,
             control: control,
             afterRemoteBatch: checkRewind,
           );

@@ -2,8 +2,8 @@ use std::collections::HashMap;
 use std::num::NonZeroUsize;
 use std::ops::RangeInclusive;
 
-use super::helpers::pair;
-use crate::db::{self, Row};
+use super::helpers::{MAX_SQL_BIND_PARAMS_PER_QUERY, bind_placeholders, pair};
+use crate::db::{self, Row, params_from_iter};
 use crate::ml_db::schema;
 use crate::ml_db::vector_encoding::{decode_f32, encode_f32};
 use crate::ml_db::{MlDb, Result};
@@ -48,6 +48,27 @@ impl MlDb {
 
     pub fn clip_indexed_file_with_version(&self) -> Result<HashMap<i64, i64>> {
         self.read_all("SELECT file_id , ml_version FROM clip", (), pair)
+    }
+
+    pub fn get_clip_embeddings_for_file_ids(
+        &self,
+        file_ids: &[i64],
+        ml_version: i64,
+    ) -> Result<Vec<ClipEmbedding>> {
+        let mut embeddings = Vec::new();
+        for chunk in file_ids.chunks(MAX_SQL_BIND_PARAMS_PER_QUERY - 1) {
+            let sql = format!(
+                "SELECT file_id, embedding, ml_version FROM clip WHERE file_id IN ({}) AND ml_version = ?",
+                bind_placeholders(chunk.len())
+            );
+            let rows: Vec<ClipEmbedding> = self.read_all(
+                &sql,
+                params_from_iter(chunk.iter().chain([&ml_version])),
+                read_clip_embedding,
+            )?;
+            embeddings.extend(rows);
+        }
+        Ok(embeddings)
     }
 
     pub fn get_clip_indexed_file_count(&self, minimum_ml_version: i64) -> Result<i64> {
@@ -146,6 +167,15 @@ impl MlDb {
             read_clip_row,
         )
     }
+}
+
+fn read_clip_embedding(row: &Row<'_>) -> db::Result<ClipEmbedding> {
+    let embedding: Vec<u8> = row.get(1)?;
+    Ok(ClipEmbedding {
+        file_id: row.get(0)?,
+        embedding: decode_f32(&embedding).into_iter().map(f64::from).collect(),
+        version: row.get(2)?,
+    })
 }
 
 fn read_clip_row(row: &Row<'_>) -> db::Result<ClipRow> {
@@ -260,6 +290,31 @@ pub(in crate::ml_db) mod tests {
                 clip_row(3, vec![1.0, 2.0]),
                 clip_row(2, vec![0.25; CLIP_EMBEDDING_DIMENSIONS])
             ]
+        );
+    }
+
+    #[test]
+    fn clip_embeddings_for_file_ids_at_exact_version() {
+        let (_directory, db) = seeded();
+        let mut embeddings = db
+            .get_clip_embeddings_for_file_ids(&[1, 2, 3, 4, 99], 1)
+            .unwrap();
+        embeddings.sort_by_key(|embedding| embedding.file_id);
+        assert_eq!(
+            embeddings,
+            vec![full_clip(1), clip(3, vec![1.0, 2.0]), clip(4, vec![])]
+        );
+        assert_eq!(
+            db.get_clip_embeddings_for_file_ids(&[1, 2], 2).unwrap(),
+            vec![ClipEmbedding {
+                version: 2,
+                ..full_clip(2)
+            }]
+        );
+        assert!(
+            db.get_clip_embeddings_for_file_ids(&[], 1)
+                .unwrap()
+                .is_empty()
         );
     }
 

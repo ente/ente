@@ -1,4 +1,8 @@
+import "dart:io" show File;
+
 import "package:logging/logging.dart";
+import "package:path/path.dart" show join;
+import "package:path_provider/path_provider.dart";
 import "package:photos/db/ml/base.dart";
 import "package:photos/db/ml/dart_db.dart";
 import "package:photos/db/ml/rust_db.dart";
@@ -8,6 +12,7 @@ class MLDataDB {
   MLDataDB._();
 
   static final Logger _logger = Logger("MLDataDB");
+  static const localGalleryDatabaseName = "ente.ml.offline.db";
   static bool? _useRust;
 
   static IMLDataDB<int> get instance =>
@@ -27,6 +32,13 @@ class MLDataDB {
     _logger.info(
       "ML DB backend: ${useRust ? "rust" : "dart"} (wantsRust: $preferRust)",
     );
+  }
+
+  static Future<bool> hasLocalGalleryDatabase() async {
+    final documentsDirectory = await getApplicationDocumentsDirectory();
+    return File(
+      join(documentsDirectory.path, localGalleryDatabaseName),
+    ).exists();
   }
 
   static Future<void> releaseVectorIndexes() async {

@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import "package:photos/db/common/base.dart";
 import "package:photos/db/ml/base.dart";
 import "package:photos/db/ml/clip_vector_db.dart";
+import "package:photos/db/ml/db.dart";
 import "package:photos/db/ml/db_model_mappers.dart";
 import "package:photos/db/ml/ml_data_db_orchestration.dart";
 import 'package:photos/db/ml/schema.dart';
@@ -51,7 +52,7 @@ class DartMLDataDB
   static final DartMLDataDB instance = DartMLDataDB._privateConstructor();
   static final DartMLDataDB localGalleryInstance =
       DartMLDataDB._privateConstructor(
-        databaseName: "ente.ml.offline.db",
+        databaseName: MLDataDB.localGalleryDatabaseName,
         clipVectorDB: UsearchClipVectorDB.localGalleryInstance,
         clusterCentroidVectorDB:
             UsearchClusterCentroidVectorDB.localGalleryInstance,
@@ -128,42 +129,33 @@ class DartMLDataDB
     }
   }
 
-  // Batch to stay below SQLite's bind-variable limit.
   @override
   Future<void> bulkInsertFaces(List<Face> faces) async {
+    if (faces.isEmpty) return;
     final db = await asyncDB;
-    const batchSize = 500;
-    final numBatches = (faces.length / batchSize).ceil();
-    for (int i = 0; i < numBatches; i++) {
-      final start = i * batchSize;
-      final end = min((i + 1) * batchSize, faces.length);
-      final batch = faces.sublist(start, end);
-
-      const String sql =
-          '''
-        INSERT INTO $facesTable (
-          $fileIDColumn, $faceIDColumn, $faceDetectionColumn, $embeddingColumn, $faceScore, $faceBlur, $isSideways, $imageHeight, $imageWidth, $mlVersionColumn
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT($fileIDColumn, $faceIDColumn) DO UPDATE SET $faceIDColumn = excluded.$faceIDColumn, $faceDetectionColumn = excluded.$faceDetectionColumn, $embeddingColumn = excluded.$embeddingColumn, $faceScore = excluded.$faceScore, $faceBlur = excluded.$faceBlur, $isSideways = excluded.$isSideways, $imageHeight = excluded.$imageHeight, $imageWidth = excluded.$imageWidth, $mlVersionColumn = excluded.$mlVersionColumn
-      ''';
-      final parameterSets = batch.map((face) {
-        final map = mapRemoteToFaceDB(face);
-        return [
-          map[fileIDColumn],
-          map[faceIDColumn],
-          map[faceDetectionColumn],
-          map[embeddingColumn],
-          map[faceScore],
-          map[faceBlur],
-          map[isSideways],
-          map[imageHeight],
-          map[imageWidth],
-          map[mlVersionColumn],
-        ];
-      }).toList();
-
-      await db.executeBatch(sql, parameterSets);
-    }
+    const String sql =
+        '''
+      INSERT INTO $facesTable (
+        $fileIDColumn, $faceIDColumn, $faceDetectionColumn, $embeddingColumn, $faceScore, $faceBlur, $isSideways, $imageHeight, $imageWidth, $mlVersionColumn
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT($fileIDColumn, $faceIDColumn) DO UPDATE SET $faceIDColumn = excluded.$faceIDColumn, $faceDetectionColumn = excluded.$faceDetectionColumn, $embeddingColumn = excluded.$embeddingColumn, $faceScore = excluded.$faceScore, $faceBlur = excluded.$faceBlur, $isSideways = excluded.$isSideways, $imageHeight = excluded.$imageHeight, $imageWidth = excluded.$imageWidth, $mlVersionColumn = excluded.$mlVersionColumn
+    ''';
+    final parameterSets = faces.map((face) {
+      final map = mapRemoteToFaceDB(face);
+      return [
+        map[fileIDColumn],
+        map[faceIDColumn],
+        map[faceDetectionColumn],
+        map[embeddingColumn],
+        map[faceScore],
+        map[faceBlur],
+        map[isSideways],
+        map[imageHeight],
+        map[imageWidth],
+        map[mlVersionColumn],
+      ];
+    }).toList();
+    await db.executeBatch(sql, parameterSets);
   }
 
   @override
@@ -521,6 +513,28 @@ class DartMLDataDB
       return null;
     }
     return maps.map((e) => mapRowToFaceWithoutEmbedding(e)).toList();
+  }
+
+  @override
+  Future<List<Face>> getFacesForFileIDs(
+    List<int> fileIDs, {
+    int mlVersion = faceMlVersion,
+  }) async {
+    final db = await asyncDB;
+    final faces = <Face>[];
+    for (final chunk in fileIDs.chunks(_maxSqlBindParamsPerQuery - 1)) {
+      final placeholders = List.filled(chunk.length, '?').join(', ');
+      final rows = await db.getAll(
+        '''
+        SELECT $faceIDColumn, $fileIDColumn, $faceDetectionColumn, $embeddingColumn, $faceScore, $faceBlur, $imageWidth, $imageHeight
+        FROM $facesTable
+        WHERE $fileIDColumn IN ($placeholders) AND $mlVersionColumn = ?
+        ''',
+        [...chunk, mlVersion],
+      );
+      faces.addAll(rows.map(mapRowToFace));
+    }
+    return faces;
   }
 
   @override
@@ -1562,6 +1576,38 @@ class DartMLDataDB
       result[map[fileIDColumn] as int] = map[mlVersionColumn] as int;
     }
     return result;
+  }
+
+  @override
+  Future<List<ClipEmbedding>> getClipEmbeddingsForFileIDs(
+    List<int> fileIDs, {
+    int mlVersion = clipMlVersion,
+  }) async {
+    final db = await asyncDB;
+    final embeddings = <ClipEmbedding>[];
+    for (final chunk in fileIDs.chunks(_maxSqlBindParamsPerQuery - 1)) {
+      final placeholders = List.filled(chunk.length, '?').join(', ');
+      final rows = await db.getAll(
+        '''
+        SELECT $fileIDColumn, $embeddingColumn, $mlVersionColumn
+        FROM $clipTable
+        WHERE $fileIDColumn IN ($placeholders) AND $mlVersionColumn = ?
+        ''',
+        [...chunk, mlVersion],
+      );
+      for (final row in rows) {
+        embeddings.add(
+          ClipEmbedding(
+            fileID: row[fileIDColumn] as int,
+            embedding: Float32List.sublistView(
+              row[embeddingColumn] as Uint8List,
+            ),
+            version: row[mlVersionColumn] as int,
+          ),
+        );
+      }
+    }
+    return embeddings;
   }
 
   @override
