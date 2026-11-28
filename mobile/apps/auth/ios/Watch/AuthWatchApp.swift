@@ -43,6 +43,11 @@ private struct WatchHome: View {
     }
   }
 
+  private var sharedPeriod: Int? {
+    let periods = Set(filteredEntries.map(\.period))
+    return companion.hideCodes || periods.count != 1 ? nil : periods.first
+  }
+
   var body: some View {
     NavigationStack {
       List {
@@ -72,7 +77,7 @@ private struct WatchHome: View {
           }
           ForEach(filteredEntries) { entry in
             if companion.hideCodes {
-              EntryRowLink(entry: entry, code: nil, remaining: nil)
+              EntryRowLink(entry: entry, code: nil, remaining: nil, showsBar: false)
             } else {
               TimelineView(
                 .periodic(
@@ -81,7 +86,8 @@ private struct WatchHome: View {
                 let seconds = Int(floor(timeline.date.timeIntervalSince1970))
                 let remaining = entry.period - seconds % entry.period
                 let code = try? entry.code(at: timeline.date)
-                EntryRowLink(entry: entry, code: code, remaining: remaining)
+                EntryRowLink(
+                  entry: entry, code: code, remaining: remaining, showsBar: sharedPeriod == nil)
               }
             }
           }
@@ -91,6 +97,19 @@ private struct WatchHome: View {
             } label: {
               Text("Manage")
             }
+          }
+        }
+      }
+      .padding(.horizontal, sharedPeriod == nil ? 0 : 5)
+      .containerBackground(for: .navigation) {
+        if visible, let period = sharedPeriod {
+          TimelineView(
+            .periodic(from: Date(timeIntervalSince1970: floor(Date().timeIntervalSince1970)), by: 1)
+          ) { timeline in
+            let remaining = period - Int(floor(timeline.date.timeIntervalSince1970)) % period
+            Countdown(
+              shape: ScreenEdge(), progress: Double(remaining) / Double(period),
+              tint: remaining <= 5 ? WatchStyle.warning : WatchStyle.accent)
           }
         }
       }
@@ -172,6 +191,7 @@ private struct EntryRowLink: View {
   let entry: Entry
   let code: String?
   let remaining: Int?
+  let showsBar: Bool
 
   var body: some View {
     NavigationLink(value: entry.id) {
@@ -196,14 +216,14 @@ private struct EntryRowLink: View {
             .foregroundStyle(isWarning ? WatchStyle.warning : .primary)
             .environment(\.layoutDirection, .leftToRight)
             .privacySensitive()
-            .padding(.bottom, 8)
-            .overlay(alignment: .bottom) {
-              Countdown(
-                shape: BarLine(), progress: Double(remaining) / Double(entry.period),
-                tint: isWarning ? WatchStyle.warning : WatchStyle.accent
-              )
-              .frame(height: 4)
-            }
+          if showsBar {
+            Countdown(
+              shape: BarLine(), progress: Double(remaining) / Double(entry.period),
+              tint: isWarning ? WatchStyle.warning : WatchStyle.accent
+            )
+            .frame(height: 4)
+            .padding(.vertical, 4)
+          }
         }
       }
     }
