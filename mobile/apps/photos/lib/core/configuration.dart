@@ -60,8 +60,7 @@ import 'package:photos/src/rust/third_party/ente_frb_lib/active_sessions.dart'
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
-class Configuration
-    implements LockScreenHost, AccountDeletionHost, ActiveSessionsHost {
+class Configuration implements LockScreenHost, AccountSettingsHost {
   Configuration._privateConstructor();
 
   static final Configuration instance = Configuration._privateConstructor();

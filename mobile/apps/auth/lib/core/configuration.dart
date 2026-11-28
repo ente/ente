@@ -22,7 +22,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 class Configuration extends BaseConfiguration
-    implements LockScreenHost, AccountDeletionHost, ActiveSessionsHost {
+    implements LockScreenHost, AccountSettingsHost {
   Configuration._privateConstructor();
 
   static final Configuration instance = Configuration._privateConstructor();

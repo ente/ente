@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:ente_account_settings/src/account_deletion_settings.dart';
+import 'package:ente_account_settings/src/account_settings_host.dart';
 import 'package:ente_account_settings/src/ui/delete_account_bottom_actions.dart';
 import 'package:ente_account_settings/src/ui/delete_account_confirmation_step.dart';
 import 'package:ente_account_settings/src/ui/delete_account_reason_step.dart';
@@ -28,7 +28,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
   bool _summaryUnsupported = false;
   bool _summaryLoading = false;
 
-  AccountDeletionSettings get _settings => AccountDeletionSettings.instance;
+  AccountSettingsHost get _host => AccountSettings.instance.host;
 
   @override
   void dispose() {
@@ -118,7 +118,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
       _summaryLoading = true;
     });
     try {
-      final summary = await _settings.host.getDeletionSummary();
+      final summary = await _host.getDeletionSummary();
       if (!mounted) {
         return;
       }
@@ -144,13 +144,13 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
     final reason = _selectedReason!;
     try {
       setState(() => _isDeleting = true);
-      final encryptedChallenge = await _settings.host.getDeleteChallenge();
-      await _settings.host.deleteAccount(
+      final encryptedChallenge = await _host.getDeleteChallenge();
+      await _host.deleteAccount(
         encryptedChallenge: encryptedChallenge,
         reason: reason.apiValue,
         feedback: _optionalFeedback,
       );
-      await _settings.host.logout();
+      await _host.logout();
       if (!mounted) {
         return;
       }

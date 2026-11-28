@@ -1,7 +1,6 @@
 import "dart:async";
 
-import "package:ente_account_settings/src/active_sessions_host.dart";
-import "package:ente_account_settings/src/active_sessions_settings.dart";
+import "package:ente_account_settings/src/account_settings_host.dart";
 import "package:ente_components/ente_components.dart";
 import "package:ente_frb/active_sessions.dart";
 import "package:ente_pure_utils/ente_pure_utils.dart";
@@ -20,7 +19,7 @@ class _ActiveSessionsPageState extends State<ActiveSessionsPage> {
   final _logger = Logger("ActiveSessionsPage");
   List<ActiveSession>? _sessions;
 
-  ActiveSessionsHost get _host => ActiveSessionsSettings.instance.host;
+  AccountSettingsHost get _host => AccountSettings.instance.host;
 
   @override
   void initState() {

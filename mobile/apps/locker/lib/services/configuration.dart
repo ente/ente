@@ -19,7 +19,7 @@ import 'package:logging/logging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Configuration extends BaseConfiguration
-    implements LockScreenHost, AccountDeletionHost, ActiveSessionsHost {
+    implements LockScreenHost, AccountSettingsHost {
   Configuration._privateConstructor();
 
   static final Configuration instance = Configuration._privateConstructor();

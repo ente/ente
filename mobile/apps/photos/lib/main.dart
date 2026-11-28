@@ -515,8 +515,7 @@ Future<void> _init(
       appLogoAsset: 'assets/ente-branding.svg',
       appLogoHeight: 18,
     );
-    AccountDeletionSettings.instance.init(host: Configuration.instance);
-    ActiveSessionsSettings.instance.init(host: Configuration.instance);
+    AccountSettings.instance.init(host: Configuration.instance);
 
     await MemoryShareService.instance.init();
 
