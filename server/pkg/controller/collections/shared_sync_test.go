@@ -191,7 +191,7 @@ func TestUnshareEmitsOneRedactedTombstone(t *testing.T) {
 	}
 
 	controller := newBatchShareTestController(db, collectionRepo)
-	_, _, err = controller.GetDiffV2(newBatchShareTestContext(shareeID), collectionID, shareeID, 0)
+	_, _, err = controller.GetDiffV2(newBatchShareTestContext(shareeID), collectionID, shareeID, 0, false)
 	if !errors.Is(err, sql.ErrNoRows) {
 		t.Fatalf("GetDiffV2() error = %v, want sql.ErrNoRows", err)
 	}

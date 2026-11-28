@@ -121,6 +121,7 @@ func (repo *ObjectRepository) GetAccessibleObjectWithDCs(ctx context.Context, fi
 					WHERE cf.file_id = f.file_id
 						AND cf.is_deleted = FALSE
 						AND cf.action IS DISTINCT FROM $4
+						AND (cf.moderation_status IS DISTINCT FROM $5 OR (cs.to_user_id = $2 AND cs.role_type = $6))
 						AND cs.is_deleted = FALSE
 						AND (cs.to_user_id = $2 OR cs.from_user_id = $2)
 				)
@@ -135,7 +136,7 @@ func (repo *ObjectRepository) GetAccessibleObjectWithDCs(ctx context.Context, fi
 			AND ok.o_type = $3::object_type
 			AND ok.is_deleted = FALSE
 		WHERE f.file_id = $1`,
-		fileID, actorUserID, objType, ente.ActionRemove)
+		fileID, actorUserID, objType, ente.ActionRemove, ente.ModerationPending, ente.ADMIN)
 
 	var s3ObjectKey ente.S3ObjectKey
 	var canAccess bool
@@ -218,14 +219,14 @@ func (repo *ObjectRepository) GetOwnedObjectWithDCs(ctx context.Context, fileID 
 	return s3ObjectKey, datacenters, nil
 }
 
-func (repo *ObjectRepository) GetCollectionObject(ctx context.Context, collectionID int64, fileID int64, objType ente.ObjectType) (ente.S3ObjectKey, error) {
-	s3ObjectKey, _, err := repo.GetCollectionObjectWithDCs(ctx, collectionID, fileID, objType)
+func (repo *ObjectRepository) GetCollectionObject(ctx context.Context, collectionID int64, fileID int64, objType ente.ObjectType, anonUserID *string) (ente.S3ObjectKey, error) {
+	s3ObjectKey, _, err := repo.GetCollectionObjectWithDCs(ctx, collectionID, fileID, objType, anonUserID)
 	return s3ObjectKey, err
 }
 
 // Keep collection access validation and object lookup in one latency-sensitive
 // query.
-func (repo *ObjectRepository) GetCollectionObjectWithDCs(ctx context.Context, collectionID int64, fileID int64, objType ente.ObjectType) (ente.S3ObjectKey, []string, error) {
+func (repo *ObjectRepository) GetCollectionObjectWithDCs(ctx context.Context, collectionID int64, fileID int64, objType ente.ObjectType, anonUserID *string) (ente.S3ObjectKey, []string, error) {
 	row := repo.objectLookupDB().QueryRowContext(ctx, `
 		SELECT
 			cf.file_id,
@@ -241,8 +242,9 @@ func (repo *ObjectRepository) GetCollectionObjectWithDCs(ctx context.Context, co
 		WHERE cf.collection_id = $1
 			AND cf.file_id = $2
 			AND cf.is_deleted = FALSE
-			AND cf.action IS DISTINCT FROM $4`,
-		collectionID, fileID, objType, ente.ActionRemove)
+			AND cf.action IS DISTINCT FROM $4
+			AND (cf.moderation_status IS DISTINCT FROM $5 OR cf.anon_user_id = $6)`,
+		collectionID, fileID, objType, ente.ActionRemove, ente.ModerationPending, anonUserID)
 
 	var s3ObjectKey ente.S3ObjectKey
 	var objectKey sql.NullString

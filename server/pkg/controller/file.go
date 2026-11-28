@@ -523,7 +523,8 @@ func (c *FileController) getSignedURLForOwnedObject(ctx *gin.Context, ownerID in
 }
 
 func (c *FileController) getSignedURLForCollectionObject(ctx *gin.Context, collectionID int64, fileID int64, objType ente.ObjectType) (string, error) {
-	s3Object, dcs, err := c.ObjectRepo.GetCollectionObjectWithDCs(ctx, collectionID, fileID, objType)
+	anonUserID, _ := auth.GetPublicAnonUserID(ctx)
+	s3Object, dcs, err := c.ObjectRepo.GetCollectionObjectWithDCs(ctx, collectionID, fileID, objType, anonUserID)
 	if err != nil {
 		return "", stacktrace.Propagate(err, "")
 	}
@@ -574,7 +575,7 @@ func (c *FileController) Trash(ctx *gin.Context, userID int64, request ente.Tras
 			return stacktrace.Propagate(ente.ErrPermissionDenied, "user doesn't own collection")
 		}
 	}
-	return c.TrashRepository.TrashFiles(ctx.Request.Context(), userID, request)
+	return c.TrashRepository.TrashFiles(ctx.Request.Context(), userID, request, ente.ModerationRejected)
 }
 
 func (c *FileController) GetSize(userID int64, fileIDs []int64) (int64, error) {

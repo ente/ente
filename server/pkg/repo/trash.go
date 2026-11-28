@@ -115,7 +115,7 @@ func (t *TrashRepository) GetFilesWithVersion(userID int64, updateAtTime int64, 
 	return convertRowsToTrash(rows)
 }
 
-func (t *TrashRepository) TrashFiles(ctx context.Context, userID int64, trash ente.TrashRequest) error {
+func (t *TrashRepository) TrashFiles(ctx context.Context, userID int64, trash ente.TrashRequest, pendingStatus string) error {
 	fileIDs := make([]int64, 0, len(trash.TrashItems))
 	for _, item := range trash.TrashItems {
 		fileIDs = append(fileIDs, item.FileID)
@@ -154,8 +154,10 @@ func (t *TrashRepository) TrashFiles(ctx context.Context, userID int64, trash en
 		cIDs = append(cIDs, cID)
 	}
 	_, err = tx.ExecContext(ctx, `UPDATE collection_files 
-			SET is_deleted = $1, updation_time = $2 WHERE file_id = ANY($3)`,
-		true, updationTime, pq.Array(fileIDs))
+			SET is_deleted = $1, updation_time = $2,
+				moderation_status = CASE WHEN moderation_status = $4 THEN $5::collection_file_moderation ELSE moderation_status END
+			WHERE file_id = ANY($3)`,
+		true, updationTime, pq.Array(fileIDs), ente.ModerationPending, pendingStatus)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
@@ -200,11 +202,12 @@ func (t *TrashRepository) CleanUpDeletedFilesFromCollection(ctx context.Context,
 	defer tx.Rollback()
 	updationTime := time.Microseconds()
 	rows, err := tx.QueryContext(ctx, `UPDATE collection_files AS cf
-		SET is_deleted = TRUE, updation_time = $2
+		SET is_deleted = TRUE, updation_time = $2,
+			moderation_status = CASE WHEN cf.moderation_status = $4 THEN $5::collection_file_moderation ELSE cf.moderation_status END
 		FROM collections AS c
 		WHERE cf.file_id = ANY($1) AND cf.is_deleted = FALSE
 			AND c.collection_id = cf.collection_id
-		RETURNING cf.collection_id, c.owner_id = $3`, pq.Array(fileIDs), updationTime, userID)
+		RETURNING cf.collection_id, c.owner_id = $3`, pq.Array(fileIDs), updationTime, userID, ente.ModerationPending, ente.ModerationRejected)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}

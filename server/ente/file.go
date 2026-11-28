@@ -25,9 +25,18 @@ type File struct {
 	PublicMagicMetadata *MagicMetadata `json:"pubMagicMetadata,omitempty"`
 	Info                *FileInfo      `json:"info,omitempty"`
 	// Action and ActionUser are optionally set to drive client-side behavior during diffs
-	Action       *string `json:"action,omitempty"`
-	ActionUserID *int64  `json:"actionUser,omitempty"`
+	Action           *string `json:"action,omitempty"`
+	ActionUserID     *int64  `json:"actionUser,omitempty"`
+	ModerationStatus *string `json:"moderationStatus,omitempty"`
+	AnonUserID       *string `json:"anonUserID,omitempty"`
 }
+
+const (
+	ModerationPending  = "PENDING"
+	ModerationApproved = "APPROVED"
+	ModerationRejected = "REJECTED"
+	ModerationRemoved  = "REMOVED"
+)
 
 type MetaFile struct {
 	ID                 int64          `json:"id"`

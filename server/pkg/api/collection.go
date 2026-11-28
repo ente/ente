@@ -388,11 +388,37 @@ func (h *CollectionHandler) SuggestDeleteInSharedCollection(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+func (h *CollectionHandler) ApprovePendingFiles(c *gin.Context) {
+	h.moderatePendingFiles(c, h.Controller.ApprovePendingFiles)
+}
+
+func (h *CollectionHandler) RejectPendingFiles(c *gin.Context) {
+	h.moderatePendingFiles(c, h.Controller.RejectPendingFiles)
+}
+
+func (h *CollectionHandler) moderatePendingFiles(c *gin.Context, moderate func(*gin.Context, ente.PendingFilesRequest) error) {
+	var request ente.PendingFilesRequest
+	if err := handler.BindJSON(c, &request); err != nil {
+		handler.Error(c, stacktrace.Propagate(err, ""))
+		return
+	}
+	if len(request.FileIDs) > DefaultMaxBatchSize {
+		handler.Error(c, stacktrace.Propagate(ente.ErrBatchSizeTooLarge, ""))
+		return
+	}
+	if err := moderate(c, request); err != nil {
+		handler.Error(c, stacktrace.Propagate(err, ""))
+		return
+	}
+	c.Status(http.StatusOK)
+}
+
 func (h *CollectionHandler) GetDiffV2(c *gin.Context) {
 	userID := auth.GetUserID(c.Request.Header)
 	cID, _ := strconv.ParseInt(c.Query("collectionID"), 10, 64)
 	sinceTime, _ := strconv.ParseInt(c.Query("sinceTime"), 10, 64)
-	files, hasMore, err := h.Controller.GetDiffV2(c, cID, userID, sinceTime)
+	includePending := c.Query("includePending") == "true"
+	files, hasMore, err := h.Controller.GetDiffV2(c, cID, userID, sinceTime, includePending)
 	if err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
@@ -406,7 +432,8 @@ func (h *CollectionHandler) GetDiffV2(c *gin.Context) {
 func (h *CollectionHandler) GetFile(c *gin.Context) {
 	cID, _ := strconv.ParseInt(c.Query("collectionID"), 10, 64)
 	fileID, _ := strconv.ParseInt(c.Query("fileID"), 10, 64)
-	file, err := h.Controller.GetFile(c, cID, fileID)
+	includePending := c.Query("includePending") == "true"
+	file, err := h.Controller.GetFile(c, cID, fileID, includePending)
 	if err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return

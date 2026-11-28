@@ -8,7 +8,30 @@ import (
 	"github.com/ente/museum/ente"
 	"github.com/ente/museum/internal/testutil"
 	"github.com/ente/museum/pkg/repo/public"
+	"github.com/stretchr/testify/require"
 )
+
+func TestRestoreTrashedPendingUpload(t *testing.T) {
+	trash, db := setupTrashTest(t)
+	ctx := t.Context()
+	owner := testutil.InsertUser(t, db, testutil.UserFixture{Email: "pending-trash@example.com", CreationTime: 1})
+	testutil.InsertUsage(t, db, owner, 0)
+	album := insertObjectTestCollection(t, db, owner)
+	file := insertObjectTestFile(t, db, owner)
+	linkObjectTestFileToCollection(t, db, album, file, owner)
+	_, err := db.Exec(`UPDATE collection_files SET moderation_status = 'PENDING' WHERE file_id = $1`, file)
+	require.NoError(t, err)
+
+	err = trash.TrashFiles(ctx, owner, ente.TrashRequest{
+		OwnerID: owner, TrashItems: []ente.TrashItemRequest{{CollectionID: album, FileID: file}},
+	}, ente.ModerationRejected)
+	require.NoError(t, err)
+	collections := &CollectionRepository{DB: db, TrashRepo: trash}
+	require.NoError(t, collections.RestoreFiles(ctx, owner, album, []ente.CollectionFileItem{collectionMembershipTestItem(file)}))
+	state, err := collections.GetCollectionFileState(ctx, album, file)
+	require.NoError(t, err)
+	require.Equal(t, CollectionFileActive, state)
+}
 
 func TestTrashFilesUsesRequestItemsAsItsScope(t *testing.T) {
 	repository, db := setupTrashTest(t)
@@ -35,7 +58,7 @@ func TestTrashFilesUsesRequestItemsAsItsScope(t *testing.T) {
 			FileID:       requestedFileID,
 			CollectionID: collectionID,
 		}},
-	})
+	}, ente.ModerationRejected)
 	if err != nil {
 		t.Fatalf("TrashFiles() error = %v", err)
 	}
@@ -122,7 +145,7 @@ func TestTrashFilesRollsBackWhenFileLinkCleanupFails(t *testing.T) {
 			FileID:       fileID,
 			CollectionID: collectionID,
 		}},
-	})
+	}, ente.ModerationRejected)
 	if err == nil {
 		t.Fatal("TrashFiles() succeeded despite public file link cleanup failure")
 	}

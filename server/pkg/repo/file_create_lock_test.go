@@ -168,7 +168,7 @@ func TestCreateRemainsVisibleAfterNewerCommit(t *testing.T) {
 			var cursor int64
 			require.NoError(t, repository.DB.QueryRowContext(ctx, `SELECT updation_time FROM collections WHERE collection_id = $1`, file.CollectionID).Scan(&cursor))
 			// Clients advance to this album version even when its file diff is empty.
-			_, err = collections.GetDiff(file.CollectionID, 1, 100)
+			_, err = collections.GetDiff(file.CollectionID, 1, 100, false)
 			require.NoError(t, err)
 
 			require.NoError(t, blocker.Commit())
@@ -178,7 +178,7 @@ func TestCreateRemainsVisibleAfterNewerCommit(t *testing.T) {
 			require.Greater(t, written.file.UpdationTime, cursor)
 			assertFileCreateVersionsMatch(t, repository.DB, file.CollectionID, written.file.ID, written.file.UpdationTime)
 
-			diff, err := collections.GetDiff(file.CollectionID, cursor, 100)
+			diff, err := collections.GetDiff(file.CollectionID, cursor, 100, false)
 			require.NoError(t, err)
 			require.Len(t, diff, 1)
 			require.Equal(t, written.file.ID, diff[0].ID)

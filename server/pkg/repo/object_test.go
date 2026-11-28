@@ -282,7 +282,7 @@ func TestGetCollectionObjectAllowsCollectionFile(t *testing.T) {
 	linkObjectTestFileToCollection(t, db, collectionID, fileID, ownerID)
 	insertObjectTestKey(t, db, fileID, ente.THUMBNAIL, "collection-thumbnail-object", 10, []string{"b2-eu-cen"})
 
-	thumbnailObject, err := repository.GetCollectionObject(t.Context(), collectionID, fileID, ente.THUMBNAIL)
+	thumbnailObject, err := repository.GetCollectionObject(t.Context(), collectionID, fileID, ente.THUMBNAIL, nil)
 	if err != nil {
 		t.Fatalf("GetCollectionObject() error = %v", err)
 	}
@@ -303,7 +303,7 @@ func TestGetCollectionObjectRejectsFileOutsideCollection(t *testing.T) {
 	fileID := insertObjectTestFile(t, db, ownerID)
 	insertObjectTestKey(t, db, fileID, ente.FILE, "outside-collection-file-object", 100, []string{"b2-eu-cen"})
 
-	_, err := repository.GetCollectionObject(t.Context(), collectionID, fileID, ente.FILE)
+	_, err := repository.GetCollectionObject(t.Context(), collectionID, fileID, ente.FILE, nil)
 	if !errors.Is(err, ente.ErrPermissionDenied) {
 		t.Fatalf("expected permission denied, got %v", err)
 	}
@@ -321,7 +321,7 @@ func TestGetCollectionObjectReturnsNoRowsForMissingObject(t *testing.T) {
 	fileID := insertObjectTestFile(t, db, ownerID)
 	linkObjectTestFileToCollection(t, db, collectionID, fileID, ownerID)
 
-	_, err := repository.GetCollectionObject(t.Context(), collectionID, fileID, ente.FILE)
+	_, err := repository.GetCollectionObject(t.Context(), collectionID, fileID, ente.FILE, nil)
 	if !errors.Is(err, sql.ErrNoRows) {
 		t.Fatalf("expected sql.ErrNoRows, got %v", err)
 	}
@@ -343,7 +343,7 @@ func TestGetCollectionObjectRejectsDeletedCollectionFile(t *testing.T) {
 		t.Fatalf("failed to mark collection file deleted: %v", err)
 	}
 
-	_, err := repository.GetCollectionObject(t.Context(), collectionID, fileID, ente.FILE)
+	_, err := repository.GetCollectionObject(t.Context(), collectionID, fileID, ente.FILE, nil)
 	if !errors.Is(err, ente.ErrPermissionDenied) {
 		t.Fatalf("expected permission denied, got %v", err)
 	}

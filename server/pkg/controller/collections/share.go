@@ -619,6 +619,9 @@ func (c *CollectionController) UpdateShareURL(
 	if err := c.verifyOwnership(ctx, req.CollectionID, userID); err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
+	if app, _ := auth.GetAuthenticatedApp(ctx); req.RequireApproval != nil && app != ente.Photos {
+		return nil, stacktrace.Propagate(ente.ErrBadRequest, "approval is only supported for Photos albums")
+	}
 	err := c.BillingCtrl.HasActiveSelfOrFamilySubscription(userID, true)
 	if err != nil {
 		if errors.Is(err, ente.ErrSharingDisabledForFreeAccounts) {
@@ -667,12 +670,16 @@ func (c *CollectionController) GetPublicDiff(ctx *gin.Context, sinceTime int64) 
 		"since_time":    sinceTime,
 		"req_id":        requestid.Get(ctx),
 	})
-	diff, hasMore, err := c.getDiff(accessContext.CollectionID, sinceTime, CollectionDiffLimit, reqContextLogger)
+	diff, hasMore, err := c.getDiff(accessContext.CollectionID, sinceTime, CollectionDiffLimit, false, reqContextLogger)
 	if err != nil {
 		return nil, false, stacktrace.Propagate(err, "")
 	}
+	guestID, _ := auth.GetPublicAnonUserID(ctx)
 	// Don't expose private metadata in a public diff.
 	for idx := range diff {
+		if isPendingUpload(diff[idx]) && (guestID == nil || diff[idx].AnonUserID == nil || *diff[idx].AnonUserID != *guestID) {
+			diff[idx].IsDeleted = true
+		}
 		if diff[idx].MagicMetadata != nil {
 			diff[idx].MagicMetadata = nil
 		}
@@ -693,6 +700,6 @@ func (c *CollectionController) GetPublicDiff(ctx *gin.Context, sinceTime int64) 
 			diff[idx].IsDeleted = true
 		}
 	}
-	scrubDeletedFiles(diff)
+	scrubDeletedFiles(diff, true)
 	return diff, hasMore, nil
 }

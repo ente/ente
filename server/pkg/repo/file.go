@@ -73,9 +73,10 @@ func (repo *FileRepository) Create(
 	file.ID = fileID
 	finishPhase = dbmetrics.Start(dbmetrics.FileCreate, "insert_membership")
 	_, err = tx.ExecContext(ctx, `INSERT INTO collection_files
-			(collection_id, file_id, encrypted_key, key_decryption_nonce, is_deleted, updation_time, c_owner_id, f_owner_id)
-			VALUES($1, $2, $3, $4, $5, $6, $7, $8)`, file.CollectionID, file.ID,
-		file.EncryptedKey, file.KeyDecryptionNonce, false, file.UpdationTime, file.OwnerID, collectionOwnerID)
+			(collection_id, file_id, encrypted_key, key_decryption_nonce, is_deleted, updation_time, c_owner_id, f_owner_id, moderation_status, anon_user_id)
+			VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`, file.CollectionID, file.ID,
+		file.EncryptedKey, file.KeyDecryptionNonce, false, file.UpdationTime, file.OwnerID, collectionOwnerID,
+		file.ModerationStatus, file.AnonUserID)
 	finishPhase(err)
 	if err != nil {
 		return file, -1, stacktrace.Propagate(err, "")
@@ -798,7 +799,7 @@ func convertRowsToFiles(rows *sql.Rows) ([]ente.File, error) {
 			&file.File.DecryptionHeader, &file.Thumbnail.DecryptionHeader,
 			&file.Metadata.DecryptionHeader,
 			&file.Metadata.EncryptedData, &file.MagicMetadata, &file.PublicMagicMetadata,
-			&file.Info, &actionUser, &action, &file.IsDeleted, &updationTime, &addedAt)
+			&file.Info, &actionUser, &action, &file.IsDeleted, &updationTime, &addedAt, &file.ModerationStatus, &file.AnonUserID)
 		if err != nil {
 			return files, stacktrace.Propagate(err, "")
 		}

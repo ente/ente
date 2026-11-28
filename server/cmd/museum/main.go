@@ -814,6 +814,8 @@ func main() {
 
 	storageAPI.POST("/collections/v3/remove-files", collectionHandler.RemoveFilesV3)
 	storageAPI.POST("/collections/suggest-delete", collectionHandler.SuggestDeleteInSharedCollection)
+	storageAPI.POST("/collections/pending-files/approve", collectionHandler.ApprovePendingFiles)
+	storageAPI.POST("/collections/pending-files/reject", collectionHandler.RejectPendingFiles)
 	storageAPI.GET("/collections/v2/diff", collectionHandler.GetDiffV2)
 	storageAPI.GET("/collections/file", collectionHandler.GetFile)
 	storageAPI.GET("/collections/sharees", collectionHandler.GetSharees)
@@ -849,6 +851,7 @@ func main() {
 	publicCollectionAPI.POST("/upload-url", publicCollectionHandler.GetUploadURLV2)
 	publicCollectionAPI.POST("/multipart-upload-url", publicCollectionHandler.GetMultipartUploadURLV2)
 	publicCollectionAPI.POST("/file", publicCollectionHandler.CreateFile)
+	publicCollectionAPI.DELETE("/pending-files/:fileID", publicCollectionHandler.RemovePendingFile)
 	publicCollectionAPI.POST("/verify-password", publicCollectionHandler.VerifyPassword)
 	publicCollectionAPI.GET("/social/diff", publicSocialHandler.SocialDiff)
 	publicCollectionAPI.GET("/comments/diff", publicSocialHandler.CommentDiff)
@@ -1550,7 +1553,7 @@ func cors() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", c.GetHeader("Origin"))
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, X-Auth-Token, X-Space-Session-Token, X-Space-Link-Auth, X-Auth-Access-Token, X-Cast-Access-Token, X-Auth-Access-Token-JWT, X-Auth-Link-Device-Token, X-Client-Package, X-Client-Version, X-Paste-Consume, Authorization, accept, origin, Cache-Control, X-Requested-With, upgrade-insecure-requests, Range")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, X-Auth-Token, X-Space-Session-Token, X-Space-Link-Auth, X-Auth-Access-Token, X-Cast-Access-Token, X-Auth-Access-Token-JWT, X-Auth-Link-Device-Token, X-Anon-User-Token, X-Client-Package, X-Client-Version, X-Paste-Consume, Authorization, accept, origin, Cache-Control, X-Requested-With, upgrade-insecure-requests, Range")
 		c.Writer.Header().Set("Access-Control-Expose-Headers", "X-Request-Id, X-Link-Device-Token")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, PATCH, DELETE")
 		c.Writer.Header().Set("Access-Control-Max-Age", "1728000")

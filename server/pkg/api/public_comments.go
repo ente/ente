@@ -291,13 +291,6 @@ func (h *PublicCommentsHandler) CreateAnonIdentity(c *gin.Context) {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
-	if !ensurePublicCommentsEnabled(c) {
-		return
-	}
-	if len(payload.Cipher) == 0 || len(payload.Nonce) == 0 {
-		handler.Error(c, ente.ErrBadRequest)
-		return
-	}
 	collectionID := auth.MustGetPublicAccessContext(c).CollectionID
 	resp, err := h.AnonIdentityCtrl.Create(c, public.CreateAnonIdentityRequest{
 		CollectionID: collectionID,

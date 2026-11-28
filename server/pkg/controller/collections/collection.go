@@ -105,7 +105,7 @@ func (c *CollectionController) GetCollection(ctx *gin.Context, userID int64, cID
 	return collection, nil
 }
 
-func (c *CollectionController) GetFile(ctx *gin.Context, collectionID int64, fileID int64) (*ente.File, error) {
+func (c *CollectionController) GetFile(ctx *gin.Context, collectionID int64, fileID int64, includePending bool) (*ente.File, error) {
 	userID := auth.GetUserID(ctx.Request.Header)
 	files, err := c.CollectionRepo.GetFile(collectionID, fileID)
 	if err != nil {
@@ -114,7 +114,8 @@ func (c *CollectionController) GetFile(ctx *gin.Context, collectionID int64, fil
 	if len(files) == 0 {
 		return nil, stacktrace.Propagate(&ente.ErrFileNotFoundInAlbum, "")
 	}
-	if _, err := c.getCollectionForApp(ctx, collectionID); err != nil {
+	collection, err := c.getCollectionForApp(ctx, collectionID)
+	if err != nil {
 		return nil, err
 	}
 
@@ -136,6 +137,22 @@ func (c *CollectionController) GetFile(ctx *gin.Context, collectionID int64, fil
 	}
 	if file.IsDeleted {
 		return nil, stacktrace.Propagate(&ente.ErrFileNotFoundInAlbum, "")
+	}
+	if !isPendingUpload(file) {
+		file.ModerationStatus, file.AnonUserID = nil, nil
+		return &file, nil
+	}
+	if !includePending {
+		return nil, stacktrace.Propagate(&ente.ErrFileNotFoundInAlbum, "")
+	}
+	if collection.Owner.ID != userID {
+		role, err := c.CollectionRepo.GetCollectionShareeRole(collectionID, userID)
+		if err != nil {
+			return nil, stacktrace.Propagate(err, "")
+		}
+		if !canModerate(*role) {
+			return nil, stacktrace.Propagate(&ente.ErrFileNotFoundInAlbum, "")
+		}
 	}
 	return &file, nil
 }

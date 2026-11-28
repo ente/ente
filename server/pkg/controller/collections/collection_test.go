@@ -101,14 +101,14 @@ func TestGetFileForViewer(t *testing.T) {
 		t.Fatal(err)
 	}
 	controller := &CollectionController{CollectionRepo: collectionRepo}
-	ownerFile, err := controller.GetFile(newBatchShareTestContext(ownerID), collectionID, fileID)
+	ownerFile, err := controller.GetFile(newBatchShareTestContext(ownerID), collectionID, fileID, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if ownerFile.MagicMetadata == nil || ownerFile.MagicMetadata.Data != "private-file" {
 		t.Fatalf("owner private magic metadata = %+v", ownerFile.MagicMetadata)
 	}
-	viewerFile, err := controller.GetFile(newBatchShareTestContext(shareeID), collectionID, fileID)
+	viewerFile, err := controller.GetFile(newBatchShareTestContext(shareeID), collectionID, fileID, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,7 +134,7 @@ func TestGetFileForViewer(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		ownerFile, err := controller.GetFile(newBatchShareTestContext(ownerID), collectionID, fileID)
+		ownerFile, err := controller.GetFile(newBatchShareTestContext(ownerID), collectionID, fileID, false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -142,7 +142,7 @@ func TestGetFileForViewer(t *testing.T) {
 			t.Fatalf("owner action fields = (%v, %v)", ownerFile.Action, ownerFile.ActionUserID)
 		}
 
-		viewerFile, err := controller.GetFile(newBatchShareTestContext(shareeID), collectionID, fileID)
+		viewerFile, err := controller.GetFile(newBatchShareTestContext(shareeID), collectionID, fileID, false)
 		if viewerFile != nil || !errors.Is(err, &ente.ErrFileNotFoundInAlbum) {
 			t.Fatalf("viewer lookup with action %q = (%+v, %v), want file not found", action, viewerFile, err)
 		}

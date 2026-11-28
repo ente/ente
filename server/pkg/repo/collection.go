@@ -157,7 +157,7 @@ func (repo *CollectionRepository) GetCollectionsOwnedByUserV2(userID int64, upda
 		SELECT 
 c.collection_id, c.owner_id, c.encrypted_key,c.key_decryption_nonce, c.name, c.encrypted_name, c.name_decryption_nonce, c.type, c.app, c.attributes, c.updation_time, c.is_deleted, c.magic_metadata, c.pub_magic_metadata,
 users.user_id, users.encrypted_email, users.email_decryption_nonce, cs.role_type,
-pct.access_token, pct.valid_till, pct.device_limit, pct.created_at, pct.updated_at, pct.pw_hash, pct.pw_nonce, pct.mem_limit, pct.ops_limit, pct.enable_download, pct.enable_collect, pct.enable_comment, pct.enable_join, pct.min_role 
+pct.access_token, pct.valid_till, pct.device_limit, pct.created_at, pct.updated_at, pct.pw_hash, pct.pw_nonce, pct.mem_limit, pct.ops_limit, pct.enable_download, pct.enable_collect, pct.enable_comment, pct.enable_join, pct.require_approval, pct.min_role
     FROM collections c
     LEFT JOIN collection_shares cs
     ON (cs.collection_id = c.collection_id AND cs.is_deleted = false)
@@ -184,14 +184,14 @@ pct.access_token, pct.valid_till, pct.device_limit, pct.created_at, pct.updated_
 		var c ente.Collection
 		var name, encryptedName, nameDecryptionNonce sql.NullString
 		var pctDeviceLimit sql.NullInt32
-		var pctEnableDownload, pctEnableCollect, pctEnableComment, pctEnableJoin sql.NullBool
+		var pctEnableDownload, pctEnableCollect, pctEnableComment, pctEnableJoin, pctRequireApproval sql.NullBool
 		var shareUserID, pctValidTill, pctCreatedAt, pctUpdatedAt, pctMemLimit, pctOpsLimit sql.NullInt64
 		var encryptedEmail, nonce []byte
 		var shareeRoleType, pctToken, pctPwHash, pctPwNonce, pctMinRole sql.NullString
 
 		if err := rows.Scan(&c.ID, &c.Owner.ID, &c.EncryptedKey, &c.KeyDecryptionNonce, &name, &encryptedName, &nameDecryptionNonce, &c.Type, &c.App, &c.Attributes, &c.UpdationTime, &c.IsDeleted, &c.MagicMetadata, &c.PublicMagicMetadata,
 			&shareUserID, &encryptedEmail, &nonce, &shareeRoleType,
-			&pctToken, &pctValidTill, &pctDeviceLimit, &pctCreatedAt, &pctUpdatedAt, &pctPwHash, &pctPwNonce, &pctMemLimit, &pctOpsLimit, &pctEnableDownload, &pctEnableCollect, &pctEnableComment, &pctEnableJoin, &pctMinRole); err != nil {
+			&pctToken, &pctValidTill, &pctDeviceLimit, &pctCreatedAt, &pctUpdatedAt, &pctPwHash, &pctPwNonce, &pctMemLimit, &pctOpsLimit, &pctEnableDownload, &pctEnableCollect, &pctEnableComment, &pctEnableJoin, &pctRequireApproval, &pctMinRole); err != nil {
 			return nil, stacktrace.Propagate(err, "")
 		}
 
@@ -233,6 +233,7 @@ pct.access_token, pct.valid_till, pct.device_limit, pct.created_at, pct.updated_
 					EnableComment:   pctEnableComment.Bool,
 					PasswordEnabled: pctPwNonce.Valid,
 					EnableJoin:      pctEnableJoin.Bool,
+					RequireApproval: pctRequireApproval.Bool,
 				}
 				if pctPwNonce.Valid {
 					url.Nonce = &pctPwNonce.String
@@ -1067,7 +1068,7 @@ func (repo *CollectionRepository) MoveFiles(ctx context.Context,
 	return stacktrace.Propagate(tx.Commit(), "")
 }
 
-func (repo *CollectionRepository) GetDiff(collectionID int64, sinceTime int64, limit int) ([]ente.File, error) {
+func (repo *CollectionRepository) GetDiff(collectionID int64, sinceTime int64, limit int, includePending bool) ([]ente.File, error) {
 	startTime := t.Now()
 	defer func() {
 		repo.LatencyLogger.WithLabelValues("CollectionRepo.GetDiff").
@@ -1078,21 +1079,23 @@ func (repo *CollectionRepository) GetDiff(collectionID int64, sinceTime int64, l
             collection_files.encrypted_key, collection_files.key_decryption_nonce,
             files.file_decryption_header, files.thumbnail_decryption_header,
             files.metadata_decryption_header, files.encrypted_metadata, files.magic_metadata, files.pub_magic_metadata, 
-            files.info, collection_files.action_user, collection_files.action, collection_files.is_deleted, collection_files.updation_time, collection_files.created_at
+            files.info, collection_files.action_user, collection_files.action, collection_files.is_deleted, collection_files.updation_time, collection_files.created_at,
+            collection_files.moderation_status, collection_files.anon_user_id
         FROM files
         INNER JOIN collection_files
         ON collection_files.file_id = files.file_id
             AND collection_files.collection_id = $1
             AND collection_files.updation_time > $2
+            AND (NOT $4 OR (collection_files.moderation_status = $5 AND NOT collection_files.is_deleted))
         ORDER BY collection_files.updation_time LIMIT $3`,
-		collectionID, sinceTime, limit)
+		collectionID, sinceTime, limit, includePending, ente.ModerationPending)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
 	return convertRowsToFiles(rows)
 }
 
-func (repo *CollectionRepository) GetFilesWithVersion(collectionID int64, updateAtTime int64) ([]ente.File, error) {
+func (repo *CollectionRepository) GetFilesWithVersion(collectionID int64, updateAtTime int64, includePending bool) ([]ente.File, error) {
 	startTime := t.Now()
 	defer func() {
 		repo.LatencyLogger.WithLabelValues("CollectionRepo.GetFilesWithVersion").
@@ -1103,13 +1106,15 @@ func (repo *CollectionRepository) GetFilesWithVersion(collectionID int64, update
             collection_files.encrypted_key, collection_files.key_decryption_nonce,
             files.file_decryption_header, files.thumbnail_decryption_header,
             files.metadata_decryption_header, files.encrypted_metadata, files.magic_metadata, files.pub_magic_metadata,
-            files.info, collection_files.action_user, collection_files.action, collection_files.is_deleted, collection_files.updation_time, collection_files.created_at
+            files.info, collection_files.action_user, collection_files.action, collection_files.is_deleted, collection_files.updation_time, collection_files.created_at,
+            collection_files.moderation_status, collection_files.anon_user_id
         FROM files
         INNER JOIN collection_files
         ON collection_files.file_id = files.file_id
             AND collection_files.collection_id = $1
-            AND collection_files.updation_time = $2`,
-		collectionID, updateAtTime)
+            AND collection_files.updation_time = $2
+            AND (NOT $3 OR (collection_files.moderation_status = $4 AND NOT collection_files.is_deleted))`,
+		collectionID, updateAtTime, includePending, ente.ModerationPending)
 	if err != nil {
 		return nil, stacktrace.Propagate(err, "")
 	}
@@ -1122,7 +1127,8 @@ func (repo *CollectionRepository) GetFile(collectionID int64, fileID int64) ([]e
             collection_files.encrypted_key, collection_files.key_decryption_nonce,
             files.file_decryption_header, files.thumbnail_decryption_header,
             files.metadata_decryption_header, files.encrypted_metadata, files.magic_metadata, files.pub_magic_metadata,
-            files.info, collection_files.action_user, collection_files.action, collection_files.is_deleted, collection_files.updation_time, collection_files.created_at
+            files.info, collection_files.action_user, collection_files.action, collection_files.is_deleted, collection_files.updation_time, collection_files.created_at,
+            collection_files.moderation_status, collection_files.anon_user_id
         FROM files
         INNER JOIN collection_files
         ON collection_files.file_id = files.file_id
@@ -1230,7 +1236,7 @@ func (repo *CollectionRepository) TrashV3(ctx context.Context, collectionID int6
 				CollectionID: collectionID,
 			})
 		}
-		err = repo.TrashRepo.TrashFiles(ctx, ownerID, ente.TrashRequest{OwnerID: ownerID, TrashItems: items})
+		err = repo.TrashRepo.TrashFiles(ctx, ownerID, ente.TrashRequest{OwnerID: ownerID, TrashItems: items}, ente.ModerationRejected)
 		if err != nil {
 			log.WithError(err).Error("failed to trash file")
 			return stacktrace.Propagate(err, "")

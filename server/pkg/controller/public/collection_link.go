@@ -110,6 +110,16 @@ func (c *CollectionLinkController) CreateFile(ctx *gin.Context, file ente.File, 
 	file.OwnerID = collectionOwnerID
 	file.UpdationTime = time.Microseconds()
 	file.IsDeleted = false
+	file.ModerationStatus, file.AnonUserID = nil, nil
+	if collection.PublicURLs[0].RequireApproval {
+		anonUserID, ok := auth.GetPublicAnonUserID(ctx)
+		if !ok {
+			return ente.File{}, stacktrace.Propagate(ente.ErrAuthenticationRequired, "moderated uploads need a guest identity")
+		}
+		pending := ente.ModerationPending
+		file.ModerationStatus = &pending
+		file.AnonUserID = anonUserID
+	}
 	createdFile, err := c.FileController.Create(ctx, collectionOwnerID, file, ctx.Request.UserAgent(), app)
 	if err != nil {
 		return ente.File{}, stacktrace.Propagate(err, "")
@@ -160,6 +170,9 @@ func (c *CollectionLinkController) UpdateSharedUrl(ctx *gin.Context, req ente.Up
 	if req.EnableJoin != nil {
 		publicCollectionToken.EnableJoin = *req.EnableJoin
 	}
+	if req.RequireApproval != nil {
+		publicCollectionToken.RequireApproval = *req.RequireApproval
+	}
 	if req.MinRole != nil {
 		role := *req.MinRole
 		rolePtr := role
@@ -178,6 +191,7 @@ func (c *CollectionLinkController) UpdateSharedUrl(ctx *gin.Context, req ente.Up
 		EnableCollect:   publicCollectionToken.EnableCollect,
 		EnableComment:   publicCollectionToken.EnableComment,
 		EnableJoin:      publicCollectionToken.EnableJoin,
+		RequireApproval: publicCollectionToken.RequireApproval,
 		MinRole:         publicCollectionToken.MinRole,
 		PasswordEnabled: publicCollectionToken.PassHash != nil && *publicCollectionToken.PassHash != "",
 		Nonce:           publicCollectionToken.Nonce,
@@ -243,6 +257,7 @@ func (c *CollectionLinkController) GetPublicCollection(ctx *gin.Context, mustAll
 			MemLimit:        publicUrl.MemLimit,
 			OpsLimit:        publicUrl.OpsLimit,
 			EnableJoin:      publicUrl.EnableJoin,
+			RequireApproval: publicUrl.RequireApproval,
 		})
 	}
 	collection.PublicURLs = publicURLsWithLimitedInfo

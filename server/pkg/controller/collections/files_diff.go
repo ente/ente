@@ -11,21 +11,22 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func (c *CollectionController) GetDiffV2(ctx *gin.Context, cID int64, userID int64, sinceTime int64) ([]ente.File, bool, error) {
+func (c *CollectionController) GetDiffV2(ctx *gin.Context, cID int64, userID int64, sinceTime int64, includePending bool) ([]ente.File, bool, error) {
 	reqContextLogger := log.WithFields(log.Fields{
 		"user_id":       userID,
 		"collection_id": cID,
 		"since_time":    sinceTime,
 		"req_id":        requestid.Get(ctx),
 	})
-	_, err := c.AccessCtrl.GetCollection(ctx, &access.GetCollectionParams{
+	resp, err := c.AccessCtrl.GetCollection(ctx, &access.GetCollectionParams{
 		CollectionID: cID,
 		ActorUserID:  userID,
 	})
 	if err != nil {
 		return nil, false, stacktrace.Propagate(err, "failed to verify access")
 	}
-	diff, hasMore, err := c.getDiff(cID, sinceTime, CollectionDiffLimit, reqContextLogger)
+	includePending = includePending && canModerate(*resp.Role)
+	diff, hasMore, err := c.getDiff(cID, sinceTime, CollectionDiffLimit, includePending, reqContextLogger)
 	if err != nil {
 		return nil, false, stacktrace.Propagate(err, "")
 	}
@@ -52,14 +53,26 @@ func (c *CollectionController) GetDiffV2(ctx *gin.Context, cID int64, userID int
 			diff[idx].IsDeleted = true
 		}
 	}
-	scrubDeletedFiles(diff)
+	scrubDeletedFiles(diff, includePending)
 	return diff, hasMore, nil
 }
 
-func scrubDeletedFiles(files []ente.File) {
+func canModerate(role ente.CollectionParticipantRole) bool {
+	return role == ente.OWNER || role == ente.ADMIN
+}
+
+func isPendingUpload(file ente.File) bool {
+	return file.ModerationStatus != nil && *file.ModerationStatus == ente.ModerationPending
+}
+
+func scrubDeletedFiles(files []ente.File, includePending bool) {
 	for idx := range files {
 		file := &files[idx]
-		if !file.IsDeleted {
+		pending := isPendingUpload(*file)
+		if !file.IsDeleted && (!pending || includePending) {
+			if !pending {
+				file.ModerationStatus, file.AnonUserID = nil, nil
+			}
 			continue
 		}
 		files[idx] = ente.File{
@@ -78,8 +91,8 @@ func scrubDeletedFiles(files []ente.File) {
 
 // Never split a version across pages. Results may be smaller or larger than
 // limit so every row with the boundary timestamp stays together.
-func (c *CollectionController) getDiff(cID int64, sinceTime int64, limit int, logger *log.Entry) ([]ente.File, bool, error) {
-	diffLimitPlusOne, err := c.CollectionRepo.GetDiff(cID, sinceTime, limit+1)
+func (c *CollectionController) getDiff(cID int64, sinceTime int64, limit int, includePending bool, logger *log.Entry) ([]ente.File, bool, error) {
+	diffLimitPlusOne, err := c.CollectionRepo.GetDiff(cID, sinceTime, limit+1, includePending)
 	if err != nil {
 		return nil, false, stacktrace.Propagate(err, "")
 	}
@@ -99,7 +112,7 @@ func (c *CollectionController) getDiff(cID int64, sinceTime int64, limit int, lo
 		}
 		return filteredDiffs, true, nil
 	}
-	diff, err := c.CollectionRepo.GetFilesWithVersion(cID, lastFileVersion)
+	diff, err := c.CollectionRepo.GetFilesWithVersion(cID, lastFileVersion, includePending)
 	logger.
 		WithField("last_file_version", lastFileVersion).
 		WithField("count", len(diff)).

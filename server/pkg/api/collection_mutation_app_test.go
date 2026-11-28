@@ -21,6 +21,7 @@ import (
 	"github.com/ente/museum/pkg/repo"
 	castrepo "github.com/ente/museum/pkg/repo/cast"
 	publicrepo "github.com/ente/museum/pkg/repo/public"
+	socialrepo "github.com/ente/museum/pkg/repo/social"
 	"github.com/gin-gonic/gin"
 	"github.com/patrickmn/go-cache"
 	"github.com/spf13/viper"
@@ -41,10 +42,11 @@ func TestCollectionMutationAppIsolation(t *testing.T) {
 	testutil.InsertSubscription(t, db, testutil.SubscriptionFixture{UserID: ownerID, Storage: 1 << 30, ExpiryTime: 4102444800000000})
 	userRepo := &repo.UserRepository{DB: db, HashingKey: testutil.HashingKey(), SecretEncryptionKey: testutil.SecretEncryptionKey()}
 	linkRepo := publicrepo.NewCollectionLinkRepository(db, "")
+	linkRepo.Cache = publicrepo.NewLinkCache(time.Minute, time.Minute)
 	collectionRepo := &repo.CollectionRepository{DB: db, CollectionLinkRepo: linkRepo, SecretEncryptionKey: testutil.SecretEncryptionKey()}
 	h := &CollectionHandler{Controller: &collections.CollectionController{
 		AccessCtrl: access.NewAccessController(collectionRepo, nil), CollectionRepo: collectionRepo,
-		CastRepo: &castrepo.Repository{DB: db}, CollectionLinkCtrl: &public.CollectionLinkController{CollectionLinkRepo: linkRepo},
+		CastRepo: &castrepo.Repository{DB: db}, CollectionLinkCtrl: &public.CollectionLinkController{CollectionLinkRepo: linkRepo, CollectionRepo: collectionRepo, JwtSecret: []byte("collection-link-test-secret")},
 		BillingCtrl: &controller.BillingController{UserRepo: userRepo, BillingRepo: &repo.BillingRepository{DB: db}},
 		UserLookup:  controller.NewUserLookupController(userRepo, nil), PushCtrl: &controller.PushController{},
 		EmailCtrl: &email.EmailNotificationController{UserRepo: userRepo},
@@ -53,6 +55,15 @@ func TestCollectionMutationAppIsolation(t *testing.T) {
 	authMiddleware := &middleware.AuthMiddleware{UserAuthRepo: userAuthRepo, Cache: cache.New(time.Minute, time.Minute)}
 	router := gin.New()
 	storage := router.Group("/collections", authMiddleware.TokenAuthMiddleware(nil), middleware.RejectAuthApp())
+	linkAuth := &middleware.CollectionLinkMiddleware{
+		CollectionLinkRepo: linkRepo, CollectionRepo: collectionRepo, Cache: linkRepo.Cache,
+		BillingCtrl: h.Controller.BillingCtrl, PublicCollectionCtrl: h.Controller.CollectionLinkCtrl,
+	}
+	publicAPI := router.Group("/public-collection", linkAuth.Authenticate(func(c *gin.Context) string { return c.FullPath() }))
+	socialHandler := &PublicCommentsHandler{AnonIdentityCtrl: &public.AnonIdentityController{
+		JwtSecret: []byte("guest-identity-test-secret"), AnonUsersRepo: &socialrepo.AnonUsersRepository{DB: db},
+	}}
+	publicAPI.POST("/anon-identity", socialHandler.CreateAnonIdentity)
 	storage.POST("/share-url", h.ShareURL)
 	storage.PUT("/share-url", h.UpdateShareURL)
 	storage.DELETE("/share-url/:collectionID", h.UnShareURL)
@@ -108,6 +119,59 @@ func TestCollectionMutationAppIsolation(t *testing.T) {
 		for _, userID := range []int64{ownerID, memberID, adminID} {
 			require.NoError(t, userAuthRepo.AddToken(userID, app, fmt.Sprintf("%s-%d", app, userID), "127.0.0.1", "test"))
 		}
+		t.Run(string(app)+"/approval_setting", func(t *testing.T) {
+			album, err := collectionRepo.Create(ente.Collection{Owner: ente.CollectionUser{ID: ownerID}, App: string(app), Type: "album", Name: "album", EncryptedKey: "key", KeyDecryptionNonce: "nonce", UpdationTime: 1})
+			require.NoError(t, err)
+			require.NoError(t, collectionRepo.Share(album.ID, ownerID, adminID, "admin-key", ente.ADMIN, 1))
+			linkRequest := func(method string, actor int64, fields string, wantStatus int) string {
+				t.Helper()
+				req := httptest.NewRequest(method, "/collections/share-url", strings.NewReader(fmt.Sprintf(`{"collectionID":%d,%s}`, album.ID, fields)))
+				req.Header.Set("Content-Type", "application/json")
+				req.Header.Set("X-Auth-Token", fmt.Sprintf("%s-%d", app, actor))
+				req.Header.Set("X-Client-Package", "io.ente."+string(app))
+				response := httptest.NewRecorder()
+				router.ServeHTTP(response, req)
+				require.Equal(t, wantStatus, response.Code, response.Body.String())
+				return response.Body.String()
+			}
+
+			created := linkRequest(http.MethodPost, ownerID, `"enableCollect":true,"enableComment":false,"requireApproval":true`, http.StatusOK)
+			require.Contains(t, created, `"requireApproval":false`)
+			linkRequest(http.MethodPut, adminID, `"requireApproval":true`, http.StatusForbidden)
+			if app == ente.Locker {
+				linkRequest(http.MethodPut, ownerID, `"requireApproval":true`, http.StatusBadRequest)
+				return
+			}
+
+			enabled := linkRequest(http.MethodPut, ownerID, `"requireApproval":true`, http.StatusOK)
+			require.Contains(t, enabled, `"requireApproval":true`)
+			updated := linkRequest(http.MethodPut, ownerID, `"enableJoin":false`, http.StatusOK)
+			require.Contains(t, updated, `"requireApproval":true`)
+
+			link, err := linkRepo.GetActiveCollectionLinkRow(t.Context(), album.ID)
+			require.NoError(t, err)
+			requestIdentity := func() *httptest.ResponseRecorder {
+				body := `{"cipher":"` + base64.StdEncoding.EncodeToString(make([]byte, 20)) + `","nonce":"nonce"}`
+				req := httptest.NewRequest(http.MethodPost, "/public-collection/anon-identity", strings.NewReader(body))
+				req.Header.Set("Content-Type", "application/json")
+				req.Header.Set("X-Auth-Access-Token", link.Token)
+				response := httptest.NewRecorder()
+				router.ServeHTTP(response, req)
+				return response
+			}
+			guest := requestIdentity()
+			require.Equal(t, http.StatusCreated, guest.Code, guest.Body.String())
+			var identity public.AnonIdentityResponse
+			require.NoError(t, json.Unmarshal(guest.Body.Bytes(), &identity))
+			require.NotEmpty(t, identity.Token)
+			require.NotEmpty(t, identity.AnonUserID)
+
+			disabled := linkRequest(http.MethodPut, ownerID, `"requireApproval":false`, http.StatusOK)
+			require.Contains(t, disabled, `"requireApproval":false`)
+			require.Equal(t, http.StatusMethodNotAllowed, requestIdentity().Code)
+			linkRequest(http.MethodPut, ownerID, `"enableComment":true`, http.StatusOK)
+			require.Equal(t, http.StatusCreated, requestIdentity().Code)
+		})
 		for _, tc := range cases {
 			actors := []int64{ownerID}
 			if tc.member {

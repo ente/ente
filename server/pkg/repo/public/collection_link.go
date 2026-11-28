@@ -90,7 +90,7 @@ func (pcr *CollectionLinkRepo) DisableSharing(ctx context.Context, cID int64) er
 
 // "Active" only means not disabled; links may be expired or over their limit.
 func (pcr *CollectionLinkRepo) GetCollectionToActivePublicURLMap(ctx context.Context, collectionIDs []int64, app ente.App) (map[int64][]ente.PublicURL, error) {
-	rows, err := pcr.DB.QueryContext(ctx, `SELECT collection_id, access_token, valid_till, device_limit, enable_download, enable_collect, enable_comment, enable_join, min_role, pw_nonce, mem_limit, ops_limit FROM
+	rows, err := pcr.DB.QueryContext(ctx, `SELECT collection_id, access_token, valid_till, device_limit, enable_download, enable_collect, enable_comment, enable_join, require_approval, min_role, pw_nonce, mem_limit, ops_limit FROM
                                                    public_collection_tokens WHERE collection_id = ANY($1) and is_disabled = FALSE`,
 		pq.Array(collectionIDs))
 	if err != nil {
@@ -108,7 +108,7 @@ func (pcr *CollectionLinkRepo) GetCollectionToActivePublicURLMap(ctx context.Con
 		var nonce *string
 		var opsLimit, memLimit *int64
 		var minRole sql.NullString
-		if err = rows.Scan(&collectionID, &accessToken, &publicUrl.ValidTill, &publicUrl.DeviceLimit, &publicUrl.EnableDownload, &publicUrl.EnableCollect, &publicUrl.EnableComment, &publicUrl.EnableJoin, &minRole, &nonce, &memLimit, &opsLimit); err != nil {
+		if err = rows.Scan(&collectionID, &accessToken, &publicUrl.ValidTill, &publicUrl.DeviceLimit, &publicUrl.EnableDownload, &publicUrl.EnableCollect, &publicUrl.EnableComment, &publicUrl.EnableJoin, &publicUrl.RequireApproval, &minRole, &nonce, &memLimit, &opsLimit); err != nil {
 			return nil, stacktrace.Propagate(err, "")
 		}
 		publicUrl.URL = pcr.GetAlbumUrl(app, accessToken)
@@ -131,14 +131,14 @@ func (pcr *CollectionLinkRepo) GetCollectionToActivePublicURLMap(ctx context.Con
 // "Active" only means not disabled; the link may be expired or over its limit.
 func (pcr *CollectionLinkRepo) GetActiveCollectionLinkRow(ctx context.Context, collectionID int64) (ente.CollectionLinkRow, error) {
 	row := pcr.DB.QueryRowContext(ctx, `SELECT id, collection_id, access_token, valid_till, device_limit,
-       is_disabled, pw_hash, pw_nonce, mem_limit, ops_limit, enable_download, enable_collect, enable_comment, enable_join, min_role FROM
+       is_disabled, pw_hash, pw_nonce, mem_limit, ops_limit, enable_download, enable_collect, enable_comment, enable_join, require_approval, min_role FROM
                                                    public_collection_tokens WHERE collection_id = $1 and is_disabled = FALSE`,
 		collectionID)
 
 	ret := ente.CollectionLinkRow{}
 	var minRole sql.NullString
 	err := row.Scan(&ret.ID, &ret.CollectionID, &ret.Token, &ret.ValidTill, &ret.DeviceLimit,
-		&ret.IsDisabled, &ret.PassHash, &ret.Nonce, &ret.MemLimit, &ret.OpsLimit, &ret.EnableDownload, &ret.EnableCollect, &ret.EnableComment, &ret.EnableJoin, &minRole)
+		&ret.IsDisabled, &ret.PassHash, &ret.Nonce, &ret.MemLimit, &ret.OpsLimit, &ret.EnableDownload, &ret.EnableCollect, &ret.EnableComment, &ret.EnableJoin, &ret.RequireApproval, &minRole)
 	if err != nil {
 		return ente.CollectionLinkRow{}, stacktrace.Propagate(err, "")
 	}
@@ -156,9 +156,9 @@ func (pcr *CollectionLinkRepo) UpdatePublicCollectionToken(ctx context.Context, 
 		minRole = string(*pct.MinRole)
 	}
 	_, err := pcr.DB.ExecContext(ctx, `UPDATE public_collection_tokens SET valid_till = $1, device_limit = $2,
-                                    pw_hash = $3, pw_nonce = $4, mem_limit = $5, ops_limit = $6, enable_download = $7, enable_collect = $8, enable_comment = $9, enable_join = $10, min_role = $11
-                                where id = $12`,
-		pct.ValidTill, pct.DeviceLimit, pct.PassHash, pct.Nonce, pct.MemLimit, pct.OpsLimit, pct.EnableDownload, pct.EnableCollect, pct.EnableComment, pct.EnableJoin, minRole, pct.ID)
+                                    pw_hash = $3, pw_nonce = $4, mem_limit = $5, ops_limit = $6, enable_download = $7, enable_collect = $8, enable_comment = $9, enable_join = $10, min_role = $11, require_approval = $12
+                                where id = $13`,
+		pct.ValidTill, pct.DeviceLimit, pct.PassHash, pct.Nonce, pct.MemLimit, pct.OpsLimit, pct.EnableDownload, pct.EnableCollect, pct.EnableComment, pct.EnableJoin, minRole, pct.RequireApproval, pct.ID)
 	if err != nil {
 		return stacktrace.Propagate(err, "failed to update public collection token")
 	}
@@ -197,7 +197,7 @@ func (pcr *CollectionLinkRepo) AccessedInPast(ctx context.Context, shareID int64
 
 func (pcr *CollectionLinkRepo) GetCollectionSummaryByToken(ctx context.Context, accessToken string) (ente.PublicCollectionSummary, error) {
 	row := pcr.DB.QueryRowContext(ctx,
-		`SELECT sct.id, sct.collection_id, sct.is_disabled, sct.valid_till, sct.device_limit, sct.pw_hash, sct.enable_comment,
+		`SELECT sct.id, sct.collection_id, sct.is_disabled, sct.valid_till, sct.device_limit, sct.pw_hash, sct.enable_comment, sct.require_approval,
        sct.created_at, sct.updated_at, count(ah.share_id)
 		from public_collection_tokens sct
 		LEFT JOIN public_collection_access_history ah ON sct.id = ah.share_id
@@ -205,7 +205,7 @@ func (pcr *CollectionLinkRepo) GetCollectionSummaryByToken(ctx context.Context, 
 		group by sct.id`, accessToken)
 	var result = ente.PublicCollectionSummary{}
 	err := row.Scan(&result.ID, &result.CollectionID, &result.IsDisabled, &result.ValidTill, &result.DeviceLimit,
-		&result.PassHash, &result.EnableComment, &result.CreatedAt, &result.UpdatedAt, &result.DeviceAccessCount)
+		&result.PassHash, &result.EnableComment, &result.RequireApproval, &result.CreatedAt, &result.UpdatedAt, &result.DeviceAccessCount)
 	if err != nil {
 		return ente.PublicCollectionSummary{}, stacktrace.Propagate(err, "failed to get public collection summary")
 	}

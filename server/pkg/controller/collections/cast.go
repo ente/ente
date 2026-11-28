@@ -31,7 +31,7 @@ func (c *CollectionController) GetCastDiff(ctx *gin.Context, sinceTime int64) ([
 		"since_time":    sinceTime,
 		"req_id":        requestid.Get(ctx),
 	})
-	diff, hasMore, err := c.getDiff(collectionID, sinceTime, CollectionDiffLimit, reqContextLogger)
+	diff, hasMore, err := c.getDiff(collectionID, sinceTime, CollectionDiffLimit, false, reqContextLogger)
 	if err != nil {
 		return nil, false, stacktrace.Propagate(err, "")
 	}
@@ -57,6 +57,6 @@ func (c *CollectionController) GetCastDiff(ctx *gin.Context, sinceTime int64) ([
 			diff[idx].IsDeleted = true
 		}
 	}
-	scrubDeletedFiles(diff)
+	scrubDeletedFiles(diff, false)
 	return diff, hasMore, nil
 }

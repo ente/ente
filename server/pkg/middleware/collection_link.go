@@ -145,11 +145,12 @@ func (m *CollectionLinkMiddleware) Authenticate(urlSanitizer func(_ *gin.Context
 		}
 
 		publicCtx := ente.PublicAccessContext{
-			ID:            publicCollectionSummary.ID,
-			IP:            clientIP,
-			UserAgent:     userAgent,
-			CollectionID:  publicCollectionSummary.CollectionID,
-			EnableComment: publicCollectionSummary.EnableComment,
+			ID:              publicCollectionSummary.ID,
+			IP:              clientIP,
+			UserAgent:       userAgent,
+			CollectionID:    publicCollectionSummary.CollectionID,
+			EnableComment:   publicCollectionSummary.EnableComment,
+			RequireApproval: publicCollectionSummary.RequireApproval,
 		}
 		c.Set(auth.PublicAccessKey, publicCtx)
 
@@ -338,7 +339,7 @@ func (m *CollectionLinkMiddleware) attachAnonIdentity(c *gin.Context, collection
 	}
 	claim, err := ente.ParseAnonymousIdentityToken(m.AnonIdentitySecret, token)
 	if err != nil {
-		return stacktrace.Propagate(err, "")
+		return ente.ErrAuthenticationRequired
 	}
 	anonID := claim.Subject
 	if anonID == "" {
