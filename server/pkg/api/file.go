@@ -419,6 +419,10 @@ func (h *FileHandler) UpdatePublicMagicMetadata(c *gin.Context) {
 		handler.Error(c, stacktrace.Propagate(err, ""))
 		return
 	}
+	if len(request.MetadataList) > DefaultMaxBatchSize {
+		handler.Error(c, stacktrace.Propagate(ente.ErrBatchSizeTooLarge, ""))
+		return
+	}
 	err := h.Controller.UpdateMagicMetadata(c, request, true)
 	if err != nil {
 		handler.Error(c, stacktrace.Propagate(err, ""))
