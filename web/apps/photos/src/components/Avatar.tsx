@@ -16,6 +16,7 @@ interface AvatarProps {
     email?: string;
     opacity?: number;
     emailByUserID?: Map<number, string>;
+    size?: number;
 }
 
 const AvatarBase = styled("div")<{
@@ -62,6 +63,7 @@ const Avatar: React.FC<AvatarProps> = ({
     email,
     opacity,
     emailByUserID,
+    size = 18,
 }) => {
     const isPublicCollectedAvatar =
         !!file && !!user && file.ownerID === user.id && !!file.pubMagicMetadata;
@@ -115,7 +117,7 @@ const Avatar: React.FC<AvatarProps> = ({
     if (resolvedContact.avatarURL && !isPublicCollectedAvatar) {
         return (
             <AvatarImage
-                size={18}
+                size={size}
                 opacity={opacity}
                 src={resolvedContact.avatarURL}
             />
@@ -127,7 +129,7 @@ const Avatar: React.FC<AvatarProps> = ({
     }
 
     return (
-        <AvatarBase size={18} colorCode={colorCode} opacity={opacity}>
+        <AvatarBase size={size} colorCode={colorCode} opacity={opacity}>
             {userLetter}
         </AvatarBase>
     );

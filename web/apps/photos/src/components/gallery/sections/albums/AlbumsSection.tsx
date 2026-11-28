@@ -354,6 +354,7 @@ export const AlbumsSection = ({
                 <AlbumsOverview
                     onRemotePull={remotePull}
                     albums={overviewAlbums}
+                    collections={library.collections}
                     title={(
                         albumFilters.find(
                             ({ value }) => value == overviewFilter,
@@ -410,9 +411,11 @@ export const AlbumsSection = ({
                             }
                             onAddSaveGroup={onAddSaveGroup}
                             showBackToAlbums={
-                                albumOpenedFromOverview !== undefined &&
-                                albumOpenedFromOverview.collectionID ===
-                                    activeCollectionSummary?.id
+                                (albumMode != "albums" &&
+                                    (activeCollectionSummary?.id ?? 0) > 0) ||
+                                (albumOpenedFromOverview !== undefined &&
+                                    albumOpenedFromOverview.collectionID ===
+                                        activeCollectionSummary?.id)
                             }
                             onEditAlbumDetails={showEditAlbumDetails}
                             onCollectionSlideshow={startSlideshow}

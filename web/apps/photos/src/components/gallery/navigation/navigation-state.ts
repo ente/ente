@@ -115,9 +115,7 @@ export const navigationReducer = (
             const id = action.collectionSummaryID ?? PseudoCollectionID.all;
             const mode = action.library.hiddenCollectionSummaries.has(id)
                 ? "hidden-albums"
-                : action.library.archivedCollectionSummaries.has(id) &&
-                    (destination.albumMode === "archive-albums" ||
-                        id === PseudoCollectionID.archiveItems)
+                : action.library.archivedCollectionSummaries.has(id)
                   ? "archive-albums"
                   : "albums";
             return navigate({

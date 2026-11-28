@@ -12,12 +12,13 @@ import {
     useMediaQuery,
     useTheme,
 } from "@mui/material";
+import type { Collection } from "ente-media/collection";
 import type {
     CollectionSummary,
     CollectionsSortBy,
 } from "ente-new/photos/services/collection-summary";
 import { t } from "i18next";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import AutoSizer from "react-virtualized-auto-sizer";
 import { FixedSizeList, type ListChildComponentProps } from "react-window";
 import { usePhotosNavigation } from "../../navigation/PhotosNavigationContext";
@@ -29,6 +30,7 @@ import {
 
 interface AlbumsOverviewProps {
     albums: CollectionSummary[];
+    collections?: Collection[];
     title: string;
     filter: AlbumFilter | "links";
     searchQuery: string;
@@ -39,6 +41,7 @@ interface AlbumsOverviewProps {
 
 export const AlbumsOverview = ({
     albums,
+    collections,
     title,
     filter,
     searchQuery,
@@ -49,6 +52,10 @@ export const AlbumsOverview = ({
     const { selectCollection, openOverviewAlbum } = usePhotosNavigation();
     const onSelectAlbum =
         filter == "links" ? selectCollection : openOverviewAlbum;
+    const collectionByID = useMemo(
+        () => new Map(collections?.map((c) => [c.id, c])),
+        [collections],
+    );
     const compact = useMediaQuery(useTheme().breakpoints.down("md"));
     const listRef = useRef<FixedSizeList>(null);
     const [listElement, setListElement] = useState<HTMLDivElement | null>(null);
@@ -202,6 +209,7 @@ export const AlbumsOverview = ({
                                         style={{ overflowX: "hidden" }}
                                         itemData={{
                                             albums,
+                                            collectionByID,
                                             isLinks,
                                             columns,
                                             columnGap,
@@ -226,6 +234,7 @@ export const AlbumsOverview = ({
 interface AlbumRowData {
     isLinks: boolean;
     albums: CollectionSummary[];
+    collectionByID: Map<number, Collection>;
     columns: number;
     columnGap: number;
     tileWidth: number;
@@ -297,6 +306,7 @@ const AlbumsRow = ({
                     <AlbumTile
                         key={album.id}
                         album={album}
+                        collection={data.collectionByID.get(album.id)}
                         onSelectAlbum={data.onSelectAlbum}
                         isScrolling={isScrolling}
                         isLinks={data.isLinks}

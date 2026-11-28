@@ -91,6 +91,19 @@ export const useAlbumActions = ({
         [send, setAlbumFilter],
     );
     const backToAlbums = useCallback(() => {
+        const { albumMode, collectionID } = navigation.destination;
+        if (
+            (albumMode == "hidden-albums" || albumMode == "archive-albums") &&
+            collectionID !== undefined &&
+            collectionID > 0
+        ) {
+            showSummary(
+                albumMode == "hidden-albums"
+                    ? PseudoCollectionID.hiddenItems
+                    : PseudoCollectionID.archiveItems,
+            );
+            return;
+        }
         const origin =
             albumOpenedFromOverview?.collectionID ===
             navigation.destination.collectionID
@@ -100,9 +113,10 @@ export const useAlbumActions = ({
         showAlbumOverview(origin?.filter ?? "ente");
     }, [
         albumOpenedFromOverview,
-        navigation.destination.collectionID,
+        navigation.destination,
         setAlbumSearchQuery,
         showAlbumOverview,
+        showSummary,
     ]);
     const openOverviewAlbum = useCallback(
         (collectionID: number) => {

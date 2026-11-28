@@ -139,7 +139,7 @@ export const AlbumsNavigation = ({
             collectionSummaries: displayedCollectionSummaries,
             activeCollectionID,
             onSelectCollectionID,
-            indented: mode == "hidden-albums",
+            indented: mode != "albums",
         }),
         [
             displayedCollectionSummaries,
@@ -347,8 +347,14 @@ export const AlbumsNavigation = ({
         viewportHeight,
         isSearching,
     ]);
-    const isGroupOverview =
-        activeCollectionID == PseudoCollectionID.hiddenItems;
+    const groupCollectionID =
+        mode == "hidden-albums"
+            ? PseudoCollectionID.hiddenItems
+            : PseudoCollectionID.archiveItems;
+    const groupLabel = t(
+        mode == "hidden-albums" ? "section_hidden" : "section_archive",
+    );
+    const isGroupOverview = activeCollectionID == groupCollectionID;
     return (
         <NavigationFrame
             title={title}
@@ -412,10 +418,10 @@ export const AlbumsNavigation = ({
                         )}
                     </AutoSizer>
                 </Box>
-            ) : mode == "hidden-albums" ? (
+            ) : (
                 <Stack
                     role="group"
-                    aria-label={t("section_hidden")}
+                    aria-label={groupLabel}
                     sx={{ flex: 1, minHeight: 0, minWidth: 0 }}
                 >
                     <BarCard
@@ -425,14 +431,12 @@ export const AlbumsNavigation = ({
                             setGroupExpanded(
                                 !isGroupOverview || !groupExpanded,
                             );
-                            onSelectCollectionID(
-                                PseudoCollectionID.hiddenItems,
-                            );
+                            onSelectCollectionID(groupCollectionID);
                             mobileDrawerProps.onClose();
                         }}
                         sx={{ flexShrink: 0, height: rowHeight }}
                     >
-                        <CardText>{t("section_hidden")}</CardText>
+                        <CardText>{groupLabel}</CardText>
                         <Box
                             component={HugeiconsIcon}
                             icon={ArrowDown01Icon}
@@ -449,8 +453,6 @@ export const AlbumsNavigation = ({
                     </BarCard>
                     {(isSearching || groupExpanded) && items}
                 </Stack>
-            ) : (
-                items
             )}
         </NavigationFrame>
     );
