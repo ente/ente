@@ -43,6 +43,7 @@ import "package:photos/ui/map/map_screen.dart";
 import 'package:photos/ui/notification/toast.dart';
 import 'package:photos/ui/sharing/album_participants_page.dart';
 import "package:photos/ui/sharing/manage_links_widget.dart";
+import 'package:photos/ui/sharing/moderation/review_uploads_page.dart';
 import 'package:photos/ui/sharing/share_collection_page.dart';
 import 'package:photos/ui/tools/free_space_page.dart';
 import "package:photos/ui/viewer/album_slideshow/album_slideshow.dart";
@@ -670,6 +671,25 @@ class _GalleryAppBarWidgetState extends State<GalleryAppBarWidget> {
 
     final int userId = Configuration.instance.getUserID()!;
     isQuickLink = widget.collection?.isQuickLinkCollection() ?? false;
+    final collection = widget.collection;
+    if (collection != null &&
+        (collection.isOwner(userId) || collection.isAdmin(userId)) &&
+        collection.publicURLs.any((url) => url.requireApproval)) {
+      actions.add(
+        IconButtonComponent(
+          tooltip: strings.reviewUploads,
+          icon: HugeIcon(
+            icon: HugeIcons.strokeRoundedShield01,
+            color: foregroundColor,
+          ),
+          variant: iconButtonVariant,
+          size: onCover ? kMinInteractiveDimension : 36,
+          iconSize: onCover ? IconSizes.medium : IconSizes.small,
+          shouldSurfaceExecutionStates: false,
+          onTap: () => routeToPage(context, ReviewUploadsPage(collection)),
+        ),
+      );
+    }
     if (galleryType.canAddFiles(widget.collection, userId)) {
       actions.add(
         IconButtonComponent(

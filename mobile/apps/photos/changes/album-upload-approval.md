@@ -1,0 +1,1 @@
+- Added "Require approval" for public album links, so the album owner and admins can review guest uploads before they appear in the album.

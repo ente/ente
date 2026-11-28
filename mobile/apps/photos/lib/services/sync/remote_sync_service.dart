@@ -364,6 +364,11 @@ class RemoteSyncService {
     _logger.info("[Collection-$collectionID] synced");
   }
 
+  Future<void> syncCollection(int collectionID) => _syncCollectionDiff(
+    collectionID,
+    _collectionsService.getCollectionSyncTime(collectionID),
+  );
+
   Future<void> joinAndSyncCollection(
     BuildContext context,
     int collectionID,
