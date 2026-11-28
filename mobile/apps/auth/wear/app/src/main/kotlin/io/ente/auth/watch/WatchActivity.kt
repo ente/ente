@@ -257,12 +257,21 @@ private fun AccountsScreen(
         if (selectedTag == null) state.entries
         else state.entries.filter { selectedTag in it.tags }
     }
+    val sharedPeriod = if (state.hideCodes) null else filteredEntries.map { it.period }.distinct().singleOrNull()
 
     ScreenScaffold(scrollState = listState) { contentPadding ->
+        if (sharedPeriod != null) {
+            val remaining = (sharedPeriod - seconds % sharedPeriod).toInt()
+            CountdownRing(
+                progress = remaining.toFloat() / sharedPeriod,
+                color = if (remaining <= 5) WatchStyle.warning else WatchStyle.accent,
+                modifier = Modifier.fillMaxSize().padding(3.dp),
+            )
+        }
         TransformingLazyColumn(
             state = listState,
             contentPadding = contentPadding,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().padding(horizontal = if (sharedPeriod != null) 6.dp else 0.dp),
         ) {
             if (availableTags.isEmpty()) {
                 item(key = "title") {
@@ -300,6 +309,7 @@ private fun AccountsScreen(
                     entry = entry,
                     seconds = seconds,
                     hideCodes = state.hideCodes,
+                    showsBar = sharedPeriod == null,
                     onClick = { onSelectEntry(entry.id) },
                     transformation = SurfaceTransformation(transformationSpec),
                     modifier = Modifier.fillMaxWidth().transformedHeight(this, transformationSpec),
@@ -453,6 +463,7 @@ private fun AccountCard(
     entry: Entry,
     seconds: Long,
     hideCodes: Boolean,
+    showsBar: Boolean,
     onClick: () -> Unit,
     transformation: SurfaceTransformation,
     modifier: Modifier = Modifier,
@@ -515,12 +526,14 @@ private fun AccountCard(
                     maxLines = 1,
                 )
             }
-            Spacer(modifier = Modifier.height(4.dp))
-            CountdownBar(
-                progress = remaining.toFloat() / entry.period,
-                color = if (isWarning) WatchStyle.warning else WatchStyle.accent,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            if (showsBar) {
+                Spacer(modifier = Modifier.height(4.dp))
+                CountdownBar(
+                    progress = remaining.toFloat() / entry.period,
+                    color = if (isWarning) WatchStyle.warning else WatchStyle.accent,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
     }
 }
