@@ -1,0 +1,1 @@
+DROP INDEX CONCURRENTLY collection_files_recent_diff_idx;
