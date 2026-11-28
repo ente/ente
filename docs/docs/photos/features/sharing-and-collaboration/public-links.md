@@ -13,6 +13,8 @@ You can create public links in two ways: from an existing album, or by selecting
 
 ### From an album
 
+If you imported photos from [nested folders](/photos/faq/albums-and-organization#nested-folders), your link shares the resulting album without the original folder hierarchy.
+
 Share an entire album via a public link:
 
 **On mobile:**
