@@ -209,10 +209,15 @@ func (c *CollectionController) UpdateMagicMetadata(ctx *gin.Context, request ent
 	}
 	// todo: verify version mismatch later. We are not planning to resync collection on clients,
 	// so ignore that check until then. Ideally, after file size info sync, we should enable
-	err := c.CollectionRepo.UpdateMagicMetadata(ctx, request.ID, request.MagicMetadata, isPublicMetadata)
+	expectedVersion, err := c.CollectionRepo.UpdateMagicMetadata(ctx, request.ID, request.MagicMetadata, isPublicMetadata)
 	if err != nil {
 		return stacktrace.Propagate(err, "")
 	}
+	route := "owner_private"
+	if isPublicMetadata {
+		route = "owner_public"
+	}
+	countMagicMetadataVersion(ctx, route, request.MagicMetadata.Version, expectedVersion)
 	return nil
 }
 
