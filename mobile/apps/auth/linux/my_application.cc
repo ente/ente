@@ -51,6 +51,124 @@ static gboolean should_prefer_dark_theme()
   return g_strcmp0(color_scheme, "prefer-dark") == 0;
 }
 
+static void
+sync_color_scheme(GVariant *value)
+{
+  if (!g_variant_is_of_type(value, G_VARIANT_TYPE_UINT32))
+  {
+    g_warning("Unexpected color-scheme type: %s",
+              g_variant_get_type_string(value));
+    return;
+  }
+
+  GtkSettings *settings = gtk_settings_get_default();
+  guint32 scheme = g_variant_get_uint32(value);
+
+  switch (scheme)
+  {
+  case 0: g_object_set(settings, "gtk-application-prefer-dark-theme", FALSE, nullptr); break;
+  case 1: g_object_set(settings, "gtk-application-prefer-dark-theme", TRUE, nullptr); break;
+  case 2: g_object_set(settings, "gtk-application-prefer-dark-theme", FALSE, nullptr); break;
+  default: g_print("Unknown color scheme: %u\n", scheme); break;
+  }
+}
+
+static void
+appearance_on_signal(GDBusProxy *proxy,
+                     const char *sender_name,
+                     const char *signal_name,
+                     GVariant *parameters,
+                     gpointer user_data)
+{
+  if (g_strcmp0(signal_name, "SettingChanged") != 0)
+    return;
+
+  const char *name_space;
+  const char *key;
+  GVariant *value;
+
+  g_variant_get(parameters, "(&s&sv)", &name_space, &key, &value);
+  if (g_str_equal(name_space, "org.freedesktop.appearance") &&
+      g_str_equal(key, "color-scheme"))
+  {
+    sync_color_scheme(value);
+  }
+
+  g_variant_unref(value);
+}
+
+static void on_color_scheme_init_read_finished(GObject *source,
+                                               GAsyncResult *res,
+                                               gpointer user_data)
+{
+  GDBusProxy *proxy = G_DBUS_PROXY(source);
+  GError *error = NULL;
+
+  // type: (v)
+  GVariant *reply = g_dbus_proxy_call_finish(proxy, res, &error);
+
+  if (!reply)
+  {
+    g_printerr("Could not read color scheme: %s\n", error->message);
+    g_error_free(error);
+    g_object_unref(proxy);
+    sync_color_scheme(g_variant_new_uint32(should_prefer_dark_theme()));
+    return;
+  }
+
+  GVariant *boxed_value = NULL; // type: v
+  GVariant *value = NULL; // type: u
+
+  g_variant_get(reply, "(v)", &boxed_value);
+  value = g_variant_get_variant(boxed_value);
+
+  sync_color_scheme(value);
+
+  g_variant_unref(reply);
+  g_variant_unref(boxed_value);
+  g_variant_unref(value);
+
+  g_signal_connect(proxy, "g-signal", G_CALLBACK(appearance_on_signal), NULL);
+}
+
+static void on_new_proxy_created(GObject *source, GAsyncResult *res, gpointer user_data)
+{
+  GError *error = NULL;
+  GDBusProxy *proxy = g_dbus_proxy_new_for_bus_finish(res, &error);
+
+  if (!proxy)
+  {
+    g_printerr("Could not create portal proxy: %s\n", error->message);
+    g_error_free(error);
+    sync_color_scheme(g_variant_new_uint32(should_prefer_dark_theme()));
+    return;
+  }
+
+  g_dbus_proxy_call(proxy,
+                    "Read",
+                    g_variant_new("(ss)",
+                                  "org.freedesktop.appearance",
+                                  "color-scheme"),
+                    G_DBUS_CALL_FLAGS_NONE,
+                    -1,
+                    NULL,
+                    on_color_scheme_init_read_finished,
+                    NULL);
+}
+
+static void watch_color_scheme()
+{
+  g_dbus_proxy_new_for_bus(G_BUS_TYPE_SESSION,
+                           G_DBUS_PROXY_FLAGS_NONE,
+                           NULL,
+                           "org.freedesktop.portal.Desktop",
+                           "/org/freedesktop/portal/desktop",
+                           "org.freedesktop.portal.Settings",
+                           NULL,
+                           on_new_proxy_created,
+                           NULL);
+}
+
 static void my_application_activate(GApplication *application)
 {
   MyApplication *self = MY_APPLICATION(application);
@@ -93,13 +211,6 @@ static void my_application_activate(GApplication *application)
 
   if (use_header_bar)
   {
-    GtkSettings *settings = gtk_settings_get_default();
-    if (settings != nullptr && should_prefer_dark_theme())
-    {
-      g_object_set(
-          settings, "gtk-application-prefer-dark-theme", TRUE, nullptr);
-    }
-
     GtkHeaderBar *header_bar = GTK_HEADER_BAR(gtk_header_bar_new());
     gtk_widget_show(GTK_WIDGET(header_bar));
     gtk_header_bar_set_title(header_bar, "Ente Auth");
@@ -111,6 +222,7 @@ static void my_application_activate(GApplication *application)
     gtk_window_set_title(window, "Ente Auth");
   }
 
+  watch_color_scheme();
   gtk_window_set_default_size(window, 1280, 720);
   gtk_widget_show(GTK_WIDGET(window));
 
