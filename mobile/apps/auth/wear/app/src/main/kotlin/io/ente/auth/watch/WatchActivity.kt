@@ -76,6 +76,7 @@ import androidx.wear.compose.material3.IconButtonDefaults
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.SurfaceTransformation
+import androidx.wear.compose.material3.SwitchButton
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.lazy.rememberTransformationSpec
 import androidx.wear.compose.material3.lazy.transformedHeight
@@ -145,6 +146,7 @@ private fun AuthWatchRoot(
     var selectedEntryId by rememberSaveable { mutableStateOf<String?>(null) }
     val preferences = remember { context.getSharedPreferences("watch", Context.MODE_PRIVATE) }
     var selectedTag by remember { mutableStateOf(preferences.getString("selectedTag", null)) }
+    var hideCodes by remember { mutableStateOf(preferences.getBoolean("hideCodes", false)) }
     var pickingTag by rememberSaveable { mutableStateOf(false) }
     val accountsListState = rememberTransformingLazyColumnState()
     var seconds by remember { mutableLongStateOf(System.currentTimeMillis() / 1000) }
@@ -171,6 +173,9 @@ private fun AuthWatchRoot(
 
     LaunchedEffect(selectedTag) {
         preferences.edit { putString("selectedTag", selectedTag) }
+    }
+    LaunchedEffect(hideCodes) {
+        preferences.edit { putBoolean("hideCodes", hideCodes) }
     }
 
     val isHidden = state.message == WatchCompanion.Message.hidden
@@ -221,6 +226,8 @@ private fun AuthWatchRoot(
                     seconds = seconds,
                     availableTags = availableTags,
                     selectedTag = currentTag,
+                    hideCodes = hideCodes,
+                    onHideCodesChange = { hideCodes = it },
                     onPickTag = { pickingTag = true },
                     onSelectEntry = { selectedEntryId = it },
                     onEnroll = companion::enroll,
@@ -240,6 +247,8 @@ private fun AccountsScreen(
     seconds: Long,
     availableTags: List<String>,
     selectedTag: String?,
+    hideCodes: Boolean,
+    onHideCodesChange: (Boolean) -> Unit,
     onPickTag: () -> Unit,
     onSelectEntry: (String) -> Unit,
     onEnroll: () -> Unit,
@@ -257,7 +266,7 @@ private fun AccountsScreen(
         if (selectedTag == null) state.entries
         else state.entries.filter { selectedTag in it.tags }
     }
-    val sharedPeriod = if (state.hideCodes) null else filteredEntries.map { it.period }.distinct().singleOrNull()
+    val sharedPeriod = if (hideCodes) null else filteredEntries.map { it.period }.distinct().singleOrNull()
 
     ScreenScaffold(scrollState = listState) { contentPadding ->
         if (sharedPeriod != null) {
@@ -308,7 +317,7 @@ private fun AccountsScreen(
                 AccountCard(
                     entry = entry,
                     seconds = seconds,
-                    hideCodes = state.hideCodes,
+                    hideCodes = hideCodes,
                     showsBar = sharedPeriod == null,
                     onClick = { onSelectEntry(entry.id) },
                     transformation = SurfaceTransformation(transformationSpec),
@@ -327,6 +336,16 @@ private fun AccountsScreen(
                 }
             }
             if (state.canErase) {
+                item(key = "hide-codes") {
+                    SwitchButton(
+                        checked = hideCodes,
+                        onCheckedChange = onHideCodesChange,
+                        transformation = SurfaceTransformation(transformationSpec),
+                        modifier = Modifier.fillMaxWidth().transformedHeight(this, transformationSpec),
+                    ) {
+                        Text(stringResource(R.string.hide_codes))
+                    }
+                }
                 item(key = "sync") {
                     Button(
                         onClick = onRetry,

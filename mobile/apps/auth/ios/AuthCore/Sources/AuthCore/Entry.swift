@@ -53,11 +53,9 @@ public struct Entry: Codable, Identifiable, Sendable, Equatable {
 
 public struct Snapshot: Codable, Sendable, Equatable {
   public let entries: [Entry]
-  public let hideCodes: Bool
 
-  public init(entries: [Entry], hideCodes: Bool = false) {
+  public init(entries: [Entry]) {
     self.entries = entries
-    self.hideCodes = hideCodes
   }
 
   public func validate() throws {

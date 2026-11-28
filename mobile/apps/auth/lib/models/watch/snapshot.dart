@@ -20,10 +20,7 @@ class WatchSnapshot {
       !code.isTrashed &&
       (_isSteam(code) || code.type == Type.totp);
 
-  factory WatchSnapshot.fromCodes(
-    Iterable<Code> codes, {
-    bool hideCodes = false,
-  }) {
+  factory WatchSnapshot.fromCodes(Iterable<Code> codes) {
     final entries = <Map<String, Object>>[];
     var omitted = 0;
     for (final code in codes.where((c) => !c.hasError && !c.isTrashed)) {
@@ -37,10 +34,7 @@ class WatchSnapshot {
         omitted++;
       }
     }
-    final payload = <String, Object>{
-      'entries': entries,
-      'hideCodes': hideCodes,
-    };
+    final payload = <String, Object>{'entries': entries};
     return WatchSnapshot._(
       Uint8List.fromList(utf8.encode(jsonEncode(payload))),
       omitted,

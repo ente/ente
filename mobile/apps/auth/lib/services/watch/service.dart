@@ -185,10 +185,7 @@ class WatchService extends ChangeNotifier with WidgetsBindingObserver {
         return;
       }
       sortAuthCodes(codes, PreferenceService.instance.codeSortKey());
-      final snapshot = WatchSnapshot.fromCodes(
-        codes,
-        hideCodes: PreferenceService.instance.shouldHideCodes(),
-      );
+      final snapshot = WatchSnapshot.fromCodes(codes);
       _accept(
         await _call('publish', {
           'enrollmentID': id,

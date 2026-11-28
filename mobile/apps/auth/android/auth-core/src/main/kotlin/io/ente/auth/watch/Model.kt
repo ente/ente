@@ -111,12 +111,11 @@ data class Entry(
     }
 }
 
-data class Snapshot(val entries: List<Entry>, val hideCodes: Boolean = false) {
+data class Snapshot(val entries: List<Entry>) {
     fun encode(): ByteArray {
         validate()
         return JsonObject().apply {
             add("entries", JsonArray().apply { entries.forEach { add(it.encode()) } })
-            addProperty("hideCodes", hideCodes)
         }.encode()
     }
 
@@ -129,9 +128,8 @@ data class Snapshot(val entries: List<Entry>, val hideCodes: Boolean = false) {
         val EMPTY = Snapshot(emptyList())
         fun decode(data: ByteArray, maximum: Int = Envelope.MAX_PLAINTEXT_BYTES): Snapshot {
             val root = json(data, maximum)
-            val hideCodes = root.boolean("hideCodes")
             val entries = root.getAsJsonArray("entries").map { Entry.decode(it.asJsonObject) }
-            return Snapshot(entries, hideCodes).also { it.validate() }
+            return Snapshot(entries).also { it.validate() }
         }
     }
 }

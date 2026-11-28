@@ -12,8 +12,7 @@ class WatchCompanion(context: Context) {
     enum class Message { connectPhone, hidden, setup, approvePhone, noAccounts, offline, unlockWatch,
         storageFailed, secureStorageUnavailable, setupFailed, syncFailed, ready }
     data class State(val entries: List<Entry> = emptyList(), val message: Message = Message.hidden,
-                     val canEnroll: Boolean = false, val canErase: Boolean = false,
-                     val hideCodes: Boolean = false)
+                     val canEnroll: Boolean = false, val canErase: Boolean = false)
     private val appContext = context.applicationContext
     private val directory = File(appContext.noBackupFilesDir, "watch")
     private val snapshotFile = File(directory, "snapshot")
@@ -101,8 +100,7 @@ class WatchCompanion(context: Context) {
             else -> Message.ready
         }
         emit(State(local.snapshot.entries, message, local.enrollment == null && suites.isNotEmpty(),
-            local.enrollment != null || local.receipt != null,
-            local.snapshot.hideCodes))
+            local.enrollment != null || local.receipt != null))
     }
 
     private fun failed(error: Exception, storageFailure: Boolean) {

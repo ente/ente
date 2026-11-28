@@ -22,6 +22,7 @@ private struct WatchHome: View {
   @Environment(\.scenePhase) private var scenePhase
   @Environment(\.isLuminanceReduced) private var dimmed
   @AppStorage("selectedTag") private var selectedTag: String?
+  @AppStorage("hideCodes") private var hideCodes = false
   @State private var searchText = ""
 
   private var visible: Bool { scenePhase == .active && !dimmed }
@@ -45,7 +46,7 @@ private struct WatchHome: View {
 
   private var sharedPeriod: Int? {
     let periods = Set(filteredEntries.map(\.period))
-    return companion.hideCodes || periods.count != 1 ? nil : periods.first
+    return hideCodes || periods.count != 1 ? nil : periods.first
   }
 
   var body: some View {
@@ -76,7 +77,7 @@ private struct WatchHome: View {
               .listRowBackground(Color.clear)
           }
           ForEach(filteredEntries) { entry in
-            if companion.hideCodes {
+            if hideCodes {
               EntryRowLink(entry: entry, code: nil, remaining: nil, showsBar: false)
             } else {
               TimelineView(
@@ -238,10 +239,12 @@ private struct EntryRowLink: View {
 private struct WatchManagement: View {
   @ObservedObject var companion: WatchCompanion
   @Environment(\.dismiss) private var dismiss
+  @AppStorage("hideCodes") private var hideCodes = false
   @State private var confirmErase = false
 
   var body: some View {
     List {
+      Toggle("Hide codes", isOn: $hideCodes)
       Button("Erase watch data", role: .destructive) { confirmErase = true }
     }
     .navigationTitle("Manage")
