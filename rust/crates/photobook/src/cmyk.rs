@@ -7,7 +7,7 @@ use moxcms::{
 
 use crate::Error;
 
-const JPEG_QUALITY: u8 = 98;
+const JPEG_QUALITY: u8 = 96;
 
 pub(crate) struct CmykJpegEncoder {
     transform: Arc<Transform16BitExecutor>,

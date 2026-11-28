@@ -1,16 +1,19 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { normalizeBookPages } from "./bookPages";
+import { isBlankPage, normalizeBookPages } from "./bookPages";
 import {
     applyVariant,
     chooseBestVariantKey,
     defaultVariantKeyForCount,
     generateAutoLayout,
     getLayoutMetrics,
+    getMaxAutoLayoutPhotos,
     getMirrorVariant,
     getVariantPreview,
     getVariantsForCount,
 } from "./layouts";
+import { createImportedBookPages } from "./photoPlacement";
+import { MAX_PRINT_PAGES, MIN_PRINT_PAGES } from "./printProducts";
 import type { Photo } from "./types";
 
 const photos: Photo[] = Array.from({ length: 12 }, (_, i) => ({
@@ -251,6 +254,79 @@ function makePhotos(count: number): Photo[] {
         dateTaken: i,
     }));
 }
+
+test("the import cutoff fits exactly within the printable page limit", () => {
+    const limit = getMaxAutoLayoutPhotos(MAX_PRINT_PAGES);
+    assert.equal(limit, 223);
+    assert.equal(generateAutoLayout(makePhotos(limit)).length, MAX_PRINT_PAGES);
+    assert.equal(
+        generateAutoLayout(makePhotos(limit + 1)).length,
+        MAX_PRINT_PAGES + 2,
+    );
+    assert.equal(generateAutoLayout(makePhotos(600)).length, 268);
+});
+
+test("imports keep every photo within the auto-layout limit and pad to 24 pages", () => {
+    for (const count of [1, 2, 10, 45, 50, 60, 222, 223]) {
+        const photos = makePhotos(count);
+        const pages = createImportedBookPages(photos);
+        const autoPages = generateAutoLayout(photos);
+        const placed = (book: typeof pages) =>
+            book.map((page) => page.slots.map((slot) => slot.photoId));
+        assert.equal(pages.length, Math.max(MIN_PRINT_PAGES, autoPages.length));
+        assert.deepEqual(
+            placed(pages.slice(0, autoPages.length - 1)),
+            placed(autoPages.slice(0, -1)),
+        );
+        assert.ok(pages.slice(autoPages.length - 1).every(isBlankPage));
+        assert.equal(new Set(pages.map((page) => page.id)).size, pages.length);
+    }
+});
+
+test("large imports fill 100 pages with evenly spaced photos in date order", () => {
+    const limit = getMaxAutoLayoutPhotos(MAX_PRINT_PAGES);
+    const pageSizes = generateAutoLayout(makePhotos(limit)).map(
+        (page) => page.slots.length,
+    );
+    for (const count of [224, 600, 10000]) {
+        const photos = makePhotos(count).reverse();
+        const originalIds = photos.map((photo) => photo.id);
+        const pages = createImportedBookPages(photos);
+        const selected = pages.flatMap((page) =>
+            page.slots.map((slot) => Number(slot.photoId!.slice(6))),
+        );
+
+        assert.equal(pages.length, MAX_PRINT_PAGES);
+        assert.deepEqual(
+            pages.map((page) => page.slots.length),
+            pageSizes,
+        );
+        assert.equal(new Set(selected).size, limit);
+        assert.equal(selected[0], 0);
+        assert.equal(selected.at(-1), count - 1);
+        assert.deepEqual(
+            selected,
+            [...selected].sort((a, b) => a - b),
+        );
+        const gaps = selected
+            .slice(1)
+            .map((photo, index) => photo - selected[index]!);
+        assert.ok(Math.max(...gaps) - Math.min(...gaps) <= 1);
+        assert.deepEqual(
+            photos.map((photo) => photo.id),
+            originalIds,
+        );
+    }
+});
+
+test("large imports select the same photos each time", () => {
+    const photos = makePhotos(600);
+    const selectedIds = () =>
+        createImportedBookPages(photos).flatMap((page) =>
+            page.slots.map((slot) => slot.photoId),
+        );
+    assert.deepEqual(selectedIds(), selectedIds());
+});
 
 test("auto-layout fills every interior page whenever there are at least two interior photos", () => {
     for (const count of [

@@ -55,6 +55,7 @@ export interface PhotoSlot {
     cropX: number;
     cropY: number;
     cropZoom: number;
+    rotation?: number;
 }
 
 export interface BookPage {

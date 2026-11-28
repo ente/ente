@@ -1,4 +1,8 @@
-import { useBook } from "@/context/book";
+import { useBook, useBookSelector } from "@/context/book";
+import {
+    albumImportIssue,
+    type AlbumImportIssue,
+} from "@/lib/ente/import-error";
 import { useRouter } from "next/router";
 import {
     createContext,
@@ -19,16 +23,21 @@ const ACCEPTED_TYPES = [
     "image/heif",
 ];
 
-type EnteDialogStage = "closed" | "url" | "password";
+type EnteDialogStage = "closed" | "url" | "password" | "replace";
+
+interface AlbumImportOptions {
+    linkDeviceToken?: string;
+    confirmReplacement?: boolean;
+}
 
 function usePhotoImportSession() {
     const router = useRouter();
+    const hasBook = useBookSelector((state) => state.book.pages.length > 0);
     const {
         addPhotos,
         addEntePhotos,
         processingPhotos,
         processingProgress,
-        processingMessage,
         setAppView,
         loading,
     } = useBook(
@@ -36,7 +45,6 @@ function usePhotoImportSession() {
         "addEntePhotos",
         "processingPhotos",
         "processingProgress",
-        "processingMessage",
         "setAppView",
         "loading",
     );
@@ -44,6 +52,14 @@ function usePhotoImportSession() {
     const [dragOver, setDragOver] = useState(false);
     const [importError, setImportError] = useState<string | null>(null);
     const [importActive, setImportActive] = useState(false);
+    const [importCompleted, setImportCompleted] = useState(false);
+    useEffect(() => {
+        if (importCompleted && hasBook) setImportActive(false);
+    }, [importCompleted, hasBook]);
+    const clearImportCompleted = useCallback(
+        () => setImportCompleted(false),
+        [],
+    );
     const [importing, setImporting] = useState(false);
     const importingRef = useRef(false);
     const retryFilesRef = useRef<File[]>([]);
@@ -51,15 +67,25 @@ function usePhotoImportSession() {
     const [enteStage, setEnteStage] = useState<EnteDialogStage>("closed");
     const [enteUrl, setEnteUrl] = useState("");
     const [entePassword, setEntePassword] = useState("");
-    const [enteError, setEnteError] = useState<string | null>(null);
+    const [enteError, setEnteError] = useState<AlbumImportIssue | null>(null);
+    const [entePasswordError, setEntePasswordError] = useState<string>();
+    const [verifyingPassword, setVerifyingPassword] = useState(false);
     const passwordResolverRef = useRef<((pw: string | null) => void) | null>(
         null,
     );
+    const replacementResolverRef = useRef<((replace: boolean) => void) | null>(
+        null,
+    );
+    const handoffRef = useRef<{
+        url: string;
+        options: AlbumImportOptions;
+    } | null>(null);
 
     const beginImport = useCallback(() => {
         if (loading || importingRef.current) return false;
         importingRef.current = true;
         setImportActive(true);
+        setImportCompleted(false);
         setImporting(true);
         setImportError(null);
         setEnteError(null);
@@ -75,65 +101,125 @@ function usePhotoImportSession() {
         setImportError(null);
         setEnteError(null);
         retryFilesRef.current = [];
+        handoffRef.current = null;
     }, []);
 
-    const openEnteDialog = useCallback(() => {
+    const chooseAnotherAlbum = useCallback(() => {
+        setEnteUrl("");
         setEnteStage("url");
-        setEnteError(null);
-        setEntePassword("");
     }, []);
 
     const closeEnteDialog = useCallback(() => {
-        const resolve = passwordResolverRef.current;
-        passwordResolverRef.current = null;
-        if (resolve) resolve(null);
+        setEnteUrl(handoffRef.current?.url ?? "");
         setEnteStage("closed");
     }, []);
 
-    const requestPassword = useCallback((): Promise<string | null> => {
-        return new Promise((resolve) => {
-            passwordResolverRef.current = resolve;
-            setEntePassword("");
-            setEnteError(null);
-            setEnteStage("password");
-        });
-    }, []);
+    const requestPassword = useCallback(
+        (error?: string): Promise<string | null> => {
+            return new Promise((resolve) => {
+                passwordResolverRef.current = resolve;
+                if (!error) setEntePassword("");
+                setEntePasswordError(error);
+                setVerifyingPassword(false);
+                setEnteError(null);
+                setEnteStage("password");
+            });
+        },
+        [],
+    );
 
-    const handleImportEnte = useCallback(async () => {
-        const url = enteUrl.trim();
-        if (!url) {
-            setEnteError("Paste the album link first.");
-            return;
-        }
-        if (!beginImport()) return;
-        retryFilesRef.current = [];
-
-        try {
-            await addEntePhotos(url, requestPassword);
-            setEnteUrl("");
-            setImportActive(false);
-        } catch (e) {
-            const cancelled =
-                (e as { cancelled?: boolean } | null)?.cancelled === true;
-            if (cancelled) {
-                setImportActive(false);
+    const importEnteAlbum = useCallback(
+        async (albumUrl: string, options: AlbumImportOptions = {}) => {
+            const url = albumUrl.trim();
+            if (!url) {
+                setEnteError({
+                    message: "Paste the album link first.",
+                    canRetry: false,
+                });
                 return;
             }
-            const msg =
-                e instanceof Error ? e.message : "Something went wrong.";
-            setEnteStage("url");
-            setEnteError(msg);
-        } finally {
-            importingRef.current = false;
-            setImporting(false);
-        }
-    }, [enteUrl, addEntePhotos, requestPassword, beginImport]);
+            if (!beginImport()) return;
+            setEnteUrl(url);
+            handoffRef.current = { url, options };
+            retryFilesRef.current = [];
+
+            try {
+                const { prepareEnteAlbum } = await import("@/lib/ente/import");
+                const { credentials, files } = await prepareEnteAlbum(
+                    url,
+                    requestPassword,
+                    options.linkDeviceToken,
+                );
+                setEnteStage("closed");
+                setVerifyingPassword(false);
+                if (!files.length)
+                    throw new Error(
+                        "This album has no photos we can import. Add photos to the album, then try again.",
+                    );
+                if (hasBook && options.confirmReplacement) {
+                    const replace = await new Promise<boolean>((resolve) => {
+                        replacementResolverRef.current = resolve;
+                        setEnteStage("replace");
+                    });
+                    if (!replace) {
+                        setImportActive(false);
+                        handoffRef.current = null;
+                        return;
+                    }
+                }
+                await addEntePhotos(credentials, files);
+                handoffRef.current = null;
+                setEnteUrl("");
+                setImportCompleted(true);
+            } catch (e) {
+                const cancelled =
+                    (e as { cancelled?: boolean } | null)?.cancelled === true;
+                if (cancelled) {
+                    setImportActive(false);
+                    return;
+                }
+                setEnteStage("closed");
+                setEnteError(await albumImportIssue(e));
+            } finally {
+                setVerifyingPassword(false);
+                importingRef.current = false;
+                setImporting(false);
+            }
+        },
+        [hasBook, addEntePhotos, requestPassword, beginImport],
+    );
+
+    const handleImportEnte = useCallback(
+        () =>
+            importEnteAlbum(
+                enteUrl,
+                handoffRef.current
+                    ? {
+                          ...handoffRef.current.options,
+                          linkDeviceToken:
+                              handoffRef.current.url === enteUrl.trim()
+                                  ? handoffRef.current.options.linkDeviceToken
+                                  : undefined,
+                      }
+                    : { confirmReplacement: true },
+            ),
+        [enteUrl, importEnteAlbum],
+    );
+
+    const handleReplaceBook = useCallback((replace: boolean) => {
+        const resolve = replacementResolverRef.current;
+        replacementResolverRef.current = null;
+        setEnteStage("closed");
+        resolve?.(replace);
+    }, []);
 
     const handleSubmitPassword = useCallback(() => {
         const resolve = passwordResolverRef.current;
+        if (!resolve) return;
         passwordResolverRef.current = null;
-        setEnteStage("closed");
-        if (resolve) resolve(entePassword);
+        setVerifyingPassword(true);
+        setEntePasswordError(undefined);
+        resolve(entePassword);
     }, [entePassword]);
 
     const handleCancelPassword = useCallback(() => {
@@ -164,7 +250,7 @@ function usePhotoImportSession() {
                 try {
                     await addPhotos(valid, { replace: true });
                     retryFilesRef.current = [];
-                    setImportActive(false);
+                    setImportCompleted(true);
                 } catch (error) {
                     setImportError(
                         error instanceof Error
@@ -208,6 +294,8 @@ function usePhotoImportSession() {
         () => () => {
             passwordResolverRef.current?.(null);
             passwordResolverRef.current = null;
+            replacementResolverRef.current?.(false);
+            replacementResolverRef.current = null;
         },
         [],
     );
@@ -220,14 +308,20 @@ function usePhotoImportSession() {
         setEnteUrl,
         entePassword,
         setEntePassword,
+        entePasswordError,
+        verifyingPassword,
         enteError,
         importError,
         processingPhotos,
-        processingProgress,
-        processingMessage,
-        openEnteDialog,
+        processingProgress: importCompleted
+            ? 100
+            : processingPhotos
+              ? processingProgress
+              : 0,
         closeEnteDialog,
         handleImportEnte,
+        importEnteAlbum,
+        handleReplaceBook,
         handleSubmitPassword,
         handleCancelPassword,
         handleFiles,
@@ -235,8 +329,11 @@ function usePhotoImportSession() {
         handleDragOver,
         handleDragLeave,
         importActive,
-        importing,
+        importCompleted,
+        clearImportCompleted,
+        importing: importing || (importActive && importCompleted),
         dismissImport,
+        chooseAnotherAlbum,
         retryImport,
     };
 }

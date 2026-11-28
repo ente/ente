@@ -778,7 +778,7 @@ export function defaultVariantKeyForCount(count: number): string {
     return "4-grid";
 }
 
-export function chooseBestLayout(photos: Photo[]): PhotoSlot[] {
+function chooseBestLayout(photos: Photo[]): PhotoSlot[] {
     if (photos.length === 0) return [];
     const variantKey = chooseBestVariantKey(photos);
     return applyVariant(
@@ -798,21 +798,28 @@ function layoutCropLoss(photos: Photo[]): number {
     }, 0);
 }
 
+const layoutCycle = [2, 3, 1, 4, 2, 3, 1, 2];
+const groupSize = (page: number) => layoutCycle[page % layoutCycle.length]!;
+const lastGroupCapacity = (size: number) => Math.min(size + 1, 4);
+
+export function getMaxAutoLayoutPhotos(maxPages: number): number {
+    const interiorPages = maxPages - (maxPages % 2) - 2;
+    let photos = 1;
+    for (let page = 0; page < interiorPages; page++) {
+        const size = groupSize(page);
+        photos += page === interiorPages - 1 ? lastGroupCapacity(size) : size;
+    }
+    return photos;
+}
+
 function groupInteriorPhotos(photos: Photo[]): Photo[][] {
     const groups: Photo[][] = [];
-    const layoutCycle = [2, 3, 1, 4, 2, 3, 1, 2];
     let idx = 0;
 
     while (idx < photos.length) {
         const remaining = photos.length - idx;
-        let count = Math.min(
-            layoutCycle[groups.length % layoutCycle.length]!,
-            remaining,
-        );
-
-        if (remaining - count === 1 && count < 4) {
-            count = Math.min(count + 1, remaining, 4);
-        }
+        const size = groupSize(groups.length);
+        const count = remaining <= lastGroupCapacity(size) ? remaining : size;
         groups.push(photos.slice(idx, idx + count));
         idx += count;
     }

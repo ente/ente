@@ -13,7 +13,7 @@ import {
 } from "@/lib/spreads";
 import type { BookPage } from "@/lib/types";
 import { uiColors } from "@/theme/colors";
-import { Box, IconButton, useMediaQuery } from "@mui/material";
+import { Box, IconButton, Typography, useMediaQuery } from "@mui/material";
 import { PageFlip } from "page-flip";
 import {
     forwardRef,
@@ -39,6 +39,7 @@ import PageCanvas from "./PageCanvas";
 import PrinterBlankPage from "./PrinterBlankPage";
 
 const PAGE_NAVIGATION_SPACE = 72;
+const PAGE_LABEL_SPACE = 30;
 
 const navigationButtonSx = {
     position: "absolute",
@@ -123,7 +124,10 @@ const BookViewer = forwardRef<BookViewerHandle, BookViewerProps>(
                     width / (singlePage ? 1 : 2),
                     Math.max(
                         1,
-                        height - (singlePage ? PAGE_NAVIGATION_SPACE : 0),
+                        height -
+                            (singlePage
+                                ? PAGE_NAVIGATION_SPACE
+                                : PAGE_LABEL_SPACE),
                     ),
                 );
                 const scale = singlePage || largeDesktop ? 1 : 0.768;
@@ -216,12 +220,7 @@ const BookViewer = forwardRef<BookViewerHandle, BookViewerProps>(
                     element.dataset.spineEdge =
                         index % 2 === 0 ? "left" : "right";
                 }
-                setPreviewPageDensity(
-                    element,
-                    binding,
-                    index,
-                    flipPages.length,
-                );
+                setPreviewPageDensity(element, binding);
                 if (pageIndex === null)
                     element.setAttribute("aria-label", "Blank page (required)");
                 root.appendChild(element);
@@ -509,7 +508,7 @@ const BookViewer = forwardRef<BookViewerHandle, BookViewerProps>(
                         left: "50%",
                         top: "50%",
                         width: pageSize * 2,
-                        height: pageSize,
+                        height: pageSize + PAGE_LABEL_SPACE,
                         transform: "translate(-50%, -50%)",
                     }}
                 >
@@ -525,6 +524,41 @@ const BookViewer = forwardRef<BookViewerHandle, BookViewerProps>(
                         }}
                     >
                         <div ref={mountRef} className="book-preview-mount" />
+                    </Box>
+                    <Box
+                        sx={{
+                            display: "flex",
+                            justifyContent: "center",
+                            mt: 1.5,
+                            opacity: turning ? 0 : 1,
+                        }}
+                    >
+                        {flipPages
+                            .filter(
+                                ({ spreadIndex }) =>
+                                    spreadIndex === currentSpread,
+                            )
+                            .map(({ pageIndex }, index) => (
+                                <Typography
+                                    key={index}
+                                    sx={{
+                                        width: pageSize,
+                                        fontSize: 14,
+                                        lineHeight: "18px",
+                                        color: uiColors.muted,
+                                        fontWeight: 600,
+                                        textAlign: "center",
+                                    }}
+                                >
+                                    {pageIndex === null
+                                        ? "Blank page (required)"
+                                        : pageIndex === 0
+                                          ? "Cover"
+                                          : pageIndex === pages.length - 1
+                                            ? "Back cover"
+                                            : pageIndex}
+                                </Typography>
+                            ))}
                     </Box>
                     <Box
                         sx={{

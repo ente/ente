@@ -1,8 +1,7 @@
 import { headerButtonSx } from "@/theme/buttons";
-import { toolbarColors, toolbarShadow } from "@/theme/colors";
+import { toolbarColors } from "@/theme/colors";
 import { Box, IconButton } from "@mui/material";
 import type { ReactNode } from "react";
-import BookBindingSelect from "./BookBindingSelect";
 import BookTitleInput from "./BookTitleInput";
 import { EDITOR_HEADER_HEIGHT } from "./editorLayout";
 import { CloseSidebarIcon, OpenSidebarIcon } from "./icons";
@@ -11,7 +10,6 @@ export default function BookHeader({
     children,
     center,
     showBookControls = true,
-    showBindingSelect = false,
     titleDisabled = false,
     sidebarOpen,
     onToggleSidebar,
@@ -19,7 +17,6 @@ export default function BookHeader({
     children: ReactNode;
     center?: ReactNode;
     showBookControls?: boolean;
-    showBindingSelect?: boolean;
     titleDisabled?: boolean;
     sidebarOpen?: boolean;
     onToggleSidebar?: () => void;
@@ -32,7 +29,7 @@ export default function BookHeader({
                 gridTemplateColumns: {
                     xs: "minmax(0, 1fr) minmax(0, max-content)",
                     md: center
-                        ? "minmax(0, 1fr) auto minmax(0, 1fr)"
+                        ? "minmax(0, 1fr) auto minmax(max-content, 1fr)"
                         : "minmax(0, 1fr) auto",
                 },
                 alignItems: "center",
@@ -69,9 +66,12 @@ export default function BookHeader({
                                 borderRadius: headerButtonSx.borderRadius,
                                 flexShrink: 0,
                                 color: toolbarColors.text,
-                                bgcolor: toolbarColors.background,
-                                boxShadow: toolbarShadow,
-                                "&:hover": { bgcolor: toolbarColors.hover },
+                                bgcolor: "transparent",
+                                boxShadow: "none",
+                                transition: "background-color 120ms ease",
+                                "&:hover, &.Mui-focusVisible": {
+                                    bgcolor: toolbarColors.background,
+                                },
                                 "&:active": { bgcolor: toolbarColors.active },
                             }}
                         >
@@ -99,40 +99,15 @@ export default function BookHeader({
             )}
             <Box
                 sx={{
-                    gridColumn: center ? 3 : 2,
+                    gridColumn: { xs: 2, md: center ? 3 : 2 },
                     gridRow: 1,
                     justifySelf: "end",
-                    display: showBookControls
-                        ? { xs: "contents", md: "flex" }
-                        : "none",
+                    display: showBookControls ? "flex" : "none",
                     alignItems: "center",
                     gap: 1,
                 }}
             >
-                {showBindingSelect && (
-                    <Box
-                        sx={{
-                            gridColumn: 2,
-                            gridRow: 2,
-                            justifySelf: "end",
-                            display: "flex",
-                        }}
-                    >
-                        <BookBindingSelect disabled={titleDisabled} />
-                    </Box>
-                )}
-                <Box
-                    sx={{
-                        gridColumn: 2,
-                        gridRow: 1,
-                        justifySelf: "end",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1,
-                    }}
-                >
-                    {children}
-                </Box>
+                {children}
             </Box>
         </Box>
     );

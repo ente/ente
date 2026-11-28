@@ -1,4 +1,8 @@
-import { getPrintProduct, type PrintSelection } from "@/lib/printProducts";
+import {
+    getPrintProduct,
+    NO_PHOTOS_ERROR,
+    type PrintSelection,
+} from "@/lib/printProducts";
 import { uiColors } from "@/theme/colors";
 import {
     dialogActionSx,
@@ -10,7 +14,7 @@ import {
 } from "@/theme/dialogs";
 import { Box, Button, Dialog, IconButton, Typography } from "@mui/material";
 import { useId, useState } from "react";
-import { CloseIcon, InfoIcon } from "./icons";
+import { AddPhotosIcon, CloseIcon, InfoIcon } from "./icons";
 
 export interface PrintValidation {
     selection: PrintSelection;
@@ -32,9 +36,13 @@ export default function PrintValidationDialog({
     const close = () => setOpen(false);
     const { selection, pageCount, error } = validation;
     const { minPages, maxPages } = getPrintProduct(selection.productId)!;
+    const needsPhoto = error === NO_PHOTOS_ERROR;
+    const Icon = needsPhoto ? AddPhotosIcon : InfoIcon;
     let title = "Update your book";
     let description = error;
-    if (pageCount < minPages) {
+    if (needsPhoto) {
+        title = "Add a photo";
+    } else if (pageCount < minPages) {
         title = "Too few pages";
         description = `At least ${minPages} pages are required, including the front and back covers.`;
     } else if (pageCount > maxPages) {
@@ -83,7 +91,7 @@ export default function PrintValidationDialog({
                             color: uiColors.muted,
                         }}
                     >
-                        <InfoIcon sx={{ fontSize: 72 }} />
+                        <Icon sx={{ fontSize: 72 }} />
                     </Box>
                     <Box sx={dialogHeaderSx}>
                         <Typography
