@@ -13,7 +13,7 @@ abstract class AccountSettingsHost {
     String? feedback,
   });
 
-  Future<void> logout();
+  Future<void> logoutLocally();
 
   Future<List<ActiveSession>> listActiveSessions();
 

@@ -150,7 +150,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
         reason: reason.apiValue,
         feedback: _optionalFeedback,
       );
-      await _host.logout();
+      await _host.logoutLocally();
       if (!mounted) {
         return;
       }

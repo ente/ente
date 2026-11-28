@@ -467,6 +467,9 @@ class Configuration implements LockScreenHost, AccountSettingsHost {
   );
 
   @override
+  Future<void> logoutLocally() => logout();
+
+  @override
   Future<List<ActiveSession>> listActiveSessions() =>
       active_sessions.listActiveSessions(session: authenticatedSession());
 
