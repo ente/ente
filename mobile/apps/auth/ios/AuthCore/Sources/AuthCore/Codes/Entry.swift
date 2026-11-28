@@ -1,11 +1,7 @@
 import Foundation
 
-public enum WatchError: String, Error, Equatable, Sendable {
+public enum CodeError: Error {
   case invalidData
-  case wrongEnrollment
-  case payloadTooLarge
-  case phoneLocked
-  case staleVault
 }
 
 public struct Entry: Codable, Identifiable, Sendable, Equatable {
@@ -25,15 +21,15 @@ public struct Entry: Codable, Identifiable, Sendable, Equatable {
   public let tags: [String]
 
   public func validate() throws {
-    guard !id.isEmpty, !secret.isEmpty else { throw WatchError.invalidData }
+    guard !id.isEmpty, !secret.isEmpty else { throw CodeError.invalidData }
     switch generator {
     case .totp:
       guard (1...10).contains(digits), (1...Int(Int32.max)).contains(period) else {
-        throw WatchError.invalidData
+        throw CodeError.invalidData
       }
     case .steam:
       guard algorithm == .sha1, digits == 5, period == 30 else {
-        throw WatchError.invalidData
+        throw CodeError.invalidData
       }
     }
   }
@@ -46,23 +42,21 @@ public struct Entry: Codable, Identifiable, Sendable, Equatable {
       case .steam:
         OTP.steam(secret: secret, at: date)
       }
-    guard let code else { throw WatchError.invalidData }
+    guard let code else { throw CodeError.invalidData }
     return code
   }
 }
 
 public struct Snapshot: Codable, Sendable, Equatable {
   public let entries: [Entry]
-  public let hideCodes: Bool
 
-  public init(entries: [Entry], hideCodes: Bool = false) {
+  public init(entries: [Entry]) {
     self.entries = entries
-    self.hideCodes = hideCodes
   }
 
   public func validate() throws {
     guard Set(entries.map(\.id)).count == entries.count else {
-      throw WatchError.invalidData
+      throw CodeError.invalidData
     }
     for entry in entries { try entry.validate() }
   }

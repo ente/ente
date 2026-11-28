@@ -8,7 +8,6 @@
     public enum Issue: Equatable { case passcodeRequired, unlockWatch, syncFailed }
 
     @Published public private(set) var entries: [Entry] = []
-    @Published public private(set) var hideCodes = false
     @Published public private(set) var status = WatchStatus(enrollment: nil, receipt: nil)
     @Published public private(set) var issue: Issue?
     @Published public private(set) var canEnroll = false
@@ -35,7 +34,6 @@
         reload()
       } else {
         entries = []
-        hideCodes = false
       }
     }
 
@@ -52,7 +50,6 @@
 
     public func erase() {
       entries = []
-      hideCodes = false
       do {
         try repository.erase()
         status = WatchStatus(enrollment: nil, receipt: nil)
@@ -69,18 +66,15 @@
         let state = applied.state
         canEnroll = CipherSuite.supported.contains { phone?.suites.contains($0) == true }
         entries = visible ? state.snapshot.entries : []
-        hideCodes = visible && state.snapshot.hideCodes
         status = WatchStatus(enrollment: state.enrollment, receipt: state.receipt)
         do { try sendStatus() } catch { syncFailed = true }
         issue = syncFailed ? .syncFailed : nil
         requestPhoneContext()
       } catch is KeychainError {
         entries = []
-        hideCodes = false
         issue = .unlockWatch
       } catch {
         entries = []
-        hideCodes = false
         issue = .syncFailed
         status = WatchStatus(
           enrollment: try? repository.enrollment(), receipt: nil, storageError: true)

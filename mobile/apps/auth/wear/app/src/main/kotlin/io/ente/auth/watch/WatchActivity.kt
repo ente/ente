@@ -76,6 +76,7 @@ import androidx.wear.compose.material3.IconButtonDefaults
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.SurfaceTransformation
+import androidx.wear.compose.material3.SwitchButton
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.lazy.rememberTransformationSpec
 import androidx.wear.compose.material3.lazy.transformedHeight
@@ -145,7 +146,9 @@ private fun AuthWatchRoot(
     var selectedEntryId by rememberSaveable { mutableStateOf<String?>(null) }
     val preferences = remember { context.getSharedPreferences("watch", Context.MODE_PRIVATE) }
     var selectedTag by remember { mutableStateOf(preferences.getString("selectedTag", null)) }
+    var hideCodes by remember { mutableStateOf(preferences.getBoolean("hideCodes", false)) }
     var pickingTag by rememberSaveable { mutableStateOf(false) }
+    var managing by rememberSaveable { mutableStateOf(false) }
     val accountsListState = rememberTransformingLazyColumnState()
     var seconds by remember { mutableLongStateOf(System.currentTimeMillis() / 1000) }
 
@@ -172,6 +175,9 @@ private fun AuthWatchRoot(
     LaunchedEffect(selectedTag) {
         preferences.edit { putString("selectedTag", selectedTag) }
     }
+    LaunchedEffect(hideCodes) {
+        preferences.edit { putBoolean("hideCodes", hideCodes) }
+    }
 
     val isHidden = state.message == WatchCompanion.Message.hidden
     LaunchedEffect(isHidden, state.entries, availableTags) {
@@ -185,6 +191,9 @@ private fun AuthWatchRoot(
     }
     BackHandler(enabled = !isHidden && pickingTag) {
         pickingTag = false
+    }
+    BackHandler(enabled = !isHidden && managing) {
+        managing = false
     }
 
     AppScaffold {
@@ -214,6 +223,16 @@ private fun AuthWatchRoot(
                         pickingTag = false
                     },
                 )
+            } else if (managing) {
+                ManageScreen(
+                    hideCodes = hideCodes,
+                    onHideCodesChange = { hideCodes = it },
+                    onRetry = companion::retry,
+                    onErase = {
+                        companion.erase()
+                        managing = false
+                    },
+                )
             } else {
                 AccountsScreen(
                     state = state,
@@ -221,12 +240,12 @@ private fun AuthWatchRoot(
                     seconds = seconds,
                     availableTags = availableTags,
                     selectedTag = currentTag,
+                    hideCodes = hideCodes,
                     onPickTag = { pickingTag = true },
                     onSelectEntry = { selectedEntryId = it },
                     onEnroll = companion::enroll,
                     onUnlock = onRequestUnlock,
-                    onRetry = companion::retry,
-                    onErase = companion::erase,
+                    onManage = { managing = true },
                 )
             }
         }
@@ -240,14 +259,13 @@ private fun AccountsScreen(
     seconds: Long,
     availableTags: List<String>,
     selectedTag: String?,
+    hideCodes: Boolean,
     onPickTag: () -> Unit,
     onSelectEntry: (String) -> Unit,
     onEnroll: () -> Unit,
     onUnlock: () -> Unit,
-    onRetry: () -> Unit,
-    onErase: () -> Unit,
+    onManage: () -> Unit,
 ) {
-    var confirmErase by remember { mutableStateOf(false) }
     val transformationSpec = rememberTransformationSpec()
     val statusText = remember(state.message, state.entries) {
         if (state.message == WatchCompanion.Message.offline && state.entries.isNotEmpty()) null
@@ -257,7 +275,7 @@ private fun AccountsScreen(
         if (selectedTag == null) state.entries
         else state.entries.filter { selectedTag in it.tags }
     }
-    val sharedPeriod = if (state.hideCodes) null else filteredEntries.map { it.period }.distinct().singleOrNull()
+    val sharedPeriod = if (hideCodes) null else filteredEntries.map { it.period }.distinct().singleOrNull()
 
     ScreenScaffold(scrollState = listState) { contentPadding ->
         if (sharedPeriod != null) {
@@ -308,7 +326,7 @@ private fun AccountsScreen(
                 AccountCard(
                     entry = entry,
                     seconds = seconds,
-                    hideCodes = state.hideCodes,
+                    hideCodes = hideCodes,
                     showsBar = sharedPeriod == null,
                     onClick = { onSelectEntry(entry.id) },
                     transformation = SurfaceTransformation(transformationSpec),
@@ -327,28 +345,72 @@ private fun AccountsScreen(
                 }
             }
             if (state.canErase) {
-                item(key = "sync") {
+                item(key = "manage") {
                     Button(
-                        onClick = onRetry,
+                        onClick = onManage,
                         colors = ButtonDefaults.filledTonalButtonColors(),
                         transformation = SurfaceTransformation(transformationSpec),
                         modifier = Modifier.fillMaxWidth().transformedHeight(this, transformationSpec),
                     ) {
-                        Text(stringResource(R.string.sync))
+                        Text(stringResource(R.string.manage))
                     }
                 }
-                item(key = "erase") {
-                    Button(
-                        onClick = { confirmErase = true },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Black,
-                            contentColor = WatchStyle.destructive,
-                        ),
-                        transformation = SurfaceTransformation(transformationSpec),
-                        modifier = Modifier.fillMaxWidth().transformedHeight(this, transformationSpec),
-                    ) {
-                        Text(stringResource(R.string.erase))
-                    }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ManageScreen(
+    hideCodes: Boolean,
+    onHideCodesChange: (Boolean) -> Unit,
+    onRetry: () -> Unit,
+    onErase: () -> Unit,
+) {
+    var confirmErase by remember { mutableStateOf(false) }
+    val listState = rememberTransformingLazyColumnState()
+    val transformationSpec = rememberTransformationSpec()
+
+    ScreenScaffold(scrollState = listState) { contentPadding ->
+        TransformingLazyColumn(
+            state = listState,
+            contentPadding = contentPadding,
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            item(key = "title") {
+                ScreenTitle(stringResource(R.string.manage))
+            }
+            item(key = "hide-codes") {
+                SwitchButton(
+                    checked = hideCodes,
+                    onCheckedChange = onHideCodesChange,
+                    transformation = SurfaceTransformation(transformationSpec),
+                    modifier = Modifier.fillMaxWidth().transformedHeight(this, transformationSpec),
+                ) {
+                    Text(stringResource(R.string.hide_codes))
+                }
+            }
+            item(key = "sync") {
+                Button(
+                    onClick = onRetry,
+                    colors = ButtonDefaults.filledTonalButtonColors(),
+                    transformation = SurfaceTransformation(transformationSpec),
+                    modifier = Modifier.fillMaxWidth().transformedHeight(this, transformationSpec),
+                ) {
+                    Text(stringResource(R.string.sync))
+                }
+            }
+            item(key = "erase") {
+                Button(
+                    onClick = { confirmErase = true },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Black,
+                        contentColor = WatchStyle.destructive,
+                    ),
+                    transformation = SurfaceTransformation(transformationSpec),
+                    modifier = Modifier.fillMaxWidth().transformedHeight(this, transformationSpec),
+                ) {
+                    Text(stringResource(R.string.erase))
                 }
             }
         }

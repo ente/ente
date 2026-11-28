@@ -20,6 +20,8 @@
     <string name="next_code_spoken">Next code: %1$s</string>
     <string name="unlock">Unlock watch</string>
     <string name="pinned">Pinned</string>
+    <string name="hide_codes">Hide codes</string>
+    <string name="manage">Manage</string>
     <string name="erase">Erase watch data</string>
     <string name="erase_title">Erase watch data?</string>
     <string name="erase_description">Your phone keeps its accounts.</string>

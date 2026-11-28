@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:ente_auth/core/configuration.dart';
 import 'package:ente_auth/events/codes_updated_event.dart';
-import 'package:ente_auth/models/watch/snapshot.dart';
+import 'package:ente_auth/models/code_snapshot.dart';
 import 'package:ente_auth/models/watch/state.dart';
 import 'package:ente_auth/services/preference_service.dart';
 import 'package:ente_auth/store/code_store.dart';
@@ -185,10 +185,7 @@ class WatchService extends ChangeNotifier with WidgetsBindingObserver {
         return;
       }
       sortAuthCodes(codes, PreferenceService.instance.codeSortKey());
-      final snapshot = WatchSnapshot.fromCodes(
-        codes,
-        hideCodes: PreferenceService.instance.shouldHideCodes(),
-      );
+      final snapshot = CodeSnapshot.fromCodes(codes);
       _accept(
         await _call('publish', {
           'enrollmentID': id,
